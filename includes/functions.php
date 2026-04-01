@@ -11,59 +11,54 @@ function isLoggedIn(): bool {
 }
 
 /**
- * Get current user data from session (fetches from DB)
+ * Get current user data from DB (cached in session)
  */
 function getCurrentUser(): ?array {
-    if (!isLoggedIn()) {
-        return null;
+    if (!isLoggedIn()) return null;
+    if (isset($_SESSION['user_data'])) return $_SESSION['user_data'];
+
+    $db = getDB();
+    $stmt = $db->prepare("SELECT id, username, email, role, phone, is_active FROM users WHERE id = ? AND is_active = 1");
+    $stmt->execute([$_SESSION['user_id']]);
+    $user = $stmt->fetch();
+    if ($user) {
+        $_SESSION['user_data'] = $user;
+        return $user;
     }
-    static $user = null;
-    if ($user === null) {
-        $pdo = getDB();
-        $stmt = $pdo->prepare("SELECT id, username, email, role, phone, is_active FROM users WHERE id = ? AND is_active = 1");
-        $stmt->execute([$_SESSION['user_id']]);
-        $user = $stmt->fetch() ?: null;
-    }
-    return $user;
+    // User deactivated
+    session_destroy();
+    return null;
 }
 
 /**
- * Check if current user has the given role(s)
- * @param string|array $role
+ * Check if current user has specific role(s)
  */
 function hasRole($role): bool {
-    $user = getCurrentUser();
-    if (!$user) return false;
-    if (is_array($role)) {
-        return in_array($user['role'], $role);
-    }
-    // superadmin has access to all roles
-    if ($user['role'] === 'superadmin') return true;
-    // admin has access to admin and below
-    if ($user['role'] === 'admin' && in_array($role, ['admin', 'manager', 'buyer'])) return true;
-    // manager has access to manager and buyer
-    if ($user['role'] === 'manager' && in_array($role, ['manager', 'buyer'])) return true;
-    return $user['role'] === $role;
+    if (!isLoggedIn()) return false;
+    $roles = is_array($role) ? $role : [$role];
+    return in_array($_SESSION['role'] ?? '', $roles, true);
 }
 
 /**
- * Require role or redirect to login/403
- * @param string|array $role
+ * Require specific role(s) - redirect if missing
  */
 function requireRole($role): void {
     if (!isLoggedIn()) {
-        flashMessage('warning', 'Для доступа к этой странице необходимо войти в систему.');
-        redirect(APP_URL . '/auth/login.php');
+        redirect(APP_URL . '/auth/login.php?redirect=' . urlencode($_SERVER['REQUEST_URI']));
     }
-    if (!hasRole($role)) {
-        http_response_code(403);
-        flashMessage('danger', 'У вас нет прав для просмотра этой страницы.');
+    $roles = is_array($role) ? $role : [$role];
+    // superadmin has access everywhere
+    if (in_array('superadmin', $roles, true) || $_SESSION['role'] === 'superadmin') {
+        if ($_SESSION['role'] === 'superadmin') return;
+    }
+    if (!in_array($_SESSION['role'] ?? '', $roles, true)) {
+        flashMessage('danger', 'Доступ запрещён. Недостаточно прав.');
         redirect(APP_URL . '/index.php');
     }
 }
 
 /**
- * Header redirect
+ * Redirect helper
  */
 function redirect(string $url): void {
     header('Location: ' . $url);
@@ -71,21 +66,22 @@ function redirect(string $url): void {
 }
 
 /**
- * Sanitize input
+ * Sanitize output
  */
 function sanitize($input): string {
-    return htmlspecialchars(trim((string)$input), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    return htmlspecialchars((string)$input, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }
 
 /**
- * Format price as "12 500 ₽"
+ * Format price as Russian ruble
  */
 function formatPrice($price): string {
-    return number_format((float)$price, 0, ',', ' ') . ' ₽';
+    $formatted = number_format((float)$price, 0, ',', ' ');
+    return $formatted . ' ₽';
 }
 
 /**
- * Generate CSRF token (session-based)
+ * Generate CSRF token (store in session)
  */
 function generateCsrfToken(): string {
     if (empty($_SESSION['csrf_token'])) {
@@ -98,9 +94,7 @@ function generateCsrfToken(): string {
  * Verify CSRF token
  */
 function verifyCsrfToken(?string $token): bool {
-    if (empty($token) || empty($_SESSION['csrf_token'])) {
-        return false;
-    }
+    if (empty($token) || empty($_SESSION['csrf_token'])) return false;
     return hash_equals($_SESSION['csrf_token'], $token);
 }
 
@@ -108,77 +102,83 @@ function verifyCsrfToken(?string $token): bool {
  * Set flash message
  */
 function flashMessage(string $type, string $message): void {
-    $_SESSION['flash'][] = ['type' => $type, 'message' => $message];
+    $_SESSION['flash'] = ['type' => $type, 'message' => $message];
 }
 
 /**
- * Get and clear flash messages
+ * Get flash message and clear it
  */
-function getFlashMessages(): array {
-    $messages = $_SESSION['flash'] ?? [];
-    unset($_SESSION['flash']);
-    return $messages;
+function getFlashMessage(): ?array {
+    if (!empty($_SESSION['flash'])) {
+        $flash = $_SESSION['flash'];
+        unset($_SESSION['flash']);
+        return $flash;
+    }
+    return null;
 }
 
 /**
- * Get cart count for current user
+ * Get cart item count for logged-in user
  */
 function getCartCount(): int {
     if (!isLoggedIn()) return 0;
-    static $count = null;
-    if ($count === null) {
-        $pdo = getDB();
-        $stmt = $pdo->prepare("SELECT COALESCE(SUM(quantity), 0) FROM cart WHERE user_id = ?");
+    try {
+        $db = getDB();
+        $stmt = $db->prepare("SELECT COALESCE(SUM(quantity), 0) FROM cart WHERE user_id = ?");
         $stmt->execute([$_SESSION['user_id']]);
-        $count = (int)$stmt->fetchColumn();
+        return (int)$stmt->fetchColumn();
+    } catch (Exception $e) {
+        return 0;
     }
-    return $count;
 }
 
 /**
- * Get categories for navigation
+ * Get all active categories (flat list)
  */
-function getCategories(bool $rootOnly = false): array {
-    $pdo = getDB();
-    if ($rootOnly) {
-        $stmt = $pdo->query("SELECT * FROM categories WHERE is_active = 1 AND parent_id IS NULL ORDER BY sort_order ASC");
-    } else {
-        $stmt = $pdo->query("SELECT * FROM categories WHERE is_active = 1 ORDER BY parent_id ASC, sort_order ASC");
+function getCategories(): array {
+    try {
+        $db = getDB();
+        $stmt = $db->query("SELECT * FROM categories WHERE is_active = 1 ORDER BY sort_order, name");
+        return $stmt->fetchAll();
+    } catch (Exception $e) {
+        return [];
     }
-    return $stmt->fetchAll();
 }
 
 /**
- * Get site setting
+ * Get categories as nested tree
  */
-function getSetting(string $key, string $default = ''): string {
-    static $settings = null;
-    if ($settings === null) {
-        $pdo = getDB();
-        $stmt = $pdo->query("SELECT `key`, `value` FROM site_settings");
-        $rows = $stmt->fetchAll();
-        $settings = [];
-        foreach ($rows as $row) {
-            $settings[$row['key']] = $row['value'];
+function getCategoryTree(array $categories, ?int $parentId = null): array {
+    $tree = [];
+    foreach ($categories as $cat) {
+        $catParent = $cat['parent_id'] === null ? null : (int)$cat['parent_id'];
+        if ($catParent === $parentId) {
+            $cat['children'] = getCategoryTree($categories, (int)$cat['id']);
+            $tree[] = $cat;
         }
     }
-    return $settings[$key] ?? $default;
+    return $tree;
 }
 
 /**
- * Truncate text
+ * Get all active brands
  */
-function truncate(string $text, int $length = 100): string {
-    if (mb_strlen($text) <= $length) return $text;
-    return mb_substr($text, 0, $length) . '…';
+function getBrands(): array {
+    try {
+        $db = getDB();
+        $stmt = $db->query("SELECT * FROM brands WHERE is_active = 1 ORDER BY name");
+        return $stmt->fetchAll();
+    } catch (Exception $e) {
+        return [];
+    }
 }
 
 /**
- * Get status label in Russian
+ * Get order status label in Russian
  */
-function getStatusLabel(string $status): string {
+function getOrderStatusLabel(string $status): string {
     $labels = [
-        'pending'    => 'Ожидает',
+        'pending'    => 'Новый',
         'processing' => 'В обработке',
         'shipped'    => 'Отправлен',
         'delivered'  => 'Доставлен',
@@ -188,41 +188,32 @@ function getStatusLabel(string $status): string {
 }
 
 /**
- * Get status CSS class
+ * Get order status CSS class
  */
-function getStatusClass(string $status): string {
+function getOrderStatusClass(string $status): string {
     $classes = [
-        'pending'    => 'status-pending',
-        'processing' => 'status-processing',
-        'shipped'    => 'status-shipped',
-        'delivered'  => 'status-delivered',
-        'cancelled'  => 'status-cancelled',
+        'pending'    => 'warning',
+        'processing' => 'info',
+        'shipped'    => 'primary',
+        'delivered'  => 'success',
+        'cancelled'  => 'danger',
     ];
-    return $classes[$status] ?? '';
+    return $classes[$status] ?? 'secondary';
 }
 
 /**
- * Stock status label
+ * Truncate string
  */
-function getStockLabel(int $stock): string {
-    if ($stock <= 0)  return '<span class="stock-badge out">Нет в наличии</span>';
-    if ($stock <= 5)  return '<span class="stock-badge low">Заканчивается (' . $stock . ' шт.)</span>';
-    return '<span class="stock-badge in">В наличии (' . $stock . ' шт.)</span>';
+function truncate(string $str, int $len = 100, string $suffix = '...'): string {
+    if (mb_strlen($str) <= $len) return $str;
+    return mb_substr($str, 0, $len) . $suffix;
 }
 
 /**
- * Pagination helper
+ * Get stock status label
  */
-function paginate(int $total, int $perPage, int $currentPage): array {
-    $totalPages = (int)ceil($total / $perPage);
-    $offset = ($currentPage - 1) * $perPage;
-    return [
-        'total'       => $total,
-        'per_page'    => $perPage,
-        'current'     => $currentPage,
-        'total_pages' => $totalPages,
-        'offset'      => $offset,
-        'has_prev'    => $currentPage > 1,
-        'has_next'    => $currentPage < $totalPages,
-    ];
+function getStockStatus(int $stock): array {
+    if ($stock <= 0)  return ['label' => 'Нет в наличии', 'class' => 'danger'];
+    if ($stock <= 5)  return ['label' => 'Заканчивается', 'class' => 'warning'];
+    return ['label' => 'В наличии', 'class' => 'success'];
 }
