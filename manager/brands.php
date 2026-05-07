@@ -1,157 +1,75 @@
 <?php
-require_once dirname(__DIR__) . '/config/config.php';
-requireRole(['manager', 'superadmin']);
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/admin_layout.php';
+requireRole(['manager','admin','superadmin']);
 
-$db     = getDB();
-$csrf   = generateCsrfToken();
-$action = $_GET['action'] ?? 'list';
-$editId = (int)($_GET['id'] ?? 0);
-$errors = [];
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        flashMessage('danger', 'CSRF error.'); redirect(APP_URL . '/manager/brands.php');
-    }
-    $postAction = $_POST['action'] ?? '';
-
-    if ($postAction === 'delete') {
-        $delId = (int)($_POST['id'] ?? 0);
-        $cnt = $db->prepare("SELECT COUNT(*) FROM parts WHERE brand_id = ? AND is_active = 1");
-        $cnt->execute([$delId]);
-        if ((int)$cnt->fetchColumn() > 0) {
-            flashMessage('danger', 'Нельзя удалить бренд — есть привязанные товары.');
-        } else {
-            $db->prepare("UPDATE brands SET is_active = 0 WHERE id = ?")->execute([$delId]);
-            flashMessage('success', 'Бренд удалён.');
-        }
-        redirect(APP_URL . '/manager/brands.php');
-    }
-
-    $name    = trim($_POST['name'] ?? '');
-    $slug    = trim($_POST['slug'] ?? '');
-    $country = trim($_POST['country'] ?? '');
-    $desc    = trim($_POST['description'] ?? '');
-    $bid     = (int)($_POST['id'] ?? 0);
-
-    if (empty($name)) $errors[] = 'Укажите название бренда.';
-    if (empty($slug)) $slug = mb_strtolower(preg_replace('/[^a-z0-9]+/i', '-', $name));
-
-    if (empty($errors)) {
-        $chk = $db->prepare("SELECT id FROM brands WHERE slug = ? AND id != ?");
-        $chk->execute([$slug, $bid]);
-        if ($chk->fetch()) $errors[] = 'Такой слаг уже существует.';
-    }
-
-    if (empty($errors)) {
-        if ($bid) {
-            $db->prepare("UPDATE brands SET name=?, slug=?, country=?, description=? WHERE id=?")
-               ->execute([$name, $slug, $country ?: null, $desc ?: null, $bid]);
-            flashMessage('success', 'Бренд обновлён.');
-        } else {
-            $db->prepare("INSERT INTO brands (name, slug, country, description) VALUES (?,?,?,?)")
-               ->execute([$name, $slug, $country ?: null, $desc ?: null]);
-            flashMessage('success', 'Бренд добавлен.');
-        }
-        redirect(APP_URL . '/manager/brands.php');
-    }
-    $action = $bid ? 'edit' : 'new';
-    $editId = $bid;
+$db = getDB();
+if ($_SERVER['REQUEST_METHOD']==='POST' && verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+    $a = $_POST['action'] ?? '';
+    if ($a==='create') $db->prepare("INSERT INTO brands (name,slug,country,description,is_active) VALUES (?,?,?,?,1)")
+        ->execute([trim($_POST['name']), trim($_POST['slug']), trim($_POST['country'] ?? '') ?: null, trim($_POST['description'] ?? '') ?: null]);
+    if ($a==='update') $db->prepare("UPDATE brands SET name=?, slug=?, country=?, description=?, is_active=? WHERE id=?")
+        ->execute([trim($_POST['name']), trim($_POST['slug']), trim($_POST['country'] ?? '') ?: null, trim($_POST['description'] ?? '') ?: null, isset($_POST['is_active'])?1:0, (int)$_POST['id']]);
+    if ($a==='delete') $db->prepare("UPDATE brands SET is_active=0 WHERE id=?")->execute([(int)$_POST['id']]);
+    redirect(APP_URL . '/manager/brands.php');
 }
-
-$editBrand = null;
-if ($editId && $action === 'edit') {
-    $stmt = $db->prepare("SELECT * FROM brands WHERE id = ?");
-    $stmt->execute([$editId]);
-    $editBrand = $stmt->fetch();
-}
-
-$brands = $db->query(
-    "SELECT b.*, (SELECT COUNT(*) FROM parts p WHERE p.brand_id = b.id AND p.is_active = 1) AS part_count
-     FROM brands b WHERE b.is_active = 1 ORDER BY b.name"
-)->fetchAll();
+$editId = (int)($_GET['edit'] ?? 0);
+$editing = $editId ? $db->query("SELECT * FROM brands WHERE id={$editId}")->fetch() : null;
+$brands = $db->query("SELECT * FROM brands ORDER BY name")->fetchAll();
 
 $pageTitle = 'Бренды';
-require_once dirname(__DIR__) . '/includes/header.php';
-require_once dirname(__DIR__) . '/includes/nav.php';
+$adminArea = true;
+require_once __DIR__ . '/../includes/header.php';
 ?>
-
 <div class="dash-layout">
-  <div class="dash-sidebar"><?php renderNav(); ?></div>
+  <?php renderAdminSidebar(); ?>
   <div class="dash-main">
-    <div class="dash-heading flex-between" style="font-size:1.5rem;">
-      БРЕНДЫ
-      <?php if ($action === 'list'): ?>
-        <a href="?action=new" class="btn btn-primary btn-sm">+ Добавить</a>
-      <?php else: ?>
-        <a href="<?= APP_URL ?>/manager/brands.php" class="btn btn-outline btn-sm">← Список</a>
-      <?php endif; ?>
-    </div>
-
-    <?php if ($action === 'new' || $action === 'edit'): ?>
-    <div style="max-width:540px;">
-      <div class="card">
-        <div class="card-header"><h3><?= $action === 'edit' ? 'РЕДАКТИРОВАТЬ БРЕНД' : 'НОВЫЙ БРЕНД' ?></h3></div>
-        <div class="card-body">
-          <?php if (!empty($errors)): ?>
-          <div class="alert alert-danger mb-16">
-            <?php foreach ($errors as $e): ?><div>• <?= sanitize($e) ?></div><?php endforeach; ?>
-          </div>
-          <?php endif; ?>
-          <form method="post" action="">
-            <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
-            <input type="hidden" name="action" value="<?= $action === 'edit' ? 'edit' : 'add' ?>">
-            <?php if ($editBrand): ?><input type="hidden" name="id" value="<?= $editBrand['id'] ?>"><?php endif; ?>
-
-            <div class="form-group">
-              <label class="form-label">Название бренда *</label>
-              <input type="text" name="name" class="form-input" value="<?= sanitize($editBrand['name'] ?? '') ?>" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Слаг (URL)</label>
-              <input type="text" name="slug" class="form-input" value="<?= sanitize($editBrand['slug'] ?? '') ?>" placeholder="auto-generated">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Страна производителя</label>
-              <input type="text" name="country" class="form-input" value="<?= sanitize($editBrand['country'] ?? '') ?>" placeholder="Германия">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Описание</label>
-              <textarea name="description" class="form-textarea" rows="3"><?= sanitize($editBrand['description'] ?? '') ?></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary"><?= $action === 'edit' ? 'СОХРАНИТЬ' : 'ДОБАВИТЬ' ?></button>
-          </form>
+    <h1 class="dash-heading">Бренды</h1>
+    <div class="admin-card mb-32">
+      <h3 style="margin-bottom:14px"><?= $editing?'Редактировать':'Добавить бренд' ?></h3>
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
+        <input type="hidden" name="action" value="<?= $editing?'update':'create' ?>">
+        <?php if ($editing): ?><input type="hidden" name="id" value="<?= (int)$editing['id'] ?>"><?php endif; ?>
+        <div class="form-row">
+          <input type="text" name="name" class="form-input" placeholder="Название" required value="<?= sanitize($editing['name'] ?? '') ?>">
+          <input type="text" name="slug" class="form-input" placeholder="slug" required value="<?= sanitize($editing['slug'] ?? '') ?>">
+          <input type="text" name="country" class="form-input" placeholder="Страна" value="<?= sanitize($editing['country'] ?? '') ?>">
         </div>
-      </div>
+        <textarea name="description" class="form-textarea mt-8" placeholder="Описание"><?= sanitize($editing['description'] ?? '') ?></textarea>
+        <?php if ($editing): ?>
+          <label class="mt-8" style="display:block"><input type="checkbox" name="is_active" value="1" <?= (int)$editing['is_active']?'checked':'' ?>> Активен</label>
+        <?php endif; ?>
+        <button class="btn btn-primary mt-16"><?= $editing?'Сохранить':'Добавить' ?></button>
+        <?php if ($editing): ?><a href="?" class="btn btn-outline">Отмена</a><?php endif; ?>
+      </form>
     </div>
-    <?php else: ?>
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead><tr><th>#</th><th>Название</th><th>Слаг</th><th>Страна</th><th style="text-align:center;">Товаров</th><th>Описание</th><th></th></tr></thead>
+
+    <div class="admin-card">
+      <h3 style="margin-bottom:14px">Все бренды (<?= count($brands) ?>)</h3>
+      <div class="admin-table-wrap"><table class="admin-table">
+        <thead><tr><th>Название</th><th>Страна</th><th>Slug</th><th>Активен</th><th></th></tr></thead>
         <tbody>
-          <?php foreach ($brands as $b): ?>
+        <?php foreach ($brands as $b): ?>
           <tr>
-            <td><span class="mono"><?= $b['id'] ?></span></td>
-            <td style="font-weight:600;font-size:0.875rem;"><?= sanitize($b['name']) ?></td>
-            <td style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-muted);"><?= sanitize($b['slug']) ?></td>
-            <td style="color:var(--text-muted);font-size:0.825rem;"><?= sanitize($b['country'] ?? '—') ?></td>
-            <td style="text-align:center;font-family:var(--font-mono);"><?= $b['part_count'] ?></td>
-            <td style="font-size:0.8rem;color:var(--text-muted);"><?= sanitize(truncate($b['description'] ?? '', 60)) ?></td>
-            <td>
-              <a href="?action=edit&id=<?= $b['id'] ?>" class="btn btn-outline btn-sm">Ред.</a>
-              <form method="post" action="" style="display:inline;" onsubmit="return confirm('Удалить бренд?')">
-                <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
+            <td><strong><?= sanitize($b['name']) ?></strong></td>
+            <td><?= sanitize($b['country'] ?? '—') ?></td>
+            <td><span class="mono"><?= sanitize($b['slug']) ?></span></td>
+            <td><span class="badge badge-<?= $b['is_active']?'success':'danger' ?>"><?= $b['is_active']?'Да':'Нет' ?></span></td>
+            <td class="actions">
+              <a href="?edit=<?= (int)$b['id'] ?>" class="btn btn-outline btn-sm">✏</a>
+              <form method="post" onsubmit="return confirm('Деактивировать?')" style="display:inline">
+                <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
                 <input type="hidden" name="action" value="delete">
-                <input type="hidden" name="id" value="<?= $b['id'] ?>">
-                <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                <input type="hidden" name="id" value="<?= (int)$b['id'] ?>">
+                <button class="btn btn-outline btn-sm">🗑</button>
               </form>
             </td>
           </tr>
-          <?php endforeach; ?>
+        <?php endforeach; ?>
         </tbody>
-      </table>
+      </table></div>
     </div>
-    <?php endif; ?>
   </div>
 </div>
-
-<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>
