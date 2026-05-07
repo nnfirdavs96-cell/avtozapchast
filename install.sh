@@ -32,7 +32,53 @@ cd /var/www/html
 sudo rm -rf avtozapchast
 sudo git clone https://github.com/nnfirdavs96-cell/avtozapchast.git
 cd avtozapchast
-sudo git checkout main
+
+# Настраиваем конфиг БД
+sudo tee config/database.php > /dev/null <<'PHP'
+<?php
+define('DB_HOST', 'localhost');
+define('DB_USER', 'avto');
+define('DB_PASS', 'avto123');
+define('DB_NAME', 'avtozapchast');
+
+function getDB() {
+    static $pdo = null;
+    if ($pdo === null) {
+        try {
+            $pdo = new PDO(
+                "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+                DB_USER, DB_PASS,
+                [
+                    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES   => false,
+                ]
+            );
+        } catch (PDOException $e) {
+            die(json_encode(['error' => 'DB connection failed: ' . $e->getMessage()]));
+        }
+    }
+    return $pdo;
+}
+PHP
+
+# Настраиваем APP_URL
+SERVER_IP_CFG=$(hostname -I | awk '{print $1}')
+sudo tee config/config.php > /dev/null <<PHP
+<?php
+define('APP_NAME', 'АвтоЗапчасть');
+define('APP_URL', 'http://$SERVER_IP_CFG/avtozapchast');
+define('APP_ROOT', dirname(__DIR__));
+define('UPLOAD_PATH', APP_ROOT . '/assets/uploads/');
+define('UPLOAD_URL', APP_URL . '/assets/uploads/');
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+require_once APP_ROOT . '/config/database.php';
+require_once APP_ROOT . '/includes/functions.php';
+PHP
 
 # 5. Заливаем схему и данные в БД
 echo "[5/6] Заливаем базу данных..."
