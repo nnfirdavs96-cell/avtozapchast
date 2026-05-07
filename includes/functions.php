@@ -210,6 +210,25 @@ function truncate(string $str, int $len = 100, string $suffix = '...'): string {
 }
 
 /**
+ * Get array of image URLs from parts.images JSON field
+ */
+function getPartImages($imagesJson): array {
+    if (empty($imagesJson)) return [];
+    $images = is_array($imagesJson) ? $imagesJson : json_decode($imagesJson, true);
+    if (!is_array($images)) return [];
+    $base = rtrim(UPLOAD_URL, '/') . '/parts/';
+    return array_values(array_filter(array_map(fn($f) => $f ? $base . ltrim($f, '/') : null, $images)));
+}
+
+/**
+ * Get first image URL or null
+ */
+function getPartFirstImage($imagesJson): ?string {
+    $imgs = getPartImages($imagesJson);
+    return $imgs[0] ?? null;
+}
+
+/**
  * Get stock status label
  */
 function getStockStatus(int $stock): array {

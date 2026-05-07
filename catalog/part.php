@@ -201,17 +201,33 @@ require_once dirname(__DIR__) . '/includes/header.php';
   <!-- Detail grid -->
   <div class="part-detail-grid">
     <!-- Image -->
+    <?php $partImages = getPartImages($part['images'] ?? null); ?>
     <div>
-      <div class="part-img-box">
-        <div class="part-img-bg"></div>
-        <div class="part-img-icon">
-          <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.5">
-            <rect x="2" y="7" width="20" height="10" rx="1"/>
-            <path d="M8 7V5M16 7V5M4 12h2M18 12h2M8 12h8"/>
-          </svg>
-        </div>
-        <span class="part-number-big"><?= sanitize($part['part_number']) ?></span>
+      <div class="part-img-box" id="part-main-img-box">
+        <?php if (!empty($partImages)): ?>
+          <img id="part-main-img" src="<?= sanitize($partImages[0]) ?>" alt="<?= sanitize($part['name']) ?>" style="width:100%;height:100%;object-fit:contain;display:block;background:#000;">
+        <?php else: ?>
+          <div class="part-img-bg"></div>
+          <div class="part-img-icon">
+            <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.5">
+              <rect x="2" y="7" width="20" height="10" rx="1"/>
+              <path d="M8 7V5M16 7V5M4 12h2M18 12h2M8 12h8"/>
+            </svg>
+          </div>
+          <span class="part-number-big"><?= sanitize($part['part_number']) ?></span>
+        <?php endif; ?>
       </div>
+      <?php if (count($partImages) > 1): ?>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+        <?php foreach ($partImages as $thumb): ?>
+        <button type="button" onclick="document.getElementById('part-main-img').src=this.dataset.src;"
+          data-src="<?= sanitize($thumb) ?>"
+          style="background:none;border:1px solid var(--border);border-radius:4px;padding:0;cursor:pointer;width:72px;height:72px;overflow:hidden;">
+          <img src="<?= sanitize($thumb) ?>" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
+        </button>
+        <?php endforeach; ?>
+      </div>
+      <?php endif; ?>
     </div>
 
     <!-- Info -->
@@ -300,13 +316,18 @@ require_once dirname(__DIR__) . '/includes/header.php';
     <div class="grid-4">
       <?php foreach ($related as $rel):
         $relStock = getStockStatus((int)$rel['stock']);
+        $relImg   = getPartFirstImage($rel['images'] ?? null);
       ?>
       <div class="part-card">
         <a href="<?= APP_URL ?>/catalog/part.php?id=<?= $rel['id'] ?>" style="text-decoration:none;">
           <div class="part-card-img">
+            <?php if ($relImg): ?>
+              <img src="<?= sanitize($relImg) ?>" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
+            <?php else: ?>
             <div class="part-card-img-placeholder">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><rect x="2" y="7" width="20" height="10" rx="1"/></svg>
             </div>
+            <?php endif; ?>
             <span class="part-number-badge"><?= sanitize($rel['part_number']) ?></span>
           </div>
         </a>

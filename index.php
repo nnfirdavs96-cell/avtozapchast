@@ -392,15 +392,22 @@ require_once __DIR__ . '/includes/header.php';
 
   <div class="parts-grid">
     <?php foreach ($featParts as $i => $part):
-      $stock  = getStockStatus((int)$part['stock']);
+      $stock = getStockStatus((int)$part['stock']);
+      $img   = getPartFirstImage($part['images'] ?? null);
     ?>
     <div class="part-card animate-fade-up animate-delay-<?= min($i + 1, 5) ?>">
+      <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>" style="display:block;text-decoration:none;">
       <div class="part-card-img">
+        <?php if ($img): ?>
+          <img src="<?= sanitize($img) ?>" alt="<?= sanitize($part['name']) ?>" style="width:100%;height:100%;object-fit:cover;display:block;">
+        <?php else: ?>
         <div class="part-card-img-placeholder">
           <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><rect x="2" y="7" width="20" height="10" rx="1"/><path d="M8 7V5M16 7V5M4 12h2M18 12h2M8 12h8"/></svg>
         </div>
+        <?php endif; ?>
         <span class="part-number-badge"><?= sanitize($part['part_number']) ?></span>
       </div>
+      </a>
       <div class="part-card-body">
         <div class="part-card-brand"><?= sanitize($part['brand_name']) ?></div>
         <div class="part-card-name"><?= sanitize(truncate($part['name'], 60)) ?></div>

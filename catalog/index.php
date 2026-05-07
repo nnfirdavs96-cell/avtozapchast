@@ -265,10 +265,15 @@ require_once dirname(__DIR__) . '/includes/header.php';
       <div class="parts-list">
         <?php foreach ($parts as $part):
           $stock = getStockStatus((int)$part['stock']);
+          $img   = getPartFirstImage($part['images'] ?? null);
         ?>
         <div class="part-list-item">
           <div class="part-list-thumb">
+            <?php if ($img): ?>
+              <img src="<?= sanitize($img) ?>" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">
+            <?php else: ?>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="2" y="7" width="20" height="10" rx="1"/><path d="M8 7V5M16 7V5"/></svg>
+            <?php endif; ?>
           </div>
           <div class="part-list-info">
             <div class="part-list-num"><?= sanitize($part['part_number']) ?></div>
@@ -295,13 +300,18 @@ require_once dirname(__DIR__) . '/includes/header.php';
       <div class="grid-4">
         <?php foreach ($parts as $part):
           $stock = getStockStatus((int)$part['stock']);
+          $img   = getPartFirstImage($part['images'] ?? null);
         ?>
         <div class="part-card">
           <a href="<?= APP_URL ?>/catalog/part.php?id=<?= $part['id'] ?>" style="display:block;text-decoration:none;">
             <div class="part-card-img">
+              <?php if ($img): ?>
+                <img src="<?= sanitize($img) ?>" alt="<?= sanitize($part['name']) ?>" style="width:100%;height:100%;object-fit:cover;display:block;">
+              <?php else: ?>
               <div class="part-card-img-placeholder">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><rect x="2" y="7" width="20" height="10" rx="1"/><path d="M8 7V5M16 7V5M4 12h2M18 12h2"/></svg>
               </div>
+              <?php endif; ?>
               <span class="part-number-badge"><?= sanitize($part['part_number']) ?></span>
             </div>
           </a>
