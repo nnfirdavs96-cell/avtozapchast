@@ -1,184 +1,85 @@
 <?php
-require_once dirname(__DIR__) . '/config/config.php';
+require_once __DIR__ . '/../config/config.php';
 
 if (isLoggedIn()) redirect(APP_URL . '/buyer/index.php');
 
-$errors = [];
-$vals   = ['username' => '', 'email' => '', 'phone' => ''];
-
+$err = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        $errors[] = 'Ошибка безопасности. Обновите страницу.';
+        $err = 'Неверный CSRF-токен';
     } else {
-        $username        = trim($_POST['username'] ?? '');
-        $email           = trim($_POST['email'] ?? '');
-        $phone           = trim($_POST['phone'] ?? '');
-        $password        = $_POST['password'] ?? '';
-        $passwordConfirm = $_POST['password_confirm'] ?? '';
+        $username = trim((string)($_POST['username'] ?? ''));
+        $email    = trim((string)($_POST['email'] ?? ''));
+        $phone    = trim((string)($_POST['phone'] ?? ''));
+        $pw       = (string)($_POST['password'] ?? '');
+        $pw2      = (string)($_POST['password2'] ?? '');
 
-        $vals = compact('username', 'email', 'phone');
+        if (mb_strlen($username) < 3) $err = 'Имя пользователя минимум 3 символа';
+        elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) $err = 'Неверный e-mail';
+        elseif (strlen($pw) < 8) $err = 'Пароль минимум 8 символов';
+        elseif ($pw !== $pw2) $err = 'Пароли не совпадают';
+        else {
+            try {
+                $hash = password_hash($pw, PASSWORD_BCRYPT);
+                getDB()->prepare("INSERT INTO users (username,email,phone,password_hash,role) VALUES (?,?,?,?,'buyer')")
+                    ->execute([$username, $email, $phone ?: null, $hash]);
+                $userId = (int)getDB()->lastInsertId();
+                $_SESSION['user_id'] = $userId;
+                $_SESSION['role']    = 'buyer';
 
-        // Validation
-        if (mb_strlen($username) < 3 || mb_strlen($username) > 80) {
-            $errors[] = 'Имя пользователя должно быть от 3 до 80 символов.';
-        }
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $errors[] = 'Введите корректный email.';
-        }
-        if (mb_strlen($password) < 8) {
-            $errors[] = 'Пароль должен содержать минимум 8 символов.';
-        }
-        if ($password !== $passwordConfirm) {
-            $errors[] = 'Пароли не совпадают.';
-        }
+                sendEmail($email, 'Добро пожаловать в АвтоЗапчасть',
+                    emailLayout('Регистрация прошла успешно',
+                        "<p>Здравствуйте, {$username}!</p><p>Спасибо за регистрацию в АвтоЗапчасть. Теперь вы можете оформлять заказы, сохранять избранное и оставлять отзывы.</p>"));
 
-        if (empty($errors)) {
-            $db = getDB();
-            // Check email uniqueness
-            $chk = $db->prepare("SELECT id FROM users WHERE email = ?");
-            $chk->execute([$email]);
-            if ($chk->fetch()) {
-                $errors[] = 'Этот email уже зарегистрирован.';
-            } else {
-                $hash = password_hash($password, PASSWORD_DEFAULT);
-                $ins  = $db->prepare(
-                    "INSERT INTO users (username, email, password_hash, role, phone) VALUES (?, ?, ?, 'buyer', ?)"
-                );
-                $ins->execute([$username, $email, $hash, $phone ?: null]);
-
-                flashMessage('success', 'Регистрация прошла успешно! Войдите в систему.');
-                redirect(APP_URL . '/auth/login.php');
+                flashMessage('success', 'Регистрация прошла успешно!');
+                redirect(APP_URL . '/buyer/index.php');
+            } catch (PDOException $e) {
+                $err = $e->getCode() === '23000' ? 'Пользователь с таким e-mail уже существует' : 'Ошибка регистрации';
             }
         }
     }
 }
 
-$pageTitle = 'Регистрация';
-$csrfToken = generateCsrfToken();
+$pageTitle = t('register_title');
+require_once __DIR__ . '/../includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= $pageTitle ?> | АвтоЗапчасть</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/style.css">
-  <style>
-    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg-primary); padding: 40px 16px; }
-    .auth-box {
-      width: 100%;
-      max-width: 520px;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 40px 48px;
-    }
-    @media (max-width: 600px) { .auth-box { padding: 28px 24px; } }
-    .auth-box-logo {
-      font-family: var(--font-display);
-      font-size: 1.8rem;
-      letter-spacing: 2px;
-      color: var(--text-primary);
-      margin-bottom: 4px;
-      text-decoration: none;
-      display: block;
-    }
-    .auth-box-logo span { color: var(--accent); }
-    .auth-title {
-      font-family: var(--font-display);
-      font-size: 2rem;
-      color: var(--text-primary);
-      letter-spacing: 2px;
-      margin-top: 24px;
-      margin-bottom: 4px;
-    }
-    .auth-subtitle { color: var(--text-muted); font-size: 0.82rem; margin-bottom: 28px; }
-    .error-list {
-      background: rgba(231,76,60,0.08);
-      border: 1px solid var(--danger);
-      border-radius: 4px;
-      padding: 10px 14px;
-      margin-bottom: 18px;
-      list-style: none;
-    }
-    .error-list li { color: var(--danger); font-size: 0.82rem; padding: 2px 0; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
-    .auth-footer-link { margin-top: 24px; text-align: center; font-size: 0.85rem; color: var(--text-muted); }
-    .auth-footer-link a { color: var(--accent); text-decoration: none; }
-    .auth-footer-link a:hover { text-decoration: underline; }
-    .role-note {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 10px 14px;
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      margin-top: 16px;
-      font-family: var(--font-mono);
-    }
-  </style>
-</head>
-<body>
-<div class="auth-box">
-  <a href="<?= APP_URL ?>/index.php" class="auth-box-logo">АВТО<span>ЗАПЧАСТЬ</span></a>
-  <div class="auth-title">РЕГИСТРАЦИЯ</div>
-  <div class="auth-subtitle">Создайте покупательский аккаунт</div>
 
-  <?php if (!empty($errors)): ?>
-    <ul class="error-list">
-      <?php foreach ($errors as $err): ?><li><?= sanitize($err) ?></li><?php endforeach; ?>
-    </ul>
-  <?php endif; ?>
+<section class="auth-wrap">
+  <div class="auth-card">
+    <h2><?= t('register_title') ?></h2>
+    <p class="sub">Создайте аккаунт за 30 секунд</p>
 
-  <form method="post" action="">
-    <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
+    <?php if ($err): ?><div class="alert alert-danger"><?= sanitize($err) ?></div><?php endif; ?>
 
-    <div class="form-row">
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
       <div class="form-group">
-        <label class="form-label" for="username">Имя пользователя *</label>
-        <input type="text" id="username" name="username" class="form-input"
-               value="<?= sanitize($vals['username']) ?>" placeholder="ivanov_auto" required>
+        <label class="form-label"><?= t('username') ?></label>
+        <input type="text" name="username" class="form-input" required minlength="3" value="<?= sanitize($_POST['username'] ?? '') ?>">
       </div>
       <div class="form-group">
-        <label class="form-label" for="phone">Телефон</label>
-        <input type="tel" id="phone" name="phone" class="form-input"
-               value="<?= sanitize($vals['phone']) ?>" placeholder="+7 (___) ___-__-__">
+        <label class="form-label"><?= t('email') ?></label>
+        <input type="email" name="email" class="form-input" required value="<?= sanitize($_POST['email'] ?? '') ?>">
       </div>
+      <div class="form-group">
+        <label class="form-label"><?= t('phone') ?></label>
+        <input type="tel" name="phone" class="form-input" value="<?= sanitize($_POST['phone'] ?? '') ?>">
+      </div>
+      <div class="form-group">
+        <label class="form-label"><?= t('password') ?></label>
+        <input type="password" name="password" class="form-input" required minlength="8">
+      </div>
+      <div class="form-group">
+        <label class="form-label"><?= t('password_confirm') ?></label>
+        <input type="password" name="password2" class="form-input" required minlength="8">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg"><?= t('register') ?></button>
+    </form>
+
+    <div class="auth-foot">
+      <?= t('have_account') ?> <a href="<?= APP_URL ?>/auth/login.php"><?= t('login') ?></a>
     </div>
-
-    <div class="form-group">
-      <label class="form-label" for="email">Email *</label>
-      <input type="email" id="email" name="email" class="form-input"
-             value="<?= sanitize($vals['email']) ?>" placeholder="your@email.ru" required>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="password">Пароль *</label>
-        <input type="password" id="password" name="password" class="form-input"
-               placeholder="Мин. 8 символов" required>
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="password_confirm">Повтор пароля *</label>
-        <input type="password" id="password_confirm" name="password_confirm" class="form-input"
-               placeholder="••••••••" required>
-      </div>
-    </div>
-
-    <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">
-      СОЗДАТЬ АККАУНТ
-    </button>
-  </form>
-
-  <div class="role-note">// Регистрация доступна только для покупателей. Роли менеджера и администратора назначаются супер-администратором.</div>
-
-  <div class="auth-footer-link">
-    Уже есть аккаунт? <a href="<?= APP_URL ?>/auth/login.php">Войти</a>
   </div>
-</div>
-</body>
-</html>
+</section>
+
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>
