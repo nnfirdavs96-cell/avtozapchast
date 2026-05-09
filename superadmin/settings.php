@@ -1,57 +1,131 @@
 <?php
-require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../includes/admin_layout.php';
-requireRole(['superadmin']);
+require_once dirname(__DIR__) . '/config/config.php';
+requireRole('superadmin');
 
-$db = getDB();
-if ($_SERVER['REQUEST_METHOD']==='POST' && verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-    $upd = $db->prepare("INSERT INTO site_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)");
-    foreach ($_POST['settings'] ?? [] as $k => $v) {
-        $upd->execute([$k, (string)$v]);
+$db   = getDB();
+$csrf = generateCsrfToken();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        flashMessage('danger', 'CSRF error.'); redirect(APP_URL . '/superadmin/settings.php');
     }
-    flashMessage('success', 'Настройки сохранены');
+    $keys = ['site_name','site_email','site_phone','site_address','site_currency','items_per_page'];
+    foreach ($keys as $key) {
+        $val = trim($_POST[$key] ?? '');
+        $db->prepare("INSERT INTO site_settings (`key`, `value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=?, updated_at=NOW()")
+           ->execute([$key, $val, $val]);
+    }
+    // Handle custom keys
+    $customKeys  = $_POST['custom_key'] ?? [];
+    $customVals  = $_POST['custom_val'] ?? [];
+    foreach ($customKeys as $i => $ck) {
+        $ck = trim($ck);
+        $cv = trim($customVals[$i] ?? '');
+        if ($ck) {
+            $db->prepare("INSERT INTO site_settings (`key`, `value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=?, updated_at=NOW()")
+               ->execute([$ck, $cv, $cv]);
+        }
+    }
+    flashMessage('success', 'Настройки сохранены.');
     redirect(APP_URL . '/superadmin/settings.php');
 }
-$rows = $db->query("SELECT `key`, `value` FROM site_settings ORDER BY `key`")->fetchAll();
-$settings = [];
-foreach ($rows as $r) $settings[$r['key']] = $r['value'];
 
-$groups = [
-    'Сайт'         => ['site_name','site_email','site_email_tj','site_phone','site_phone_tj','site_address','site_address_tj','site_currency'],
-    'SEO'          => ['seo_title_suffix','meta_description'],
-    'Соцсети'      => ['site_telegram','site_whatsapp','site_instagram'],
-    'i18n'         => ['default_language','default_currency'],
-    'E-mail'       => ['order_email_admin','smtp_from_name','smtp_from_email'],
-    'Прочее'       => ['items_per_page'],
-];
+// Load all settings
+$settingsStmt = $db->query("SELECT * FROM site_settings ORDER BY id");
+$settings = [];
+foreach ($settingsStmt->fetchAll() as $row) {
+    $settings[$row['key']] = $row['value'];
+}
 
 $pageTitle = 'Настройки сайта';
-$adminArea = true;
-require_once __DIR__ . '/../includes/header.php';
+require_once dirname(__DIR__) . '/includes/header.php';
+require_once dirname(__DIR__) . '/includes/nav.php';
 ?>
+
 <div class="dash-layout">
-  <?php renderAdminSidebar(); ?>
+  <div class="dash-sidebar"><?php renderNav(); ?></div>
   <div class="dash-main">
-    <h1 class="dash-heading">Настройки сайта</h1>
-    <form method="post">
-      <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
-      <?php foreach ($groups as $title => $keys): ?>
-        <div class="admin-card mb-16">
-          <h3 style="margin-bottom:14px"><?= sanitize($title) ?></h3>
-          <?php foreach ($keys as $k): ?>
+    <div class="dash-heading">НАСТРОЙКИ САЙТА</div>
+
+    <div style="max-width:700px;">
+      <form method="post" action="">
+        <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
+
+        <div class="card mb-24">
+          <div class="card-header"><h3>ОСНОВНЫЕ НАСТРОЙКИ</h3></div>
+          <div class="card-body">
             <div class="form-group">
-              <label class="form-label"><?= sanitize($k) ?></label>
-              <?php if ($k==='meta_description'): ?>
-                <textarea name="settings[<?= sanitize($k) ?>]" class="form-textarea" rows="3"><?= sanitize($settings[$k] ?? '') ?></textarea>
-              <?php else: ?>
-                <input type="text" name="settings[<?= sanitize($k) ?>]" class="form-input" value="<?= sanitize($settings[$k] ?? '') ?>">
-              <?php endif; ?>
+              <label class="form-label">Название сайта</label>
+              <input type="text" name="site_name" class="form-input" value="<?= sanitize($settings['site_name'] ?? '') ?>">
             </div>
-          <?php endforeach; ?>
+            <div class="form-group">
+              <label class="form-label">Контактный email</label>
+              <input type="email" name="site_email" class="form-input" value="<?= sanitize($settings['site_email'] ?? '') ?>">
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">Телефон</label>
+                <input type="text" name="site_phone" class="form-input" value="<?= sanitize($settings['site_phone'] ?? '') ?>">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Валюта</label>
+                <input type="text" name="site_currency" class="form-input" value="<?= sanitize($settings['site_currency'] ?? '₽') ?>">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Адрес</label>
+              <input type="text" name="site_address" class="form-input" value="<?= sanitize($settings['site_address'] ?? '') ?>">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Товаров на странице каталога</label>
+              <input type="number" name="items_per_page" class="form-input" min="4" max="100" value="<?= sanitize($settings['items_per_page'] ?? '12') ?>">
+            </div>
+          </div>
         </div>
-      <?php endforeach; ?>
-      <button class="btn btn-primary btn-lg">Сохранить настройки</button>
-    </form>
+
+        <div class="card mb-24">
+          <div class="card-header">
+            <h3>ВСЕ КЛЮЧИ / ЗНАЧЕНИЯ</h3>
+          </div>
+          <div class="table-wrap" style="border:none;border-radius:0;">
+            <table class="data-table">
+              <thead><tr><th>Ключ</th><th>Значение</th><th>Обновлён</th></tr></thead>
+              <tbody>
+                <?php
+                $allSettings = $db->query("SELECT * FROM site_settings ORDER BY id")->fetchAll();
+                foreach ($allSettings as $row): ?>
+                <tr>
+                  <td><span class="mono"><?= sanitize($row['key']) ?></span></td>
+                  <td style="font-size:0.875rem;color:var(--text-secondary);"><?= sanitize($row['value'] ?? '') ?></td>
+                  <td style="color:var(--text-muted);font-size:0.78rem;"><?= date('d.m.Y H:i', strtotime($row['updated_at'])) ?></td>
+                </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card mb-24">
+          <div class="card-header"><h3>ДОБАВИТЬ ПОЛЬЗОВАТЕЛЬСКИЕ КЛЮЧИ</h3></div>
+          <div class="card-body">
+            <p class="form-help mb-16">Добавьте дополнительные настройки в формате ключ-значение.</p>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">Ключ</label>
+                <input type="text" name="custom_key[]" class="form-input" placeholder="my_setting">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Значение</label>
+                <input type="text" name="custom_val[]" class="form-input" placeholder="значение">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">СОХРАНИТЬ НАСТРОЙКИ</button>
+      </form>
+    </div>
   </div>
 </div>
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+
+<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>

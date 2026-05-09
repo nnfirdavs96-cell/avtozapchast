@@ -1,6 +1,0 @@
-# Disable PHP execution in uploads
-<FilesMatch "\.(php|phtml|phps|cgi|sh)$">
-    Require all denied
-</FilesMatch>
-Options -ExecCGI
-AddType text/plain .php .phtml .phps

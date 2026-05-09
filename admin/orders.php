@@ -1,146 +1,205 @@
 <?php
-require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../includes/admin_layout.php';
-requireRole(['admin','superadmin']);
+require_once dirname(__DIR__) . '/config/config.php';
+requireRole(['admin', 'superadmin']);
 
-$db = getDB();
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-    $id = (int)$_POST['id'];
-    $status         = $_POST['status'] ?? null;
-    $paymentStatus  = $_POST['payment_status'] ?? null;
-    $tracking       = trim($_POST['tracking_number'] ?? '');
-    if ($status) {
-        $db->prepare("UPDATE orders SET status=?, payment_status=?, tracking_number=? WHERE id=?")
-            ->execute([$status, $paymentStatus, $tracking ?: null, $id]);
+$db   = getDB();
+$csrf = generateCsrfToken();
 
-        // notify buyer
-        $st = $db->prepare("SELECT email,total_amount FROM orders WHERE id=?");
-        $st->execute([$id]); $row = $st->fetch();
-        if ($row && $row['email']) {
-            sendEmail($row['email'], "Статус заказа №{$id} обновлён",
-                emailLayout("Заказ №{$id} — " . getOrderStatusLabel($status),
-                    "<p>Статус вашего заказа изменён на: <strong>" . getOrderStatusLabel($status) . "</strong>.</p>" .
-                    ($tracking ? "<p>Трек-номер: <strong>{$tracking}</strong></p>" : '')));
-        }
+// AJAX status update
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json');
+    $action  = $_POST['action'] ?? '';
+    $orderId = (int)($_POST['order_id'] ?? 0);
+    $status  = $_POST['status'] ?? '';
+    $token   = $_POST['csrf_token'] ?? '';
+    $allowed = ['pending','processing','shipped','delivered','cancelled'];
+    if (!verifyCsrfToken($token)) {
+        echo json_encode(['success' => false, 'error' => 'CSRF fail']); exit;
     }
-    redirect(APP_URL . '/admin/orders.php?id=' . $id);
+    if ($action === 'update_status' && in_array($status, $allowed)) {
+        $db->prepare("UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?")
+           ->execute([$status, $orderId]);
+        echo json_encode(['success' => true]);
+        exit;
+    }
+    echo json_encode(['success' => false, 'error' => 'Bad request']); exit;
 }
 
-$orderId = (int)($_GET['id'] ?? 0);
-$current = null;
-if ($orderId) {
-    $st = $db->prepare("SELECT o.*, u.username, u.email AS user_email, dm.name AS delivery_name, pm.name AS payment_name
-                        FROM orders o JOIN users u ON u.id=o.user_id
-                        LEFT JOIN delivery_methods dm ON dm.id=o.delivery_method_id
-                        LEFT JOIN payment_methods pm ON pm.id=o.payment_method_id
-                        WHERE o.id=?");
-    $st->execute([$orderId]); $current = $st->fetch();
-    $itStmt = $db->prepare("SELECT oi.*, p.name, p.part_number FROM order_items oi JOIN parts p ON p.id=oi.part_id WHERE oi.order_id=?");
-    $itStmt->execute([$orderId]); $orderItems = $itStmt->fetchAll();
+// View specific order
+$viewId      = (int)($_GET['id'] ?? 0);
+$orderDetail = null;
+$orderItems  = [];
+if ($viewId) {
+    $stmt = $db->prepare(
+        "SELECT o.*, u.username, u.email, u.phone FROM orders o JOIN users u ON u.id = o.user_id WHERE o.id = ?"
+    );
+    $stmt->execute([$viewId]);
+    $orderDetail = $stmt->fetch();
+    if ($orderDetail) {
+        $iStmt = $db->prepare(
+            "SELECT oi.*, p.name AS part_name, p.part_number, b.name AS brand_name
+             FROM order_items oi JOIN parts p ON p.id = oi.part_id LEFT JOIN brands b ON b.id = p.brand_id
+             WHERE oi.order_id = ?"
+        );
+        $iStmt->execute([$viewId]);
+        $orderItems = $iStmt->fetchAll();
+    }
 }
 
-$status = $_GET['status'] ?? '';
-$where = $status ? "WHERE o.status=" . $db->quote($status) : '';
-$orders = $db->query("SELECT o.*, u.username, u.email FROM orders o JOIN users u ON u.id=o.user_id {$where} ORDER BY o.created_at DESC LIMIT 100")->fetchAll();
+// Filters
+$filterStatus = $_GET['status'] ?? '';
+$filterUser   = trim($_GET['user'] ?? '');
+$page         = max(1, (int)($_GET['page'] ?? 1));
+$perPage      = 20;
+$where  = [];
+$params = [];
+if ($filterStatus) { $where[] = 'o.status = ?'; $params[] = $filterStatus; }
+if ($filterUser)   { $where[] = '(u.username LIKE ? OR u.email LIKE ?)'; $params[] = "%$filterUser%"; $params[] = "%$filterUser%"; }
+$whereSQL = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+$total    = (int)$db->prepare("SELECT COUNT(*) FROM orders o JOIN users u ON u.id = o.user_id $whereSQL")->execute($params) ? 0 : 0;
+$cntStmt  = $db->prepare("SELECT COUNT(*) FROM orders o JOIN users u ON u.id = o.user_id $whereSQL");
+$cntStmt->execute($params);
+$total    = (int)$cntStmt->fetchColumn();
+$pages    = max(1, ceil($total / $perPage));
+$offset   = ($page - 1) * $perPage;
 
-$pageTitle = 'Заказы';
-$adminArea = true;
-require_once __DIR__ . '/../includes/header.php';
+$ordersStmt = $db->prepare(
+    "SELECT o.*, u.username, u.email FROM orders o JOIN users u ON u.id = o.user_id
+     $whereSQL ORDER BY o.created_at DESC LIMIT $perPage OFFSET $offset"
+);
+$ordersStmt->execute($params);
+$orders = $ordersStmt->fetchAll();
+
+$pageTitle = 'Управление заказами';
+require_once dirname(__DIR__) . '/includes/header.php';
+require_once dirname(__DIR__) . '/includes/nav.php';
+$statuses = ['pending','processing','shipped','delivered','cancelled'];
 ?>
-<div class="dash-layout">
-  <?php renderAdminSidebar(); ?>
-  <div class="dash-main">
-    <h1 class="dash-heading">Заказы</h1>
 
-    <?php if ($current): ?>
-      <div class="admin-card mb-32">
-        <div class="flex-between mb-16">
-          <h3>Заказ #<?= (int)$current['id'] ?> · <?= money($current['total_amount']) ?></h3>
-          <a href="<?= APP_URL ?>/admin/orders.php" class="btn btn-outline btn-sm">← Все заказы</a>
+<div class="dash-layout">
+  <div class="dash-sidebar"><?php renderNav(); ?></div>
+  <div class="dash-main">
+    <div class="dash-heading">ЗАКАЗЫ</div>
+
+    <?php if ($orderDetail): ?>
+    <!-- Order detail -->
+    <div class="card mb-24">
+      <div class="card-header">
+        <div>
+          <h3>ЗАКАЗ #<?= $orderDetail['id'] ?></h3>
+          <div class="label-mono"><?= sanitize($orderDetail['username']) ?> · <?= sanitize($orderDetail['email']) ?></div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
-          <div>
-            <table class="admin-table">
-              <tr><th>Покупатель</th><td><?= sanitize($current['username']) ?></td></tr>
-              <tr><th>E-mail</th><td><?= sanitize($current['email'] ?: $current['user_email']) ?></td></tr>
-              <tr><th>Адрес</th><td><?= sanitize($current['shipping_address']) ?></td></tr>
-              <tr><th>Доставка</th><td><?= sanitize($current['delivery_name']) ?> (<?= money($current['delivery_cost']) ?>)</td></tr>
-              <tr><th>Оплата</th><td><?= sanitize($current['payment_name']) ?></td></tr>
-              <tr><th>Создан</th><td><?= date('d.m.Y H:i', strtotime($current['created_at'])) ?></td></tr>
-              <tr><th>Комментарий</th><td><?= sanitize($current['notes'] ?? '—') ?></td></tr>
-            </table>
-          </div>
-          <div>
-            <form method="post">
-              <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
-              <input type="hidden" name="id" value="<?= (int)$current['id'] ?>">
-              <div class="form-group">
-                <label class="form-label">Статус</label>
-                <select name="status" class="form-select">
-                  <?php foreach (['pending','processing','shipped','delivered','cancelled'] as $s): ?>
-                    <option value="<?= $s ?>" <?= $current['status']===$s?'selected':'' ?>><?= sanitize(getOrderStatusLabel($s)) ?></option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Статус оплаты</label>
-                <select name="payment_status" class="form-select">
-                  <?php foreach (['unpaid','paid','refunded'] as $ps): ?>
-                    <option value="<?= $ps ?>" <?= $current['payment_status']===$ps?'selected':'' ?>><?= $ps ?></option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Трек-номер</label>
-                <input type="text" name="tracking_number" class="form-input" value="<?= sanitize($current['tracking_number'] ?? '') ?>">
-              </div>
-              <button class="btn btn-primary">Сохранить</button>
-            </form>
-          </div>
-        </div>
-        <h3 class="mt-32 mb-16">Состав заказа</h3>
-        <div class="admin-table-wrap"><table class="admin-table">
-          <thead><tr><th>Артикул</th><th>Название</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead>
-          <tbody>
-          <?php foreach ($orderItems as $oi): ?>
-            <tr>
-              <td><span class="mono"><?= sanitize($oi['part_number']) ?></span></td>
-              <td><?= sanitize($oi['name']) ?></td>
-              <td><?= (int)$oi['quantity'] ?></td>
-              <td><?= money($oi['unit_price']) ?></td>
-              <td><strong><?= money($oi['unit_price'] * $oi['quantity']) ?></strong></td>
-            </tr>
+        <select class="form-select" style="width:auto;"
+                data-status-update="<?= $orderDetail['id'] ?>"
+                data-csrf="<?= sanitize($csrf) ?>">
+          <?php foreach ($statuses as $st): ?>
+          <option value="<?= $st ?>" <?= $orderDetail['status'] === $st ? 'selected' : '' ?>>
+            <?= getOrderStatusLabel($st) ?>
+          </option>
           <?php endforeach; ?>
-          </tbody>
-        </table></div>
+        </select>
       </div>
+      <div class="card-body">
+        <div class="grid-2 mb-16">
+          <div>
+            <div class="label-mono mb-8">Покупатель</div>
+            <p style="font-size:0.875rem;color:var(--text-secondary);">
+              <?= sanitize($orderDetail['username']) ?><br>
+              <?= sanitize($orderDetail['email']) ?><br>
+              <?= sanitize($orderDetail['phone'] ?? '') ?>
+            </p>
+          </div>
+          <div>
+            <div class="label-mono mb-8">Адрес доставки</div>
+            <p style="font-size:0.875rem;color:var(--text-secondary);"><?= nl2br(sanitize($orderDetail['shipping_address'])) ?></p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Номер</th><th>Наименование</th><th>Кол-во</th><th style="text-align:right;">Цена</th><th style="text-align:right;">Сумма</th></tr></thead>
+            <tbody>
+              <?php foreach ($orderItems as $item): ?>
+              <tr>
+                <td><span class="mono"><?= sanitize($item['part_number']) ?></span></td>
+                <td style="font-size:0.875rem;"><?= sanitize($item['part_name']) ?></td>
+                <td style="font-family:var(--font-mono);"><?= $item['quantity'] ?></td>
+                <td style="text-align:right;font-family:var(--font-mono);color:var(--text-secondary);"><?= formatPrice($item['unit_price']) ?></td>
+                <td style="text-align:right;font-family:var(--font-mono);color:var(--accent);"><?= formatPrice($item['unit_price'] * $item['quantity']) ?></td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+        <div style="text-align:right;padding-top:12px;font-family:var(--font-display);font-size:1.5rem;color:var(--accent);">
+          ИТОГО: <?= formatPrice($orderDetail['total_amount']) ?>
+        </div>
+      </div>
+      <div class="card-footer">
+        <a href="<?= APP_URL ?>/admin/orders.php" class="btn btn-outline btn-sm">← Все заказы</a>
+      </div>
+    </div>
     <?php endif; ?>
 
-    <div class="mb-16">
-      <a href="?"          class="btn btn-<?= !$status?'primary':'outline' ?> btn-sm">Все</a>
-      <?php foreach (['pending','processing','shipped','delivered','cancelled'] as $s): ?>
-        <a href="?status=<?= $s ?>" class="btn btn-<?= $status===$s?'primary':'outline' ?> btn-sm"><?= sanitize(getOrderStatusLabel($s)) ?></a>
-      <?php endforeach; ?>
-    </div>
+    <!-- Filters -->
+    <form method="get" class="flex gap-8 mb-16" style="flex-wrap:wrap;">
+      <select name="status" class="form-select" style="width:auto;" onchange="this.form.submit()">
+        <option value="">Все статусы</option>
+        <?php foreach ($statuses as $st): ?>
+        <option value="<?= $st ?>" <?= $filterStatus === $st ? 'selected' : '' ?>><?= getOrderStatusLabel($st) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <input type="text" name="user" class="form-input" style="width:200px;" placeholder="Поиск покупателя..." value="<?= sanitize($filterUser) ?>">
+      <button type="submit" class="btn btn-outline btn-sm">Фильтр</button>
+      <a href="<?= APP_URL ?>/admin/orders.php" class="btn btn-outline btn-sm">Сбросить</a>
+      <span style="margin-left:auto;font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);align-self:center;">
+        Всего: <?= $total ?>
+      </span>
+    </form>
 
-    <div class="admin-card">
-      <div class="admin-table-wrap"><table class="admin-table">
-        <thead><tr><th>№</th><th>Покупатель</th><th>Сумма</th><th>Статус</th><th>Оплата</th><th>Дата</th><th></th></tr></thead>
+    <!-- Orders table -->
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>#</th><th>Покупатель</th><th>Дата</th><th>Сумма</th><th>Статус</th><th>Изменить статус</th><th></th></tr>
+        </thead>
         <tbody>
-          <?php foreach ($orders as $o): ?>
-            <tr>
-              <td><strong>#<?= (int)$o['id'] ?></strong></td>
-              <td><?= sanitize($o['username']) ?></td>
-              <td><strong><?= money($o['total_amount']) ?></strong></td>
-              <td><span class="badge badge-<?= getOrderStatusClass($o['status']) ?>"><?= sanitize(getOrderStatusLabel($o['status'])) ?></span></td>
-              <td><span class="badge badge-<?= $o['payment_status']==='paid'?'success':'warning' ?>"><?= $o['payment_status'] ?></span></td>
-              <td><?= date('d.m.Y H:i', strtotime($o['created_at'])) ?></td>
-              <td><a href="?id=<?= (int)$o['id'] ?>" class="btn btn-outline btn-sm">→</a></td>
-            </tr>
+          <?php foreach ($orders as $order): ?>
+          <tr>
+            <td><span class="mono">#<?= $order['id'] ?></span></td>
+            <td>
+              <div style="font-size:0.875rem;"><?= sanitize($order['username']) ?></div>
+              <div style="font-size:0.75rem;color:var(--text-muted);"><?= sanitize($order['email']) ?></div>
+            </td>
+            <td style="color:var(--text-muted);font-size:0.8rem;"><?= date('d.m.Y H:i', strtotime($order['created_at'])) ?></td>
+            <td style="font-family:var(--font-mono);color:var(--accent);"><?= formatPrice($order['total_amount']) ?></td>
+            <td><span class="badge badge-<?= getOrderStatusClass($order['status']) ?>"><?= getOrderStatusLabel($order['status']) ?></span></td>
+            <td>
+              <select class="form-select" style="width:auto;font-size:0.78rem;padding:6px 10px;"
+                      data-status-update="<?= $order['id'] ?>"
+                      data-csrf="<?= sanitize($csrf) ?>">
+                <?php foreach ($statuses as $st): ?>
+                <option value="<?= $st ?>" <?= $order['status'] === $st ? 'selected' : '' ?>>
+                  <?= getOrderStatusLabel($st) ?>
+                </option>
+                <?php endforeach; ?>
+              </select>
+            </td>
+            <td><a href="?id=<?= $order['id'] ?>" class="btn btn-outline btn-sm">Детали</a></td>
+          </tr>
           <?php endforeach; ?>
         </tbody>
-      </table></div>
+      </table>
     </div>
+
+    <!-- Pagination -->
+    <?php if ($pages > 1): ?>
+    <div class="pagination">
+      <?php for ($p = 1; $p <= $pages; $p++): $q = array_merge($_GET, ['page' => $p]); ?>
+      <a href="?<?= http_build_query($q) ?>" class="page-link <?= $p == $page ? 'active' : '' ?>"><?= $p ?></a>
+      <?php endfor; ?>
+    </div>
+    <?php endif; ?>
   </div>
 </div>
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+
+<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
