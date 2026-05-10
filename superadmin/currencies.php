@@ -54,6 +54,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect(APP_URL . '/superadmin/currencies.php');
     }
 
+    if ($postAction === 'fetch_cbr') {
+        $url  = 'https://www.cbr-xml-daily.ru/daily_json.js';
+        $json = false;
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>10, CURLOPT_SSL_VERIFYPEER=>false]);
+            $json = curl_exec($ch);
+            curl_close($ch);
+        } else {
+            $json = @file_get_contents($url);
+        }
+        $data = $json ? json_decode($json, true) : null;
+        if (!$data || empty($data['Valute'])) {
+            flashMessage('danger', 'Не удалось получить курсы ЦБ РФ. Проверьте соединение.');
+            redirect(APP_URL . '/superadmin/currencies.php');
+        }
+        $existing = $db->query("SELECT code FROM currencies WHERE code != 'RUB'")->fetchAll(PDO::FETCH_COLUMN);
+        $updated = 0; $missed = [];
+        foreach ($existing as $code) {
+            $upper = strtoupper($code);
+            if (isset($data['Valute'][$upper])) {
+                $v = $data['Valute'][$upper];
+                $rubPerUnit = (float)$v['Value'] / max(1, (int)$v['Nominal']);
+                if ($rubPerUnit > 0) {
+                    $rate = round(1 / $rubPerUnit, 8);
+                    $db->prepare("UPDATE currencies SET rate=?, updated_at=NOW() WHERE code=?")->execute([$rate, $code]);
+                    $updated++;
+                }
+            } else { $missed[] = $code; }
+        }
+        $msg = "Обновлено по ЦБ РФ: {$updated} валют.";
+        if ($missed) $msg .= ' Не найдено в ЦБ: ' . implode(', ', $missed) . '.';
+        flashMessage('success', $msg);
+        redirect(APP_URL . '/superadmin/currencies.php');
+    }
+
     if ($postAction === 'bulk_update') {
         $codes = $_POST['rate_code'] ?? [];
         $rates = $_POST['rate_val']  ?? [];
@@ -101,6 +137,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
       <a href="<?= APP_URL ?>/superadmin/languages.php" class="az-sidebar-link"><i class="fa fa-language"></i> Языки</a>
       <a href="<?= APP_URL ?>/superadmin/warehouse.php" class="az-sidebar-link"><i class="fa fa-database"></i> Склад API</a>
       <a href="<?= APP_URL ?>/superadmin/blog.php" class="az-sidebar-link"><i class="fa fa-newspaper-o"></i> Блог</a>
+      <a href="<?= APP_URL ?>/superadmin/backup.php" class="az-sidebar-link"><i class="fa fa-archive"></i> Бэкапы</a>
       <hr style="border-color:rgba(255,255,255,0.1);margin:12px 0;">
       <a href="<?= APP_URL ?>/index.php" class="az-sidebar-link"><i class="fa fa-home"></i> На сайт</a>
     </nav>
@@ -119,8 +156,15 @@ require_once dirname(__DIR__) . '/includes/header.php';
 
       <!-- Bulk rate update -->
       <div class="az-card mb-24">
-        <div class="az-card-header">
+        <div class="az-card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <h4 class="az-card-title">Курсы валют <small style="font-weight:400;color:#888;font-size:0.8rem;">(база: RUB = 1.0)</small></h4>
+          <form method="post" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
+            <input type="hidden" name="action" value="fetch_cbr">
+            <button type="submit" class="az-btn az-btn-outline az-btn-sm" title="Загрузить актуальные курсы с сайта ЦБ РФ">
+              <i class="fa fa-refresh"></i> Обновить по ЦБ РФ
+            </button>
+          </form>
         </div>
         <div class="az-card-body p-0">
           <form method="post" action="">

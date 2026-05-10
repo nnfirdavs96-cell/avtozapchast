@@ -159,6 +159,7 @@ return [
     'posted_by'          => 'Автор',
     'posted_on'          => 'Дата',
     'tags'               => 'Теги',
+    'share_on'           => 'Поделиться',
     'auto_parts'         => 'Запчасти',
     'repair'             => 'Ремонт',
     'service'            => 'Сервис',

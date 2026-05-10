@@ -159,6 +159,7 @@ return [
     'posted_by'          => 'Posted By',
     'posted_on'          => 'Posted On',
     'tags'               => 'Tags',
+    'share_on'           => 'Share On',
     'auto_parts'         => 'Auto Parts',
     'repair'             => 'Repair',
     'service'            => 'Service',
