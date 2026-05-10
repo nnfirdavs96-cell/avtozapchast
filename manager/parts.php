@@ -60,21 +60,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
+        // Images: merge existing + new
+        $existingImgs = json_decode($_POST['existing_images'] ?? '[]', true) ?: [];
+        $newImgs      = array_filter(array_map('trim', explode(',', $_POST['new_images'] ?? '')));
+        $allImages    = array_values(array_unique(array_merge($existingImgs, $newImgs)));
+        $imagesJson   = json_encode($allImages);
+
         if ($pid) {
             $db->prepare(
                 "UPDATE parts
                  SET part_number=?, name=?, description=?, brand_id=?, category_id=?,
-                     price=?, stock=?, weight=?, dimensions=?, updated_at=NOW()
+                     price=?, stock=?, weight=?, dimensions=?, images=?, updated_at=NOW()
                  WHERE id=?"
-            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $stock, $weight, $dims, $pid]);
+            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $stock, $weight, $dims, $imagesJson, $pid]);
             flashMessage('success', 'Запчасть обновлена.');
         } else {
             $db->prepare(
                 "INSERT INTO parts
                      (part_number, name, description, brand_id, category_id,
                       price, stock, weight, dimensions, images, is_active, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', 1, NOW())"
-            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $stock, $weight, $dims]);
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())"
+            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $stock, $weight, $dims, $imagesJson]);
             flashMessage('success', 'Запчасть добавлена.');
         }
         redirect(APP_URL . '/manager/parts.php');
@@ -199,9 +205,12 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         </div>
                     <?php endif; ?>
 
+                    <?php $existImgs = json_decode($editPart['images'] ?? '[]', true) ?: []; ?>
                     <form method="POST" action="<?= APP_URL ?>/manager/parts.php">
                         <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
                         <input type="hidden" name="action" value="save">
+                        <input type="hidden" name="existing_images" id="existingImages" value="<?= sanitize(json_encode($existImgs)) ?>">
+                        <input type="hidden" name="new_images" id="newImages" value="">
                         <?php if ($editPart): ?>
                             <input type="hidden" name="id" value="<?= (int)$editPart['id'] ?>">
                         <?php endif; ?>
@@ -282,6 +291,26 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                       placeholder="Подробное описание запчасти..."><?= sanitize($editPart['description'] ?? ($_POST['description'] ?? '')) ?></textarea>
                         </div>
 
+                        <!-- Image upload -->
+                        <div class="az-form-group">
+                            <label>Изображения товара</label>
+                            <div id="imgGrid" class="img-grid" style="margin-bottom:10px;">
+                                <?php foreach ($existImgs as $imgUrl): ?>
+                                    <div class="img-grid-item" data-url="<?= sanitize($imgUrl) ?>">
+                                        <img src="<?= sanitize($imgUrl) ?>" alt="">
+                                        <button type="button" class="img-remove"
+                                                onclick="removeExistingImage(this,'<?= sanitize(addslashes($imgUrl)) ?>')"
+                                                title="Удалить">×</button>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <label style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#f8f9fa;border:2px dashed #ced4da;border-radius:6px;cursor:pointer;font-size:0.825rem;color:#555;">
+                                <i class="fa fa-upload"></i> Загрузить фото (до 6, JPG/PNG/WEBP)
+                                <input type="file" id="imgUpload" multiple accept="image/*" style="display:none;" onchange="uploadImages(this)">
+                            </label>
+                            <span id="uploadStatus" style="font-size:0.8rem;color:#888;margin-left:8px;"></span>
+                        </div>
+
                         <div style="display:flex;gap:12px;">
                             <button type="submit" class="az-btn az-btn-primary">
                                 <i class="fa fa-save"></i>
@@ -290,6 +319,48 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             <a href="<?= APP_URL ?>/manager/parts.php" class="az-btn az-btn-secondary">Отмена</a>
                         </div>
                     </form>
+                    <script>
+                    const newImageUrls = [];
+                    function updateNewImagesField() {
+                        document.getElementById('newImages').value = newImageUrls.join(',');
+                    }
+                    function removeExistingImage(btn, url) {
+                        btn.closest('.img-grid-item').remove();
+                        let ex = JSON.parse(document.getElementById('existingImages').value || '[]');
+                        ex = ex.filter(u => u !== url);
+                        document.getElementById('existingImages').value = JSON.stringify(ex);
+                    }
+                    async function uploadImages(input) {
+                        const files = Array.from(input.files);
+                        const status = document.getElementById('uploadStatus');
+                        const grid = document.getElementById('imgGrid');
+                        if (grid.querySelectorAll('.img-grid-item').length + files.length > 6) {
+                            alert('Максимум 6 изображений'); input.value = ''; return;
+                        }
+                        status.textContent = 'Загрузка...';
+                        for (const file of files) {
+                            const fd = new FormData(); fd.append('file', file);
+                            try {
+                                const res = await fetch('<?= APP_URL ?>/api/upload.php?type=products', {method:'POST',body:fd});
+                                const data = await res.json();
+                                if (data.url) {
+                                    newImageUrls.push(data.url); updateNewImagesField();
+                                    const div = document.createElement('div');
+                                    div.className = 'img-grid-item'; div.dataset.url = data.url;
+                                    div.innerHTML = `<img src="${data.url}" alt=""><button type="button" class="img-remove" onclick="removeNewImage(this,'${data.url}')" title="Удалить">×</button>`;
+                                    grid.appendChild(div);
+                                } else { alert(data.error || 'Ошибка загрузки'); }
+                            } catch(e) { alert('Ошибка сети'); }
+                        }
+                        status.textContent = ''; input.value = '';
+                    }
+                    function removeNewImage(btn, url) {
+                        const idx = newImageUrls.indexOf(url);
+                        if (idx > -1) newImageUrls.splice(idx, 1);
+                        updateNewImagesField();
+                        btn.closest('.img-grid-item').remove();
+                    }
+                    </script>
                 </div>
             </div>
 

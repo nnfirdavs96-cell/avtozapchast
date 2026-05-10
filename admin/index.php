@@ -23,32 +23,28 @@ require_once dirname(__DIR__) . '/includes/header.php';
 <div class="az-panel">
   <!-- Sidebar -->
   <aside class="az-sidebar">
-    <div class="az-sidebar-brand">Панель админа</div>
-    <nav class="az-sidebar-nav">
-      <a href="<?= APP_URL ?>/admin/index.php" class="az-sidebar-link <?= strpos($_SERVER['REQUEST_URI'], '/admin/index') !== false ? 'active' : '' ?>">
-        <i class="fa fa-tachometer"></i> Панель
-      </a>
-      <a href="<?= APP_URL ?>/admin/users.php" class="az-sidebar-link <?= strpos($_SERVER['REQUEST_URI'], '/admin/users') !== false ? 'active' : '' ?>">
-        <i class="fa fa-users"></i> Пользователи
-      </a>
-      <a href="<?= APP_URL ?>/admin/orders.php" class="az-sidebar-link <?= strpos($_SERVER['REQUEST_URI'], '/admin/orders') !== false ? 'active' : '' ?>">
-        <i class="fa fa-shopping-bag"></i> Заказы
-      </a>
-      <hr style="border-color:rgba(255,255,255,0.1);margin:12px 0;">
-      <a href="<?= APP_URL ?>/index.php" class="az-sidebar-link">
-        <i class="fa fa-home"></i> На сайт
-      </a>
-    </nav>
+    <div class="az-sidebar-logo">ADMIN<span>PANEL</span></div>
+    <nav><ul>
+      <li><a href="<?= APP_URL ?>/admin/index.php" class="active"><i class="fa fa-tachometer"></i> Панель</a></li>
+      <li><a href="<?= APP_URL ?>/admin/products.php"><i class="fa fa-cogs"></i> Товары</a></li>
+      <li><a href="<?= APP_URL ?>/admin/sliders.php"><i class="fa fa-picture-o"></i> Слайдер</a></li>
+      <li><a href="<?= APP_URL ?>/admin/orders.php"><i class="fa fa-shopping-bag"></i> Заказы</a></li>
+      <li><a href="<?= APP_URL ?>/admin/users.php"><i class="fa fa-users"></i> Пользователи</a></li>
+      <li style="border-top:1px solid rgba(255,255,255,0.1);margin-top:12px;">
+        <a href="<?= APP_URL ?>/index.php"><i class="fa fa-home"></i> На сайт</a>
+      </li>
+      <li><a href="<?= APP_URL ?>/auth/logout.php" style="color:rgba(255,100,100,0.85)!important;"><i class="fa fa-sign-out"></i> Выйти</a></li>
+    </ul></nav>
   </aside>
 
   <!-- Main -->
   <div class="az-main">
     <div class="az-topbar">
-      <div class="az-topbar-title">Панель администратора</div>
-      <div class="az-topbar-user">
-        <?= sanitize($_SESSION['username'] ?? 'Admin') ?> &middot;
-        <a href="<?= APP_URL ?>/auth/logout.php">Выйти</a>
-      </div>
+      <h1>Панель администратора</h1>
+      <span style="font-size:0.85rem;color:#666;">
+        <?= sanitize($_SESSION['username'] ?? 'Admin') ?>
+        <span style="background:#d32f2f;color:#fff;border-radius:4px;padding:2px 7px;font-size:0.72rem;margin-left:4px;">admin</span>
+      </span>
     </div>
 
     <div class="az-content">

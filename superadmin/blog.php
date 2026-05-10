@@ -36,6 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $body_ru     = trim($_POST['body_ru'] ?? '');
     $body_tg     = trim($_POST['body_tg'] ?? '');
     $body_en     = trim($_POST['body_en'] ?? '');
+    $imagePath   = trim($_POST['image_path'] ?? '');
     $published   = isset($_POST['is_published']) ? 1 : 0;
     $uid         = (int)($_POST['id'] ?? 0);
 
@@ -56,21 +57,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->prepare(
                 "UPDATE blog_posts SET slug=?, title_ru=?, title_tg=?, title_en=?,
                  excerpt_ru=?, excerpt_tg=?, excerpt_en=?,
-                 body_ru=?, body_tg=?, body_en=?, is_published=?, updated_at=NOW()
+                 body_ru=?, body_tg=?, body_en=?, image_path=?, is_published=?, updated_at=NOW()
                  WHERE id=?"
             )->execute([$slug, $title_ru, $title_tg, $title_en,
                         $excerpt_ru, $excerpt_tg, $excerpt_en,
-                        $body_ru, $body_tg, $body_en, $published, $uid]);
+                        $body_ru, $body_tg, $body_en, $imagePath ?: null, $published, $uid]);
             flashMessage('success', 'Статья обновлена.');
         } else {
             $db->prepare(
                 "INSERT INTO blog_posts (slug, title_ru, title_tg, title_en,
                  excerpt_ru, excerpt_tg, excerpt_en, body_ru, body_tg, body_en,
-                 is_published, created_at, updated_at)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())"
+                 image_path, is_published, author_id)
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)"
             )->execute([$slug, $title_ru, $title_tg, $title_en,
                         $excerpt_ru, $excerpt_tg, $excerpt_en,
-                        $body_ru, $body_tg, $body_en, $published]);
+                        $body_ru, $body_tg, $body_en, $imagePath ?: null, $published,
+                        $_SESSION['user_id'] ?? null]);
             flashMessage('success', 'Статья создана.');
         }
         redirect(APP_URL . '/superadmin/blog.php');
@@ -246,8 +248,50 @@ require_once dirname(__DIR__) . '/includes/header.php';
               </div>
             </div>
 
+            <!-- Cover image upload -->
+            <div class="az-form-group" style="margin-top:16px;">
+              <label>Обложка статьи</label>
+              <input type="hidden" name="image_path" id="imagePathBlog" value="<?= sanitize($editPost['image_path'] ?? '') ?>">
+              <?php if (!empty($editPost['image_path'])): ?>
+                <div style="margin-bottom:8px;">
+                  <img src="<?= sanitize($editPost['image_path']) ?>" id="imgPreviewBlog"
+                       style="max-height:160px;max-width:300px;object-fit:cover;border-radius:6px;border:1px solid #dee2e6;">
+                </div>
+              <?php else: ?>
+                <div id="imgPreviewBlog" style="display:none;"></div>
+              <?php endif; ?>
+              <label style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#f8f9fa;border:2px dashed #ced4da;border-radius:6px;cursor:pointer;font-size:0.825rem;color:#555;">
+                <i class="fa fa-upload"></i> Загрузить обложку
+                <input type="file" id="coverImgBlog" accept="image/*" style="display:none;" onchange="uploadBlogCover(this)">
+              </label>
+              <span id="uploadStatusBlog" style="font-size:0.78rem;color:#888;margin-left:8px;"></span>
+            </div>
+
             <button type="submit" class="az-btn az-btn-primary"><?= $editPost ? 'Сохранить изменения' : 'Создать статью' ?></button>
           </form>
+          <script>
+          async function uploadBlogCover(input) {
+              const status = document.getElementById('uploadStatusBlog');
+              const fd = new FormData(); fd.append('file', input.files[0]);
+              status.textContent = 'Загрузка...';
+              try {
+                  const res = await fetch('<?= APP_URL ?>/api/upload.php?type=blog', {method:'POST',body:fd});
+                  const data = await res.json();
+                  if (data.url) {
+                      document.getElementById('imagePathBlog').value = data.url;
+                      let prev = document.getElementById('imgPreviewBlog');
+                      if (prev.tagName === 'DIV') {
+                          const img = document.createElement('img');
+                          img.id = 'imgPreviewBlog'; img.src = data.url;
+                          img.style.cssText = 'max-height:160px;max-width:300px;object-fit:cover;border-radius:6px;border:1px solid #dee2e6;display:block;margin-bottom:8px;';
+                          prev.replaceWith(img);
+                      } else { prev.src = data.url; }
+                      status.textContent = 'Загружено';
+                  } else { status.textContent = data.error || 'Ошибка'; }
+              } catch(e) { status.textContent = 'Ошибка сети'; }
+              input.value = '';
+          }
+          </script>
         </div>
       </div>
       <?php else: ?>

@@ -50,11 +50,17 @@ function formatBytes($bytes, $precision = 1): string {
       <a href="<?= APP_URL ?>/superadmin/index.php" class="az-sidebar-link active" style="color:#ce93d8;">
         <i class="fa fa-star"></i> Панель
       </a>
-      <a href="<?= APP_URL ?>/admin/users.php" class="az-sidebar-link">
+      <a href="<?= APP_URL ?>/superadmin/users.php" class="az-sidebar-link">
         <i class="fa fa-users"></i> Пользователи
       </a>
       <a href="<?= APP_URL ?>/admin/orders.php" class="az-sidebar-link">
         <i class="fa fa-shopping-bag"></i> Заказы
+      </a>
+      <a href="<?= APP_URL ?>/admin/products.php" class="az-sidebar-link">
+        <i class="fa fa-cogs"></i> Товары
+      </a>
+      <a href="<?= APP_URL ?>/admin/sliders.php" class="az-sidebar-link">
+        <i class="fa fa-picture-o"></i> Слайдер
       </a>
       <a href="<?= APP_URL ?>/superadmin/settings.php" class="az-sidebar-link">
         <i class="fa fa-cog"></i> Настройки
@@ -71,26 +77,32 @@ function formatBytes($bytes, $precision = 1): string {
       <a href="<?= APP_URL ?>/superadmin/blog.php" class="az-sidebar-link">
         <i class="fa fa-newspaper-o"></i> Блог
       </a>
+      <a href="<?= APP_URL ?>/superadmin/backup.php" class="az-sidebar-link">
+        <i class="fa fa-archive"></i> Бэкапы
+      </a>
       <hr style="border-color:rgba(255,255,255,0.1);margin:12px 0;">
       <a href="<?= APP_URL ?>/index.php" class="az-sidebar-link">
         <i class="fa fa-home"></i> На сайт
+      </a>
+      <a href="<?= APP_URL ?>/auth/logout.php" class="az-sidebar-link" style="color:rgba(255,100,100,0.85)!important;">
+        <i class="fa fa-sign-out"></i> Выйти
       </a>
     </nav>
   </aside>
 
   <!-- Main -->
   <div class="az-main">
-    <div class="az-topbar" style="border-bottom-color:#9b59b622;background:#f9f5ff;">
-      <div class="az-topbar-title" style="color:#6a1b9a;">Суперадминистратор</div>
-      <div class="az-topbar-user">
-        <?= sanitize($_SESSION['username'] ?? 'Superadmin') ?> &middot;
-        <a href="<?= APP_URL ?>/auth/logout.php">Выйти</a>
-      </div>
+    <div class="az-topbar">
+      <h1>Суперадминистратор</h1>
+      <span style="font-size:0.85rem;color:#666;">
+        <?= sanitize($_SESSION['username'] ?? 'Superadmin') ?>
+        <span style="background:#7b1fa2;color:#fff;border-radius:4px;padding:2px 7px;font-size:0.72rem;margin-left:4px;">superadmin</span>
+      </span>
     </div>
 
     <div class="az-content">
       <?php if ($flash = getFlashMessage()): ?>
-      <div class="alert alert-<?= sanitize($flash['type']) ?> mb-16"><?= sanitize($flash['message']) ?></div>
+      <div class="az-alert az-alert-<?= sanitize($flash['type']) ?>"><?= sanitize($flash['message']) ?></div>
       <?php endif; ?>
 
       <!-- Stats -->
