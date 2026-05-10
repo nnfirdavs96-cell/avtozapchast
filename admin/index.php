@@ -4,10 +4,11 @@ requireRole(['admin', 'superadmin']);
 
 $db = getDB();
 
-$totalUsers  = (int)$db->query("SELECT COUNT(*) FROM users WHERE is_active = 1")->fetchColumn();
+$totalUsers  = (int)$db->query("SELECT COUNT(*) FROM users")->fetchColumn();
 $totalOrders = (int)$db->query("SELECT COUNT(*) FROM orders")->fetchColumn();
+$totalRevenue = (float)$db->query("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE status NOT IN ('cancelled')")->fetchColumn();
+$totalParts  = (int)$db->query("SELECT COUNT(*) FROM parts WHERE is_active = 1")->fetchColumn();
 $pendingOrds = (int)$db->query("SELECT COUNT(*) FROM orders WHERE status = 'pending'")->fetchColumn();
-$revenue     = (float)$db->query("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE status NOT IN ('cancelled')")->fetchColumn();
 
 $recentOrders = $db->query(
     "SELECT o.*, u.username, u.email FROM orders o
@@ -15,75 +16,146 @@ $recentOrders = $db->query(
      ORDER BY o.created_at DESC LIMIT 10"
 )->fetchAll();
 
-$pageTitle = 'Панель администратора';
+$pageTitle = 'Администратор — ' . getSetting('site_name');
 require_once dirname(__DIR__) . '/includes/header.php';
-require_once dirname(__DIR__) . '/includes/nav.php';
 ?>
 
-<div class="dash-layout">
-  <div class="dash-sidebar"><?php renderNav(); ?></div>
-  <div class="dash-main">
-    <div class="dash-heading">
-      АДМИНИСТРАТОР
-      <span class="dash-heading-badge">admin</span>
-    </div>
+<div class="az-panel">
+  <!-- Sidebar -->
+  <aside class="az-sidebar">
+    <div class="az-sidebar-brand">Панель админа</div>
+    <nav class="az-sidebar-nav">
+      <a href="<?= APP_URL ?>/admin/index.php" class="az-sidebar-link <?= strpos($_SERVER['REQUEST_URI'], '/admin/index') !== false ? 'active' : '' ?>">
+        <i class="fa fa-tachometer"></i> Панель
+      </a>
+      <a href="<?= APP_URL ?>/admin/users.php" class="az-sidebar-link <?= strpos($_SERVER['REQUEST_URI'], '/admin/users') !== false ? 'active' : '' ?>">
+        <i class="fa fa-users"></i> Пользователи
+      </a>
+      <a href="<?= APP_URL ?>/admin/orders.php" class="az-sidebar-link <?= strpos($_SERVER['REQUEST_URI'], '/admin/orders') !== false ? 'active' : '' ?>">
+        <i class="fa fa-shopping-bag"></i> Заказы
+      </a>
+      <hr style="border-color:rgba(255,255,255,0.1);margin:12px 0;">
+      <a href="<?= APP_URL ?>/index.php" class="az-sidebar-link">
+        <i class="fa fa-home"></i> На сайт
+      </a>
+    </nav>
+  </aside>
 
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">Пользователей</div>
-        <div class="stat-value"><?= $totalUsers ?></div>
-        <div class="stat-sub">Активных аккаунтов</div>
-        <div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Всего заказов</div>
-        <div class="stat-value"><?= $totalOrders ?></div>
-        <div class="stat-sub">За всё время</div>
-        <div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/></svg></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Новых заказов</div>
-        <div class="stat-value"><?= $pendingOrds ?></div>
-        <div class="stat-sub">Требуют обработки</div>
-        <div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Выручка</div>
-        <div class="stat-value" style="font-size:1.5rem;"><?= formatPrice($revenue) ?></div>
-        <div class="stat-sub">Без учёта отменённых</div>
-        <div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+  <!-- Main -->
+  <div class="az-main">
+    <div class="az-topbar">
+      <div class="az-topbar-title">Панель администратора</div>
+      <div class="az-topbar-user">
+        <?= sanitize($_SESSION['username'] ?? 'Admin') ?> &middot;
+        <a href="<?= APP_URL ?>/auth/logout.php">Выйти</a>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <h3>ПОСЛЕДНИЕ ЗАКАЗЫ</h3>
-        <a href="<?= APP_URL ?>/admin/orders.php" class="btn btn-outline btn-sm">Все заказы</a>
+    <div class="az-content">
+      <?php if ($flash = getFlashMessage()): ?>
+      <div class="alert alert-<?= sanitize($flash['type']) ?> mb-16"><?= sanitize($flash['message']) ?></div>
+      <?php endif; ?>
+
+      <!-- Stats -->
+      <div class="row mb-24">
+        <div class="col-lg-3 col-md-6 mb-16">
+          <div class="az-stat-card">
+            <div class="az-stat-card-icon" style="background:#e3f2fd;">
+              <i class="fa fa-users" style="color:#1976d2;"></i>
+            </div>
+            <div class="az-stat-card-body">
+              <div class="az-stat-card-value"><?= $totalUsers ?></div>
+              <div class="az-stat-card-label">Пользователей</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-16">
+          <div class="az-stat-card">
+            <div class="az-stat-card-icon" style="background:#fff3e0;">
+              <i class="fa fa-shopping-bag" style="color:#f57c00;"></i>
+            </div>
+            <div class="az-stat-card-body">
+              <div class="az-stat-card-value"><?= $totalOrders ?></div>
+              <div class="az-stat-card-label">Заказов всего</div>
+              <div class="az-stat-card-sub"><?= $pendingOrds ?> ожидает</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-16">
+          <div class="az-stat-card">
+            <div class="az-stat-card-icon" style="background:#e8f5e9;">
+              <i class="fa fa-ruble" style="color:#388e3c;"></i>
+            </div>
+            <div class="az-stat-card-body">
+              <div class="az-stat-card-value" style="font-size:1.2rem;"><?= formatPrice($totalRevenue) ?></div>
+              <div class="az-stat-card-label">Выручка</div>
+              <div class="az-stat-card-sub">Без отменённых</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-16">
+          <div class="az-stat-card">
+            <div class="az-stat-card-icon" style="background:#fce4ec;">
+              <i class="fa fa-cogs" style="color:#c62828;"></i>
+            </div>
+            <div class="az-stat-card-body">
+              <div class="az-stat-card-value"><?= $totalParts ?></div>
+              <div class="az-stat-card-label">Запчастей</div>
+              <div class="az-stat-card-sub">Активных позиций</div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="table-wrap" style="border:none;border-radius:0;">
-        <table class="data-table">
-          <thead>
-            <tr><th>#</th><th>Покупатель</th><th>Дата</th><th>Сумма</th><th>Статус</th><th></th></tr>
-          </thead>
-          <tbody>
-            <?php foreach ($recentOrders as $order): ?>
-            <tr>
-              <td><span class="mono">#<?= $order['id'] ?></span></td>
-              <td>
-                <div style="font-size:0.875rem;"><?= sanitize($order['username']) ?></div>
-                <div style="font-size:0.75rem;color:var(--text-muted);"><?= sanitize($order['email']) ?></div>
-              </td>
-              <td style="color:var(--text-muted);font-size:0.8rem;"><?= date('d.m.Y H:i', strtotime($order['created_at'])) ?></td>
-              <td style="font-family:var(--font-mono);color:var(--accent);"><?= formatPrice($order['total_amount']) ?></td>
-              <td><span class="badge badge-<?= getOrderStatusClass($order['status']) ?>"><?= getOrderStatusLabel($order['status']) ?></span></td>
-              <td><a href="<?= APP_URL ?>/admin/orders.php?id=<?= $order['id'] ?>" class="btn btn-outline btn-sm">Просмотр</a></td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
+
+      <!-- Recent orders -->
+      <div class="az-card">
+        <div class="az-card-header">
+          <h4 class="az-card-title">Последние заказы</h4>
+          <a href="<?= APP_URL ?>/admin/orders.php" class="az-btn az-btn-outline az-btn-sm">Все заказы</a>
+        </div>
+        <div class="az-card-body p-0">
+          <div class="table-responsive">
+            <table class="az-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Покупатель</th>
+                  <th>Email</th>
+                  <th>Дата</th>
+                  <th>Сумма</th>
+                  <th>Статус</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($recentOrders as $order): ?>
+                <tr>
+                  <td><strong>#<?= (int)$order['id'] ?></strong></td>
+                  <td><?= sanitize($order['username']) ?></td>
+                  <td style="font-size:0.8rem;color:#666;"><?= sanitize($order['email']) ?></td>
+                  <td style="font-size:0.8rem;color:#888;"><?= date('d.m.Y H:i', strtotime($order['created_at'])) ?></td>
+                  <td><strong><?= formatPrice($order['total_amount']) ?></strong></td>
+                  <td>
+                    <span class="badge badge-<?= getOrderStatusClass($order['status']) ?>">
+                      <?= getOrderStatusLabel($order['status']) ?>
+                    </span>
+                  </td>
+                  <td>
+                    <a href="<?= APP_URL ?>/admin/orders.php?id=<?= (int)$order['id'] ?>" class="az-btn az-btn-outline az-btn-sm">Просмотр</a>
+                  </td>
+                </tr>
+                <?php endforeach; ?>
+                <?php if (empty($recentOrders)): ?>
+                <tr><td colspan="7" style="text-align:center;color:#999;padding:24px;">Заказов ещё нет</td></tr>
+                <?php endif; ?>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-</div>
+
+    </div><!-- /.az-content -->
+  </div><!-- /.az-main -->
+</div><!-- /.az-panel -->
 
 <?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>

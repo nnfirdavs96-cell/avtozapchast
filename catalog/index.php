@@ -1,43 +1,46 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
-$pageTitle = 'Каталог запчастей';
+
 $db = getDB();
 
-// ── Filters from GET ──────────────────────────────────────────
-$catSlug   = trim($_GET['category'] ?? '');
-$brandId   = (int)($_GET['brand'] ?? 0);
-$priceMin  = (float)($_GET['price_min'] ?? 0);
-$priceMax  = (float)($_GET['price_max'] ?? 0);
-$sort      = in_array($_GET['sort'] ?? '', ['price_asc','price_desc','name_asc','newest']) ? $_GET['sort'] : 'newest';
-$page      = max(1, (int)($_GET['page'] ?? 1));
-$perPage   = 12;
-$view      = ($_GET['view'] ?? 'grid') === 'list' ? 'list' : 'grid';
+// ── GET params ──────────────────────────────────────────────────────────────
+$q        = trim($_GET['q'] ?? '');
+$catId    = (int)($_GET['cat'] ?? 0);
+$brandId  = (int)($_GET['brand'] ?? 0);
+$sort     = in_array($_GET['sort'] ?? '', ['price_asc', 'price_desc', 'newest']) ? $_GET['sort'] : 'newest';
+$inStock  = isset($_GET['in_stock']) && $_GET['in_stock'] === '1';
+$page     = max(1, (int)($_GET['page'] ?? 1));
+$perPage  = 12;
+$view     = ($_GET['view'] ?? 'grid') === 'list' ? 'list' : 'grid';
+$priceMin = (float)($_GET['price_min'] ?? 0);
+$priceMax = (float)($_GET['price_max'] ?? 0);
 
-// Category by slug
-$currentCat = null;
-if ($catSlug) {
-    $catStmt = $db->prepare("SELECT * FROM categories WHERE slug = ? AND is_active = 1");
-    $catStmt->execute([$catSlug]);
-    $currentCat = $catStmt->fetch();
-}
-
-// Build query
+// ── Build WHERE ─────────────────────────────────────────────────────────────
 $where  = ['p.is_active = 1'];
 $params = [];
 
-if ($currentCat) {
-    // Include subcategories
+if ($q !== '') {
+    $where[]  = '(p.name LIKE ? OR p.part_number LIKE ? OR p.description LIKE ?)';
+    $like     = '%' . $q . '%';
+    $params[] = $like;
+    $params[] = $like;
+    $params[] = $like;
+}
+if ($catId) {
     $subStmt = $db->prepare("SELECT id FROM categories WHERE parent_id = ? AND is_active = 1");
-    $subStmt->execute([$currentCat['id']]);
-    $subIds = array_column($subStmt->fetchAll(), 'id');
-    $subIds[] = $currentCat['id'];
-    $in = implode(',', array_fill(0, count($subIds), '?'));
+    $subStmt->execute([$catId]);
+    $subIds   = array_column($subStmt->fetchAll(), 'id');
+    $subIds[] = $catId;
+    $in       = implode(',', array_fill(0, count($subIds), '?'));
     $where[]  = "p.category_id IN ($in)";
     $params   = array_merge($params, $subIds);
 }
 if ($brandId) {
     $where[]  = 'p.brand_id = ?';
     $params[] = $brandId;
+}
+if ($inStock) {
+    $where[] = 'p.stock > 0';
 }
 if ($priceMin > 0) {
     $where[]  = 'p.price >= ?';
@@ -47,25 +50,31 @@ if ($priceMax > 0) {
     $where[]  = 'p.price <= ?';
     $params[] = $priceMax;
 }
+
 $whereSQL = 'WHERE ' . implode(' AND ', $where);
 
-// Count total
-$countStmt = $db->prepare("SELECT COUNT(*) FROM parts p $whereSQL");
+// ── Count ───────────────────────────────────────────────────────────────────
+$countStmt = $db->prepare(
+    "SELECT COUNT(*) FROM parts p
+     LEFT JOIN brands b ON b.id = p.brand_id
+     LEFT JOIN categories c ON c.id = p.category_id
+     $whereSQL"
+);
 $countStmt->execute($params);
-$total     = (int)$countStmt->fetchColumn();
-$totalPages = max(1, ceil($total / $perPage));
-$page = min($page, $totalPages);
-$offset = ($page - 1) * $perPage;
+$total      = (int)$countStmt->fetchColumn();
+$totalPages = max(1, (int)ceil($total / $perPage));
+$page       = min($page, $totalPages);
+$offset     = ($page - 1) * $perPage;
 
-// Sort
+// ── Sort ────────────────────────────────────────────────────────────────────
 $orderMap = [
     'price_asc'  => 'p.price ASC',
     'price_desc' => 'p.price DESC',
-    'name_asc'   => 'p.name ASC',
     'newest'     => 'p.created_at DESC',
 ];
 $orderSQL = $orderMap[$sort] ?? 'p.created_at DESC';
 
+// ── Products ────────────────────────────────────────────────────────────────
 $partsStmt = $db->prepare(
     "SELECT p.*, b.name AS brand_name, c.name AS category_name
      FROM parts p
@@ -78,282 +87,422 @@ $partsStmt = $db->prepare(
 $partsStmt->execute($params);
 $parts = $partsStmt->fetchAll();
 
-// Sidebar data
+// ── Sidebar data ────────────────────────────────────────────────────────────
 $allCategories = getCategories();
 $allBrands     = getBrands();
 
+$currentCat = null;
+if ($catId) {
+    foreach ($allCategories as $cat) {
+        if ((int)$cat['id'] === $catId) { $currentCat = $cat; break; }
+    }
+}
+
+$currentBrand = null;
+if ($brandId) {
+    foreach ($allBrands as $b) {
+        if ((int)$b['id'] === $brandId) { $currentBrand = $b; break; }
+    }
+}
+
+$pageTitle = t('shop') . ' — ' . getSetting('site_name');
 require_once dirname(__DIR__) . '/includes/header.php';
 ?>
+<meta name="csrf" content="<?= generateCsrfToken() ?>">
 
-<style>
-.catalog-layout {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 24px;
-  max-width: 1440px;
-  margin: 28px auto;
-  padding: 0 24px;
-}
-@media (max-width: 900px) { .catalog-layout { grid-template-columns: 1fr; } }
-.catalog-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-.catalog-toolbar select { width: auto; }
-.view-toggle { display: flex; gap: 4px; }
-.view-btn {
-  width: 34px; height: 34px;
-  display: flex; align-items: center; justify-content: center;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.2s;
-  text-decoration: none;
-}
-.view-btn.active, .view-btn:hover { border-color: var(--accent); color: var(--accent); }
-.parts-list { display: flex; flex-direction: column; gap: 12px; }
-.part-list-item {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  transition: border-color 0.2s;
-}
-.part-list-item:hover { border-color: rgba(255,107,53,0.4); }
-.part-list-thumb {
-  width: 80px;
-  height: 60px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: var(--text-muted);
-  opacity: 0.4;
-}
-.part-list-info { flex: 1; min-width: 0; }
-.part-list-num { font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent); margin-bottom: 4px; }
-.part-list-name { font-size: 0.9rem; font-weight: 500; color: var(--text-primary); margin-bottom: 4px; }
-.part-list-brand { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted); }
-.part-list-price { font-family: var(--font-mono); font-size: 1.1rem; color: var(--accent); font-weight: 700; white-space: nowrap; }
-</style>
+<?= breadcrumb(array_merge(
+    [['label' => t('home'), 'url' => APP_URL . '/index.php'],
+     ['label' => t('shop'), 'url' => APP_URL . '/catalog/index.php']],
+    $currentCat
+        ? [['label' => tField($currentCat, 'name')]]
+        : [['label' => t('shop')]]
+)) ?>
 
-<div class="catalog-layout">
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <form method="get" action="" id="filter-form">
-      <?php if ($view !== 'grid'): ?><input type="hidden" name="view" value="<?= sanitize($view) ?>"><?php endif; ?>
+<div class="shop_area shop_reverse">
+    <div class="container">
+        <div class="row">
 
-      <!-- Categories -->
-      <div class="filter-section">
-        <div class="filter-title">Категории</div>
-        <ul class="filter-list">
-          <li>
-            <a href="<?= APP_URL ?>/catalog/index.php" class="<?= !$catSlug ? 'active' : '' ?>">
-              Все категории
-            </a>
-          </li>
-          <?php foreach ($allCategories as $cat): if ($cat['parent_id'] !== null) continue; ?>
-          <li>
-            <a href="?category=<?= sanitize($cat['slug']) ?><?= $brandId ? '&brand='.$brandId : '' ?>"
-               class="<?= $catSlug === $cat['slug'] ? 'active' : '' ?>">
-              <?= sanitize($cat['name']) ?>
-            </a>
-          </li>
-          <?php endforeach; ?>
-        </ul>
-      </div>
+            <!-- ══ LEFT SIDEBAR ════════════════════════════════════════════ -->
+            <div class="col-lg-3 col-md-4">
+                <div class="shop_sidebar_widget">
 
-      <!-- Brands -->
-      <div class="filter-section">
-        <div class="filter-title">Бренды</div>
-        <ul class="filter-list">
-          <li>
-            <a href="?<?= $catSlug ? 'category='.$catSlug : '' ?>" class="<?= !$brandId ? 'active' : '' ?>">Все бренды</a>
-          </li>
-          <?php foreach ($allBrands as $b): ?>
-          <li>
-            <a href="?<?= $catSlug ? 'category='.$catSlug.'&' : '' ?>brand=<?= $b['id'] ?>"
-               class="<?= $brandId === (int)$b['id'] ? 'active' : '' ?>">
-              <?= sanitize($b['name']) ?>
-            </a>
-          </li>
-          <?php endforeach; ?>
-        </ul>
-      </div>
+                    <!-- Active search -->
+                    <?php if ($q): ?>
+                    <div class="single_shop_sidebar">
+                        <h3><?= t('search') ?></h3>
+                        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#f9f9f9;border:1px solid #e0e0e0;border-radius:4px;font-size:0.85rem;">
+                            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= sanitize($q) ?></span>
+                            <a href="<?= APP_URL ?>/catalog/index.php" style="color:#999;text-decoration:none;font-size:1.1rem;line-height:1;">&times;</a>
+                        </div>
+                    </div>
+                    <?php endif; ?>
 
-      <!-- Price range -->
-      <div class="filter-section">
-        <div class="filter-title">Цена (₽)</div>
-        <div class="price-inputs">
-          <input type="number" id="price-min" name="price_min" class="form-input" placeholder="от"
-                 value="<?= $priceMin > 0 ? $priceMin : '' ?>" min="0">
-          <span class="price-sep">—</span>
-          <input type="number" id="price-max" name="price_max" class="form-input" placeholder="до"
-                 value="<?= $priceMax > 0 ? $priceMax : '' ?>" min="0">
-        </div>
-        <?php if ($catSlug): ?><input type="hidden" name="category" value="<?= sanitize($catSlug) ?>"><?php endif; ?>
-        <?php if ($brandId): ?><input type="hidden" name="brand" value="<?= $brandId ?>"><?php endif; ?>
-        <input type="hidden" name="sort" value="<?= sanitize($sort) ?>">
-        <button type="submit" class="btn btn-primary btn-sm btn-block" style="margin-top:12px;">Применить</button>
-        <a href="<?= APP_URL ?>/catalog/index.php" class="btn btn-outline btn-sm btn-block" style="margin-top:6px;">Сбросить</a>
-      </div>
-    </form>
-  </aside>
+                    <!-- Price filter -->
+                    <div class="single_shop_sidebar">
+                        <h3><?= t('filter_by_price') ?></h3>
+                        <form method="get" action="">
+                            <?php if ($q): ?><input type="hidden" name="q" value="<?= sanitize($q) ?>"><?php endif; ?>
+                            <?php if ($catId): ?><input type="hidden" name="cat" value="<?= $catId ?>"><?php endif; ?>
+                            <?php if ($brandId): ?><input type="hidden" name="brand" value="<?= $brandId ?>"><?php endif; ?>
+                            <?php if ($sort !== 'newest'): ?><input type="hidden" name="sort" value="<?= sanitize($sort) ?>"><?php endif; ?>
+                            <?php if ($inStock): ?><input type="hidden" name="in_stock" value="1"><?php endif; ?>
+                            <?php if ($view !== 'grid'): ?><input type="hidden" name="view" value="list"><?php endif; ?>
+                            <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+                                <input type="number" name="price_min" class="form-control form-control-sm"
+                                       placeholder="<?= t('from') ?>"
+                                       value="<?= $priceMin > 0 ? (int)$priceMin : '' ?>" min="0"
+                                       style="flex:1;">
+                                <span style="color:#aaa;">—</span>
+                                <input type="number" name="price_max" class="form-control form-control-sm"
+                                       placeholder="<?= t('to') ?>"
+                                       value="<?= $priceMax > 0 ? (int)$priceMax : '' ?>" min="0"
+                                       style="flex:1;">
+                            </div>
+                            <button type="submit" class="btn btn-sm" style="background:#d32f2f;color:#fff;border:none;padding:6px 16px;border-radius:4px;width:100%;"><?= t('apply') ?></button>
+                            <?php if ($priceMin > 0 || $priceMax > 0): ?>
+                            <a href="?<?= http_build_query(array_diff_key($_GET, ['price_min' => '', 'price_max' => ''])) ?>"
+                               style="display:block;text-align:center;margin-top:6px;font-size:0.8rem;color:#999;text-decoration:underline;"><?= t('reset') ?></a>
+                            <?php endif; ?>
+                        </form>
+                    </div>
 
-  <!-- Main area -->
-  <div>
-    <!-- Heading -->
-    <div class="flex-between mb-16" style="flex-wrap:wrap;gap:8px;">
-      <div>
-        <h1 class="section-heading" style="font-size:1.8rem;">
-          <?= $currentCat ? sanitize($currentCat['name']) : 'Все запчасти' ?>
-        </h1>
-        <span class="label-mono"><?= $total ?> позиций</span>
-      </div>
-    </div>
+                    <!-- Availability -->
+                    <div class="single_shop_sidebar">
+                        <h3><?= t('availability') ?? 'Наличие' ?></h3>
+                        <ul class="sidebar_categories">
+                            <li class="<?= !$inStock ? 'active_categorie' : '' ?>">
+                                <a href="?<?= http_build_query(array_diff_key($_GET, ['in_stock' => '', 'page' => ''])) ?>">
+                                    <?= t('all_products') ?? 'Все товары' ?>
+                                </a>
+                            </li>
+                            <li class="<?= $inStock ? 'active_categorie' : '' ?>">
+                                <a href="?<?= http_build_query(array_merge(array_diff_key($_GET, ['page' => '']), ['in_stock' => '1'])) ?>">
+                                    <?= t('in_stock') ?>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
 
-    <!-- Toolbar -->
-    <div class="catalog-toolbar">
-      <select class="form-select" name="sort" style="width:auto;" data-auto-submit
-              onchange="document.getElementById('sort-form').submit()">
-      </select>
-      <form id="sort-form" method="get" action="">
-        <?php if ($catSlug): ?><input type="hidden" name="category" value="<?= sanitize($catSlug) ?>"><?php endif; ?>
-        <?php if ($brandId): ?><input type="hidden" name="brand" value="<?= $brandId ?>"><?php endif; ?>
-        <?php if ($priceMin): ?><input type="hidden" name="price_min" value="<?= $priceMin ?>"><?php endif; ?>
-        <?php if ($priceMax): ?><input type="hidden" name="price_max" value="<?= $priceMax ?>"><?php endif; ?>
-        <input type="hidden" name="view" value="<?= sanitize($view) ?>">
-        <select name="sort" class="form-select" onchange="this.form.submit()">
-          <option value="newest"     <?= $sort==='newest'     ?'selected':'' ?>>Новинки</option>
-          <option value="price_asc"  <?= $sort==='price_asc'  ?'selected':'' ?>>Цена ↑</option>
-          <option value="price_desc" <?= $sort==='price_desc' ?'selected':'' ?>>Цена ↓</option>
-          <option value="name_asc"   <?= $sort==='name_asc'   ?'selected':'' ?>>Название А-Я</option>
-        </select>
-      </form>
-      <!-- View toggle -->
-      <div class="view-toggle" style="margin-left:auto;">
-        <a href="?<?= http_build_query(array_merge($_GET, ['view'=>'grid'])) ?>"
-           class="view-btn <?= $view==='grid'?'active':'' ?>" title="Сетка">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-        </a>
-        <a href="?<?= http_build_query(array_merge($_GET, ['view'=>'list'])) ?>"
-           class="view-btn <?= $view==='list'?'active':'' ?>" title="Список">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-        </a>
-      </div>
-    </div>
+                    <!-- Category filter -->
+                    <div class="single_shop_sidebar">
+                        <h3><?= t('filter_by_category') ?></h3>
+                        <ul class="sidebar_categories">
+                            <li class="<?= !$catId ? 'active_categorie' : '' ?>">
+                                <a href="<?= APP_URL ?>/catalog/index.php<?= $q ? '?q=' . urlencode($q) : '' ?>">
+                                    <?= t('all_categories') ?>
+                                </a>
+                            </li>
+                            <?php foreach ($allCategories as $cat):
+                                if ($cat['parent_id'] !== null) continue;
+                                $qArr = array_merge(array_diff_key($_GET, ['page' => '']), ['cat' => $cat['id']]);
+                            ?>
+                            <li class="<?= $catId === (int)$cat['id'] ? 'active_categorie' : '' ?>">
+                                <a href="?<?= http_build_query($qArr) ?>">
+                                    <?= sanitize(tField($cat, 'name')) ?>
+                                </a>
+                            </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
 
-    <!-- Parts -->
-    <?php if (empty($parts)): ?>
-      <div class="no-data">
-        <div class="no-data-icon">⚙</div>
-        <p>По вашему запросу ничего не найдено.</p>
-        <a href="<?= APP_URL ?>/catalog/index.php" class="btn btn-outline btn-sm" style="margin-top:16px;">Сбросить фильтры</a>
-      </div>
-    <?php elseif ($view === 'list'): ?>
-      <div class="parts-list">
-        <?php foreach ($parts as $part):
-          $stock = getStockStatus((int)$part['stock']);
-        ?>
-        <div class="part-list-item">
-          <div class="part-list-thumb">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="2" y="7" width="20" height="10" rx="1"/><path d="M8 7V5M16 7V5"/></svg>
-          </div>
-          <div class="part-list-info">
-            <div class="part-list-num"><?= sanitize($part['part_number']) ?></div>
-            <div class="part-list-name">
-              <a href="<?= APP_URL ?>/catalog/part.php?id=<?= $part['id'] ?>" style="color:inherit;text-decoration:none;">
-                <?= sanitize($part['name']) ?>
-              </a>
-            </div>
-            <div class="part-list-brand"><?= sanitize($part['brand_name']) ?> · <?= sanitize($part['category_name']) ?></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:16px;flex-shrink:0;">
-            <span class="badge badge-<?= $stock['class'] ?>"><?= $stock['label'] ?></span>
-            <span class="part-list-price"><?= formatPrice($part['price']) ?></span>
-            <?php if (isLoggedIn()): ?>
-              <button class="btn btn-primary btn-sm" data-add-cart="<?= $part['id'] ?>">В корзину</button>
-            <?php else: ?>
-              <a href="<?= APP_URL ?>/auth/login.php" class="btn btn-outline btn-sm">Войти</a>
-            <?php endif; ?>
-          </div>
-        </div>
-        <?php endforeach; ?>
-      </div>
-    <?php else: ?>
-      <div class="grid-4">
-        <?php foreach ($parts as $part):
-          $stock = getStockStatus((int)$part['stock']);
-        ?>
-        <div class="part-card">
-          <a href="<?= APP_URL ?>/catalog/part.php?id=<?= $part['id'] ?>" style="display:block;text-decoration:none;">
-            <div class="part-card-img">
-              <div class="part-card-img-placeholder">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><rect x="2" y="7" width="20" height="10" rx="1"/><path d="M8 7V5M16 7V5M4 12h2M18 12h2"/></svg>
-              </div>
-              <span class="part-number-badge"><?= sanitize($part['part_number']) ?></span>
-            </div>
-          </a>
-          <div class="part-card-body">
-            <div class="part-card-brand"><?= sanitize($part['brand_name']) ?></div>
-            <div class="part-card-name">
-              <a href="<?= APP_URL ?>/catalog/part.php?id=<?= $part['id'] ?>" style="color:inherit;text-decoration:none;">
-                <?= sanitize(truncate($part['name'], 55)) ?>
-              </a>
-            </div>
-            <div class="part-card-meta">
-              <span class="part-card-price"><?= formatPrice($part['price']) ?></span>
-              <span class="badge badge-<?= $stock['class'] ?>"><?= $stock['label'] ?></span>
-            </div>
-          </div>
-          <div class="part-card-footer">
-            <?php if (isLoggedIn()): ?>
-              <button class="btn btn-primary btn-sm btn-block" data-add-cart="<?= $part['id'] ?>">В корзину</button>
-            <?php else: ?>
-              <a href="<?= APP_URL ?>/auth/login.php" class="btn btn-outline btn-sm btn-block">Войдите для заказа</a>
-            <?php endif; ?>
-          </div>
-        </div>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
+                    <!-- Brand filter -->
+                    <div class="single_shop_sidebar">
+                        <h3><?= t('filter_by_brand') ?></h3>
+                        <ul class="sidebar_categories">
+                            <li class="<?= !$brandId ? 'active_categorie' : '' ?>">
+                                <a href="?<?= http_build_query(array_diff_key($_GET, ['brand' => '', 'page' => ''])) ?>">
+                                    <?= t('all_brands') ?? 'Все бренды' ?>
+                                </a>
+                            </li>
+                            <?php foreach ($allBrands as $b):
+                                $qArr = array_merge(array_diff_key($_GET, ['page' => '']), ['brand' => $b['id']]);
+                            ?>
+                            <li class="<?= $brandId === (int)$b['id'] ? 'active_categorie' : '' ?>">
+                                <a href="?<?= http_build_query($qArr) ?>">
+                                    <?= sanitize($b['name']) ?>
+                                </a>
+                            </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
 
-    <!-- Pagination -->
-    <?php if ($totalPages > 1): ?>
-    <div class="pagination">
-      <?php
-      $qParams = $_GET;
-      if ($page > 1):
-        $qParams['page'] = $page - 1;
-      ?>
-      <a href="?<?= http_build_query($qParams) ?>" class="page-link">‹</a>
-      <?php endif; ?>
+                </div><!-- /.shop_sidebar_widget -->
+            </div><!-- /.col -->
 
-      <?php for ($p = max(1, $page-2); $p <= min($totalPages, $page+2); $p++):
-        $qParams['page'] = $p;
-      ?>
-      <a href="?<?= http_build_query($qParams) ?>" class="page-link <?= $p == $page ? 'active' : '' ?>"><?= $p ?></a>
-      <?php endfor; ?>
+            <!-- ══ MAIN CONTENT ════════════════════════════════════════════ -->
+            <div class="col-lg-9 col-md-8">
 
-      <?php if ($page < $totalPages):
-        $qParams['page'] = $page + 1;
-      ?>
-      <a href="?<?= http_build_query($qParams) ?>" class="page-link">›</a>
-      <?php endif; ?>
-    </div>
-    <?php endif; ?>
-  </div>
-</div>
+                <!-- Toolbar -->
+                <div class="shop_toolbar_wrapper">
+                    <div class="shop_toolbar_btn">
+                        <a href="?<?= http_build_query(array_merge($_GET, ['view' => 'grid'])) ?>"
+                           data-role="grid_view"
+                           class="btn_grid <?= $view === 'grid' ? 'active' : '' ?>">
+                            <i class="fa fa-th"></i>
+                        </a>
+                        <a href="?<?= http_build_query(array_merge($_GET, ['view' => 'list'])) ?>"
+                           data-role="list_view"
+                           class="btn_list <?= $view === 'list' ? 'active' : '' ?>">
+                            <i class="fa fa-list"></i>
+                        </a>
+                    </div>
+                    <div class="shop_toolbar_result">
+                        <p><?= t('showing') ?> <strong><?= count($parts) ?></strong> <?= t('of') ?> <strong><?= $total ?></strong> <?= t('results') ?></p>
+                    </div>
+                    <div class="toolbar_select">
+                        <form method="get" action="" id="sort-form">
+                            <?php foreach (array_diff_key($_GET, ['sort' => '', 'page' => '']) as $k => $v): ?>
+                            <input type="hidden" name="<?= sanitize($k) ?>" value="<?= sanitize($v) ?>">
+                            <?php endforeach; ?>
+                            <select name="sort" class="nice_Select" onchange="this.form.submit()">
+                                <option value="newest"     <?= $sort === 'newest'     ? 'selected' : '' ?>><?= t('sort_newest') ?? 'Новинки' ?></option>
+                                <option value="price_asc"  <?= $sort === 'price_asc'  ? 'selected' : '' ?>><?= t('sort_price_asc') ?? 'Цена: по возрастанию' ?></option>
+                                <option value="price_desc" <?= $sort === 'price_desc' ? 'selected' : '' ?>><?= t('sort_price_desc') ?? 'Цена: по убыванию' ?></option>
+                            </select>
+                        </form>
+                    </div>
+                </div><!-- /.shop_toolbar_wrapper -->
+
+                <!-- Active filters -->
+                <?php if ($q || $catId || $brandId || $inStock || $priceMin || $priceMax): ?>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;align-items:center;">
+                    <span style="font-size:0.8rem;color:#666;"><?= t('filters') ?? 'Фильтры' ?>:</span>
+                    <?php if ($q): ?>
+                    <a href="?<?= http_build_query(array_diff_key($_GET, ['q' => '', 'page' => ''])) ?>"
+                       style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#d32f2f;color:#fff;border-radius:3px;font-size:0.75rem;text-decoration:none;">
+                       "<?= sanitize(truncate($q, 20)) ?>" &times;
+                    </a>
+                    <?php endif; ?>
+                    <?php if ($currentCat): ?>
+                    <a href="?<?= http_build_query(array_diff_key($_GET, ['cat' => '', 'page' => ''])) ?>"
+                       style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#333;color:#fff;border-radius:3px;font-size:0.75rem;text-decoration:none;">
+                       <?= sanitize(tField($currentCat, 'name')) ?> &times;
+                    </a>
+                    <?php endif; ?>
+                    <?php if ($currentBrand): ?>
+                    <a href="?<?= http_build_query(array_diff_key($_GET, ['brand' => '', 'page' => ''])) ?>"
+                       style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#333;color:#fff;border-radius:3px;font-size:0.75rem;text-decoration:none;">
+                       <?= sanitize($currentBrand['name']) ?> &times;
+                    </a>
+                    <?php endif; ?>
+                    <?php if ($inStock): ?>
+                    <a href="?<?= http_build_query(array_diff_key($_GET, ['in_stock' => '', 'page' => ''])) ?>"
+                       style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#388e3c;color:#fff;border-radius:3px;font-size:0.75rem;text-decoration:none;">
+                       <?= t('in_stock') ?> &times;
+                    </a>
+                    <?php endif; ?>
+                    <?php if ($priceMin > 0 || $priceMax > 0): ?>
+                    <a href="?<?= http_build_query(array_diff_key($_GET, ['price_min' => '', 'price_max' => '', 'page' => ''])) ?>"
+                       style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#1565c0;color:#fff;border-radius:3px;font-size:0.75rem;text-decoration:none;">
+                       <?= $priceMin > 0 ? (int)$priceMin . ' ₽' : '' ?><?= ($priceMin > 0 && $priceMax > 0) ? ' — ' : '' ?><?= $priceMax > 0 ? (int)$priceMax . ' ₽' : '' ?> &times;
+                    </a>
+                    <?php endif; ?>
+                    <a href="<?= APP_URL ?>/catalog/index.php"
+                       style="font-size:0.75rem;color:#999;text-decoration:underline;"><?= t('reset_all') ?? 'Сбросить всё' ?></a>
+                </div>
+                <?php endif; ?>
+
+                <!-- Products -->
+                <?php if (empty($parts)): ?>
+                <div style="text-align:center;padding:60px 20px;">
+                    <i class="icon-settings" style="font-size:3rem;color:#ddd;display:block;margin-bottom:16px;"></i>
+                    <h4 style="color:#666;"><?= t('no_products_found') ?? 'Товары не найдены' ?></h4>
+                    <a href="<?= APP_URL ?>/catalog/index.php" class="btn" style="margin-top:16px;background:#d32f2f;color:#fff;padding:8px 24px;border-radius:4px;text-decoration:none;"><?= t('reset_filters') ?? 'Сбросить фильтры' ?></a>
+                </div>
+
+                <?php elseif ($view === 'list'): ?>
+                <!-- LIST VIEW -->
+                <div class="shop_wrapper list_content">
+                    <?php foreach ($parts as $part):
+                        $stock  = getStockStatus((int)$part['stock']);
+                        $imgUrl = productImageUrl($part['images']);
+                    ?>
+                    <article class="single_product list_single_product">
+                        <div class="product_thumb">
+                            <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
+                                <img src="<?= sanitize($imgUrl) ?>"
+                                     alt="<?= sanitize($part['name']) ?>"
+                                     style="width:120px;height:90px;object-fit:cover;">
+                            </a>
+                        </div>
+                        <div class="product_content list_content" style="flex:1;padding:0 16px;">
+                            <p class="manufacture_product">
+                                <a href="<?= APP_URL ?>/catalog/index.php?brand=<?= (int)$part['brand_id'] ?>">
+                                    <?= sanitize($part['brand_name']) ?>
+                                </a>
+                            </p>
+                            <h4 class="product_name">
+                                <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
+                                    <?= sanitize($part['name']) ?>
+                                </a>
+                            </h4>
+                            <p style="font-size:0.78rem;color:#888;margin:2px 0 6px;">
+                                <?= t('part_number') ?>: <strong><?= sanitize($part['part_number']) ?></strong>
+                                <?php if ($part['category_name']): ?>
+                                &nbsp;&middot;&nbsp; <?= sanitize($part['category_name']) ?>
+                                <?php endif; ?>
+                            </p>
+                            <span class="badge" style="font-size:0.72rem;padding:3px 8px;border-radius:3px;background:<?= $stock['class'] === 'success' ? '#e8f5e9' : ($stock['class'] === 'warning' ? '#fff3e0' : '#ffebee') ?>;color:<?= $stock['class'] === 'success' ? '#2e7d32' : ($stock['class'] === 'warning' ? '#e65100' : '#c62828') ?>;">
+                                <?= $stock['label'] ?>
+                            </span>
+                        </div>
+                        <div class="action_links" style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;padding-left:16px;">
+                            <div class="price_box">
+                                <span class="current_price"><?= formatPrice($part['price']) ?></span>
+                            </div>
+                            <?php if (isLoggedIn()): ?>
+                            <button class="btn btn-sm" style="background:#d32f2f;color:#fff;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;"
+                                    onclick="addToCart(<?= (int)$part['id'] ?>)">
+                                <?= t('add_to_cart') ?>
+                            </button>
+                            <button style="background:none;border:1px solid #ddd;border-radius:4px;padding:5px 10px;cursor:pointer;color:#666;"
+                                    onclick="addToWishlist(<?= (int)$part['id'] ?>)" title="<?= t('add_to_wishlist') ?>">
+                                <i class="icon-heart"></i>
+                            </button>
+                            <?php else: ?>
+                            <a href="<?= APP_URL ?>/auth/login.php" class="btn btn-sm" style="background:#333;color:#fff;border:none;padding:6px 16px;border-radius:4px;text-decoration:none;"><?= t('login') ?></a>
+                            <?php endif; ?>
+                        </div>
+                    </article>
+                    <?php endforeach; ?>
+                </div>
+
+                <?php else: ?>
+                <!-- GRID VIEW -->
+                <div class="shop_wrapper grid_content">
+                    <div class="row">
+                        <?php foreach ($parts as $part):
+                            $stock  = getStockStatus((int)$part['stock']);
+                            $imgUrl = productImageUrl($part['images']);
+                        ?>
+                        <div class="col-lg-4 col-md-6 col-sm-6 col-6 mb-4">
+                            <article class="single_product">
+                                <figure>
+                                    <div class="product_thumb">
+                                        <a class="primary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
+                                            <img src="<?= sanitize($imgUrl) ?>"
+                                                 alt="<?= sanitize($part['name']) ?>"
+                                                 style="height:200px;width:100%;object-fit:cover;">
+                                        </a>
+                                        <div class="action_links">
+                                            <ul>
+                                                <?php if (isLoggedIn()): ?>
+                                                <li class="wishlist">
+                                                    <a href="javascript:void(0)"
+                                                       onclick="addToWishlist(<?= (int)$part['id'] ?>)"
+                                                       title="<?= t('add_to_wishlist') ?>">
+                                                        <i class="icon-heart"></i>
+                                                    </a>
+                                                </li>
+                                                <?php endif; ?>
+                                                <li class="quick_button">
+                                                    <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>"
+                                                       title="<?= t('quick_view') ?>">
+                                                        <i class="icon-eye"></i>
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <?php if ($part['stock'] <= 0): ?>
+                                        <span class="label_product label_sale" style="background:#999;">
+                                            <?= t('out_of_stock') ?>
+                                        </span>
+                                        <?php elseif ($part['stock'] <= 5): ?>
+                                        <span class="label_product label_new" style="background:#ff9800;">
+                                            <?= t('low_stock') ?>
+                                        </span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="product_content grid_content">
+                                        <p class="manufacture_product">
+                                            <a href="<?= APP_URL ?>/catalog/index.php?brand=<?= (int)$part['brand_id'] ?>">
+                                                <?= sanitize($part['brand_name']) ?>
+                                            </a>
+                                        </p>
+                                        <h4 class="product_name">
+                                            <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
+                                                <?= sanitize(truncate($part['name'], 55)) ?>
+                                            </a>
+                                        </h4>
+                                        <p style="font-size:0.72rem;color:#aaa;margin:2px 0;">
+                                            <?= sanitize($part['part_number']) ?>
+                                        </p>
+                                        <div class="price_box">
+                                            <span class="current_price"><?= formatPrice($part['price']) ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="action_links action_links_product">
+                                        <ul>
+                                            <?php if (isLoggedIn()): ?>
+                                            <li class="add_to_cart">
+                                                <a href="javascript:void(0)"
+                                                   onclick="addToCart(<?= (int)$part['id'] ?>)">
+                                                    <?= t('add_to_cart') ?>
+                                                </a>
+                                            </li>
+                                            <li class="wishlist">
+                                                <a href="javascript:void(0)"
+                                                   onclick="addToWishlist(<?= (int)$part['id'] ?>)"
+                                                   title="<?= t('add_to_wishlist') ?>">
+                                                    <i class="icon-heart"></i>
+                                                </a>
+                                            </li>
+                                            <?php else: ?>
+                                            <li class="add_to_cart">
+                                                <a href="<?= APP_URL ?>/auth/login.php">
+                                                    <?= t('login') ?>
+                                                </a>
+                                            </li>
+                                            <?php endif; ?>
+                                        </ul>
+                                    </div>
+                                </figure>
+                            </article>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <!-- Pagination -->
+                <?php if ($totalPages > 1): ?>
+                <div class="paginatoin-area">
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="pagination-box">
+                                <ul class="pagination">
+                                    <?php if ($page > 1): ?>
+                                    <li>
+                                        <a href="?<?= http_build_query(array_merge($_GET, ['page' => $page - 1])) ?>"
+                                           class="page-link">
+                                            &lsaquo;
+                                        </a>
+                                    </li>
+                                    <?php endif; ?>
+                                    <?php for ($p = max(1, $page - 2); $p <= min($totalPages, $page + 2); $p++): ?>
+                                    <li class="<?= $p === $page ? 'active' : '' ?>">
+                                        <a href="?<?= http_build_query(array_merge($_GET, ['page' => $p])) ?>"
+                                           class="page-link"><?= $p ?></a>
+                                    </li>
+                                    <?php endfor; ?>
+                                    <?php if ($page < $totalPages): ?>
+                                    <li>
+                                        <a href="?<?= http_build_query(array_merge($_GET, ['page' => $page + 1])) ?>"
+                                           class="page-link">
+                                            &rsaquo;
+                                        </a>
+                                    </li>
+                                    <?php endif; ?>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+            </div><!-- /.col main -->
+        </div><!-- /.row -->
+    </div><!-- /.container -->
+</div><!-- /.shop_area -->
 
 <?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
