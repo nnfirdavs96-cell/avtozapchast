@@ -159,6 +159,7 @@ return [
     'posted_by'          => 'Муаллиф',
     'posted_on'          => 'Санаи нашр',
     'tags'               => 'Тегҳо',
+    'share_on'           => 'Мубодила',
     'auto_parts'         => 'Эҳтиёт қисмҳо',
     'repair'             => 'Таъмир',
     'service'            => 'Хидмат',
