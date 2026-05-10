@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (empty($errors)) {
                     $hash = password_hash($password, PASSWORD_BCRYPT);
                     $stmt = $db->prepare(
-                        "INSERT INTO users (username, email, password, role, is_active, created_at)
+                        "INSERT INTO users (username, email, password_hash, role, is_active, created_at)
                          VALUES (?, ?, ?, 'buyer', 1, NOW())"
                     );
                     $stmt->execute([$username, $email, $hash]);
