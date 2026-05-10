@@ -17,7 +17,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$message) $errors[] = t('message') . ' обязательно.';
         if (!$errors) {
             // Store contact message (optional: could email admin)
-            // For now just show success
             $success = true;
         }
     }
@@ -28,13 +27,32 @@ require_once dirname(__DIR__) . '/includes/header.php';
 <?= breadcrumb([['label'=>t('home'),'url'=>APP_URL.'/index.php'],['label'=>t('contact')]]) ?>
 
 <div class="contact_page_bg">
+    <!--contact map start-->
+    <div class="contact_map">
+        <div class="map-area">
+            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2243.197079447539!2d37.6173!3d55.7558!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNTXCsDQ1JzIxLjAiTiAzN8KwMzcnMDIuMyJF!5e0!3m2!1sru!2sru!4v1700000000000" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+        </div>
+    </div>
+    <!--contact map end-->
     <div class="container">
         <!--contact area start-->
         <div class="contact_area">
             <div class="row">
-                <div class="col-lg-8 col-md-12">
-                    <div class="contact_message form">
+                <div class="col-lg-6 col-md-12">
+                    <div class="contact_message content">
                         <h3><?= t('contact_us') ?></h3>
+                        <p><?= sanitize(getSetting('contact_intro', t('about_desc'))) ?></p>
+                        <ul>
+                            <li><i class="fa fa-fax"></i> <?= sanitize(getSetting('site_address', 'г. Москва, ул. Автомобильная, д. 1')) ?></li>
+                            <li><i class="fa fa-phone"></i> <a href="tel:<?= sanitize(getSetting('site_phone', '+74951234567')) ?>"><?= sanitize(getSetting('site_phone', '+7 (495) 123-45-67')) ?></a></li>
+                            <li><i class="fa fa-envelope-o"></i> <a href="mailto:<?= sanitize(getSetting('site_email', 'info@avtozapchast.ru')) ?>"><?= sanitize(getSetting('site_email', 'info@avtozapchast.ru')) ?></a></li>
+                            <li><i class="fa fa-clock-o"></i> <?= t('mon_fri') ?>: 9:00–20:00 / <?= t('sat_sun') ?>: 10:00–18:00</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-12">
+                    <div class="contact_message form">
+                        <h3><?= t('send_message') ?></h3>
 
                         <?php if ($success): ?>
                         <div class="alert alert-success" role="alert"><?= t('contact_success') ?></div>
@@ -64,40 +82,6 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             <button type="submit"><?= t('send_message') ?></button>
                             <p class="form-messege"></p>
                         </form>
-                    </div>
-                </div>
-
-                <div class="col-lg-4 col-md-12">
-                    <div class="contact_message content">
-                        <h3><?= t('contact_info') ?></h3>
-                        <ul>
-                            <li>
-                                <i class="fa fa-phone"></i>
-                                <a href="tel:<?= sanitize(getSetting('site_phone', '+74951234567')) ?>">
-                                    <?= sanitize(getSetting('site_phone', '+7 (495) 123-45-67')) ?>
-                                </a>
-                            </li>
-                            <li>
-                                <i class="fa fa-envelope-o"></i>
-                                <a href="mailto:<?= sanitize(getSetting('site_email', 'info@avtozapchast.ru')) ?>">
-                                    <?= sanitize(getSetting('site_email', 'info@avtozapchast.ru')) ?>
-                                </a>
-                            </li>
-                            <li>
-                                <i class="fa fa-fax"></i>
-                                <?= sanitize(getSetting('site_address', 'г. Москва, ул. Автомобильная, д. 1')) ?>
-                            </li>
-                            <li>
-                                <i class="fa fa-clock-o"></i>
-                                <?= t('mon_fri') ?>: 9:00–20:00 / <?= t('sat_sun') ?>: 10:00–18:00
-                            </li>
-                        </ul>
-                        <?php if (getSetting('site_telegram')): ?>
-                        <p><a href="https://t.me/<?= sanitize(getSetting('site_telegram')) ?>" class="button" style="display:inline-block;text-align:center;margin-bottom:8px;width:100%">Telegram</a></p>
-                        <?php endif; ?>
-                        <?php if (getSetting('site_whatsapp')): ?>
-                        <p><a href="https://wa.me/<?= sanitize(getSetting('site_whatsapp')) ?>" class="button button_2" style="display:inline-block;text-align:center;width:100%">WhatsApp</a></p>
-                        <?php endif; ?>
                     </div>
                 </div>
             </div>
