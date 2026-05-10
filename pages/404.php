@@ -15,10 +15,11 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <h1>404</h1>
                         <h2><?= t('page_not_found') ?></h2>
                         <p><?= t('page_not_found_desc') ?></p>
-                        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:20px;">
-                            <a href="<?= APP_URL ?>/index.php" class="button"><?= t('home') ?></a>
-                            <a href="<?= APP_URL ?>/catalog/index.php" class="button button_2"><?= t('shop') ?></a>
-                        </div>
+                        <form action="<?= APP_URL ?>/search/index.php" method="GET">
+                            <input name="q" placeholder="<?= t('search_placeholder') ?>" type="text">
+                            <button type="submit"><i class="ion-ios-search-strong"></i></button>
+                        </form>
+                        <a href="<?= APP_URL ?>/index.php"><?= t('home') ?></a>
                     </div>
                 </div>
             </div>

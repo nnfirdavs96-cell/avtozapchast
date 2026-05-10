@@ -279,16 +279,18 @@ function getMiniCartTotal(): float {
  * Build breadcrumb array
  */
 function breadcrumb(array $items): string {
-    $html = '<div class="breadcrumb_section page-title-area"><div class="container"><div class="row"><div class="col-12"><div class="breadcrumb_content"><ul>';
+    $html  = '<!--breadcrumbs area start-->';
+    $html .= '<div class="breadcrumbs_area"><div class="container"><div class="row"><div class="col-12"><div class="breadcrumb_content"><ul>';
     $last = count($items) - 1;
     foreach ($items as $i => $item) {
-        if ($i === $last) {
-            $html .= '<li class="active">' . sanitize($item['label']) . '</li>';
+        if ($i === $last || empty($item['url'])) {
+            $html .= '<li>' . sanitize($item['label']) . '</li>';
         } else {
             $html .= '<li><a href="' . sanitize($item['url']) . '">' . sanitize($item['label']) . '</a></li>';
         }
     }
     $html .= '</ul></div></div></div></div></div>';
+    $html .= '<!--breadcrumbs area end-->';
     return $html;
 }
 

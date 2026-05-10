@@ -203,8 +203,8 @@ unset($queryParams['lang'], $queryParams['currency']);
                 <div class="row align-items-center">
                     <div class="col-lg-2 col-md-4 col-sm-4 col-4">
                         <div class="logo">
-                            <a href="<?= APP_URL ?>/index.php" style="text-decoration:none">
-                                <span style="font-size:1.3rem;font-weight:900;color:#d32f2f;letter-spacing:-1px;font-family:sans-serif">AUTO<span style="color:#222">PARTS</span></span>
+                            <a href="<?= APP_URL ?>/index.php" aria-label="<?= sanitize($siteName) ?>">
+                                <span class="logo-text">АВТО<span>ЗАПЧАСТЬ</span></span>
                             </a>
                         </div>
                     </div>
