@@ -29,7 +29,7 @@ $recentUsers = $db->query(
 )->fetchAll();
 
 $pageTitle = 'Суперадминистратор — ' . getSetting('site_name');
-require_once dirname(__DIR__) . '/includes/header.php';
+require_once dirname(__DIR__) . '/includes/admin-header.php';
 
 function formatBytes($bytes, $precision = 1): string {
     $units = ['Б', 'КБ', 'МБ', 'ГБ', 'ТБ'];
@@ -241,4 +241,4 @@ function formatBytes($bytes, $precision = 1): string {
   </div><!-- /.az-main -->
 </div><!-- /.az-panel -->
 
-<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
+<?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>

@@ -78,7 +78,7 @@ $ordersStmt->execute($params);
 $orders = $ordersStmt->fetchAll();
 
 $pageTitle = 'Заказы — ' . getSetting('site_name');
-require_once dirname(__DIR__) . '/includes/header.php';
+require_once dirname(__DIR__) . '/includes/admin-header.php';
 ?>
 
 <div class="az-panel">
@@ -289,4 +289,4 @@ require_once dirname(__DIR__) . '/includes/header.php';
   </div><!-- /.az-main -->
 </div><!-- /.az-panel -->
 
-<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
+<?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>
