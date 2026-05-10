@@ -126,6 +126,100 @@
 /* Placeholder image */
 .product-placeholder { background: #f5f5f5; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 3rem; }
 
+/* ── Admin panel extra classes (used by admin/superadmin pages) ── */
+
+/* Sidebar aliases */
+.az-sidebar-brand {
+    padding: 20px 20px 16px;
+    font-size: 1rem; font-weight: 900; letter-spacing: -0.3px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.az-sidebar-nav { padding: 8px 0; }
+.az-sidebar-link {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 20px; color: rgba(255,255,255,0.75);
+    text-decoration: none; font-size: 0.875rem;
+    transition: background 0.2s, color 0.2s;
+}
+.az-sidebar-link:hover,
+.az-sidebar-link.active { background: rgba(211,47,47,0.2); color: #fff; text-decoration: none; }
+.az-sidebar-link i { width: 18px; text-align: center; }
+
+/* Topbar extras */
+.az-topbar-title { font-size: 1.1rem; font-weight: 700; }
+.az-topbar-user  { font-size: 0.85rem; color: #666; }
+.az-topbar-user a { color: #d32f2f; text-decoration: none; }
+
+/* Card sub-elements */
+.az-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid #f0f0f0; margin: -24px -24px 20px;
+}
+.az-card-title { font-size: 1rem; font-weight: 700; margin: 0; }
+.az-card-body   { padding: 20px; }
+.az-card-body.p-0 { padding: 0; }
+.az-card-footer { padding: 14px 20px; border-top: 1px solid #f0f0f0; margin: 20px -24px -24px; }
+
+/* Stat card icon style */
+.az-stat-card { display: flex; align-items: center; gap: 14px; }
+.az-stat-card-icon {
+    width: 48px; height: 48px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 1.3rem;
+}
+.az-stat-card-body  { flex: 1; }
+.az-stat-card-value { font-size: 1.7rem; font-weight: 900; color: #d32f2f; line-height: 1.1; }
+.az-stat-card-label { color: #666; font-size: 0.78rem; margin-top: 2px; }
+.az-stat-card-sub   { font-size: 0.72rem; color: #aaa; margin-top: 2px; }
+
+/* Utility spacing helpers */
+.mb-16 { margin-bottom: 16px !important; }
+.mb-24 { margin-bottom: 24px !important; }
+.gap-8  { gap: 8px; }
+.d-flex { display: flex; }
+.align-items-center { align-items: center; }
+.flex-wrap { flex-wrap: wrap; }
+.text-muted { color: #888 !important; }
+.table-responsive { overflow-x: auto; }
+.table-sm td, .table-sm th { padding: 6px 10px; }
+.table-borderless td, .table-borderless th { border: none; }
+.badge-secondary { background: #e9ecef; color: #495057; }
+.form-check { display: flex; align-items: center; gap: 8px; }
+.form-check-input { width: 16px; height: 16px; cursor: pointer; }
+.form-check-label { cursor: pointer; font-size: 0.875rem; }
+.az-btn-outline {
+    background: #fff; border: 1px solid #ced4da; color: #333;
+}
+.az-btn-outline:hover { background: #f5f5f5; opacity: 1; }
+.pagination { display: flex; gap: 4px; list-style: none; padding: 0; margin: 0; }
+.pagination .page-link {
+    padding: 6px 12px; border: 1px solid #dee2e6; border-radius: 4px;
+    color: #333; text-decoration: none; font-size: 0.875rem;
+}
+.pagination .page-link.active,
+.pagination .page-link:hover { background: #d32f2f; color: #fff; border-color: #d32f2f; }
+
+/* Image upload preview */
+.img-upload-preview {
+    width: 120px; height: 90px; object-fit: cover; border-radius: 6px;
+    border: 1px solid #dee2e6; display: block; margin-bottom: 8px;
+}
+.img-grid {
+    display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px;
+}
+.img-grid-item {
+    position: relative; width: 110px;
+}
+.img-grid-item img {
+    width: 110px; height: 80px; object-fit: cover; border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+.img-grid-item .img-remove {
+    position: absolute; top: -6px; right: -6px; width: 20px; height: 20px;
+    background: #dc3545; color: #fff; border: none; border-radius: 50%;
+    font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+}
+
 /* Responsive admin */
 @media (max-width: 768px) {
     .az-panel { flex-direction: column; }
