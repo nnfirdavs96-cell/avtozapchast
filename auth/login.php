@@ -1,310 +1,183 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 
-// Already logged in → redirect
+// Redirect if already logged in
 if (isLoggedIn()) {
     $role = $_SESSION['role'] ?? 'buyer';
-    switch ($role) {
-        case 'superadmin': redirect(APP_URL . '/superadmin/index.php');
-        case 'admin':      redirect(APP_URL . '/admin/index.php');
-        case 'manager':    redirect(APP_URL . '/manager/index.php');
-        default:           redirect(APP_URL . '/buyer/index.php');
-    }
+    $redirectMap = [
+        'buyer'      => APP_URL . '/buyer/index.php',
+        'manager'    => APP_URL . '/manager/index.php',
+        'admin'      => APP_URL . '/admin/index.php',
+        'superadmin' => APP_URL . '/superadmin/index.php',
+    ];
+    redirect($redirectMap[$role] ?? APP_URL . '/index.php');
 }
 
 $errors = [];
-$emailVal = '';
+$email  = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // CSRF check
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        $errors[] = 'Ошибка безопасности. Обновите страницу и попробуйте снова.';
+        $errors[] = 'Неверный токен безопасности. Обновите страницу.';
     } else {
         $email    = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
-        $emailVal = $email;
+        $remember = !empty($_POST['remember_me']);
 
-        if (empty($email) || empty($password)) {
-            $errors[] = 'Введите email и пароль.';
-        } else {
-            $db   = getDB();
-            $stmt = $db->prepare("SELECT id, username, email, password_hash, role, is_active FROM users WHERE email = ?");
-            $stmt->execute([$email]);
-            $user = $stmt->fetch();
+        if (empty($email)) {
+            $errors[] = 'Введите адрес email.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Введите корректный email.';
+        }
+        if (empty($password)) {
+            $errors[] = 'Введите пароль.';
+        }
 
-            if (!$user || !password_verify($password, $user['password_hash'])) {
-                $errors[] = 'Неверный email или пароль.';
-            } elseif (!$user['is_active']) {
-                $errors[] = 'Ваш аккаунт деактивирован. Обратитесь к администратору.';
-            } else {
-                // Auth OK
-                session_regenerate_id(true);
-                $_SESSION['user_id']   = $user['id'];
-                $_SESSION['role']      = $user['role'];
-                unset($_SESSION['user_data']); // force reload
+        if (empty($errors)) {
+            try {
+                $db   = getDB();
+                $stmt = $db->prepare("SELECT * FROM users WHERE email = ? AND is_active = 1 LIMIT 1");
+                $stmt->execute([$email]);
+                $user = $stmt->fetch();
 
-                flashMessage('success', 'Добро пожаловать, ' . $user['username'] . '!');
+                if ($user && password_verify($password, $user['password'])) {
+                    session_regenerate_id(true);
 
-                // Redirect based on role or ?redirect param
-                $redirect = $_GET['redirect'] ?? '';
-                if ($redirect && strpos($redirect, APP_URL) === 0) {
-                    redirect($redirect);
+                    $_SESSION['user_id']  = $user['id'];
+                    $_SESSION['role']     = $user['role'];
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['user_data'] = [
+                        'id'        => $user['id'],
+                        'username'  => $user['username'],
+                        'email'     => $user['email'],
+                        'role'      => $user['role'],
+                        'phone'     => $user['phone'] ?? '',
+                        'is_active' => $user['is_active'],
+                    ];
+
+                    // Remember me: extend session cookie lifetime
+                    if ($remember) {
+                        $params = session_get_cookie_params();
+                        setcookie(
+                            session_name(),
+                            session_id(),
+                            time() + 86400 * 30,
+                            $params['path'],
+                            $params['domain'],
+                            $params['secure'],
+                            $params['httponly']
+                        );
+                    }
+
+                    flashMessage('success', 'Добро пожаловать, ' . $user['username'] . '!');
+
+                    // Honour redirect param if safe (relative URL only)
+                    $redirectTo = $_GET['redirect'] ?? '';
+                    if ($redirectTo && strpos($redirectTo, '/') === 0 && strpos($redirectTo, '//') !== 0) {
+                        redirect(APP_URL . $redirectTo);
+                    }
+
+                    $redirectMap = [
+                        'buyer'      => APP_URL . '/buyer/index.php',
+                        'manager'    => APP_URL . '/manager/index.php',
+                        'admin'      => APP_URL . '/admin/index.php',
+                        'superadmin' => APP_URL . '/superadmin/index.php',
+                    ];
+                    redirect($redirectMap[$user['role']] ?? APP_URL . '/index.php');
+
+                } else {
+                    $errors[] = 'Неверный email или пароль.';
                 }
-                switch ($user['role']) {
-                    case 'superadmin': redirect(APP_URL . '/superadmin/index.php');
-                    case 'admin':      redirect(APP_URL . '/admin/index.php');
-                    case 'manager':    redirect(APP_URL . '/manager/index.php');
-                    default:           redirect(APP_URL . '/buyer/index.php');
-                }
+            } catch (Exception $e) {
+                $errors[] = 'Ошибка сервера. Попробуйте позже.';
             }
         }
     }
 }
 
-$pageTitle = 'Вход в систему';
 $csrfToken = generateCsrfToken();
+$pageTitle  = t('login');
+require_once dirname(__DIR__) . '/includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= $pageTitle ?> | АвтоЗапчасть</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/style.css">
-  <style>
-    body { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; background: var(--bg-primary); }
-    .auth-wrap {
-      display: flex;
-      min-height: 100vh;
-    }
-    .auth-left {
-      flex: 1;
-      background: var(--bg-secondary);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 60px 40px;
-      border-right: 1px solid var(--border);
-      position: relative;
-      overflow: hidden;
-    }
-    .auth-left::before {
-      content: '';
-      position: absolute;
-      top: -100px;
-      left: -100px;
-      width: 400px;
-      height: 400px;
-      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .auth-left-logo {
-      font-family: var(--font-display);
-      font-size: 3rem;
-      letter-spacing: 4px;
-      color: var(--text-primary);
-      margin-bottom: 12px;
-    }
-    .auth-left-logo span { color: var(--accent); }
-    .auth-left-tagline {
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.15em;
-      margin-bottom: 48px;
-    }
-    .auth-left-features { list-style: none; padding: 0; margin: 0; }
-    .auth-left-features li {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      color: var(--text-secondary);
-      font-size: 0.875rem;
-      margin-bottom: 16px;
-    }
-    .auth-left-features li::before {
-      content: '';
-      width: 6px;
-      height: 6px;
-      background: var(--accent);
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    .auth-right {
-      width: 480px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      padding: 60px 48px;
-      background: var(--bg-primary);
-    }
-    @media (max-width: 768px) {
-      .auth-left { display: none; }
-      .auth-right { width: 100%; padding: 40px 24px; }
-    }
-    .auth-title {
-      font-family: var(--font-display);
-      font-size: 2.2rem;
-      color: var(--text-primary);
-      letter-spacing: 2px;
-      margin-bottom: 6px;
-    }
-    .auth-subtitle {
-      color: var(--text-muted);
-      font-size: 0.85rem;
-      margin-bottom: 36px;
-      font-family: var(--font-body);
-    }
-    .error-list {
-      background: rgba(231,76,60,0.08);
-      border: 1px solid var(--danger);
-      border-radius: 4px;
-      padding: 12px 16px;
-      margin-bottom: 20px;
-      list-style: none;
-    }
-    .error-list li {
-      color: var(--danger);
-      font-size: 0.825rem;
-      padding: 2px 0;
-    }
-    .auth-footer-link {
-      margin-top: 28px;
-      text-align: center;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-    .auth-footer-link a { color: var(--accent); text-decoration: none; }
-    .auth-footer-link a:hover { text-decoration: underline; }
-    .demo-accounts {
-      margin-top: 32px;
-      padding: 16px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-    }
-    .demo-label {
-      font-family: var(--font-mono);
-      font-size: 0.65rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-muted);
-      margin-bottom: 10px;
-    }
-    .demo-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.75rem;
-      font-family: var(--font-mono);
-      padding: 4px 0;
-      border-bottom: 1px solid var(--border);
-      color: var(--text-secondary);
-    }
-    .demo-row:last-child { border-bottom: none; }
-    .demo-row .demo-role {
-      font-size: 0.65rem;
-      padding: 1px 6px;
-      border-radius: 2px;
-      color: #fff;
-    }
-    .demo-role.superadmin { background: #9b59b6; }
-    .demo-role.admin { background: var(--danger); }
-    .demo-role.manager { background: var(--info); }
-    .demo-role.buyer { background: var(--success); }
-  </style>
-</head>
-<body>
-<div class="auth-wrap">
-  <!-- Left panel -->
-  <div class="auth-left">
-    <div class="auth-left-logo">АВТО<span>ЗАПЧАСТЬ</span></div>
-    <div class="auth-left-tagline">Профессиональный склад автозапчастей</div>
-    <ul class="auth-left-features">
-      <li>Более 50 000 позиций в наличии</li>
-      <li>Оригинальные и аналоговые запчасти</li>
-      <li>Гарантия на всю продукцию</li>
-      <li>Доставка по всей России</li>
-      <li>Быстрый подбор по номеру детали</li>
-    </ul>
-  </div>
 
-  <!-- Right panel (form) -->
-  <div class="auth-right">
-    <div class="auth-title">ВХОД</div>
-    <div class="auth-subtitle">Введите данные вашего аккаунта</div>
+<?= breadcrumb([
+    ['label' => t('home'),  'url' => APP_URL . '/index.php'],
+    ['label' => t('login'), 'url' => ''],
+]) ?>
 
-    <?php if (!empty($errors)): ?>
-      <ul class="error-list">
-        <?php foreach ($errors as $err): ?>
-          <li><?= sanitize($err) ?></li>
-        <?php endforeach; ?>
-      </ul>
-    <?php endif; ?>
+<div class="login_register_wrap section_padding">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 col-md-8">
+                <div class="login_register_wrapper">
 
-    <form method="post" action="">
-      <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
+                    <div class="login_register_tab_list">
+                        <a class="active" href="<?= APP_URL ?>/auth/login.php"><?= t('login') ?></a>
+                        <a href="<?= APP_URL ?>/auth/register.php"><?= t('register') ?></a>
+                    </div>
 
-      <div class="form-group">
-        <label class="form-label" for="email">Email</label>
-        <input
-          type="email"
-          id="email"
-          name="email"
-          class="form-input"
-          value="<?= sanitize($emailVal) ?>"
-          placeholder="admin@avtozapchast.ru"
-          required
-          autofocus
-        >
-      </div>
+                    <div class="login_form_container">
+                        <div class="account_login_form">
 
-      <div class="form-group">
-        <label class="form-label" for="password">Пароль</label>
-        <input
-          type="password"
-          id="password"
-          name="password"
-          class="form-input"
-          placeholder="••••••••"
-          required
-        >
-      </div>
+                            <?php if (!empty($errors)): ?>
+                                <div class="az-alert az-alert-danger" style="margin-bottom:16px;">
+                                    <?php foreach ($errors as $err): ?>
+                                        <div><?= sanitize($err) ?></div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
 
-      <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">
-        ВОЙТИ
-      </button>
-    </form>
+                            <form method="POST"
+                                  action="<?= APP_URL ?>/auth/login.php<?= isset($_GET['redirect']) ? '?redirect=' . urlencode($_GET['redirect']) : '' ?>">
+                                <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
 
-    <div class="auth-footer-link">
-      Нет аккаунта? <a href="<?= APP_URL ?>/auth/register.php">Зарегистрироваться</a>
+                                <div class="form-group">
+                                    <label for="login_email"><?= t('email') ?> <span class="required">*</span></label>
+                                    <input id="login_email"
+                                           type="email"
+                                           name="email"
+                                           placeholder="your@email.com"
+                                           value="<?= sanitize($email) ?>"
+                                           required
+                                           autocomplete="email">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="login_password"><?= t('password') ?> <span class="required">*</span></label>
+                                    <input id="login_password"
+                                           type="password"
+                                           name="password"
+                                           placeholder="••••••••"
+                                           required
+                                           autocomplete="current-password">
+                                </div>
+
+                                <div class="form-group" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                                    <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:400;cursor:pointer;font-size:0.9rem;">
+                                        <input type="checkbox" name="remember_me" value="1">
+                                        <?= t('remember_me') ?>
+                                    </label>
+                                    <a href="#" style="font-size:0.875rem;color:#d32f2f;"><?= t('forgot_password') ?></a>
+                                </div>
+
+                                <div class="form-group">
+                                    <button type="submit" class="btn"><?= t('sign_in') ?></button>
+                                </div>
+
+                                <p style="text-align:center;font-size:0.9rem;color:#666;margin-top:12px;">
+                                    <?= t('no_account') ?>
+                                    <a href="<?= APP_URL ?>/auth/register.php"
+                                       style="color:#d32f2f;font-weight:600;"><?= t('sign_up') ?></a>
+                                </p>
+                            </form>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
     </div>
-
-    <!-- Demo accounts -->
-    <div class="demo-accounts">
-      <div class="demo-label">Демо-аккаунты (пароль: Password123!)</div>
-      <div class="demo-row">
-        <span>superadmin@avtozapchast.ru</span>
-        <span class="demo-role superadmin">superadmin</span>
-      </div>
-      <div class="demo-row">
-        <span>admin@avtozapchast.ru</span>
-        <span class="demo-role admin">admin</span>
-      </div>
-      <div class="demo-row">
-        <span>manager@avtozapchast.ru</span>
-        <span class="demo-role manager">manager</span>
-      </div>
-      <div class="demo-row">
-        <span>buyer@avtozapchast.ru</span>
-        <span class="demo-role buyer">buyer</span>
-      </div>
-    </div>
-  </div>
 </div>
-</body>
-</html>
+
+<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>

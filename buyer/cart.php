@@ -1,64 +1,41 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
-requireRole('buyer');
+
+if (!isLoggedIn()) {
+    redirect(APP_URL . '/auth/login.php?redirect=' . urlencode($_SERVER['REQUEST_URI']));
+}
 
 $user = getCurrentUser();
 $db   = getDB();
 $csrf = generateCsrfToken();
 
-// Handle checkout form
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout'])) {
-    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        flashMessage('danger', 'Ошибка безопасности.');
+// Handle update cart (POST action=update)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'update') {
+    if (!verifyCsrfToken($_POST['_csrf'] ?? '')) {
+        flashMessage('danger', 'Ошибка безопасности. Попробуйте снова.');
         redirect(APP_URL . '/buyer/cart.php');
     }
-    $address = trim($_POST['address'] ?? '');
-    $notes   = trim($_POST['notes'] ?? '');
-    if (empty($address)) {
-        flashMessage('danger', 'Укажите адрес доставки.');
-        redirect(APP_URL . '/buyer/cart.php');
-    }
-    // Get cart items
-    $cartStmt = $db->prepare(
-        "SELECT c.*, p.price, p.stock, p.name AS part_name
-         FROM cart c JOIN parts p ON p.id = c.part_id
-         WHERE c.user_id = ? AND p.is_active = 1"
-    );
-    $cartStmt->execute([$user['id']]);
-    $cartItems = $cartStmt->fetchAll();
-    if (empty($cartItems)) {
-        flashMessage('warning', 'Ваша корзина пуста.');
-        redirect(APP_URL . '/buyer/cart.php');
-    }
-    $total = array_sum(array_map(fn($i) => $i['price'] * $i['quantity'], $cartItems));
-    $db->beginTransaction();
-    try {
-        $ordStmt = $db->prepare(
-            "INSERT INTO orders (user_id, total_amount, shipping_address, notes) VALUES (?, ?, ?, ?)"
+    $quantities = $_POST['quantity'] ?? [];
+    if (is_array($quantities)) {
+        $upd = $db->prepare(
+            "UPDATE cart SET quantity = ? WHERE user_id = ? AND part_id = ?"
         );
-        $ordStmt->execute([$user['id'], $total, $address, $notes ?: null]);
-        $orderId = (int)$db->lastInsertId();
-        $itmStmt = $db->prepare(
-            "INSERT INTO order_items (order_id, part_id, quantity, unit_price) VALUES (?, ?, ?, ?)"
-        );
-        foreach ($cartItems as $item) {
-            $itmStmt->execute([$orderId, $item['part_id'], $item['quantity'], $item['price']]);
+        foreach ($quantities as $partId => $qty) {
+            $partId = (int)$partId;
+            $qty    = max(1, min(99, (int)$qty));
+            if ($partId > 0) {
+                $upd->execute([$qty, $user['id'], $partId]);
+            }
         }
-        // Clear cart
-        $db->prepare("DELETE FROM cart WHERE user_id = ?")->execute([$user['id']]);
-        $db->commit();
-        flashMessage('success', "Заказ #$orderId успешно оформлен! Мы свяжемся с вами для подтверждения.");
-        redirect(APP_URL . '/buyer/orders.php?id=' . $orderId);
-    } catch (Exception $e) {
-        $db->rollBack();
-        flashMessage('danger', 'Ошибка оформления заказа. Попробуйте снова.');
-        redirect(APP_URL . '/buyer/cart.php');
     }
+    flashMessage('success', 'Корзина обновлена.');
+    redirect(APP_URL . '/buyer/cart.php');
 }
 
-// Load cart
+// Load cart items
 $cartStmt = $db->prepare(
-    "SELECT c.id AS cart_id, c.part_id, c.quantity, p.name, p.part_number, p.price, p.stock,
+    "SELECT c.id AS cart_id, c.part_id, c.quantity,
+            p.name, p.part_number, p.price, p.stock, p.images,
             b.name AS brand_name
      FROM cart c
      JOIN parts p ON p.id = c.part_id
@@ -68,193 +45,230 @@ $cartStmt = $db->prepare(
 );
 $cartStmt->execute([$user['id']]);
 $cartItems = $cartStmt->fetchAll();
-$cartTotal = array_sum(array_map(fn($i) => $i['price'] * $i['quantity'], $cartItems));
 
-$pageTitle = 'Корзина';
+$cartSubtotal = 0.0;
+foreach ($cartItems as $item) {
+    $cartSubtotal += (float)$item['price'] * (int)$item['quantity'];
+}
+
+$pageTitle = t('your_cart');
 require_once dirname(__DIR__) . '/includes/header.php';
-require_once dirname(__DIR__) . '/includes/nav.php';
 ?>
+<meta name="csrf" content="<?= generateCsrfToken() ?>">
 
-<style>
-.cart-grid {
-  display: grid;
-  grid-template-columns: 1fr 360px;
-  gap: 24px;
-}
-@media (max-width: 900px) { .cart-grid { grid-template-columns: 1fr; } }
-.qty-control {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.qty-btn {
-  width: 28px; height: 28px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 1rem;
-  line-height: 1;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.15s;
-}
-.qty-btn:hover { border-color: var(--accent); color: var(--accent); }
-.qty-num {
-  width: 36px;
-  text-align: center;
-  font-family: var(--font-mono);
-  font-size: 0.875rem;
-  background: transparent;
-  border: none;
-  color: var(--text-primary);
-}
-.order-summary {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 24px;
-  height: fit-content;
-  position: sticky;
-  top: 80px;
-}
-.summary-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-}
-.summary-row:last-of-type { border-bottom: none; }
-.summary-total {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 0;
-  border-top: 2px solid var(--accent);
-  margin-top: 8px;
-}
-.summary-total-label {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
-}
-.summary-total-val {
-  font-family: var(--font-display);
-  font-size: 1.8rem;
-  color: var(--accent);
-  letter-spacing: 2px;
-}
-</style>
+<?= breadcrumb([
+    ['label' => t('home'),      'url' => APP_URL . '/index.php'],
+    ['label' => t('shop'),      'url' => APP_URL . '/catalog/index.php'],
+    ['label' => t('your_cart')],
+]) ?>
 
-<div class="dash-layout">
-  <div class="dash-sidebar"><?php renderNav(); ?></div>
-  <div class="dash-main">
-    <div class="dash-heading">КОРЗИНА</div>
+<!-- Cart Area -->
+<div class="cart_area">
+    <div class="container">
 
-    <?php if (empty($cartItems)): ?>
-    <div class="no-data" style="padding:80px 20px;">
-      <div class="no-data-icon">🛒</div>
-      <p>Ваша корзина пуста.</p>
-      <a href="<?= APP_URL ?>/catalog/index.php" class="btn btn-primary" style="margin-top:16px;">Перейти в каталог</a>
-    </div>
-    <?php else: ?>
-    <div class="cart-grid">
-      <!-- Cart items -->
-      <div>
-        <div class="card">
-          <div class="card-header">
-            <h3>ТОВАРЫ (<?= count($cartItems) ?>)</h3>
-          </div>
-          <div class="table-wrap" style="border:none;border-radius:0;">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Товар</th>
-                  <th style="text-align:center;">Кол-во</th>
-                  <th style="text-align:right;">Цена</th>
-                  <th style="text-align:right;">Сумма</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php foreach ($cartItems as $item): ?>
-                <tr data-cart-row="<?= (int)$item['part_id'] ?>">
-                  <td>
-                    <div>
-                      <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);margin-bottom:2px;"><?= sanitize($item['part_number']) ?></div>
-                      <a href="<?= APP_URL ?>/catalog/part.php?id=<?= $item['part_id'] ?>" style="color:var(--text-primary);text-decoration:none;font-size:0.875rem;">
-                        <?= sanitize(truncate($item['name'], 50)) ?>
-                      </a>
-                      <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;"><?= sanitize($item['brand_name']) ?></div>
-                    </div>
-                  </td>
-                  <td style="text-align:center;">
-                    <div class="qty-control" style="justify-content:center;">
-                      <button class="qty-btn" data-qty-minus title="Уменьшить">−</button>
-                      <input type="number" class="qty-num" data-qty-input value="<?= (int)$item['quantity'] ?>" min="1" max="99" readonly>
-                      <button class="qty-btn" data-qty-plus title="Увеличить">+</button>
-                    </div>
-                  </td>
-                  <td style="text-align:right;font-family:var(--font-mono);font-size:0.875rem;color:var(--text-secondary);"><?= formatPrice($item['price']) ?></td>
-                  <td style="text-align:right;font-family:var(--font-mono);color:var(--accent);" data-row-subtotal>
-                    <?= formatPrice($item['price'] * $item['quantity']) ?>
-                  </td>
-                  <td>
-                    <button class="btn btn-danger btn-sm" data-cart-remove="<?= (int)$item['part_id'] ?>" title="Удалить">✕</button>
-                  </td>
-                </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
-          </div>
+        <?php if (empty($cartItems)): ?>
+        <!-- Empty cart -->
+        <div style="text-align:center;padding:80px 20px;">
+            <i class="icon-shopping-bag2" style="font-size:5rem;color:#e0e0e0;display:block;margin-bottom:24px;"></i>
+            <h3 style="color:#555;margin-bottom:12px;"><?= t('cart_empty') ?></h3>
+            <p style="color:#999;margin-bottom:24px;">Вы ещё ничего не добавили в корзину.</p>
+            <a href="<?= APP_URL ?>/catalog/index.php"
+               style="display:inline-block;background:#d32f2f;color:#fff;padding:12px 32px;border-radius:4px;text-decoration:none;font-weight:600;">
+                <?= t('continue_shopping') ?>
+            </a>
         </div>
-      </div>
 
-      <!-- Order summary + checkout form -->
-      <div>
-        <div class="order-summary">
-          <div class="label-mono mb-16">// Итого</div>
-          <?php foreach ($cartItems as $item): ?>
-          <div class="summary-row">
-            <span style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-              <?= sanitize(truncate($item['name'], 28)) ?>
-            </span>
-            <span style="font-family:var(--font-mono);font-size:0.78rem;"><?= $item['quantity'] ?> × <?= formatPrice($item['price']) ?></span>
-          </div>
-          <?php endforeach; ?>
-          <div class="summary-total">
-            <span class="summary-total-label">Итого</span>
-            <span class="summary-total-val" id="cart-total"><?= formatPrice($cartTotal) ?></span>
-          </div>
+        <?php else: ?>
+        <div class="row">
+            <!-- ── CART TABLE ──────────────────────────────────────────── -->
+            <div class="col-lg-8 col-md-12">
+                <form method="post" action="" id="cart-update-form">
+                    <input type="hidden" name="_action" value="update">
+                    <input type="hidden" name="_csrf"   value="<?= sanitize($csrf) ?>">
 
-          <!-- Checkout form -->
-          <form method="post" action="" style="margin-top:20px;">
-            <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
-            <input type="hidden" name="checkout" value="1">
-            <div class="form-group">
-              <label class="form-label" for="address">Адрес доставки *</label>
-              <textarea id="address" name="address" class="form-textarea" rows="3"
-                        placeholder="г. Москва, ул. Пример, д. 1, кв. 10" required></textarea>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="notes">Примечания</label>
-              <textarea id="notes" name="notes" class="form-textarea" rows="2"
-                        placeholder="Удобное время доставки, особые требования..."></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary btn-block btn-lg">
-              ОФОРМИТЬ ЗАКАЗ
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
-    <?php endif; ?>
-  </div>
-</div>
+                    <div class="cart_table table_desc">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th class="product_thumb"><?= t('product') ?? 'Товар' ?></th>
+                                        <th class="product_name"><?= t('name') ?? 'Наименование' ?></th>
+                                        <th class="product-price"><?= t('price') ?></th>
+                                        <th class="product-quantity"><?= t('quantity') ?></th>
+                                        <th class="product-subtotal"><?= t('total') ?></th>
+                                        <th class="product-remove"><?= t('remove') ?></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($cartItems as $item):
+                                        $imgUrl   = productImageUrl($item['images']);
+                                        $rowTotal = (float)$item['price'] * (int)$item['quantity'];
+                                    ?>
+                                    <tr data-part-id="<?= (int)$item['part_id'] ?>">
+                                        <td class="product_thumb">
+                                            <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$item['part_id'] ?>">
+                                                <img src="<?= sanitize($imgUrl) ?>"
+                                                     alt="<?= sanitize($item['name']) ?>"
+                                                     style="width:80px;height:70px;object-fit:cover;border-radius:4px;">
+                                            </a>
+                                        </td>
+                                        <td class="product_name">
+                                            <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$item['part_id'] ?>"
+                                               style="font-weight:600;color:#333;text-decoration:none;">
+                                                <?= sanitize(truncate($item['name'], 50)) ?>
+                                            </a>
+                                            <div style="font-size:0.75rem;color:#aaa;margin-top:3px;">
+                                                <?= sanitize($item['brand_name']) ?>
+                                                &middot; <?= t('part_number') ?>: <?= sanitize($item['part_number']) ?>
+                                            </div>
+                                        </td>
+                                        <td class="product-price">
+                                            <span class="amount"><?= formatPrice($item['price']) ?></span>
+                                        </td>
+                                        <td class="product-quantity">
+                                            <div style="display:flex;align-items:center;gap:0;border:1px solid #e0e0e0;border-radius:4px;overflow:hidden;width:fit-content;margin:0 auto;">
+                                                <button type="button"
+                                                        style="width:32px;height:36px;background:#f5f5f5;border:none;font-size:1.1rem;cursor:pointer;color:#555;"
+                                                        onclick="var inp=this.nextElementSibling;inp.value=Math.max(1,parseInt(inp.value)-1);updateRowTotal(this.closest('tr'));">
+                                                    &minus;
+                                                </button>
+                                                <input type="number"
+                                                       name="quantity[<?= (int)$item['part_id'] ?>]"
+                                                       value="<?= (int)$item['quantity'] ?>"
+                                                       min="1" max="99"
+                                                       style="width:48px;height:36px;border:none;text-align:center;font-size:0.9rem;font-weight:600;outline:none;"
+                                                       onchange="updateRowTotal(this.closest('tr'));">
+                                                <button type="button"
+                                                        style="width:32px;height:36px;background:#f5f5f5;border:none;font-size:1.1rem;cursor:pointer;color:#555;"
+                                                        onclick="var inp=this.previousElementSibling;inp.value=Math.min(99,parseInt(inp.value)+1);updateRowTotal(this.closest('tr'));">
+                                                    +
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td class="product-subtotal">
+                                            <span class="amount row-total" data-price="<?= (float)$item['price'] ?>">
+                                                <?= formatPrice($rowTotal) ?>
+                                            </span>
+                                        </td>
+                                        <td class="product-remove">
+                                            <a href="javascript:void(0)"
+                                               onclick="removeCartItem(<?= (int)$item['part_id'] ?>, this.closest('tr'))"
+                                               style="color:#d32f2f;font-size:1.2rem;text-decoration:none;"
+                                               title="<?= t('remove') ?>">
+                                                &times;
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div><!-- /.cart_table -->
+
+                    <!-- Cart actions -->
+                    <div class="cart_submit" style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;flex-wrap:wrap;gap:12px;">
+                        <a href="<?= APP_URL ?>/catalog/index.php"
+                           style="border:1px solid #d32f2f;color:#d32f2f;padding:9px 24px;border-radius:4px;text-decoration:none;font-weight:600;font-size:0.875rem;">
+                            &larr; <?= t('continue_shopping') ?>
+                        </a>
+                        <button type="submit"
+                                style="background:#d32f2f;color:#fff;border:none;padding:9px 24px;border-radius:4px;font-weight:600;cursor:pointer;font-size:0.875rem;">
+                            <?= t('update_cart') ?>
+                        </button>
+                    </div>
+                </form>
+            </div><!-- /.col -->
+
+            <!-- ── CART TOTALS ─────────────────────────────────────────── -->
+            <div class="col-lg-4 col-md-12">
+                <div class="cart_page_total" style="background:#f9f9f9;border:1px solid #eee;border-radius:6px;padding:28px 24px;">
+                    <h2 style="font-size:1.1rem;font-weight:700;color:#222;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #e0e0e0;">
+                        <?= t('order_summary') ?? 'Итого по заказу' ?>
+                    </h2>
+                    <ul style="list-style:none;margin:0;padding:0;">
+                        <li style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:0.875rem;color:#555;">
+                            <span><?= t('subtotal') ?></span>
+                            <span id="cart-subtotal-display" style="font-weight:600;color:#333;"><?= formatPrice($cartSubtotal) ?></span>
+                        </li>
+                        <li style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:0.875rem;color:#555;">
+                            <span><?= t('free_delivery') ?? 'Доставка' ?></span>
+                            <span style="color:#388e3c;font-weight:600;"><?= t('free') ?? 'Уточняется' ?></span>
+                        </li>
+                        <li style="display:flex;justify-content:space-between;padding:16px 0 0;font-size:1.05rem;">
+                            <span style="font-weight:700;color:#222;"><?= t('total') ?></span>
+                            <span id="cart-total-display" style="font-weight:700;color:#d32f2f;font-size:1.2rem;"><?= formatPrice($cartSubtotal) ?></span>
+                        </li>
+                    </ul>
+
+                    <div style="margin-top:24px;">
+                        <a href="<?= APP_URL ?>/buyer/checkout.php"
+                           style="display:block;text-align:center;background:#d32f2f;color:#fff;padding:13px 24px;border-radius:4px;font-weight:700;font-size:0.95rem;text-decoration:none;transition:background 0.2s;"
+                           onmouseover="this.style.background='#b71c1c'" onmouseout="this.style.background='#d32f2f'">
+                            <?= t('proceed_checkout') ?> &rarr;
+                        </a>
+                    </div>
+                </div>
+            </div><!-- /.col -->
+
+        </div><!-- /.row -->
+        <?php endif; ?>
+
+    </div><!-- /.container -->
+</div><!-- /.cart_area -->
+
+<script>
+var CSRF_TOKEN = '<?= sanitize($csrf) ?>';
+
+function formatPrice(amount) {
+    return new Intl.NumberFormat('ru-RU', {maximumFractionDigits: 0}).format(amount) + ' ₽';
+}
+
+function updateRowTotal(row) {
+    var input    = row.querySelector('input[type="number"]');
+    var totalEl  = row.querySelector('.row-total');
+    var price    = parseFloat(totalEl.dataset.price);
+    var qty      = parseInt(input.value) || 1;
+    totalEl.textContent = formatPrice(price * qty);
+    recalcCartTotal();
+}
+
+function recalcCartTotal() {
+    var total = 0;
+    document.querySelectorAll('.row-total').forEach(function(el) {
+        total += parseFloat(el.dataset.price) * parseInt(el.closest('tr').querySelector('input[type="number"]').value);
+    });
+    var sub = document.getElementById('cart-subtotal-display');
+    var tot = document.getElementById('cart-total-display');
+    if (sub) sub.textContent = formatPrice(total);
+    if (tot) tot.textContent = formatPrice(total);
+}
+
+function removeCartItem(partId, row) {
+    fetch('<?= APP_URL ?>/api/cart.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({action: 'remove', part_id: partId, _csrf: CSRF_TOKEN})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            row.remove();
+            recalcCartTotal();
+            // Update header cart count
+            var cnt = document.querySelector('.cart_count');
+            if (cnt) cnt.textContent = data.cart_count;
+            var cprice = document.querySelector('.cart_price');
+            if (cprice) cprice.innerHTML = formatPrice(data.cart_total) + ' <i class="ion-ios-arrow-down"></i>';
+            // Check if cart empty
+            if (document.querySelectorAll('tbody tr').length === 0) {
+                location.reload();
+            }
+        }
+    })
+    .catch(function() {
+        alert('Ошибка. Попробуйте снова.');
+    });
+}
+</script>
 
 <?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>

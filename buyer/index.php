@@ -1,127 +1,204 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
-requireRole('buyer');
 
-$user = getCurrentUser();
-$db   = getDB();
+// buyers + admins + superadmin may access
+requireRole(['buyer', 'admin', 'superadmin']);
 
-// Stats
-$ordersTotal = $db->prepare("SELECT COUNT(*) FROM orders WHERE user_id = ?");
-$ordersTotal->execute([$user['id']]);
-$totalOrders = (int)$ordersTotal->fetchColumn();
+$user   = getCurrentUser();
+$userId = (int)$user['id'];
+$db     = getDB();
 
-$ordersPending = $db->prepare("SELECT COUNT(*) FROM orders WHERE user_id = ? AND status = 'pending'");
-$ordersPending->execute([$user['id']]);
-$pendingOrders = (int)$ordersPending->fetchColumn();
+// ── Stats ─────────────────────────────────────────────────────────────
+try {
+    $s = $db->prepare("SELECT COUNT(*) FROM orders WHERE user_id = ?");
+    $s->execute([$userId]);
+    $orderCount = (int)$s->fetchColumn();
+} catch (Exception $e) { $orderCount = 0; }
 
-$totalSpent = $db->prepare("SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE user_id = ? AND status != 'cancelled'");
-$totalSpent->execute([$user['id']]);
-$spent = (float)$totalSpent->fetchColumn();
+try {
+    $s = $db->prepare("SELECT COALESCE(SUM(quantity), 0) FROM cart WHERE user_id = ?");
+    $s->execute([$userId]);
+    $cartItemCount = (int)$s->fetchColumn();
+} catch (Exception $e) { $cartItemCount = 0; }
 
-// Recent orders
-$recentStmt = $db->prepare(
-    "SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 5"
-);
-$recentStmt->execute([$user['id']]);
-$recentOrders = $recentStmt->fetchAll();
+try {
+    $s = $db->prepare("SELECT COUNT(*) FROM wishlist WHERE user_id = ?");
+    $s->execute([$userId]);
+    $wishlistCount = (int)$s->fetchColumn();
+} catch (Exception $e) { $wishlistCount = 0; }
 
-$pageTitle = 'Мой кабинет';
+// ── Recent orders ─────────────────────────────────────────────────────
+try {
+    $stmt = $db->prepare(
+        "SELECT o.*, COUNT(oi.id) AS item_count
+         FROM orders o
+         LEFT JOIN order_items oi ON oi.order_id = o.id
+         WHERE o.user_id = ?
+         GROUP BY o.id
+         ORDER BY o.created_at DESC
+         LIMIT 5"
+    );
+    $stmt->execute([$userId]);
+    $recentOrders = $stmt->fetchAll();
+} catch (Exception $e) { $recentOrders = []; }
+
+$pageTitle = t('dashboard');
 require_once dirname(__DIR__) . '/includes/header.php';
-require_once dirname(__DIR__) . '/includes/nav.php';
 ?>
 
-<div class="dash-layout">
-  <div class="dash-sidebar">
-    <?php renderNav(); ?>
-  </div>
-  <div class="dash-main">
-    <div class="dash-heading">
-      МОЙ КАБИНЕТ
-      <span class="dash-heading-badge">buyer</span>
-    </div>
+<div class="az-panel">
 
-    <p style="color:var(--text-secondary);margin-bottom:28px;">
-      Добро пожаловать, <strong style="color:var(--text-primary);"><?= sanitize($user['username']) ?></strong>!
-    </p>
-
-    <!-- Stats -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">Всего заказов</div>
-        <div class="stat-value"><?= $totalOrders ?></div>
-        <div class="stat-sub">За всё время</div>
-        <div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Новых заказов</div>
-        <div class="stat-value"><?= $pendingOrders ?></div>
-        <div class="stat-sub">В ожидании обработки</div>
-        <div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Сумма заказов</div>
-        <div class="stat-value" style="font-size:1.6rem;"><?= formatPrice($spent) ?></div>
-        <div class="stat-sub">Без учёта отменённых</div>
-        <div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
-      </div>
-    </div>
-
-    <!-- Recent orders -->
-    <div class="card mb-24">
-      <div class="card-header">
-        <h3>ПОСЛЕДНИЕ ЗАКАЗЫ</h3>
-        <a href="<?= APP_URL ?>/buyer/orders.php" class="btn btn-outline btn-sm">Все заказы</a>
-      </div>
-      <?php if (empty($recentOrders)): ?>
-        <div class="card-body no-data" style="padding:40px;">
-          <div class="no-data-icon">📦</div>
-          <p>У вас ещё нет заказов.</p>
-          <a href="<?= APP_URL ?>/catalog/index.php" class="btn btn-primary btn-sm" style="margin-top:12px;">Перейти в каталог</a>
+    <!-- ── Sidebar ─────────────────────────────────────────────────── -->
+    <aside class="az-sidebar">
+        <div class="az-sidebar-logo">
+            AUTO<span>PARTS</span>
         </div>
-      <?php else: ?>
-        <div class="table-wrap" style="border:none;border-radius:0;">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Дата</th>
-                <th>Сумма</th>
-                <th>Статус</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($recentOrders as $order): ?>
-              <tr>
-                <td><span class="mono">#<?= $order['id'] ?></span></td>
-                <td style="color:var(--text-muted);font-size:0.8rem;"><?= date('d.m.Y H:i', strtotime($order['created_at'])) ?></td>
-                <td style="font-family:var(--font-mono);color:var(--accent);"><?= formatPrice($order['total_amount']) ?></td>
-                <td><span class="badge badge-<?= getOrderStatusClass($order['status']) ?>"><?= getOrderStatusLabel($order['status']) ?></span></td>
-                <td><a href="<?= APP_URL ?>/buyer/orders.php?id=<?= $order['id'] ?>" class="btn btn-outline btn-sm">Детали</a></td>
-              </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
-      <?php endif; ?>
-    </div>
+        <nav>
+            <ul>
+                <li>
+                    <a href="<?= APP_URL ?>/buyer/index.php" class="active">
+                        <i class="fa fa-dashboard"></i> <?= t('dashboard') ?>
+                    </a>
+                </li>
+                <li>
+                    <a href="<?= APP_URL ?>/buyer/orders.php">
+                        <i class="fa fa-list-alt"></i> Мои заказы
+                    </a>
+                </li>
+                <li>
+                    <a href="<?= APP_URL ?>/buyer/profile.php">
+                        <i class="fa fa-user-o"></i> Профиль
+                    </a>
+                </li>
+                <li>
+                    <a href="<?= APP_URL ?>/buyer/cart.php">
+                        <i class="fa fa-shopping-cart"></i> <?= t('shopping_cart') ?>
+                    </a>
+                </li>
+                <li>
+                    <a href="<?= APP_URL ?>/buyer/wishlist.php">
+                        <i class="fa fa-heart-o"></i> <?= t('wishlist') ?>
+                    </a>
+                </li>
+                <li style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);margin-top:20px;">
+                    <a href="<?= APP_URL ?>/auth/logout.php" style="color:rgba(255,100,100,0.85)!important;">
+                        <i class="fa fa-sign-out"></i> <?= t('logout') ?>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
 
-    <!-- Quick links -->
-    <div class="grid-3">
-      <a href="<?= APP_URL ?>/catalog/index.php" class="card" style="padding:20px;text-decoration:none;">
-        <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">// Каталог</div>
-        <div style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:1px;">ПЕРЕЙТИ В КАТАЛОГ</div>
-      </a>
-      <a href="<?= APP_URL ?>/buyer/cart.php" class="card" style="padding:20px;text-decoration:none;">
-        <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">// Корзина</div>
-        <div style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:1px;">МОЯ КОРЗИНА</div>
-      </a>
-      <a href="<?= APP_URL ?>/buyer/profile.php" class="card" style="padding:20px;text-decoration:none;">
-        <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">// Профиль</div>
-        <div style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:1px;">РЕДАКТИРОВАТЬ</div>
-      </a>
-    </div>
-  </div>
-</div>
+    <!-- ── Main ───────────────────────────────────────────────────── -->
+    <main class="az-main">
+        <div class="az-topbar">
+            <h1><?= t('dashboard') ?></h1>
+            <div style="display:flex;align-items:center;gap:16px;">
+                <span style="font-size:0.875rem;color:#666;">
+                    <i class="fa fa-user-o"></i> <?= sanitize($user['username']) ?>
+                    &nbsp;<span style="background:#d32f2f;color:#fff;border-radius:4px;padding:2px 8px;font-size:0.75rem;"><?= sanitize($user['role']) ?></span>
+                </span>
+                <a href="<?= APP_URL ?>/index.php" style="font-size:0.85rem;color:#d32f2f;text-decoration:none;">
+                    <i class="fa fa-arrow-left"></i> В магазин
+                </a>
+            </div>
+        </div>
+
+        <div class="az-content">
+
+            <!-- Stat cards -->
+            <div class="az-stats">
+                <div class="az-stat-card">
+                    <div class="stat-val"><?= $orderCount ?></div>
+                    <div class="stat-lbl"><i class="fa fa-list-alt"></i> Заказов всего</div>
+                </div>
+                <div class="az-stat-card" style="border-left-color:#28a745;">
+                    <div class="stat-val" style="color:#28a745;"><?= $cartItemCount ?></div>
+                    <div class="stat-lbl"><i class="fa fa-shopping-cart"></i> Товаров в корзине</div>
+                </div>
+                <div class="az-stat-card" style="border-left-color:#e91e63;">
+                    <div class="stat-val" style="color:#e91e63;"><?= $wishlistCount ?></div>
+                    <div class="stat-lbl"><i class="fa fa-heart-o"></i> В избранном</div>
+                </div>
+            </div>
+
+            <!-- Recent orders -->
+            <div class="az-card">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                    <h3 style="margin:0;">Последние заказы</h3>
+                    <a href="<?= APP_URL ?>/buyer/orders.php" class="az-btn az-btn-secondary az-btn-sm">Все заказы</a>
+                </div>
+
+                <?php if (empty($recentOrders)): ?>
+                    <div style="text-align:center;padding:40px;color:#aaa;">
+                        <i class="fa fa-inbox" style="font-size:2.5rem;display:block;margin-bottom:12px;"></i>
+                        У вас ещё нет заказов.
+                        <br><br>
+                        <a href="<?= APP_URL ?>/catalog/index.php" class="az-btn az-btn-primary az-btn-sm">Перейти в каталог</a>
+                    </div>
+                <?php else: ?>
+                    <div style="overflow-x:auto;">
+                        <table class="az-table">
+                            <thead>
+                                <tr>
+                                    <th>№ заказа</th>
+                                    <th>Дата</th>
+                                    <th>Позиций</th>
+                                    <th><?= t('status') ?></th>
+                                    <th><?= t('actions') ?></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($recentOrders as $order): ?>
+                                    <tr>
+                                        <td><strong>#<?= (int)$order['id'] ?></strong></td>
+                                        <td><?= sanitize(date('d.m.Y', strtotime($order['created_at']))) ?></td>
+                                        <td><?= (int)$order['item_count'] ?> шт.</td>
+                                        <td>
+                                            <span class="badge badge-<?= sanitize(getOrderStatusClass($order['status'])) ?>">
+                                                <?= sanitize(getOrderStatusLabel($order['status'])) ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="<?= APP_URL ?>/buyer/orders.php?id=<?= (int)$order['id'] ?>"
+                                               class="az-btn az-btn-secondary az-btn-sm">
+                                                Детали
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Quick links -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;">
+                <a href="<?= APP_URL ?>/catalog/index.php"
+                   style="display:flex;align-items:center;gap:10px;background:#fff;border-radius:10px;padding:16px;text-decoration:none;color:#333;box-shadow:0 1px 4px rgba(0,0,0,0.06);border-left:4px solid #1976d2;">
+                    <i class="fa fa-th-large" style="font-size:1.4rem;color:#1976d2;"></i>
+                    <span style="font-weight:600;font-size:0.875rem;">Каталог</span>
+                </a>
+                <a href="<?= APP_URL ?>/buyer/cart.php"
+                   style="display:flex;align-items:center;gap:10px;background:#fff;border-radius:10px;padding:16px;text-decoration:none;color:#333;box-shadow:0 1px 4px rgba(0,0,0,0.06);border-left:4px solid #28a745;">
+                    <i class="fa fa-shopping-cart" style="font-size:1.4rem;color:#28a745;"></i>
+                    <span style="font-weight:600;font-size:0.875rem;">Корзина (<?= $cartItemCount ?>)</span>
+                </a>
+                <a href="<?= APP_URL ?>/buyer/wishlist.php"
+                   style="display:flex;align-items:center;gap:10px;background:#fff;border-radius:10px;padding:16px;text-decoration:none;color:#333;box-shadow:0 1px 4px rgba(0,0,0,0.06);border-left:4px solid #e91e63;">
+                    <i class="fa fa-heart-o" style="font-size:1.4rem;color:#e91e63;"></i>
+                    <span style="font-weight:600;font-size:0.875rem;">Избранное (<?= $wishlistCount ?>)</span>
+                </a>
+                <a href="<?= APP_URL ?>/buyer/profile.php"
+                   style="display:flex;align-items:center;gap:10px;background:#fff;border-radius:10px;padding:16px;text-decoration:none;color:#333;box-shadow:0 1px 4px rgba(0,0,0,0.06);border-left:4px solid #ff9800;">
+                    <i class="fa fa-user-o" style="font-size:1.4rem;color:#ff9800;"></i>
+                    <span style="font-weight:600;font-size:0.875rem;">Мой профиль</span>
+                </a>
+            </div>
+
+        </div><!-- /.az-content -->
+    </main>
+</div><!-- /.az-panel -->
 
 <?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>

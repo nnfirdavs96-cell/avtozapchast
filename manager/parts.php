@@ -1,6 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
-requireRole(['manager', 'superadmin']);
+requireRole(['manager', 'admin', 'superadmin']);
 
 $db     = getDB();
 $csrf   = generateCsrfToken();
@@ -11,21 +11,26 @@ $errors = [];
 $brands     = getBrands();
 $categories = getCategories();
 
-// ── POST handler ──────────────────────────────────────────────
+// ── POST handler ──────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        flashMessage('danger', 'CSRF error.'); redirect(APP_URL . '/manager/parts.php');
-    }
-    $postAction = $_POST['action'] ?? '';
-
-    if ($postAction === 'delete') {
-        $delId = (int)($_POST['id'] ?? 0);
-        $db->prepare("UPDATE parts SET is_active = 0 WHERE id = ?")->execute([$delId]);
-        flashMessage('success', 'Товар удалён.');
+        flashMessage('danger', 'Ошибка CSRF. Попробуйте снова.');
         redirect(APP_URL . '/manager/parts.php');
     }
 
-    // Add or Edit
+    $postAction = $_POST['action'] ?? '';
+
+    // Delete (soft-delete)
+    if ($postAction === 'delete') {
+        $delId = (int)($_POST['id'] ?? 0);
+        if ($delId) {
+            $db->prepare("UPDATE parts SET is_active = 0 WHERE id = ?")->execute([$delId]);
+            flashMessage('success', 'Запчасть удалена.');
+        }
+        redirect(APP_URL . '/manager/parts.php');
+    }
+
+    // Save (add or edit)
     $pnum   = trim($_POST['part_number'] ?? '');
     $name   = trim($_POST['name'] ?? '');
     $desc   = trim($_POST['description'] ?? '');
@@ -33,247 +38,368 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $cat    = (int)($_POST['category_id'] ?? 0);
     $price  = (float)str_replace(',', '.', $_POST['price'] ?? 0);
     $stock  = (int)($_POST['stock'] ?? 0);
-    $weight = $_POST['weight'] ? (float)str_replace(',', '.', $_POST['weight']) : null;
-    $dims   = trim($_POST['dimensions'] ?? '');
+    $weight = isset($_POST['weight']) && $_POST['weight'] !== ''
+              ? (float)str_replace(',', '.', $_POST['weight'])
+              : null;
+    $dims   = trim($_POST['dimensions'] ?? '') ?: null;
     $pid    = (int)($_POST['id'] ?? 0);
 
-    if (empty($pnum))   $errors[] = 'Укажите номер детали.';
-    if (empty($name))   $errors[] = 'Укажите название.';
-    if (!$brand)        $errors[] = 'Выберите бренд.';
-    if (!$cat)          $errors[] = 'Выберите категорию.';
-    if ($price <= 0)    $errors[] = 'Укажите корректную цену.';
+    if (empty($pnum))  $errors[] = 'Укажите артикул (номер детали).';
+    if (empty($name))  $errors[] = 'Укажите название.';
+    if (!$brand)       $errors[] = 'Выберите бренд.';
+    if (!$cat)         $errors[] = 'Выберите категорию.';
+    if ($price <= 0)   $errors[] = 'Укажите корректную цену (больше 0).';
 
+    // Uniqueness of part_number
     if (empty($errors)) {
-        // Check part_number uniqueness
-        $chkStmt = $db->prepare("SELECT id FROM parts WHERE part_number = ? AND id != ?");
-        $chkStmt->execute([$pnum, $pid]);
-        if ($chkStmt->fetch()) $errors[] = 'Такой номер детали уже существует.';
+        $chk = $db->prepare("SELECT id FROM parts WHERE part_number = ? AND id != ? LIMIT 1");
+        $chk->execute([$pnum, $pid]);
+        if ($chk->fetch()) {
+            $errors[] = 'Запчасть с таким артикулом уже существует.';
+        }
     }
 
     if (empty($errors)) {
         if ($pid) {
             $db->prepare(
-                "UPDATE parts SET part_number=?, name=?, description=?, brand_id=?, category_id=?,
-                 price=?, stock=?, weight=?, dimensions=?, updated_at=NOW() WHERE id=?"
-            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $stock, $weight, $dims ?: null, $pid]);
-            flashMessage('success', 'Товар обновлён.');
+                "UPDATE parts
+                 SET part_number=?, name=?, description=?, brand_id=?, category_id=?,
+                     price=?, stock=?, weight=?, dimensions=?, updated_at=NOW()
+                 WHERE id=?"
+            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $stock, $weight, $dims, $pid]);
+            flashMessage('success', 'Запчасть обновлена.');
         } else {
             $db->prepare(
-                "INSERT INTO parts (part_number, name, description, brand_id, category_id, price, stock, weight, dimensions, images, created_by)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', ?)"
-            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $stock, $weight, $dims ?: null, $_SESSION['user_id']]);
-            flashMessage('success', 'Товар добавлен.');
+                "INSERT INTO parts
+                     (part_number, name, description, brand_id, category_id,
+                      price, stock, weight, dimensions, images, is_active, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', 1, NOW())"
+            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $stock, $weight, $dims]);
+            flashMessage('success', 'Запчасть добавлена.');
         }
         redirect(APP_URL . '/manager/parts.php');
     }
-    // If errors keep form open
+
+    // Stay on form
     $action = $pid ? 'edit' : 'new';
     $editId = $pid;
 }
 
-// ── Edit: load part ───────────────────────────────────────────
+// ── Load part for edit ────────────────────────────────────────────────
 $editPart = null;
-if ($editId && in_array($action, ['edit'])) {
-    $stmt = $db->prepare("SELECT * FROM parts WHERE id = ?");
+if ($editId && $action === 'edit') {
+    $stmt = $db->prepare("SELECT * FROM parts WHERE id = ? LIMIT 1");
     $stmt->execute([$editId]);
     $editPart = $stmt->fetch();
 }
 
-// ── List with search ──────────────────────────────────────────
+// ── List with search & pagination ─────────────────────────────────────
 $search  = trim($_GET['search'] ?? '');
 $page    = max(1, (int)($_GET['page'] ?? 1));
 $perPage = 20;
 $where   = ['p.is_active = 1'];
 $params  = [];
-if ($search) {
-    $where[]  = '(p.part_number LIKE ? OR p.name LIKE ?)';
+
+if ($search !== '') {
+    $where[]  = '(p.part_number LIKE ? OR p.name LIKE ? OR b.name LIKE ?)';
+    $params[] = "%$search%";
     $params[] = "%$search%";
     $params[] = "%$search%";
 }
 $whereSQL = 'WHERE ' . implode(' AND ', $where);
 
-$cntStmt = $db->prepare("SELECT COUNT(*) FROM parts p $whereSQL");
+$cntStmt = $db->prepare(
+    "SELECT COUNT(*) FROM parts p
+     LEFT JOIN brands b ON b.id = p.brand_id
+     $whereSQL"
+);
 $cntStmt->execute($params);
 $total  = (int)$cntStmt->fetchColumn();
-$pages  = max(1, ceil($total / $perPage));
+$pages  = max(1, (int)ceil($total / $perPage));
+$page   = min($page, $pages);
 $offset = ($page - 1) * $perPage;
 
 $partsStmt = $db->prepare(
     "SELECT p.*, b.name AS brand_name, c.name AS category_name
-     FROM parts p LEFT JOIN brands b ON b.id = p.brand_id LEFT JOIN categories c ON c.id = p.category_id
-     $whereSQL ORDER BY p.created_at DESC LIMIT $perPage OFFSET $offset"
+     FROM parts p
+     LEFT JOIN brands b ON b.id = p.brand_id
+     LEFT JOIN categories c ON c.id = p.category_id
+     $whereSQL
+     ORDER BY p.created_at DESC
+     LIMIT $perPage OFFSET $offset"
 );
 $partsStmt->execute($params);
 $parts = $partsStmt->fetchAll();
 
-$pageTitle = 'Управление товарами';
+$pageTitle = 'Управление запчастями';
 require_once dirname(__DIR__) . '/includes/header.php';
-require_once dirname(__DIR__) . '/includes/nav.php';
 ?>
 
-<div class="dash-layout">
-  <div class="dash-sidebar"><?php renderNav(); ?></div>
-  <div class="dash-main">
-    <div class="dash-heading flex-between" style="font-size:1.5rem;">
-      ТОВАРЫ
-      <?php if ($action === 'list'): ?>
-        <a href="?action=new" class="btn btn-primary btn-sm">+ Добавить</a>
-      <?php else: ?>
-        <a href="<?= APP_URL ?>/manager/parts.php" class="btn btn-outline btn-sm">← Список</a>
-      <?php endif; ?>
-    </div>
+<div class="az-panel">
 
-    <?php if ($action === 'new' || $action === 'edit'): ?>
-    <!-- Form -->
-    <div style="max-width:760px;">
-      <div class="card">
-        <div class="card-header">
-          <h3><?= $action === 'edit' ? 'РЕДАКТИРОВАТЬ ТОВАР' : 'НОВЫЙ ТОВАР' ?></h3>
+    <!-- ── Sidebar ─────────────────────────────────────────────────── -->
+    <aside class="az-sidebar">
+        <div class="az-sidebar-logo">AUTO<span>PARTS</span></div>
+        <nav>
+            <ul>
+                <li><a href="<?= APP_URL ?>/manager/index.php"><i class="fa fa-dashboard"></i> <?= t('dashboard') ?></a></li>
+                <li><a href="<?= APP_URL ?>/manager/parts.php" class="active"><i class="fa fa-cogs"></i> <?= t('parts_mgmt') ?></a></li>
+                <li><a href="<?= APP_URL ?>/manager/categories.php"><i class="fa fa-sitemap"></i> <?= t('categories_mgmt') ?></a></li>
+                <li><a href="<?= APP_URL ?>/manager/brands.php"><i class="fa fa-tag"></i> <?= t('brands_mgmt') ?></a></li>
+                <li style="border-top:1px solid rgba(255,255,255,0.1);margin-top:20px;">
+                    <a href="<?= APP_URL ?>/index.php"><i class="fa fa-home"></i> На сайт</a>
+                </li>
+                <li>
+                    <a href="<?= APP_URL ?>/auth/logout.php" style="color:rgba(255,100,100,0.85)!important;">
+                        <i class="fa fa-sign-out"></i> <?= t('logout') ?>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- ── Main ───────────────────────────────────────────────────── -->
+    <main class="az-main">
+        <div class="az-topbar">
+            <h1>
+                <?php if ($action === 'new'): ?>
+                    Добавить запчасть
+                <?php elseif ($action === 'edit'): ?>
+                    Редактировать запчасть
+                <?php else: ?>
+                    Запчасти
+                <?php endif; ?>
+            </h1>
+            <div>
+                <?php if ($action === 'list'): ?>
+                    <a href="?action=new" class="az-btn az-btn-primary az-btn-sm">
+                        <i class="fa fa-plus"></i> Добавить
+                    </a>
+                <?php else: ?>
+                    <a href="<?= APP_URL ?>/manager/parts.php" class="az-btn az-btn-secondary az-btn-sm">
+                        <i class="fa fa-arrow-left"></i> Список
+                    </a>
+                <?php endif; ?>
+            </div>
         </div>
-        <div class="card-body">
-          <?php if (!empty($errors)): ?>
-          <div class="alert alert-danger mb-16">
-            <?php foreach ($errors as $e): ?><div>• <?= sanitize($e) ?></div><?php endforeach; ?>
-          </div>
-          <?php endif; ?>
 
-          <form method="post" action="<?= APP_URL ?>/manager/parts.php">
-            <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
-            <input type="hidden" name="action" value="<?= $action === 'edit' ? 'edit' : 'add' ?>">
-            <?php if ($editPart): ?><input type="hidden" name="id" value="<?= $editPart['id'] ?>"><?php endif; ?>
+        <div class="az-content">
 
-            <div class="grid-2">
-              <div class="form-group">
-                <label class="form-label">Номер детали *</label>
-                <input type="text" name="part_number" class="form-input"
-                       value="<?= sanitize($editPart['part_number'] ?? ($_POST['part_number'] ?? '')) ?>"
-                       placeholder="BKR6EK" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Цена (₽) *</label>
-                <input type="number" name="price" class="form-input" step="0.01" min="0"
-                       value="<?= sanitize($editPart['price'] ?? ($_POST['price'] ?? '')) ?>"
-                       placeholder="1500.00" required>
-              </div>
+            <?php if ($action === 'new' || $action === 'edit'): ?>
+            <!-- ── Add / Edit Form ──────────────────────────────── -->
+            <div style="max-width:760px;">
+                <div class="az-card">
+                    <h3><?= $action === 'edit' ? 'Редактировать запчасть' : 'Новая запчасть' ?></h3>
+
+                    <?php if (!empty($errors)): ?>
+                        <div class="az-alert az-alert-danger">
+                            <?php foreach ($errors as $err): ?>
+                                <div><?= sanitize($err) ?></div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <form method="POST" action="<?= APP_URL ?>/manager/parts.php">
+                        <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
+                        <input type="hidden" name="action" value="save">
+                        <?php if ($editPart): ?>
+                            <input type="hidden" name="id" value="<?= (int)$editPart['id'] ?>">
+                        <?php endif; ?>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                            <div class="az-form-group">
+                                <label>Артикул (номер детали) *</label>
+                                <input type="text" name="part_number"
+                                       value="<?= sanitize($editPart['part_number'] ?? ($_POST['part_number'] ?? '')) ?>"
+                                       placeholder="BKR6EK" required>
+                            </div>
+                            <div class="az-form-group">
+                                <label>Цена (₽) *</label>
+                                <input type="number" name="price" step="0.01" min="0"
+                                       value="<?= sanitize($editPart['price'] ?? ($_POST['price'] ?? '')) ?>"
+                                       placeholder="1500.00" required>
+                            </div>
+                        </div>
+
+                        <div class="az-form-group">
+                            <label>Название *</label>
+                            <input type="text" name="name"
+                                   value="<?= sanitize($editPart['name'] ?? ($_POST['name'] ?? '')) ?>"
+                                   placeholder="Свеча зажигания NGK BKR6EK" required>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                            <div class="az-form-group">
+                                <label>Бренд *</label>
+                                <select name="brand_id" required>
+                                    <option value="">— Выберите бренд —</option>
+                                    <?php foreach ($brands as $b): ?>
+                                        <option value="<?= (int)$b['id'] ?>"
+                                            <?= ((int)($editPart['brand_id'] ?? $_POST['brand_id'] ?? 0)) === (int)$b['id'] ? 'selected' : '' ?>>
+                                            <?= sanitize($b['name']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="az-form-group">
+                                <label>Категория *</label>
+                                <select name="category_id" required>
+                                    <option value="">— Выберите категорию —</option>
+                                    <?php foreach ($categories as $c): ?>
+                                        <option value="<?= (int)$c['id'] ?>"
+                                            <?= ((int)($editPart['category_id'] ?? $_POST['category_id'] ?? 0)) === (int)$c['id'] ? 'selected' : '' ?>>
+                                            <?= $c['parent_id'] ? '&nbsp;&nbsp;↳ ' : '' ?><?= sanitize($c['name']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                            <div class="az-form-group">
+                                <label>Остаток (шт)</label>
+                                <input type="number" name="stock" min="0"
+                                       value="<?= sanitize((string)($editPart['stock'] ?? ($_POST['stock'] ?? 0))) ?>">
+                            </div>
+                            <div class="az-form-group">
+                                <label>Вес (кг)</label>
+                                <input type="text" name="weight"
+                                       value="<?= sanitize((string)($editPart['weight'] ?? ($_POST['weight'] ?? ''))) ?>"
+                                       placeholder="0.250">
+                            </div>
+                        </div>
+
+                        <div class="az-form-group">
+                            <label>Габариты (LxWxH мм)</label>
+                            <input type="text" name="dimensions"
+                                   value="<?= sanitize($editPart['dimensions'] ?? ($_POST['dimensions'] ?? '')) ?>"
+                                   placeholder="90x45x38">
+                        </div>
+
+                        <div class="az-form-group">
+                            <label>Описание</label>
+                            <textarea name="description" rows="4"
+                                      placeholder="Подробное описание запчасти..."><?= sanitize($editPart['description'] ?? ($_POST['description'] ?? '')) ?></textarea>
+                        </div>
+
+                        <div style="display:flex;gap:12px;">
+                            <button type="submit" class="az-btn az-btn-primary">
+                                <i class="fa fa-save"></i>
+                                <?= $action === 'edit' ? 'Сохранить' : 'Добавить запчасть' ?>
+                            </button>
+                            <a href="<?= APP_URL ?>/manager/parts.php" class="az-btn az-btn-secondary">Отмена</a>
+                        </div>
+                    </form>
+                </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">Название *</label>
-              <input type="text" name="name" class="form-input"
-                     value="<?= sanitize($editPart['name'] ?? ($_POST['name'] ?? '')) ?>"
-                     placeholder="Свеча зажигания NGK BKR6EK" required>
+            <?php else: ?>
+            <!-- ── List ─────────────────────────────────────────── -->
+
+            <!-- Search -->
+            <div class="az-card" style="padding:16px;">
+                <form method="GET" action=""
+                      style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <input type="text" name="search"
+                           value="<?= sanitize($search) ?>"
+                           placeholder="Артикул, название, бренд..."
+                           style="flex:1;min-width:200px;padding:8px 12px;border:1px solid #ced4da;border-radius:6px;font-size:0.875rem;outline:none;">
+                    <button type="submit" class="az-btn az-btn-primary az-btn-sm">
+                        <i class="fa fa-search"></i> Найти
+                    </button>
+                    <?php if ($search): ?>
+                        <a href="<?= APP_URL ?>/manager/parts.php" class="az-btn az-btn-secondary az-btn-sm">Сброс</a>
+                    <?php endif; ?>
+                    <span style="margin-left:auto;font-size:0.8rem;color:#888;">
+                        Найдено: <strong><?= $total ?></strong>
+                    </span>
+                </form>
             </div>
 
-            <div class="grid-2">
-              <div class="form-group">
-                <label class="form-label">Бренд *</label>
-                <select name="brand_id" class="form-select" required>
-                  <option value="">— Выберите бренд —</option>
-                  <?php foreach ($brands as $b): ?>
-                  <option value="<?= $b['id'] ?>" <?= ((int)($editPart['brand_id'] ?? $_POST['brand_id'] ?? 0)) === (int)$b['id'] ? 'selected' : '' ?>>
-                    <?= sanitize($b['name']) ?>
-                  </option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Категория *</label>
-                <select name="category_id" class="form-select" required>
-                  <option value="">— Выберите категорию —</option>
-                  <?php foreach ($categories as $c): ?>
-                  <option value="<?= $c['id'] ?>" <?= ((int)($editPart['category_id'] ?? $_POST['category_id'] ?? 0)) === (int)$c['id'] ? 'selected' : '' ?>>
-                    <?= $c['parent_id'] ? '&nbsp;&nbsp;↳ ' : '' ?><?= sanitize($c['name']) ?>
-                  </option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
+            <div class="az-card" style="padding:0;overflow:hidden;">
+                <div style="overflow-x:auto;">
+                    <table class="az-table">
+                        <thead>
+                            <tr>
+                                <th>Артикул</th>
+                                <th>Название</th>
+                                <th>Бренд</th>
+                                <th>Категория</th>
+                                <th style="text-align:right;">Цена</th>
+                                <th style="text-align:center;">Остаток</th>
+                                <th style="text-align:center;">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($parts)): ?>
+                                <tr>
+                                    <td colspan="7" style="text-align:center;color:#aaa;padding:30px;">
+                                        <?= $search ? 'Ничего не найдено по запросу «' . sanitize($search) . '»' : 'Запчастей ещё нет.' ?>
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($parts as $p):
+                                    $st = getStockStatus((int)$p['stock']);
+                                ?>
+                                <tr>
+                                    <td><code style="font-size:0.8rem;"><?= sanitize($p['part_number']) ?></code></td>
+                                    <td style="font-size:0.875rem;max-width:200px;">
+                                        <?= sanitize(truncate($p['name'], 45)) ?>
+                                    </td>
+                                    <td style="color:#888;font-size:0.8rem;"><?= sanitize($p['brand_name'] ?? '—') ?></td>
+                                    <td style="color:#888;font-size:0.8rem;"><?= sanitize($p['category_name'] ?? '—') ?></td>
+                                    <td style="text-align:right;font-weight:700;color:#d32f2f;white-space:nowrap;">
+                                        <?= formatPrice($p['price']) ?>
+                                    </td>
+                                    <td style="text-align:center;">
+                                        <span class="badge badge-<?= $st['class'] ?>"><?= (int)$p['stock'] ?></span>
+                                    </td>
+                                    <td style="text-align:center;white-space:nowrap;">
+                                        <a href="?action=edit&id=<?= (int)$p['id'] ?>"
+                                           class="az-btn az-btn-secondary az-btn-sm">
+                                            <i class="fa fa-pencil"></i> Ред.
+                                        </a>
+                                        <form method="POST" action="" style="display:inline;"
+                                              onsubmit="return confirm('Удалить запчасть «<?= sanitize(addslashes($p['name'])) ?>»?')">
+                                            <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
+                                            <button type="submit" class="az-btn az-btn-danger az-btn-sm">
+                                                <i class="fa fa-trash-o"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <div class="grid-2">
-              <div class="form-group">
-                <label class="form-label">Остаток (шт)</label>
-                <input type="number" name="stock" class="form-input" min="0"
-                       value="<?= sanitize($editPart['stock'] ?? ($_POST['stock'] ?? 0)) ?>">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Вес (кг)</label>
-                <input type="text" name="weight" class="form-input"
-                       value="<?= sanitize($editPart['weight'] ?? ($_POST['weight'] ?? '')) ?>"
-                       placeholder="0.250">
-              </div>
+            <?php if ($pages > 1): ?>
+            <div class="paginatoin-area">
+                <div class="row"><div class="col-12">
+                    <div class="pagination-box">
+                        <ul class="pagination">
+                            <?php for ($pg = 1; $pg <= $pages; $pg++):
+                                $q = array_merge($_GET, ['page' => $pg]);
+                                unset($q['action']);
+                            ?>
+                                <li class="<?= $pg === $page ? 'active' : '' ?>">
+                                    <a href="?<?= http_build_query($q) ?>"><?= $pg ?></a>
+                                </li>
+                            <?php endfor; ?>
+                        </ul>
+                    </div>
+                </div></div>
             </div>
+            <?php endif; ?>
 
-            <div class="form-group">
-              <label class="form-label">Размеры (LxWxH мм)</label>
-              <input type="text" name="dimensions" class="form-input"
-                     value="<?= sanitize($editPart['dimensions'] ?? ($_POST['dimensions'] ?? '')) ?>"
-                     placeholder="90x45x38">
-            </div>
+            <?php endif; // end list/form ?>
 
-            <div class="form-group">
-              <label class="form-label">Описание</label>
-              <textarea name="description" class="form-textarea" rows="4"
-                        placeholder="Подробное описание товара..."><?= sanitize($editPart['description'] ?? ($_POST['description'] ?? '')) ?></textarea>
-            </div>
-
-            <button type="submit" class="btn btn-primary">
-              <?= $action === 'edit' ? 'СОХРАНИТЬ' : 'ДОБАВИТЬ ТОВАР' ?>
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <?php else: // LIST ?>
-
-    <!-- Search -->
-    <form method="get" class="flex gap-8 mb-16">
-      <input type="text" name="search" class="form-input" style="max-width:300px;" placeholder="Номер детали или название..." value="<?= sanitize($search) ?>">
-      <button type="submit" class="btn btn-outline btn-sm">Найти</button>
-      <?php if ($search): ?><a href="<?= APP_URL ?>/manager/parts.php" class="btn btn-outline btn-sm">Сбросить</a><?php endif; ?>
-      <span style="margin-left:auto;font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);align-self:center;">Всего: <?= $total ?></span>
-    </form>
-
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr><th>Артикул</th><th>Название</th><th>Бренд</th><th>Категория</th><th style="text-align:right;">Цена</th><th style="text-align:center;">Остаток</th><th></th></tr>
-        </thead>
-        <tbody>
-          <?php foreach ($parts as $p):
-            $st = getStockStatus((int)$p['stock']);
-          ?>
-          <tr>
-            <td><span class="mono"><?= sanitize($p['part_number']) ?></span></td>
-            <td style="font-size:0.875rem;"><?= sanitize(truncate($p['name'], 45)) ?></td>
-            <td style="color:var(--text-muted);font-size:0.8rem;"><?= sanitize($p['brand_name']) ?></td>
-            <td style="color:var(--text-muted);font-size:0.8rem;"><?= sanitize($p['category_name']) ?></td>
-            <td style="text-align:right;font-family:var(--font-mono);color:var(--accent);"><?= formatPrice($p['price']) ?></td>
-            <td style="text-align:center;"><span class="badge badge-<?= $st['class'] ?>"><?= $p['stock'] ?></span></td>
-            <td>
-              <a href="?action=edit&id=<?= $p['id'] ?>" class="btn btn-outline btn-sm">Ред.</a>
-              <form method="post" action="" style="display:inline;" onsubmit="return confirm('Удалить товар?')">
-                <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
-                <input type="hidden" name="action" value="delete">
-                <input type="hidden" name="id" value="<?= $p['id'] ?>">
-                <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
-              </form>
-            </td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
-
-    <?php if ($pages > 1): ?>
-    <div class="pagination">
-      <?php for ($pg = 1; $pg <= $pages; $pg++): $q = array_merge($_GET, ['page' => $pg, 'action' => 'list']); ?>
-      <a href="?<?= http_build_query($q) ?>" class="page-link <?= $pg == $page ? 'active' : '' ?>"><?= $pg ?></a>
-      <?php endfor; ?>
-    </div>
-    <?php endif; ?>
-    <?php endif; ?>
-  </div>
-</div>
+        </div><!-- /.az-content -->
+    </main>
+</div><!-- /.az-panel -->
 
 <?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>

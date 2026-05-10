@@ -213,7 +213,138 @@ function truncate(string $str, int $len = 100, string $suffix = '...'): string {
  * Get stock status label
  */
 function getStockStatus(int $stock): array {
-    if ($stock <= 0)  return ['label' => 'Нет в наличии', 'class' => 'danger'];
-    if ($stock <= 5)  return ['label' => 'Заканчивается', 'class' => 'warning'];
-    return ['label' => 'В наличии', 'class' => 'success'];
+    if ($stock <= 0)  return ['label' => t('out_of_stock'), 'class' => 'danger'];
+    if ($stock <= 5)  return ['label' => t('low_stock'),    'class' => 'warning'];
+    return ['label' => t('in_stock'), 'class' => 'success'];
+}
+
+/**
+ * Get wishlist count for logged-in user
+ */
+function getWishlistCount(): int {
+    if (!isLoggedIn()) return 0;
+    try {
+        $db = getDB();
+        $stmt = $db->prepare("SELECT COUNT(*) FROM wishlist WHERE user_id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        return (int)$stmt->fetchColumn();
+    } catch (Exception $e) { return 0; }
+}
+
+/**
+ * Get site setting value
+ */
+function getSetting(string $key, string $default = ''): string {
+    static $cache = [];
+    if (isset($cache[$key])) return $cache[$key];
+    try {
+        $db   = getDB();
+        $stmt = $db->prepare("SELECT value FROM site_settings WHERE `key` = ? LIMIT 1");
+        $stmt->execute([$key]);
+        $row = $stmt->fetch();
+        $cache[$key] = $row ? (string)$row['value'] : $default;
+        return $cache[$key];
+    } catch (Exception $e) { return $default; }
+}
+
+/**
+ * Get mini cart items for logged-in user
+ */
+function getMiniCart(): array {
+    if (!isLoggedIn()) return [];
+    try {
+        $db   = getDB();
+        $stmt = $db->prepare(
+            "SELECT c.quantity, p.id, p.name, p.price, p.images, b.name AS brand_name
+             FROM cart c
+             JOIN parts p ON p.id = c.part_id
+             LEFT JOIN brands b ON b.id = p.brand_id
+             WHERE c.user_id = ?
+             ORDER BY c.added_at DESC LIMIT 5"
+        );
+        $stmt->execute([$_SESSION['user_id']]);
+        return $stmt->fetchAll();
+    } catch (Exception $e) { return []; }
+}
+
+/**
+ * Get mini cart total in RUB
+ */
+function getMiniCartTotal(): float {
+    if (!isLoggedIn()) return 0;
+    try {
+        $db   = getDB();
+        $stmt = $db->prepare(
+            "SELECT COALESCE(SUM(c.quantity * p.price), 0)
+             FROM cart c JOIN parts p ON p.id = c.part_id WHERE c.user_id = ?"
+        );
+        $stmt->execute([$_SESSION['user_id']]);
+        return (float)$stmt->fetchColumn();
+    } catch (Exception $e) { return 0; }
+}
+
+/**
+ * Build breadcrumb array
+ */
+function breadcrumb(array $items): string {
+    $html = '<div class="breadcrumb_section page-title-area"><div class="container"><div class="row"><div class="col-12"><div class="breadcrumb_content"><ul>';
+    $last = count($items) - 1;
+    foreach ($items as $i => $item) {
+        if ($i === $last) {
+            $html .= '<li class="active">' . sanitize($item['label']) . '</li>';
+        } else {
+            $html .= '<li><a href="' . sanitize($item['url']) . '">' . sanitize($item['label']) . '</a></li>';
+        }
+    }
+    $html .= '</ul></div></div></div></div></div>';
+    return $html;
+}
+
+/**
+ * Paginate query results
+ */
+function paginate(string $countSql, string $dataSql, array $params, int $page, int $perPage = 12): array {
+    $db    = getDB();
+    $total = (int)$db->prepare($countSql)->execute($params) ? $db->prepare($countSql)->execute($params) : 0;
+    // Count
+    $cStmt = $db->prepare($countSql);
+    $cStmt->execute($params);
+    $total = (int)$cStmt->fetchColumn();
+    $pages = max(1, ceil($total / $perPage));
+    $page  = max(1, min($page, $pages));
+    $offset = ($page - 1) * $perPage;
+    // Data
+    $dStmt = $db->prepare($dataSql . " LIMIT $perPage OFFSET $offset");
+    $dStmt->execute($params);
+    return [
+        'items'   => $dStmt->fetchAll(),
+        'total'   => $total,
+        'pages'   => $pages,
+        'current' => $page,
+        'perPage' => $perPage,
+    ];
+}
+
+/**
+ * Generate pagination HTML
+ */
+function paginationHtml(array $page, string $baseUrl): string {
+    if ($page['pages'] <= 1) return '';
+    $html = '<div class="paginatoin-area"><div class="row"><div class="col-12"><div class="pagination-box"><ul class="pagination">';
+    for ($i = 1; $i <= $page['pages']; $i++) {
+        $active = $i === $page['current'] ? ' active' : '';
+        $sep    = strpos($baseUrl, '?') !== false ? '&' : '?';
+        $html  .= '<li class="' . $active . '"><a href="' . $baseUrl . $sep . 'page=' . $i . '">' . $i . '</a></li>';
+    }
+    $html .= '</ul></div></div></div></div>';
+    return $html;
+}
+
+/**
+ * Product image URL
+ */
+function productImageUrl($images, int $index = 0): string {
+    if (is_string($images)) $images = json_decode($images, true);
+    if (!empty($images[$index])) return UPLOAD_URL . $images[$index];
+    return APP_URL . '/assets/img/product/placeholder.jpg';
 }
