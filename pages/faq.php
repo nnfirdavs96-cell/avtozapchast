@@ -39,38 +39,66 @@ $faqs = $lang === 'tg' ? $faqs_tg : ($lang === 'en' ? $faqs_en : $faqs_ru);
 ?>
 <?= breadcrumb([['label'=>t('home'),'url'=>APP_URL.'/index.php'],['label'=>t('faq')]]) ?>
 
-<div class="faq_area section_padding" style="padding:60px 0">
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="col-lg-9">
-        <div class="section_title text-center mb-5"><h2><?= t('faq') ?></h2></div>
-        <div class="accordion" id="faqAccordion">
-          <?php foreach ($faqs as $i => $faq): ?>
-          <div class="card" style="margin-bottom:8px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden">
-            <div class="card-header" style="background:#fff;padding:0">
-              <h2 class="mb-0">
-                <button class="btn btn-link btn-block text-left <?= $i!==0?'collapsed':'' ?>" type="button" data-bs-toggle="collapse" data-bs-target="#faq<?= $i ?>" aria-expanded="<?= $i===0?'true':'false' ?>" style="padding:16px 20px;font-weight:600;color:#333;text-decoration:none;font-size:0.95rem;width:100%;display:flex;justify-content:space-between;align-items:center">
-                  <?= sanitize($faq['q']) ?>
-                  <i class="ion-ios-arrow-down" style="transition:transform 0.3s"></i>
-                </button>
-              </h2>
+<div class="faq_page_bg">
+    <div class="container">
+        <!--faq area start-->
+        <div class="faq_content_area">
+            <div class="row">
+                <div class="col-12">
+                    <div class="faq_content_wrapper">
+                        <h4><?= t('faq_subtitle') ?></h4>
+                        <p><?= t('faq_intro') ?></p>
+                    </div>
+                </div>
             </div>
-            <div id="faq<?= $i ?>" class="collapse <?= $i===0?'show':'' ?>" data-bs-parent="#faqAccordion">
-              <div class="card-body" style="padding:16px 20px;color:#666;line-height:1.7;font-size:0.9rem">
-                <?= sanitize($faq['a']) ?>
-              </div>
+        </div>
+        <!--faq area end-->
+
+        <!--Accordion area-->
+        <div class="accordion_area">
+            <div class="row">
+                <div class="col-12">
+                    <div id="accordion" class="card__accordion">
+                        <?php foreach ($faqs as $i => $faq): ?>
+                        <div class="card card_dipult">
+                            <div class="card-header card_accor" id="heading<?= $i ?>">
+                                <button class="btn btn-link<?= $i !== 0 ? ' collapsed' : '' ?>"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#collapse<?= $i ?>"
+                                        aria-expanded="<?= $i === 0 ? 'true' : 'false' ?>"
+                                        aria-controls="collapse<?= $i ?>">
+                                    <?= sanitize($faq['q']) ?>
+                                    <i class="fa fa-plus"></i>
+                                    <i class="fa fa-minus"></i>
+                                </button>
+                            </div>
+                            <div id="collapse<?= $i ?>"
+                                 class="collapse<?= $i === 0 ? ' show' : '' ?>"
+                                 aria-labelledby="heading<?= $i ?>"
+                                 data-bs-parent="#accordion">
+                                <div class="card-body">
+                                    <p><?= sanitize($faq['a']) ?></p>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
             </div>
-          </div>
-          <?php endforeach; ?>
         </div>
-        <div class="text-center mt-5" style="background:#f9f9f9;padding:30px;border-radius:10px">
-          <h4><?= t('contact_us') ?></h4>
-          <p style="color:#666"><?= t('working_hours') ?>: <?= t('mon_fri') ?> 9:00–20:00</p>
-          <a href="<?= APP_URL ?>/pages/contact.php" class="button"><?= t('contact') ?></a>
+        <!--Accordion area end-->
+
+        <!--Contact CTA-->
+        <div class="row">
+            <div class="col-12">
+                <div class="faq_content_wrapper" style="text-align:center;padding:40px 0 60px">
+                    <h4><?= t('contact_us') ?></h4>
+                    <p><?= t('working_hours') ?>: <?= t('mon_fri') ?> 9:00–20:00</p>
+                    <a href="<?= APP_URL ?>/pages/contact.php" class="button"><?= t('contact') ?></a>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 </div>
 
 <?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>

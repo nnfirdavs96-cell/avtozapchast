@@ -105,79 +105,74 @@ require_once dirname(__DIR__) . '/includes/header.php';
     ['label' => t('login'), 'url' => ''],
 ]) ?>
 
-<div class="login_register_wrap section_padding">
+<!-- customer login start -->
+<div class="login_page_bg">
     <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-6 col-md-8">
-                <div class="login_register_wrapper">
+        <div class="customer_login">
+            <div class="row">
+                <!--login area start-->
+                <div class="col-lg-6 col-md-6">
+                    <div class="account_form login">
+                        <h2><?= t('login') ?></h2>
 
-                    <div class="login_register_tab_list">
-                        <a class="active" href="<?= APP_URL ?>/auth/login.php"><?= t('login') ?></a>
-                        <a href="<?= APP_URL ?>/auth/register.php"><?= t('register') ?></a>
+                        <?php if (!empty($errors)): ?>
+                            <div class="alert alert-danger" role="alert" style="margin-bottom:16px;">
+                                <?php foreach ($errors as $err): ?>
+                                    <div><?= sanitize($err) ?></div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <form method="POST"
+                              action="<?= APP_URL ?>/auth/login.php<?= isset($_GET['redirect']) ? '?redirect=' . urlencode($_GET['redirect']) : '' ?>">
+                            <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
+
+                            <p>
+                                <label><?= t('email') ?> <span>*</span></label>
+                                <input type="email"
+                                       name="email"
+                                       placeholder="your@email.com"
+                                       value="<?= sanitize($email) ?>"
+                                       required
+                                       autocomplete="email">
+                            </p>
+                            <p>
+                                <label><?= t('password') ?> <span>*</span></label>
+                                <input type="password"
+                                       name="password"
+                                       placeholder="••••••••"
+                                       required
+                                       autocomplete="current-password">
+                            </p>
+                            <div class="login_submit">
+                                <a href="#"><?= t('forgot_password') ?></a>
+                                <label for="remember_me">
+                                    <input id="remember_me" type="checkbox" name="remember_me" value="1">
+                                    <?= t('remember_me') ?>
+                                </label>
+                                <button type="submit"><?= t('sign_in') ?></button>
+                            </div>
+                        </form>
                     </div>
+                </div>
+                <!--login area end-->
 
-                    <div class="login_form_container">
-                        <div class="account_login_form">
-
-                            <?php if (!empty($errors)): ?>
-                                <div class="az-alert az-alert-danger" style="margin-bottom:16px;">
-                                    <?php foreach ($errors as $err): ?>
-                                        <div><?= sanitize($err) ?></div>
-                                    <?php endforeach; ?>
-                                </div>
-                            <?php endif; ?>
-
-                            <form method="POST"
-                                  action="<?= APP_URL ?>/auth/login.php<?= isset($_GET['redirect']) ? '?redirect=' . urlencode($_GET['redirect']) : '' ?>">
-                                <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
-
-                                <div class="form-group">
-                                    <label for="login_email"><?= t('email') ?> <span class="required">*</span></label>
-                                    <input id="login_email"
-                                           type="email"
-                                           name="email"
-                                           placeholder="your@email.com"
-                                           value="<?= sanitize($email) ?>"
-                                           required
-                                           autocomplete="email">
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="login_password"><?= t('password') ?> <span class="required">*</span></label>
-                                    <input id="login_password"
-                                           type="password"
-                                           name="password"
-                                           placeholder="••••••••"
-                                           required
-                                           autocomplete="current-password">
-                                </div>
-
-                                <div class="form-group" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-                                    <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:400;cursor:pointer;font-size:0.9rem;">
-                                        <input type="checkbox" name="remember_me" value="1">
-                                        <?= t('remember_me') ?>
-                                    </label>
-                                    <a href="#" style="font-size:0.875rem;color:#d32f2f;"><?= t('forgot_password') ?></a>
-                                </div>
-
-                                <div class="form-group">
-                                    <button type="submit" class="btn"><?= t('sign_in') ?></button>
-                                </div>
-
-                                <p style="text-align:center;font-size:0.9rem;color:#666;margin-top:12px;">
-                                    <?= t('no_account') ?>
-                                    <a href="<?= APP_URL ?>/auth/register.php"
-                                       style="color:#d32f2f;font-weight:600;"><?= t('sign_up') ?></a>
-                                </p>
-                            </form>
-
+                <!--register panel start-->
+                <div class="col-lg-6 col-md-6">
+                    <div class="account_form register">
+                        <h2><?= t('register') ?></h2>
+                        <p><?= t('no_account') ?></p>
+                        <p><?= t('register_desc') ?></p>
+                        <div class="login_submit">
+                            <a href="<?= APP_URL ?>/auth/register.php" class="button"><?= t('sign_up') ?></a>
                         </div>
                     </div>
-
                 </div>
+                <!--register panel end-->
             </div>
         </div>
     </div>
 </div>
+<!-- customer login end -->
 
 <?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
