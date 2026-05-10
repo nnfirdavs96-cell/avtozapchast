@@ -33,7 +33,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
       <div class="col-lg-8 col-md-7 mb-4">
         <div class="section_title"><h2><?= t('contact_us') ?></h2></div>
         <?php if ($success): ?>
-        <div class="az-alert az-alert-success"><?= t('success') ?>! Ваше сообщение отправлено. Мы свяжемся с вами в ближайшее время.</div>
+        <div class="az-alert az-alert-success"><?= t('contact_success') ?></div>
         <?php endif; ?>
         <?php foreach ($errors as $err): ?>
         <div class="az-alert az-alert-danger"><?= sanitize($err) ?></div>
@@ -73,7 +73,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
         <div style="background:#fff;padding:30px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.06)">
           <h4 style="font-size:1.1rem;font-weight:700;margin-bottom:20px"><?= t('contact_info') ?></h4>
           <div style="display:flex;flex-direction:column;gap:16px">
-            <div><strong><?= t('working_hours') ?></strong><p style="color:#666;margin:4px 0 0;font-size:0.875rem">Пн–Пт: 9:00–20:00<br>Сб–Вс: 10:00–18:00</p></div>
+            <div><strong><?= t('working_hours') ?></strong><p style="color:#666;margin:4px 0 0;font-size:0.875rem"><?= t('mon_fri') ?>: 9:00–20:00<br><?= t('sat_sun') ?>: 10:00–18:00</p></div>
             <div><strong><?= t('phone') ?></strong><p style="color:#d32f2f;margin:4px 0 0"><a href="tel:<?= sanitize(getSetting('site_phone','+74951234567')) ?>" style="color:#d32f2f;text-decoration:none"><?= sanitize(getSetting('site_phone','+7 (495) 123-45-67')) ?></a></p></div>
             <div><strong><?= t('email') ?></strong><p style="color:#d32f2f;margin:4px 0 0"><a href="mailto:<?= sanitize(getSetting('site_email','info@avtozapchast.ru')) ?>" style="color:#d32f2f;text-decoration:none"><?= sanitize(getSetting('site_email','info@avtozapchast.ru')) ?></a></p></div>
             <div><strong><?= t('address') ?></strong><p style="color:#666;margin:4px 0 0;font-size:0.875rem"><?= sanitize(getSetting('site_address','г. Москва, ул. Автомобильная, д. 1')) ?></p></div>

@@ -152,4 +152,15 @@ return [
     'check_availability' => 'Check Availability',
     'warehouse_available'=> 'Available in stock',
     'warehouse_order'    => 'Order (3-7 days)',
+    // Blog
+    'read_more'          => 'Read More',
+    'related_posts'      => 'Related Posts',
+    // 404
+    'page_not_found'     => 'Page Not Found',
+    'page_not_found_desc'=> 'The requested page does not exist or has been moved.',
+    // Hours
+    'mon_fri'            => 'Mon–Fri',
+    'sat_sun'            => 'Sat–Sun',
+    // Contact form success
+    'contact_success'    => 'Your message has been sent. We will contact you shortly.',
 ];

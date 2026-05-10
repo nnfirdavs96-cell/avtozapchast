@@ -65,7 +65,7 @@ $faqs = $lang === 'tg' ? $faqs_tg : ($lang === 'en' ? $faqs_en : $faqs_ru);
         </div>
         <div class="text-center mt-5" style="background:#f9f9f9;padding:30px;border-radius:10px">
           <h4><?= t('contact_us') ?></h4>
-          <p style="color:#666"><?= t('working_hours') ?>: Пн–Пт 9:00–20:00</p>
+          <p style="color:#666"><?= t('working_hours') ?>: <?= t('mon_fri') ?> 9:00–20:00</p>
           <a href="<?= APP_URL ?>/pages/contact.php" class="button"><?= t('contact') ?></a>
         </div>
       </div>

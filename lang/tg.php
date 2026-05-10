@@ -152,4 +152,15 @@ return [
     'check_availability' => 'Санҷидани мавҷудият',
     'warehouse_available'=> 'Дар анбор мавҷуд аст',
     'warehouse_order'    => 'Таҳти фармоиш (3-7 рӯз)',
+    // Blog
+    'read_more'          => 'Бештар хондан',
+    'related_posts'      => 'Мақолаҳои монанд',
+    // 404
+    'page_not_found'     => 'Саҳифа ёфт нашуд',
+    'page_not_found_desc'=> 'Саҳифаи дархостшуда вуҷуд надорад ё кӯчонида шудааст.',
+    // Hours
+    'mon_fri'            => 'Дш–Ҷм',
+    'sat_sun'            => 'Шн–Яш',
+    // Contact form success
+    'contact_success'    => 'Паёми шумо фиристода шуд. Мо ба зудӣ бо шумо тамос мегирем.',
 ];
