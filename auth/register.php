@@ -89,91 +89,85 @@ require_once dirname(__DIR__) . '/includes/header.php';
     ['label' => t('register'), 'url' => ''],
 ]) ?>
 
-<div class="login_register_wrap section_padding">
+<!-- customer login start -->
+<div class="login_page_bg">
     <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-6 col-md-8">
-                <div class="login_register_wrapper">
-
-                    <div class="login_register_tab_list">
-                        <a href="<?= APP_URL ?>/auth/login.php"><?= t('login') ?></a>
-                        <a class="active" href="<?= APP_URL ?>/auth/register.php"><?= t('register') ?></a>
-                    </div>
-
-                    <div class="login_form_container">
-                        <div class="account_login_form">
-
-                            <?php if (!empty($errors)): ?>
-                                <div class="az-alert az-alert-danger" style="margin-bottom:16px;">
-                                    <?php foreach ($errors as $err): ?>
-                                        <div><?= sanitize($err) ?></div>
-                                    <?php endforeach; ?>
-                                </div>
-                            <?php endif; ?>
-
-                            <form method="POST" action="<?= APP_URL ?>/auth/register.php">
-                                <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
-
-                                <div class="form-group">
-                                    <label for="reg_username"><?= t('username') ?> <span class="required">*</span></label>
-                                    <input id="reg_username"
-                                           type="text"
-                                           name="username"
-                                           placeholder="Ваше имя пользователя"
-                                           value="<?= sanitize($username) ?>"
-                                           required
-                                           autocomplete="username">
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="reg_email"><?= t('email') ?> <span class="required">*</span></label>
-                                    <input id="reg_email"
-                                           type="email"
-                                           name="email"
-                                           placeholder="your@email.com"
-                                           value="<?= sanitize($email) ?>"
-                                           required
-                                           autocomplete="email">
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="reg_password"><?= t('password') ?> <span class="required">*</span></label>
-                                    <input id="reg_password"
-                                           type="password"
-                                           name="password"
-                                           placeholder="Минимум 6 символов"
-                                           required
-                                           autocomplete="new-password">
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="reg_confirm"><?= t('confirm_password') ?> <span class="required">*</span></label>
-                                    <input id="reg_confirm"
-                                           type="password"
-                                           name="confirm_password"
-                                           placeholder="Повторите пароль"
-                                           required
-                                           autocomplete="new-password">
-                                </div>
-
-                                <div class="form-group">
-                                    <button type="submit" class="btn"><?= t('sign_up') ?></button>
-                                </div>
-
-                                <p style="text-align:center;font-size:0.9rem;color:#666;margin-top:12px;">
-                                    <?= t('have_account') ?>
-                                    <a href="<?= APP_URL ?>/auth/login.php"
-                                       style="color:#d32f2f;font-weight:600;"><?= t('login') ?></a>
-                                </p>
-                            </form>
-
+        <div class="customer_login">
+            <div class="row">
+                <!--login panel start-->
+                <div class="col-lg-6 col-md-6">
+                    <div class="account_form login">
+                        <h2><?= t('login') ?></h2>
+                        <p><?= t('have_account') ?></p>
+                        <p><?= t('login_desc') ?></p>
+                        <div class="login_submit">
+                            <a href="<?= APP_URL ?>/auth/login.php" class="button"><?= t('sign_in') ?></a>
                         </div>
                     </div>
-
                 </div>
+                <!--login panel end-->
+
+                <!--register area start-->
+                <div class="col-lg-6 col-md-6">
+                    <div class="account_form register">
+                        <h2><?= t('register') ?></h2>
+
+                        <?php if (!empty($errors)): ?>
+                            <div class="alert alert-danger" role="alert" style="margin-bottom:16px;">
+                                <?php foreach ($errors as $err): ?>
+                                    <div><?= sanitize($err) ?></div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <form method="POST" action="<?= APP_URL ?>/auth/register.php">
+                            <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
+
+                            <p>
+                                <label><?= t('username') ?> <span>*</span></label>
+                                <input type="text"
+                                       name="username"
+                                       placeholder="<?= t('username') ?>"
+                                       value="<?= sanitize($username) ?>"
+                                       required
+                                       autocomplete="username">
+                            </p>
+                            <p>
+                                <label><?= t('email') ?> <span>*</span></label>
+                                <input type="email"
+                                       name="email"
+                                       placeholder="your@email.com"
+                                       value="<?= sanitize($email) ?>"
+                                       required
+                                       autocomplete="email">
+                            </p>
+                            <p>
+                                <label><?= t('password') ?> <span>*</span></label>
+                                <input type="password"
+                                       name="password"
+                                       placeholder="<?= t('min_6_chars') ?>"
+                                       required
+                                       autocomplete="new-password">
+                            </p>
+                            <p>
+                                <label><?= t('confirm_password') ?> <span>*</span></label>
+                                <input type="password"
+                                       name="confirm_password"
+                                       placeholder="<?= t('confirm_password') ?>"
+                                       required
+                                       autocomplete="new-password">
+                            </p>
+                            <div class="login_submit">
+                                <button type="submit"><?= t('sign_up') ?></button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <!--register area end-->
             </div>
         </div>
     </div>
 </div>
+<!-- customer login end -->
 
 <?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>

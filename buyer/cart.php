@@ -54,7 +54,7 @@ foreach ($cartItems as $item) {
 $pageTitle = t('your_cart');
 require_once dirname(__DIR__) . '/includes/header.php';
 ?>
-<meta name="csrf" content="<?= generateCsrfToken() ?>">
+<meta name="csrf" content="<?= sanitize($csrf) ?>">
 
 <?= breadcrumb([
     ['label' => t('home'),      'url' => APP_URL . '/index.php'],
@@ -62,159 +62,139 @@ require_once dirname(__DIR__) . '/includes/header.php';
     ['label' => t('your_cart')],
 ]) ?>
 
-<!-- Cart Area -->
-<div class="cart_area">
+<!--shopping cart area start -->
+<div class="cart_page_bg">
     <div class="container">
+        <div class="shopping_cart_area">
+            <?php if (empty($cartItems)): ?>
+            <div class="row">
+                <div class="col-12">
+                    <div class="table_desc">
+                        <p style="text-align:center;padding:60px 20px;color:#888;"><?= t('cart_empty') ?></p>
+                        <div class="cart_submit" style="text-align:center;">
+                            <a href="<?= APP_URL ?>/catalog/index.php" class="button"><?= t('continue_shopping') ?></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php else: ?>
+            <form method="post" action="" id="cart-update-form">
+                <input type="hidden" name="_action" value="update">
+                <input type="hidden" name="_csrf"   value="<?= sanitize($csrf) ?>">
 
-        <?php if (empty($cartItems)): ?>
-        <!-- Empty cart -->
-        <div style="text-align:center;padding:80px 20px;">
-            <i class="icon-shopping-bag2" style="font-size:5rem;color:#e0e0e0;display:block;margin-bottom:24px;"></i>
-            <h3 style="color:#555;margin-bottom:12px;"><?= t('cart_empty') ?></h3>
-            <p style="color:#999;margin-bottom:24px;">Вы ещё ничего не добавили в корзину.</p>
-            <a href="<?= APP_URL ?>/catalog/index.php"
-               style="display:inline-block;background:#d32f2f;color:#fff;padding:12px 32px;border-radius:4px;text-decoration:none;font-weight:600;">
-                <?= t('continue_shopping') ?>
-            </a>
-        </div>
-
-        <?php else: ?>
-        <div class="row">
-            <!-- ── CART TABLE ──────────────────────────────────────────── -->
-            <div class="col-lg-8 col-md-12">
-                <form method="post" action="" id="cart-update-form">
-                    <input type="hidden" name="_action" value="update">
-                    <input type="hidden" name="_csrf"   value="<?= sanitize($csrf) ?>">
-
-                    <div class="cart_table table_desc">
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th class="product_thumb"><?= t('product') ?? 'Товар' ?></th>
-                                        <th class="product_name"><?= t('name') ?? 'Наименование' ?></th>
-                                        <th class="product-price"><?= t('price') ?></th>
-                                        <th class="product-quantity"><?= t('quantity') ?></th>
-                                        <th class="product-subtotal"><?= t('total') ?></th>
-                                        <th class="product-remove"><?= t('remove') ?></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($cartItems as $item):
-                                        $imgUrl   = productImageUrl($item['images']);
-                                        $rowTotal = (float)$item['price'] * (int)$item['quantity'];
-                                    ?>
-                                    <tr data-part-id="<?= (int)$item['part_id'] ?>">
-                                        <td class="product_thumb">
-                                            <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$item['part_id'] ?>">
-                                                <img src="<?= sanitize($imgUrl) ?>"
-                                                     alt="<?= sanitize($item['name']) ?>"
-                                                     style="width:80px;height:70px;object-fit:cover;border-radius:4px;">
-                                            </a>
-                                        </td>
-                                        <td class="product_name">
-                                            <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$item['part_id'] ?>"
-                                               style="font-weight:600;color:#333;text-decoration:none;">
-                                                <?= sanitize(truncate($item['name'], 50)) ?>
-                                            </a>
-                                            <div style="font-size:0.75rem;color:#aaa;margin-top:3px;">
-                                                <?= sanitize($item['brand_name']) ?>
-                                                &middot; <?= t('part_number') ?>: <?= sanitize($item['part_number']) ?>
-                                            </div>
-                                        </td>
-                                        <td class="product-price">
-                                            <span class="amount"><?= formatPrice($item['price']) ?></span>
-                                        </td>
-                                        <td class="product-quantity">
-                                            <div style="display:flex;align-items:center;gap:0;border:1px solid #e0e0e0;border-radius:4px;overflow:hidden;width:fit-content;margin:0 auto;">
-                                                <button type="button"
-                                                        style="width:32px;height:36px;background:#f5f5f5;border:none;font-size:1.1rem;cursor:pointer;color:#555;"
-                                                        onclick="var inp=this.nextElementSibling;inp.value=Math.max(1,parseInt(inp.value)-1);updateRowTotal(this.closest('tr'));">
-                                                    &minus;
-                                                </button>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="table_desc">
+                            <div class="cart_page">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th class="product_thumb"><?= t('image') ?></th>
+                                            <th class="product_name"><?= t('product') ?></th>
+                                            <th class="product-price"><?= t('price') ?></th>
+                                            <th class="product_quantity"><?= t('quantity') ?></th>
+                                            <th class="product_total"><?= t('total') ?></th>
+                                            <th class="product_remove"><?= t('remove') ?></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($cartItems as $item):
+                                            $imgUrl   = productImageUrl($item['images']);
+                                            $rowTotal = (float)$item['price'] * (int)$item['quantity'];
+                                        ?>
+                                        <tr data-part-id="<?= (int)$item['part_id'] ?>">
+                                            <td class="product_thumb">
+                                                <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$item['part_id'] ?>">
+                                                    <img src="<?= sanitize($imgUrl) ?>"
+                                                         alt="<?= sanitize($item['name']) ?>">
+                                                </a>
+                                            </td>
+                                            <td class="product_name">
+                                                <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$item['part_id'] ?>">
+                                                    <?= sanitize(truncate($item['name'], 50)) ?>
+                                                </a>
+                                                <p><?= sanitize($item['brand_name']) ?> &middot; <?= t('part_number') ?>: <?= sanitize($item['part_number']) ?></p>
+                                            </td>
+                                            <td class="product-price">
+                                                <span class="amount"><?= formatPrice($item['price']) ?></span>
+                                            </td>
+                                            <td class="product_quantity">
+                                                <label><?= t('quantity') ?></label>
                                                 <input type="number"
                                                        name="quantity[<?= (int)$item['part_id'] ?>]"
                                                        value="<?= (int)$item['quantity'] ?>"
                                                        min="1" max="99"
-                                                       style="width:48px;height:36px;border:none;text-align:center;font-size:0.9rem;font-weight:600;outline:none;"
                                                        onchange="updateRowTotal(this.closest('tr'));">
-                                                <button type="button"
-                                                        style="width:32px;height:36px;background:#f5f5f5;border:none;font-size:1.1rem;cursor:pointer;color:#555;"
-                                                        onclick="var inp=this.previousElementSibling;inp.value=Math.min(99,parseInt(inp.value)+1);updateRowTotal(this.closest('tr'));">
-                                                    +
-                                                </button>
-                                            </div>
-                                        </td>
-                                        <td class="product-subtotal">
-                                            <span class="amount row-total" data-price="<?= (float)$item['price'] ?>">
-                                                <?= formatPrice($rowTotal) ?>
-                                            </span>
-                                        </td>
-                                        <td class="product-remove">
-                                            <a href="javascript:void(0)"
-                                               onclick="removeCartItem(<?= (int)$item['part_id'] ?>, this.closest('tr'))"
-                                               style="color:#d32f2f;font-size:1.2rem;text-decoration:none;"
-                                               title="<?= t('remove') ?>">
-                                                &times;
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                                            </td>
+                                            <td class="product_total">
+                                                <span class="row-total" data-price="<?= (float)$item['price'] ?>">
+                                                    <?= formatPrice($rowTotal) ?>
+                                                </span>
+                                            </td>
+                                            <td class="product_remove">
+                                                <a href="javascript:void(0)"
+                                                   onclick="removeCartItem(<?= (int)$item['part_id'] ?>, this.closest('tr'))"
+                                                   title="<?= t('remove') ?>">
+                                                    <i class="fa fa-trash-o"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="cart_submit">
+                                <button type="submit"><?= t('update_cart') ?></button>
+                            </div>
                         </div>
-                    </div><!-- /.cart_table -->
-
-                    <!-- Cart actions -->
-                    <div class="cart_submit" style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;flex-wrap:wrap;gap:12px;">
-                        <a href="<?= APP_URL ?>/catalog/index.php"
-                           style="border:1px solid #d32f2f;color:#d32f2f;padding:9px 24px;border-radius:4px;text-decoration:none;font-weight:600;font-size:0.875rem;">
-                            &larr; <?= t('continue_shopping') ?>
-                        </a>
-                        <button type="submit"
-                                style="background:#d32f2f;color:#fff;border:none;padding:9px 24px;border-radius:4px;font-weight:600;cursor:pointer;font-size:0.875rem;">
-                            <?= t('update_cart') ?>
-                        </button>
-                    </div>
-                </form>
-            </div><!-- /.col -->
-
-            <!-- ── CART TOTALS ─────────────────────────────────────────── -->
-            <div class="col-lg-4 col-md-12">
-                <div class="cart_page_total" style="background:#f9f9f9;border:1px solid #eee;border-radius:6px;padding:28px 24px;">
-                    <h2 style="font-size:1.1rem;font-weight:700;color:#222;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #e0e0e0;">
-                        <?= t('order_summary') ?? 'Итого по заказу' ?>
-                    </h2>
-                    <ul style="list-style:none;margin:0;padding:0;">
-                        <li style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:0.875rem;color:#555;">
-                            <span><?= t('subtotal') ?></span>
-                            <span id="cart-subtotal-display" style="font-weight:600;color:#333;"><?= formatPrice($cartSubtotal) ?></span>
-                        </li>
-                        <li style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:0.875rem;color:#555;">
-                            <span><?= t('free_delivery') ?? 'Доставка' ?></span>
-                            <span style="color:#388e3c;font-weight:600;"><?= t('free') ?? 'Уточняется' ?></span>
-                        </li>
-                        <li style="display:flex;justify-content:space-between;padding:16px 0 0;font-size:1.05rem;">
-                            <span style="font-weight:700;color:#222;"><?= t('total') ?></span>
-                            <span id="cart-total-display" style="font-weight:700;color:#d32f2f;font-size:1.2rem;"><?= formatPrice($cartSubtotal) ?></span>
-                        </li>
-                    </ul>
-
-                    <div style="margin-top:24px;">
-                        <a href="<?= APP_URL ?>/buyer/checkout.php"
-                           style="display:block;text-align:center;background:#d32f2f;color:#fff;padding:13px 24px;border-radius:4px;font-weight:700;font-size:0.95rem;text-decoration:none;transition:background 0.2s;"
-                           onmouseover="this.style.background='#b71c1c'" onmouseout="this.style.background='#d32f2f'">
-                            <?= t('proceed_checkout') ?> &rarr;
-                        </a>
                     </div>
                 </div>
-            </div><!-- /.col -->
 
-        </div><!-- /.row -->
-        <?php endif; ?>
+                <!--coupon code area start-->
+                <div class="coupon_area">
+                    <div class="row">
+                        <div class="col-lg-6 col-md-6">
+                            <div class="coupon_code left">
+                                <h3><?= t('coupon') ?></h3>
+                                <div class="coupon_inner">
+                                    <p><?= t('coupon_hint') ?></p>
+                                    <input placeholder="<?= t('coupon_code') ?>" type="text" name="coupon_code">
+                                    <button type="button"><?= t('apply_coupon') ?></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-6">
+                            <div class="coupon_code right">
+                                <h3><?= t('cart_totals') ?></h3>
+                                <div class="coupon_inner">
+                                    <div class="cart_subtotal">
+                                        <p><?= t('subtotal') ?></p>
+                                        <p class="cart_amount" id="cart-subtotal-display"><?= formatPrice($cartSubtotal) ?></p>
+                                    </div>
+                                    <div class="cart_subtotal">
+                                        <p><?= t('shipping') ?></p>
+                                        <p class="cart_amount"><span><?= t('free') ?></span></p>
+                                    </div>
+                                    <div class="cart_subtotal">
+                                        <p><?= t('total') ?></p>
+                                        <p class="cart_amount" id="cart-total-display"><?= formatPrice($cartSubtotal) ?></p>
+                                    </div>
+                                    <div class="checkout_btn">
+                                        <a href="<?= APP_URL ?>/buyer/checkout.php"><?= t('proceed_checkout') ?></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!--coupon code area end-->
 
-    </div><!-- /.container -->
-</div><!-- /.cart_area -->
+            </form>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+<!--shopping cart area end -->
 
 <script>
 var CSRF_TOKEN = '<?= sanitize($csrf) ?>';
@@ -224,10 +204,10 @@ function formatPrice(amount) {
 }
 
 function updateRowTotal(row) {
-    var input    = row.querySelector('input[type="number"]');
-    var totalEl  = row.querySelector('.row-total');
-    var price    = parseFloat(totalEl.dataset.price);
-    var qty      = parseInt(input.value) || 1;
+    var input   = row.querySelector('input[type="number"]');
+    var totalEl = row.querySelector('.row-total');
+    var price   = parseFloat(totalEl.dataset.price);
+    var qty     = parseInt(input.value) || 1;
     totalEl.textContent = formatPrice(price * qty);
     recalcCartTotal();
 }
@@ -254,12 +234,10 @@ function removeCartItem(partId, row) {
         if (data.success) {
             row.remove();
             recalcCartTotal();
-            // Update header cart count
             var cnt = document.querySelector('.cart_count');
             if (cnt) cnt.textContent = data.cart_count;
             var cprice = document.querySelector('.cart_price');
             if (cprice) cprice.innerHTML = formatPrice(data.cart_total) + ' <i class="ion-ios-arrow-down"></i>';
-            // Check if cart empty
             if (document.querySelectorAll('tbody tr').length === 0) {
                 location.reload();
             }
