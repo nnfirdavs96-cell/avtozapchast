@@ -73,14 +73,6 @@ function sanitize($input): string {
 }
 
 /**
- * Format price as Russian ruble
- */
-function formatPrice($price): string {
-    $formatted = number_format((float)$price, 0, ',', ' ');
-    return $formatted . ' ₽';
-}
-
-/**
  * Generate CSRF token (store in session)
  */
 function generateCsrfToken(): string {
