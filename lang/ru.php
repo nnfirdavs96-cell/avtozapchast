@@ -152,4 +152,15 @@ return [
     'check_availability' => 'Проверить наличие',
     'warehouse_available'=> 'Есть на складе',
     'warehouse_order'    => 'Под заказ (3-7 дней)',
+    // Blog
+    'read_more'          => 'Читать далее',
+    'related_posts'      => 'Похожие записи',
+    // 404
+    'page_not_found'     => 'Страница не найдена',
+    'page_not_found_desc'=> 'Запрашиваемая страница не существует или была перемещена.',
+    // Hours
+    'mon_fri'            => 'Пн–Пт',
+    'sat_sun'            => 'Сб–Вс',
+    // Contact form success
+    'contact_success'    => 'Ваше сообщение отправлено. Мы свяжемся с вами в ближайшее время.',
 ];

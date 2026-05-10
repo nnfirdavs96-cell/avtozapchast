@@ -48,7 +48,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
             <?php if ($excerpt): ?>
             <p style="color:#666;font-size:0.875rem;line-height:1.6;margin-bottom:14px"><?= sanitize(truncate($excerpt, 120)) ?></p>
             <?php endif; ?>
-            <a href="<?= APP_URL ?>/pages/blog-detail.php?slug=<?= urlencode($post['slug']) ?>" style="color:#d32f2f;font-weight:600;font-size:0.875rem;text-decoration:none">Читать далее &rarr;</a>
+            <a href="<?= APP_URL ?>/pages/blog-detail.php?slug=<?= urlencode($post['slug']) ?>" style="color:#d32f2f;font-weight:600;font-size:0.875rem;text-decoration:none"><?= t('read_more') ?> &rarr;</a>
           </div>
         </div>
       </div>

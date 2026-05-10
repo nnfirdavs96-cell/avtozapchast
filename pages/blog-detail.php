@@ -44,7 +44,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
       </div>
       <div class="col-lg-3">
         <div style="background:#fff;padding:20px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.06)">
-          <h4 style="font-size:1rem;font-weight:700;margin-bottom:16px">Похожие записи</h4>
+          <h4 style="font-size:1rem;font-weight:700;margin-bottom:16px"><?= t('related_posts') ?></h4>
           <?php
           $relStmt = $db->prepare("SELECT slug, title_ru, title_tg, title_en, created_at FROM blog_posts WHERE is_published=1 AND slug!=? ORDER BY RAND() LIMIT 3");
           $relStmt->execute([$slug]);
