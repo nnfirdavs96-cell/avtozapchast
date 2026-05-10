@@ -143,9 +143,10 @@ $bcItems[] = ['label' => $catName];
 <?= breadcrumb($bcItems) ?>
 
 <!--shop area start-->
-<div class="shop_area shop_reverse">
+<div class="shop_area">
     <div class="container">
         <div class="row">
+            <?php ob_start(); /* capture sidebar — render after main column per shop-right-sidebar.html */ ?>
             <div class="col-lg-3 col-md-12">
                 <!--sidebar widget start-->
                 <aside class="sidebar_widget">
@@ -274,6 +275,7 @@ $bcItems[] = ['label' => $catName];
                 </aside>
                 <!--sidebar widget end-->
             </div>
+            <?php $sidebarHtml = ob_get_clean(); ?>
 
             <div class="col-lg-9 col-md-12">
 
@@ -602,6 +604,7 @@ $bcItems[] = ['label' => $catName];
                 <?php endif; ?>
 
             </div><!-- /.col main -->
+            <?= $sidebarHtml /* sidebar follows main per shop-right-sidebar.html */ ?>
         </div><!-- /.row -->
     </div><!-- /.container -->
 </div><!-- /.shop_area -->
