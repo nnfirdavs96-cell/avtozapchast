@@ -55,6 +55,24 @@ function showToast(msg, type) {
 // CSRF token from meta tag
 window._csrf = document.querySelector('meta[name=csrf]') ? document.querySelector('meta[name=csrf]').content : '';
 
+// Apply data-bgimg as background-image (fallback if Mazlay main.js fails)
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-bgimg]').forEach(function (el) {
+        var url = el.getAttribute('data-bgimg');
+        if (url && !el.style.backgroundImage) {
+            el.style.backgroundImage = 'url(' + url + ')';
+        }
+    });
+
+    // Toggle for the categories sidebar dropdown (when Mazlay JS is missing)
+    document.querySelectorAll('.categori_toggle').forEach(function (toggle) {
+        toggle.addEventListener('click', function () {
+            var menu = this.closest('.categories_menu').querySelector('.categories_menu_toggle');
+            if (menu) menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+        });
+    });
+});
+
 // Quantity input steppers
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.qty-btn').forEach(function(btn) {

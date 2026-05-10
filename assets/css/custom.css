@@ -133,3 +133,209 @@
     .az-stats { grid-template-columns: 1fr 1fr; }
     .az-content { padding: 16px; }
 }
+
+/* ============================================================
+ * Mazlay storefront — корректировки под наш PHP-движок
+ * ============================================================ */
+
+/* Логотип: красивый текстовый бренд вместо картинки */
+.logo a { text-decoration: none; display: inline-block; }
+.logo .logo-text {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 900; font-size: 1.6rem;
+    letter-spacing: -0.5px; line-height: 1;
+    color: #d32f2f;
+}
+.logo .logo-text span { color: #222; }
+
+/* Слайдер: гарантированный фон, даже если owl-carousel не успел инициализироваться */
+.slider_section { position: relative; overflow: hidden; }
+.slider_area { position: relative; }
+.slider_area .single_slider {
+    min-height: 480px;
+    background-size: cover; background-position: center center;
+    background-repeat: no-repeat;
+    position: relative;
+}
+.slider_area .single_slider::before {
+    content: ''; position: absolute; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 1;
+}
+.slider_area .single_slider > .container { position: relative; z-index: 2; }
+.slider_area .slider_content h1 { color: #fff; font-size: 3rem; font-weight: 800; line-height: 1.1; margin-bottom: 18px; }
+.slider_area .slider_content h1 span { color: #d32f2f; display: block; }
+.slider_area .slider_content p { color: rgba(255,255,255,0.9); margin-bottom: 22px; max-width: 560px; }
+.slider_area .slider_content .button {
+    display: inline-block; background: #d32f2f; color: #fff;
+    padding: 12px 28px; border-radius: 4px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none;
+    transition: background 0.2s;
+}
+.slider_area .slider_content .button:hover { background: #b71c1c; color: #fff; }
+
+/* Если owl-carousel НЕ успел запуститься — показываем ТОЛЬКО первый слайд,
+   чтобы не было портянки из дублей. */
+.slider_carousel:not(.owl-loaded) .single_slider:not(:first-child) { display: none !important; }
+.product_carousel:not(.owl-loaded) > .col-lg-3:nth-child(n+5),
+.product_carousel:not(.owl-loaded) > div:nth-child(n+5) { display: none !important; }
+.categories_product_inner:not(.owl-loaded) > .single_categories_product:nth-child(n+8) { display: none !important; }
+.brand_container:not(.owl-loaded) > .brand_list:nth-child(n+5) { display: none !important; }
+.blog_column4:not(.owl-loaded) > .col-lg-3:nth-child(n+5) { display: none !important; }
+
+/* Категории-сайдбар: выпадающий список ВНУТРИ заголовка по клику. */
+.categories_menu { position: relative; }
+.categories_menu .categories_title h2.categori_toggle {
+    cursor: pointer; user-select: none;
+    background: #d32f2f; color: #fff;
+    padding: 14px 22px; margin: 0; font-size: 0.95rem;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    display: flex; align-items: center; gap: 10px;
+    border-radius: 3px;
+}
+.categories_menu .categories_title h2.categori_toggle::before {
+    content: '\2630'; font-weight: 400; font-size: 1rem;
+}
+/* Скрываем выпадающее меню по умолчанию — JS Mazlay покажет его кликом */
+.categories_menu_toggle {
+    display: none;
+    position: absolute; top: 100%; left: 0; right: 0;
+    background: #fff; border: 1px solid #e6e6e6; border-top: none;
+    z-index: 99; max-height: 480px; overflow-y: auto;
+}
+.categories_menu_toggle ul { list-style: none; margin: 0; padding: 0; }
+.categories_menu_toggle ul li { border-bottom: 1px solid #f1f1f1; position: relative; }
+.categories_menu_toggle ul li:last-child { border-bottom: none; }
+.categories_menu_toggle ul li > a {
+    display: block; padding: 12px 22px; color: #333;
+    text-decoration: none; font-size: 0.875rem;
+    transition: background 0.15s, color 0.15s;
+}
+.categories_menu_toggle ul li > a:hover,
+.categories_menu_toggle ul li.menu_item_children:hover > a { background: #fafafa; color: #d32f2f; }
+.categories_menu_toggle ul li > a > .fa-angle-right { float: right; line-height: 1.5; }
+
+/* Главное меню — выпадашка не должна вылезать поверх контента ниже */
+.main_menu nav > ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 0; }
+.main_menu nav > ul > li { position: relative; }
+.main_menu nav > ul > li > a {
+    display: block; padding: 18px 14px; color: #222;
+    font-weight: 700; font-size: 0.85rem; letter-spacing: 0.3px;
+    text-transform: uppercase; text-decoration: none;
+}
+.main_menu nav > ul > li > a:hover { color: #d32f2f; }
+.main_menu nav > ul > li .sub-menu {
+    position: absolute; top: 100%; left: 0;
+    background: #fff; min-width: 220px; list-style: none;
+    margin: 0; padding: 8px 0;
+    border: 1px solid #eee; border-top: 2px solid #d32f2f;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+    opacity: 0; visibility: hidden; transform: translateY(8px);
+    transition: opacity 0.18s, transform 0.18s, visibility 0.18s;
+    z-index: 100;
+}
+.main_menu nav > ul > li:hover > .sub-menu {
+    opacity: 1; visibility: visible; transform: translateY(0);
+}
+.main_menu nav > ul > li .sub-menu li a {
+    display: block; padding: 9px 18px; color: #555;
+    font-size: 0.85rem; text-decoration: none;
+}
+.main_menu nav > ul > li .sub-menu li a:hover { background: #f8f8f8; color: #d32f2f; }
+
+/* Не даём субменю мега-выпадашке "проваливаться" поверх слайдера */
+.header_bottom { position: relative; z-index: 50; background: #fff; border-bottom: 1px solid #eee; }
+.header_top    { background: #f7f7f7; border-bottom: 1px solid #eee; padding: 8px 0; font-size: 0.8rem; }
+.header_top a  { color: #555; text-decoration: none; }
+.header_top a:hover { color: #d32f2f; }
+.header_top ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 18px; }
+.header_top .text-right { justify-content: flex-end; }
+.header_top .header_account { position: relative; }
+.header_top .header_account > ul { display: flex; gap: 18px; }
+.header_top .header_account .dropdown_language,
+.header_top .header_account .dropdown_currency {
+    display: none; position: absolute; top: 100%; left: 0;
+    background: #fff; border: 1px solid #e0e0e0; min-width: 160px;
+    z-index: 60; padding: 6px 0;
+}
+.header_top .header_account li:hover .dropdown_language,
+.header_top .header_account li:hover .dropdown_currency { display: block; }
+.header_top .header_account .dropdown_language li,
+.header_top .header_account .dropdown_currency li { padding: 0; }
+.header_top .header_account .dropdown_language a,
+.header_top .header_account .dropdown_currency a { padding: 7px 14px; display: block; }
+.header_top .header_account .dropdown_language a:hover,
+.header_top .header_account .dropdown_currency a:hover { background: #f6f6f6; }
+
+/* Header middle (logo + search + cart) */
+.header_middle { padding: 24px 0; }
+.search_container form { display: flex; border: 2px solid #d32f2f; border-radius: 4px; overflow: hidden; }
+.search_container .hover_category { background: #f7f7f7; border-right: 1px solid #e0e0e0; }
+.search_container .hover_category select { border: none; background: transparent; padding: 10px 14px; font-size: 0.85rem; outline: none; min-width: 160px; }
+.search_container .search_box { display: flex; flex: 1; }
+.search_container .search_box input {
+    border: none; flex: 1; padding: 10px 14px; outline: none; font-size: 0.9rem;
+}
+.search_container .search_box button {
+    background: #d32f2f; color: #fff; border: none; padding: 10px 22px;
+    font-weight: 700; cursor: pointer; transition: background 0.2s; text-transform: uppercase;
+}
+.search_container .search_box button:hover { background: #b71c1c; }
+
+.header_configure_area { display: flex; align-items: center; gap: 18px; justify-content: flex-end; margin-top: 8px; }
+.header_wishlist a, .mini_cart_wrapper > a {
+    position: relative; color: #222; font-size: 1.2rem; text-decoration: none;
+}
+.header_wishlist .wishlist_count, .mini_cart_wrapper .cart_count {
+    position: absolute; top: -8px; right: -10px;
+    background: #d32f2f; color: #fff; font-size: 0.7rem; font-weight: 700;
+    border-radius: 50%; width: 18px; height: 18px;
+    display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* Phone block on the right of nav */
+.header_phone { text-align: right; font-weight: 700; }
+.header_phone a { color: #d32f2f; text-decoration: none; }
+
+/* Tags strip */
+.top_tags_area { background: #fafafa; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 0.85rem; }
+.top_tags_area ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.top_tags_area li span { color: #888; font-weight: 700; }
+.top_tags_area li a { color: #444; text-decoration: none; }
+.top_tags_area li a:hover { color: #d32f2f; }
+
+/* Buttons used by login/register/contact pages */
+.az-btn-primary, .button {
+    display: inline-block; background: #d32f2f; color: #fff;
+    padding: 10px 24px; border-radius: 3px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.4px; border: none;
+    cursor: pointer; text-decoration: none; transition: background 0.2s;
+}
+.az-btn-primary:hover, .button:hover { background: #b71c1c; color: #fff; }
+.az-btn-outline { background: transparent; color: #d32f2f; border: 1px solid #d32f2f; padding: 10px 22px; }
+.az-btn-outline:hover { background: #d32f2f; color: #fff; }
+.az-btn-sm { padding: 6px 14px; font-size: 0.78rem; }
+
+/* No results / empty states */
+.empty_state { text-align: center; padding: 48px 16px; color: #888; }
+.empty_state i, .empty_state .icon { font-size: 3rem; color: #ddd; margin-bottom: 12px; display: block; }
+
+/* Page banner / breadcrumbs spacing */
+.breadcrumbs_area { background: #f5f5f5; padding: 22px 0; border-bottom: 1px solid #eee; }
+.breadcrumbs_area .breadcrumb_content { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.breadcrumbs_area .breadcrumb_content h3 { margin: 0; font-size: 1.4rem; font-weight: 800; color: #222; }
+.breadcrumbs_area .breadcrumb_content ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; font-size: 0.85rem; color: #888; }
+.breadcrumbs_area .breadcrumb_content ul a { color: #888; text-decoration: none; }
+.breadcrumbs_area .breadcrumb_content ul a:hover { color: #d32f2f; }
+
+/* Form inputs */
+.form-control {
+    width: 100%; padding: 10px 14px;
+    border: 1px solid #ddd; border-radius: 3px;
+    font-size: 0.9rem; outline: none; background: #fff;
+    transition: border-color 0.15s;
+}
+.form-control:focus { border-color: #d32f2f; }
+
+/* Layout fixes when categories dropdown is open */
+.home_section_bg, .breadcrumbs_area, .slider_section { position: relative; z-index: 1; }
+
