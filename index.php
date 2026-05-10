@@ -261,7 +261,7 @@ require_once __DIR__ . '/includes/header.php';
             <div class="section_title">
                 <h2><span><?= t('blog') ?></span></h2>
             </div>
-            <div class="row blog_column4 owl-carousel">
+            <div class="blog_container blog_column4 owl-carousel">
                 <?php
                 $blogImgs = ['blog1.jpg','blog2.jpg','blog3.jpg','blog4.jpg','blog6.jpg'];
                 foreach ($blogPosts as $bi => $post):

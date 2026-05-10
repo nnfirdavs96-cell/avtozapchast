@@ -321,7 +321,7 @@ unset($queryParams['lang'], $queryParams['currency']);
                                     <li><a href="<?= APP_URL ?>/index.php"><?= t('home') ?></a></li>
                                     <li class="menu-item-has-children">
                                         <a href="<?= APP_URL ?>/catalog/index.php"><?= t('shop') ?></a>
-                                        <ul class="sub-menu">
+                                        <ul class="sub_menu">
                                             <?php foreach ($catTree as $cat): ?>
                                             <li><a href="<?= APP_URL ?>/catalog/category.php?slug=<?= urlencode($cat['slug']) ?>"><?= sanitize(tField($cat,'name')) ?></a></li>
                                             <?php endforeach; ?>
