@@ -155,6 +155,17 @@ return [
     // Blog
     'read_more'          => 'Read More',
     'related_posts'      => 'Related Posts',
+    'recent_posts'       => 'Recent Posts',
+    'posted_by'          => 'Posted By',
+    'posted_on'          => 'Posted On',
+    'tags'               => 'Tags',
+    'auto_parts'         => 'Auto Parts',
+    'repair'             => 'Repair',
+    'service'            => 'Service',
+    'catalog'            => 'Catalog',
+    // FAQ
+    'faq_subtitle'       => 'Frequently Asked Questions',
+    'faq_intro'          => 'Here you will find answers to the most common questions about ordering, delivery and returns.',
     // 404
     'page_not_found'     => 'Page Not Found',
     'page_not_found_desc'=> 'The requested page does not exist or has been moved.',
