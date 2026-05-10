@@ -43,10 +43,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (empty($currentPass)) {
                 $errors[] = 'Введите текущий пароль для подтверждения.';
             } else {
-                $pwStmt = $db->prepare("SELECT password FROM users WHERE id = ? LIMIT 1");
+                $pwStmt = $db->prepare("SELECT password_hash FROM users WHERE id = ? LIMIT 1");
                 $pwStmt->execute([$user['id']]);
                 $pwRow = $pwStmt->fetch();
-                if (!$pwRow || !password_verify($currentPass, $pwRow['password'])) {
+                if (!$pwRow || !password_verify($currentPass, $pwRow['password_hash'])) {
                     $errors[] = 'Текущий пароль введён неверно.';
                 }
             }
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($changePassword) {
                 $hash = password_hash($newPass, PASSWORD_DEFAULT);
                 $db->prepare(
-                    "UPDATE users SET username=?, email=?, phone=?, password=?, updated_at=NOW() WHERE id=?"
+                    "UPDATE users SET username=?, email=?, phone=?, password_hash=?, updated_at=NOW() WHERE id=?"
                 )->execute([$username, $email, $phone ?: null, $hash, $user['id']]);
             } else {
                 $db->prepare(
