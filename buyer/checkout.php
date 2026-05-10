@@ -33,22 +33,19 @@ foreach ($cartItems as $item) {
 }
 
 // Load user profile for prefilling
-$profileStmt = $db->prepare(
-    "SELECT first_name, last_name, phone, email, address, city, zip_code, country
-     FROM users WHERE id = ? LIMIT 1"
-);
+$profileStmt = $db->prepare("SELECT email, phone FROM users WHERE id = ? LIMIT 1");
 $profileStmt->execute([$user['id']]);
 $profile = $profileStmt->fetch() ?: [];
 
 // Fallback to session user data for email
-$prefillEmail   = $profile['email']      ?? ($user['email'] ?? '');
-$prefillPhone   = $profile['phone']      ?? ($user['phone'] ?? '');
-$prefillFname   = $profile['first_name'] ?? '';
-$prefillLname   = $profile['last_name']  ?? '';
-$prefillAddr    = $profile['address']    ?? '';
-$prefillCity    = $profile['city']       ?? '';
-$prefillZip     = $profile['zip_code']   ?? '';
-$prefillCountry = $profile['country']    ?? '';
+$prefillEmail   = $profile['email'] ?? ($user['email'] ?? '');
+$prefillPhone   = $profile['phone'] ?? ($user['phone'] ?? '');
+$prefillFname   = '';
+$prefillLname   = '';
+$prefillAddr    = '';
+$prefillCity    = '';
+$prefillZip     = '';
+$prefillCountry = '';
 
 $errors = [];
 

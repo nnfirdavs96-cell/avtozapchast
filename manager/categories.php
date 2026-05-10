@@ -99,7 +99,7 @@ $allCats = $db->query(
 $tree = getCategoryTree($allCats);
 
 $pageTitle = 'Управление категориями';
-require_once dirname(__DIR__) . '/includes/header.php';
+require_once dirname(__DIR__) . '/includes/admin-header.php';
 
 // Recursive tree renderer
 function renderCatRows(array $cats, string $csrf, int $depth = 0): void {
@@ -293,4 +293,4 @@ function renderCatRows(array $cats, string $csrf, int $depth = 0): void {
     </main>
 </div><!-- /.az-panel -->
 
-<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
+<?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>
