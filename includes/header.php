@@ -227,6 +227,20 @@ unset($queryParams['lang'], $queryParams['currency']);
                                 </form>
                             </div>
                             <div class="header_configure_area">
+                                <div class="canvas_open mobile_menu_trigger">
+                                    <a href="javascript:void(0)" aria-label="Меню"><i class="fa fa-bars"></i></a>
+                                </div>
+                                <div class="header_auth_mobile">
+                                    <?php if ($currentUser): ?>
+                                    <a href="<?= APP_URL ?>/<?= $currentUser['role'] ?>/index.php" class="auth-link-mobile" aria-label="<?= t('my_account') ?>">
+                                        <i class="fa fa-user-circle-o"></i>
+                                    </a>
+                                    <?php else: ?>
+                                    <a href="<?= APP_URL ?>/auth/login.php" class="auth-link-mobile" aria-label="<?= t('login') ?>">
+                                        <i class="fa fa-sign-in"></i>
+                                    </a>
+                                    <?php endif; ?>
+                                </div>
                                 <div class="header_wishlist">
                                     <a href="<?= APP_URL ?>/buyer/wishlist.php">
                                         <i class="icon-heart"></i>
