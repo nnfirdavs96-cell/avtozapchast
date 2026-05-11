@@ -318,3 +318,147 @@
 /* Кнопки в шаблонных страницах */
 .button:hover { background: #a00707 !important; color: #fff !important; }
 
+/* ============================================================
+ * MOBILE RESPONSIVE FIXES (320px – 768px)
+ * ============================================================ */
+
+/* ── Header ── */
+@media (max-width: 767px) {
+
+    /* Header top: язык/валюта — скрыть, чтобы не мешали */
+    .header_top { display: none; }
+
+    /* Logo area */
+    .header_middle { padding: 10px 0; }
+    .logo .logo-text { font-size: 1.2rem; }
+
+    /* Корзина и wishlist: меньше иконки */
+    .header_cart .cart_quantity,
+    .header_wishlist .header_wishlist_icon { font-size: 0.75rem; }
+
+    /* Header middle: flex-wrap чтобы строки не накладывались */
+    .header_middle .row { flex-wrap: wrap; }
+    .header_middle [class*="col-"] { padding: 4px 8px; }
+
+    /* Скрываем поиск и phone в header_middle на очень маленьких экранах */
+    .header_middle .header_phone { display: none; }
+
+    /* ── Bottom nav bar: категории + меню + телефон ── */
+    .header_bottom { padding: 0; }
+
+    /* Скрываем desktop-меню, телефон и категории—всё через offcanvas */
+    .header_bottom .col-lg-3,
+    .header_bottom .col-lg-6,
+    .header_bottom .header_phone,
+    .main_menu { display: none !important; }
+
+    /* Показываем только hamburger-бар */
+    .header_bottom .container { padding: 0 12px; }
+
+    /* Hamburger icon */
+    .canvas_open a { font-size: 1.8rem; color: #fff; }
+
+    /* ── Offcanvas menu fix ── */
+    .offcanvas_menu { z-index: 9999; }
+    .offcanvas_menu_wrapper { padding: 20px 15px; overflow-y: auto; max-height: 90vh; }
+
+    /* Category dropdown в offcanvas: полные имена */
+    .offcanvas_main_menu li a { white-space: normal; word-break: break-word; }
+
+    /* ── Категории "ВСЕ КАТЕГОРИИ" drop — мобильный фикс ── */
+    .categories_dropdown_wrap { position: relative; z-index: 100; }
+    .categories_dropdown_wrap .categories_dropdown {
+        position: static;
+        box-shadow: none;
+        max-height: 200px;
+        overflow-y: auto;
+        font-size: 0.8rem;
+    }
+    .categories_dropdown_wrap .categories_toggle { font-size: 0.85rem; }
+
+    /* ── Слайдер ── */
+    .slider_area .single_slider {
+        min-height: 260px !important;
+        padding: 20px 16px;
+    }
+    .slider_area .single_slider h2 { font-size: 1.4rem; }
+    .slider_area .single_slider p  { font-size: 0.85rem; }
+    .slider_area .single_slider a.button { padding: 10px 18px; font-size: 0.8rem; }
+
+    /* ── Tags/categories strip ── */
+    .top_tags_area ul { flex-wrap: wrap; gap: 8px; font-size: 0.78rem; }
+
+    /* ── Карточки товаров ── */
+    .product_carousel .single_product_wrap { margin-bottom: 16px; }
+    .product_carousel .col-lg-3 { flex: 0 0 50% !important; max-width: 50% !important; padding: 0 6px; }
+
+    /* ── Категории сетка ── */
+    .categories_product_inner > .single_categories_product {
+        flex: 0 0 50% !important; max-width: 50% !important;
+    }
+
+    /* ── Бренды ── */
+    .brand_container > .brand_list {
+        flex: 0 0 50% !important; max-width: 50% !important;
+    }
+
+    /* ── Блог карточки ── */
+    .blog_container > .col-lg-3 { flex: 0 0 100% !important; max-width: 100% !important; }
+
+    /* ── Newsletter ── */
+    .newsletter_area .newsletter_inner .row > [class*="col-"] { margin-bottom: 20px; }
+    .newsletter_container { padding: 0 !important; }
+
+    /* ── Footer ── */
+    .footer_top .row > [class*="col-"] { margin-bottom: 20px; }
+    .footer_col_container { flex-wrap: wrap; gap: 0; }
+    .footer_col_container .widgets_container { flex: 0 0 50%; max-width: 50%; margin-bottom: 16px; }
+    .footer_bottom .row > [class*="col-"] { text-align: center; margin-bottom: 8px; }
+    .footer_payment { text-align: center !important; }
+
+    /* ── Форма поиска ── */
+    .header_middle .search_container form { flex-wrap: wrap; gap: 4px; }
+    .header_middle .hover_category { display: none; }
+    .header_middle .search_box { width: 100%; }
+    .header_middle .search_box input { width: calc(100% - 70px); }
+
+    /* ── Admin panel mobile ── */
+    .az-panel { flex-direction: column; }
+    .az-sidebar { width: 100%; height: auto; position: relative; overflow: visible; }
+    .az-sidebar-nav { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; }
+    .az-sidebar-link { padding: 7px 10px; font-size: 0.78rem; border-radius: 4px; }
+    .az-main { width: 100%; }
+    .az-content { padding: 12px; }
+    .az-topbar { padding: 10px 12px; }
+    .az-topbar h1 { font-size: 1rem; }
+    .az-stats { grid-template-columns: 1fr 1fr; }
+    .az-stat-card-value { font-size: 1.3rem; }
+
+    /* Admin table horizontal scroll */
+    .az-card .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    /* Row grid on mobile */
+    .row { margin: 0 -6px; }
+    .col-lg-2, .col-md-4, .col-6 { padding: 0 6px; }
+}
+
+/* Extra small phones 320px-375px */
+@media (max-width: 375px) {
+    .logo .logo-text { font-size: 1rem; }
+    .slider_area .single_slider { min-height: 220px !important; }
+    .product_carousel .col-lg-3 { flex: 0 0 100% !important; max-width: 100% !important; }
+    .az-stats { grid-template-columns: 1fr; }
+    .footer_col_container .widgets_container { flex: 0 0 100%; max-width: 100%; }
+}
+
+/* Tablet 768px */
+@media (min-width: 768px) and (max-width: 991px) {
+    .header_bottom .col-lg-6 { flex: 0 0 60%; max-width: 60%; }
+    .header_bottom .col-lg-3 { flex: 0 0 20%; max-width: 20%; }
+    .main_menu nav > ul > li { margin-right: 10px !important; }
+    .main_menu nav > ul > li > a { font-size: 12px !important; }
+    .product_carousel .col-lg-3 { flex: 0 0 33.33% !important; max-width: 33.33% !important; }
+    .az-sidebar { width: 200px; }
+    .az-sidebar-link { font-size: 0.8rem; padding: 8px 14px; }
+}
+

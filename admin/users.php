@@ -127,15 +127,24 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
       <a href="<?= APP_URL ?>/admin/index.php" class="az-sidebar-link">
         <i class="fa fa-tachometer"></i> Панель
       </a>
-      <a href="<?= APP_URL ?>/admin/users.php" class="az-sidebar-link active">
-        <i class="fa fa-users"></i> Пользователи
+      <a href="<?= APP_URL ?>/admin/products.php" class="az-sidebar-link">
+        <i class="fa fa-cogs"></i> Товары
+      </a>
+      <a href="<?= APP_URL ?>/admin/sliders.php" class="az-sidebar-link">
+        <i class="fa fa-picture-o"></i> Слайдер
       </a>
       <a href="<?= APP_URL ?>/admin/orders.php" class="az-sidebar-link">
         <i class="fa fa-shopping-bag"></i> Заказы
       </a>
+      <a href="<?= APP_URL ?>/admin/users.php" class="az-sidebar-link active">
+        <i class="fa fa-users"></i> Пользователи
+      </a>
       <hr style="border-color:rgba(255,255,255,0.1);margin:12px 0;">
       <a href="<?= APP_URL ?>/index.php" class="az-sidebar-link">
         <i class="fa fa-home"></i> На сайт
+      </a>
+      <a href="<?= APP_URL ?>/auth/logout.php" class="az-sidebar-link" style="color:rgba(255,100,100,0.85)!important;">
+        <i class="fa fa-sign-out"></i> Выйти
       </a>
     </nav>
   </aside>
