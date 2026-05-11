@@ -591,6 +591,8 @@
         font-size: 0.8rem; padding: 0 12px; margin: 0;
         line-height: 44px; white-space: nowrap;
     }
+    /* Скрываем ≡-иконку Mazlay справа (categories_title::before = Ionicons \f394 на мобиле) */
+    .categories_title::before { display: none !important; }
 
     /* Скрываем выпавшее меню категорий на мобиле */
     .categories_menu_toggle { display: none; }
@@ -710,22 +712,33 @@
         border-radius: 20px;
     }
 
-    /* ── Карточки товаров — 2 в ряд ── */
+    /* ── Карточки товаров — 2 в ряд (carousel и обычная сетка) ── */
     .product_carousel:not(.owl-loaded) {
         display: grid !important;
         grid-template-columns: 1fr 1fr;
         gap: 12px;
     }
-    .product_carousel.owl-loaded .col-lg-3 {
-        min-width: 200px;
-    }
-    .product_carousel .col-lg-3 {
+    .product_carousel.owl-loaded .col-lg-3 { min-width: 200px; }
+    .product_carousel .col-lg-3,
+    /* Товары на главной (tab-pane > row > col-lg-3 > product_items) */
+    .tab-pane .col-lg-3,
+    .tab-content .col-lg-3 {
         flex: 0 0 50% !important;
         max-width: 50% !important;
         padding: 0 6px;
     }
+    /* Изображение карточки — ограничить высоту, не растягивать placeholder */
+    .product_thumb a img,
+    .product_thumb > a > img {
+        width: 100% !important;
+        max-height: 160px !important;
+        height: 160px !important;
+        object-fit: contain !important;
+        background: #f8f8f8;
+    }
     .single_product { margin-bottom: 0; }
     .product_content h4.product_name a { font-size: 0.8rem; }
+    .product_content_inner { padding: 8px 10px 12px !important; }
     .current_price { font-size: 0.9rem; }
     .action_links ul li.add_to_cart a { font-size: 0.72rem; padding: 6px 10px; }
 
