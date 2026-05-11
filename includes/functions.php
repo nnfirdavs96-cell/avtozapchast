@@ -69,7 +69,10 @@ function redirect(string $url): void {
  * Sanitize output
  */
 function sanitize($input): string {
-    return htmlspecialchars((string)$input, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    if (is_array($input) || is_object($input)) {
+        return '';
+    }
+    return htmlspecialchars((string)($input ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }
 
 /**
