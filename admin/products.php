@@ -155,7 +155,7 @@ function adminSidebar(string $active = ''): void {
 ?>
 
 <div class="az-panel">
-    <?php adminSidebar(); ?>
+    <?php renderRoleSidebar('products'); ?>
 
     <main class="az-main">
         <div class="az-topbar">

@@ -95,20 +95,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
 ?>
 
 <div class="az-panel">
-    <aside class="az-sidebar">
-        <div class="az-sidebar-logo">ADMIN<span>PANEL</span></div>
-        <nav><ul>
-            <li><a href="<?= APP_URL ?>/admin/index.php"><i class="fa fa-tachometer"></i> Панель</a></li>
-            <li><a href="<?= APP_URL ?>/admin/products.php"><i class="fa fa-cogs"></i> Товары</a></li>
-            <li><a href="<?= APP_URL ?>/admin/sliders.php" class="active"><i class="fa fa-picture-o"></i> Слайдер</a></li>
-            <li><a href="<?= APP_URL ?>/admin/orders.php"><i class="fa fa-shopping-bag"></i> Заказы</a></li>
-            <li><a href="<?= APP_URL ?>/admin/users.php"><i class="fa fa-users"></i> Пользователи</a></li>
-            <li style="border-top:1px solid rgba(255,255,255,0.1);margin-top:12px;">
-                <a href="<?= APP_URL ?>/index.php"><i class="fa fa-home"></i> На сайт</a>
-            </li>
-            <li><a href="<?= APP_URL ?>/auth/logout.php" style="color:rgba(255,100,100,0.85)!important;"><i class="fa fa-sign-out"></i> Выйти</a></li>
-        </ul></nav>
-    </aside>
+    <?php renderRoleSidebar('sliders'); ?>
 
     <main class="az-main">
         <div class="az-topbar">

@@ -76,6 +76,68 @@ function sanitize($input): string {
 }
 
 /**
+ * Render admin/superadmin/manager sidebar based on current user role.
+ * $active is the key of the active link (e.g. 'sliders', 'settings', 'users').
+ */
+function renderRoleSidebar(string $active = ''): void {
+    $user = getCurrentUser();
+    $role = $user['role'] ?? '';
+    $url  = APP_URL;
+
+    if ($role === 'superadmin') {
+        $items = [
+            ['key' => 'dashboard',  'href' => "$url/superadmin/index.php",   'icon' => 'fa-tachometer',   'label' => 'Панель'],
+            ['key' => 'users',      'href' => "$url/superadmin/users.php",   'icon' => 'fa-users',        'label' => 'Пользователи'],
+            ['key' => 'orders',     'href' => "$url/admin/orders.php",       'icon' => 'fa-shopping-bag', 'label' => 'Заказы'],
+            ['key' => 'products',   'href' => "$url/admin/products.php",     'icon' => 'fa-cogs',         'label' => 'Товары'],
+            ['key' => 'sliders',    'href' => "$url/admin/sliders.php",      'icon' => 'fa-picture-o',    'label' => 'Слайдер'],
+            ['key' => 'settings',   'href' => "$url/superadmin/settings.php",'icon' => 'fa-cog',          'label' => 'Настройки'],
+            ['key' => 'currencies', 'href' => "$url/superadmin/currencies.php", 'icon' => 'fa-money',     'label' => 'Валюты'],
+            ['key' => 'languages',  'href' => "$url/superadmin/languages.php",  'icon' => 'fa-language',  'label' => 'Языки'],
+            ['key' => 'warehouse',  'href' => "$url/superadmin/warehouse.php",  'icon' => 'fa-database',  'label' => 'Склад API'],
+            ['key' => 'blog',       'href' => "$url/superadmin/blog.php",       'icon' => 'fa-newspaper-o', 'label' => 'Блог'],
+            ['key' => 'backup',     'href' => "$url/superadmin/backup.php",     'icon' => 'fa-archive',   'label' => 'Бэкапы'],
+        ];
+        $logoHtml = '<div class="az-sidebar-logo" style="color:#fff;">★ Суперадмин</div>';
+        $asideStyle = 'background:linear-gradient(180deg,#2c1338 0%,#1a0a26 100%);';
+    } elseif ($role === 'admin') {
+        $items = [
+            ['key' => 'dashboard', 'href' => "$url/admin/index.php",     'icon' => 'fa-tachometer',   'label' => 'Панель'],
+            ['key' => 'products',  'href' => "$url/admin/products.php",  'icon' => 'fa-cogs',         'label' => 'Товары'],
+            ['key' => 'sliders',   'href' => "$url/admin/sliders.php",   'icon' => 'fa-picture-o',    'label' => 'Слайдер'],
+            ['key' => 'orders',    'href' => "$url/admin/orders.php",    'icon' => 'fa-shopping-bag', 'label' => 'Заказы'],
+            ['key' => 'users',     'href' => "$url/admin/users.php",     'icon' => 'fa-users',        'label' => 'Пользователи'],
+        ];
+        $logoHtml = '<div class="az-sidebar-logo">ADMIN<span>PANEL</span></div>';
+        $asideStyle = '';
+    } elseif ($role === 'manager') {
+        $items = [
+            ['key' => 'dashboard',  'href' => "$url/manager/index.php",      'icon' => 'fa-dashboard',    'label' => 'Панель'],
+            ['key' => 'parts',      'href' => "$url/manager/parts.php",      'icon' => 'fa-cogs',         'label' => 'Запчасти'],
+            ['key' => 'categories', 'href' => "$url/manager/categories.php", 'icon' => 'fa-sitemap',      'label' => 'Категории'],
+            ['key' => 'brands',     'href' => "$url/manager/brands.php",     'icon' => 'fa-tag',          'label' => 'Бренды'],
+            ['key' => 'blog',       'href' => "$url/manager/blog.php",       'icon' => 'fa-newspaper-o',  'label' => 'Блог'],
+        ];
+        $logoHtml = '<div class="az-sidebar-logo">AUTO<span>PARTS</span></div>';
+        $asideStyle = '';
+    } else {
+        return;
+    }
+
+    echo '<aside class="az-sidebar"' . ($asideStyle ? ' style="' . $asideStyle . '"' : '') . '>';
+    echo $logoHtml;
+    echo '<nav><ul>';
+    foreach ($items as $it) {
+        $cls = $it['key'] === $active ? ' class="active"' : '';
+        echo '<li><a href="' . sanitize($it['href']) . '"' . $cls . '><i class="fa ' . sanitize($it['icon']) . '"></i> ' . sanitize($it['label']) . '</a></li>';
+    }
+    echo '<li style="border-top:1px solid rgba(255,255,255,0.1);margin-top:12px;">';
+    echo '<a href="' . $url . '/index.php"><i class="fa fa-home"></i> На сайт</a></li>';
+    echo '<li><a href="' . $url . '/auth/logout.php" style="color:rgba(255,100,100,0.85)!important;"><i class="fa fa-sign-out"></i> Выйти</a></li>';
+    echo '</ul></nav></aside>';
+}
+
+/**
  * Generate CSRF token (store in session)
  */
 function generateCsrfToken(): string {
