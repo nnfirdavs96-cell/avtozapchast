@@ -1039,14 +1039,16 @@
     .newsletter_container { padding: 0 4px; margin-bottom: 24px; }
     .newsletter_area { overflow: hidden; }
 
-    /* ─── 3. Categories dropdown — открывается на всю ширину viewport ─── */
-    .categories_menu { position: static !important; }
-    .categories_menu_toggle {
+    /* ─── 3. Categories dropdown — скрыт по умолчанию, открывается по клику ─── */
+    .categories_menu { position: relative !important; }
+    .categories_menu_toggle { display: none !important; }
+    .categories_menu_toggle.is-open {
+        display: block !important;
         position: absolute !important;
         left: 0 !important;
         right: 0 !important;
-        width: 100vw !important;
-        max-width: 100vw !important;
+        width: 100% !important;
+        max-width: 100% !important;
         top: 100% !important;
         max-height: 70vh;
         overflow-y: auto;
@@ -1055,7 +1057,7 @@
         border: 1px solid #ddd;
         border-radius: 0 0 6px 6px;
         box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-        z-index: 100;
+        z-index: 200;
         padding: 8px 0 !important;
     }
     .categories_menu_toggle > ul { list-style: none; margin: 0; padding: 0; }
@@ -1078,24 +1080,49 @@
     .categories_menu_toggle > ul > li > a:active { background: #f8f8f8; }
     .categories_menu_toggle .categories_mega_menu { display: none; }
 
-    /* ─── 4. Карточки товаров на главной — 2 в ряд через display:contents ─── */
-    /* Структура: tab-pane > row > col-lg-3 > product_items > single_product × N
-       На мобиле "распластываем" col-lg-3 и product_items, чтобы все single_product
-       стали прямыми детьми grid-контейнера. */
-    .tab-pane > .row,
-    .tab-content > .tab-pane > .row,
-    .product_area .tab-pane .row,
+    /* ─── 4. Карточки товаров — 2 в ряд (Owl уничтожается JS-ом на мобиле) ─── */
+    /* Структура: tab-pane > product_carousel > col-lg-3 > product_items > single_product × N */
     .product_carousel:not(.owl-loaded) {
         display: grid !important;
         grid-template-columns: 1fr 1fr !important;
         gap: 12px !important;
+        padding: 0 !important;
         margin: 0 !important;
     }
-    .tab-pane > .row > .col-lg-3,
-    .tab-pane > .row > [class*="col-"],
-    .tab-pane .product_items {
+    .product_carousel:not(.owl-loaded) > .col-lg-3,
+    .product_carousel:not(.owl-loaded) > [class*="col-"],
+    .product_carousel:not(.owl-loaded) .product_items {
         display: contents !important;
     }
+
+    /* ─── 5. Табы "Рекомендуемые товары" — перенос на следующую строку ─── */
+    .product_tab_btn ul.nav {
+        flex-wrap: wrap !important;
+        gap: 4px 0 !important;
+    }
+    .product_tab_btn ul.nav > li > a {
+        padding: 8px 14px !important;
+        font-size: 0.85rem !important;
+        white-space: nowrap !important;
+        display: inline-block;
+    }
+
+    /* ─── 6. Сетка категорий — 2 в ряд (Owl уничтожается JS-ом) ─── */
+    .categories_product_inner:not(.owl-loaded) {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+    }
+    .single_categories_product .categories_product_thumb img {
+        width: 100% !important;
+        height: 80px !important;
+        object-fit: cover !important;
+    }
+
+    /* ─── 7. Глобальные правки всех страниц ─── */
+    html, body { overflow-x: hidden !important; max-width: 100vw; }
+    img { max-width: 100% !important; height: auto; }
+    .container, section, .row { max-width: 100vw; }
     .tab-pane .single_product {
         background: #fff;
         border: 1px solid #eee;
@@ -1121,6 +1148,6 @@
         font-size: 0.65rem; padding: 3px 8px;
     }
 
-    /* ─── 5. footer_widgets и shipping_area — без переполнения ─── */
+    /* ─── 8. footer_widgets и shipping_area — без переполнения ─── */
     .footer_widgets, .shipping_area, .footer_top, .footer_bottom { overflow-x: hidden; }
 }

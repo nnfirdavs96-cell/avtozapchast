@@ -64,12 +64,21 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Toggle for the categories sidebar dropdown (when Mazlay JS is missing)
+    // Toggle for the categories dropdown (class-based, works on mobile touch)
     document.querySelectorAll('.categori_toggle').forEach(function (toggle) {
+        toggle.style.cursor = 'pointer';
         toggle.addEventListener('click', function () {
             var menu = this.closest('.categories_menu').querySelector('.categories_menu_toggle');
-            if (menu) menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+            if (menu) menu.classList.toggle('is-open');
         });
+    });
+    // Close categories dropdown when clicking outside
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.categories_menu')) {
+            document.querySelectorAll('.categories_menu_toggle.is-open').forEach(function (m) {
+                m.classList.remove('is-open');
+            });
+        }
     });
 
     var isMobile = function () { return window.matchMedia('(max-width: 991px)').matches; };
@@ -113,6 +122,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 h.classList.toggle('open', !open);
             });
         });
+    }
+
+    // ── На мобиле уничтожаем Owl-карусели товаров и категорий — CSS grid берёт управление
+    if (isMobile() && typeof $ !== 'undefined') {
+        setTimeout(function () {
+            $('.product_carousel, .categories_product_inner').each(function () {
+                if ($(this).data('owl.carousel')) {
+                    $(this).trigger('destroy.owl.carousel');
+                }
+                $(this).removeClass('owl-loaded owl-drag owl-text-select-on');
+            });
+        }, 150);
     }
 });
 
