@@ -124,17 +124,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ── На мобиле уничтожаем Owl-карусели товаров и категорий — CSS grid берёт управление
-    if (isMobile() && typeof $ !== 'undefined') {
-        setTimeout(function () {
-            $('.product_carousel, .categories_product_inner').each(function () {
-                if ($(this).data('owl.carousel')) {
-                    $(this).trigger('destroy.owl.carousel');
-                }
-                $(this).removeClass('owl-loaded owl-drag owl-text-select-on');
-            });
-        }, 150);
-    }
 });
 
 // Quantity input steppers

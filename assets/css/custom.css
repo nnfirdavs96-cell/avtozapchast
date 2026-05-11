@@ -1039,7 +1039,8 @@
     .newsletter_container { padding: 0 4px; margin-bottom: 24px; }
     .newsletter_area { overflow: hidden; }
 
-    /* ─── 3. Categories dropdown — скрыт по умолчанию, открывается по клику ─── */
+    /* ─── 3. Categories dropdown — sticky-header overflow:visible нужен чтобы dropdown не обрезался ─── */
+    .sticky-header, .header_bottom { overflow: visible !important; }
     .categories_menu { position: relative !important; }
     .categories_menu_toggle { display: none !important; }
     .categories_menu_toggle.is-open {
@@ -1048,7 +1049,7 @@
         left: 0 !important;
         right: 0 !important;
         width: 100% !important;
-        max-width: 100% !important;
+        min-width: 220px !important;
         top: 100% !important;
         max-height: 70vh;
         overflow-y: auto;
@@ -1056,8 +1057,8 @@
         background: #fff;
         border: 1px solid #ddd;
         border-radius: 0 0 6px 6px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-        z-index: 200;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+        z-index: 9999;
         padding: 8px 0 !important;
     }
     .categories_menu_toggle > ul { list-style: none; margin: 0; padding: 0; }
@@ -1080,20 +1081,33 @@
     .categories_menu_toggle > ul > li > a:active { background: #f8f8f8; }
     .categories_menu_toggle .categories_mega_menu { display: none; }
 
-    /* ─── 4. Карточки товаров — 2 в ряд (Owl уничтожается JS-ом на мобиле) ─── */
-    /* Структура: tab-pane > product_carousel > col-lg-3 > product_items > single_product × N */
+    /* ─── 4. Карточки товаров — 2 в ряд: переопределяем Owl CSS напрямую ─── */
+    /* Owl DOM: product_carousel > owl-stage-outer > owl-stage > owl-item > col-lg-3 > product_items > single_product */
+    .product_carousel.owl-loaded .owl-stage-outer {
+        overflow: visible !important;
+        width: 100% !important;
+    }
+    .product_carousel.owl-loaded .owl-stage {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        transform: none !important;
+        width: 100% !important;
+        gap: 12px !important;
+    }
+    /* display:contents делает все обёртки прозрачными — single_product становится прямым grid-item */
+    .product_carousel.owl-loaded .owl-item,
+    .product_carousel.owl-loaded .col-lg-3,
+    .product_carousel.owl-loaded .product_items { display: contents !important; }
+    .product_carousel.owl-loaded .owl-nav,
+    .product_carousel.owl-loaded .owl-dots { display: none !important; }
+    /* Fallback когда Owl не инициализирован */
     .product_carousel:not(.owl-loaded) {
         display: grid !important;
         grid-template-columns: 1fr 1fr !important;
         gap: 12px !important;
-        padding: 0 !important;
-        margin: 0 !important;
     }
     .product_carousel:not(.owl-loaded) > .col-lg-3,
-    .product_carousel:not(.owl-loaded) > [class*="col-"],
-    .product_carousel:not(.owl-loaded) .product_items {
-        display: contents !important;
-    }
+    .product_carousel:not(.owl-loaded) .product_items { display: contents !important; }
 
     /* ─── 5. Табы "Рекомендуемые товары" — перенос на следующую строку ─── */
     .product_tab_btn ul.nav {
@@ -1107,16 +1121,46 @@
         display: inline-block;
     }
 
-    /* ─── 6. Сетка категорий — 2 в ряд (Owl уничтожается JS-ом) ─── */
+    /* ─── 6. Сетка категорий — 2 в ряд: переопределяем Owl CSS напрямую ─── */
+    .categories_product_inner.owl-loaded .owl-stage-outer {
+        overflow: visible !important;
+        width: 100% !important;
+    }
+    .categories_product_inner.owl-loaded .owl-stage {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        transform: none !important;
+        width: 100% !important;
+        gap: 10px !important;
+    }
+    .categories_product_inner.owl-loaded .owl-item {
+        display: block !important;
+        width: auto !important;
+        min-width: 0 !important;
+    }
+    .categories_product_inner.owl-loaded .owl-nav,
+    .categories_product_inner.owl-loaded .owl-dots { display: none !important; }
+    /* Fallback когда Owl не инициализирован */
     .categories_product_inner:not(.owl-loaded) {
         display: grid !important;
         grid-template-columns: 1fr 1fr !important;
         gap: 10px !important;
     }
+    /* Картинки и подписи категорий */
     .single_categories_product .categories_product_thumb img {
         width: 100% !important;
         height: 80px !important;
-        object-fit: cover !important;
+        object-fit: contain !important;
+        background: #f7f7f7;
+    }
+    .single_categories_product .categories_product_content h4 {
+        font-size: 0.72rem !important;
+        text-align: center !important;
+        overflow-wrap: break-word !important;
+        word-break: break-word !important;
+        hyphens: auto !important;
+        line-height: 1.3;
+        margin: 6px 0 0 !important;
     }
 
     /* ─── 7. Глобальные правки всех страниц ─── */
