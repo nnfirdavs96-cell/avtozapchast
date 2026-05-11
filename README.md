@@ -1325,6 +1325,153 @@ php -S localhost:8000
 
 ---
 
+## Мобильная адаптация (важно для разработчиков)
+
+В проекте реализована подробная мобильная адаптация поверх Mazlay HTML-шаблона.
+Все мобильные правки сосредоточены в **двух местах**, чтобы не задевать десктоп.
+
+### Где живут мобильные правки
+
+| Файл | Назначение |
+|------|-----------|
+| `assets/css/custom.css` | Все CSS-правки. Только внутри `@media (max-width: 991px)`, `@media (max-width: 767px)`, `@media (max-width: 390px)` |
+| `assets/js/app.js` | JS-помощники: бургер, выпадающее меню категорий, accordion в сайдбаре фильтров |
+
+**ВАЖНО:** не редактируйте `mazlay-template/css/style.css` и `mazlay-template/js/main.js`
+— это поставляемый шаблон. Все override-ы делаем в `custom.css` / `app.js`.
+
+### Ключевые исправления
+
+#### 1. Горизонтальный скролл (root cause)
+Mazlay `.mini_cart` использует `position: fixed; min-width: 355px`. iOS Safari
+учитывает фиксированные элементы в ширине документа → горизонтальный скролл.
+**Решение:** `.mini_cart { display: none !important }` на мобиле (≤991px).
+
+#### 2. Иконка корзины на мобиле
+Mazlay-овая мини-корзина отключена. Клик по иконке корзины на мобиле
+ведёт сразу на `/buyer/cart.php`. См. `assets/js/app.js`:
+```javascript
+document.querySelectorAll('.mini_cart_wrapper > a').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+        if (isMobile()) {
+            e.preventDefault();
+            window.location.href = (window.APP_URL || '') + '/buyer/cart.php';
+        }
+    }, true);
+});
+```
+
+#### 3. Бургер-меню (offcanvas)
+Используется Mazlay-овский `.offcanvas_menu_wrapper`. При открытии
+панели тело страницы блокируется через `body.no-scroll` — следит
+`MutationObserver` в `app.js`.
+
+#### 4. Кнопка "ВСЕ КАТЕГОРИИ" на мобиле
+Mazlay по умолчанию показывает дропдаун по hover (не работает на тач).
+Кроме того, `.sticky-header` имеет `overflow: hidden`, который обрезает
+абсолютно позиционированный дропдаун.
+
+**Решение:**
+- В CSS: `.sticky-header, .header_bottom { overflow: visible !important }` на мобиле
+- Дропдаун скрыт по умолчанию (`display: none`), показывается через
+  класс `.is-open` (z-index: 9999)
+- В JS: клик по `.categori_toggle` тогглит класс `.is-open`;
+  клик вне `.categories_menu` — закрывает
+
+#### 5. Карусели Owl на мобиле → CSS Grid
+Owl Carousel инициализируется в Mazlay `main.js` и оборачивает items
+в `.owl-stage-outer > .owl-stage > .owl-item`. На мобиле это даёт
+неудобную карусель с одним товаром в ряд.
+
+**Решение:** не уничтожаем Owl через JS (это оставляет в DOM
+обёртки с `overflow:hidden` и `transform:translate3d`), а
+переопределяем его CSS напрямую:
+```css
+.product_carousel.owl-loaded .owl-stage-outer { overflow: visible !important; }
+.product_carousel.owl-loaded .owl-stage {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    transform: none !important;
+    width: 100% !important;
+}
+.product_carousel.owl-loaded .owl-item,
+.product_carousel.owl-loaded .col-lg-3,
+.product_carousel.owl-loaded .product_items { display: contents !important; }
+.product_carousel.owl-loaded .owl-nav,
+.product_carousel.owl-loaded .owl-dots { display: none !important; }
+```
+
+`display: contents` делает обёртки прозрачными → `single_product`
+становится прямым children для grid. Тот же приём — для
+`.categories_product_inner.owl-loaded`.
+
+#### 6. Подписи карточек товаров
+Поле `product_thumb img` фиксируем:
+```css
+.single_product .product_thumb a img,
+.single_product .product_thumb img {
+    width: 100% !important;
+    height: 140px !important;
+    object-fit: contain !important;
+    background: #f7f7f7;
+}
+```
+
+#### 7. Newsletter form (подписка) и КОНТАКТЫ
+Mazlay использует `position: absolute; right: 0` для кнопки внутри
+поля ввода → на мобиле вылезает за экран. **Решение:**
+```css
+.subscribe_form form { display: flex; flex-direction: column; }
+.subscribe_form form input, .subscribe_form form button {
+    position: static !important; width: 100% !important;
+}
+```
+
+#### 8. Sidebar фильтров на странице каталога
+На мобиле каждый `.sidebar_widget .widget_list` превращается в
+аккордеон с заголовком-toggle и сворачивающимся body — см. `app.js`.
+
+#### 9. Глобальные правила
+```css
+@media (max-width: 767px) {
+    html, body { overflow-x: hidden !important; max-width: 100vw; }
+    img { max-width: 100% !important; height: auto; }
+}
+```
+
+### Чек-лист при правке CSS / JS
+
+- [ ] Десктоп-вёрстка (≥992px) не пострадала
+- [ ] Тестировать на 320px, 390px (iPhone 14/15), 768px (планшет)
+- [ ] Нет горизонтальной прокрутки на всех страницах
+- [ ] Tap-target ≥ 44×44px (кнопки, ссылки)
+- [ ] Шрифт ≥ 16px на input — иначе iOS Safari зумит при фокусе
+- [ ] Проверить главную, каталог, страницу товара, корзину, профиль,
+      auth/login, admin
+
+### Обновления на сервере
+
+```bash
+cd /var/www/html/avtozapchast
+git pull origin main
+# Если правился JS/CSS — почистить кэш браузера / открыть в инкогнито.
+# Если правился PHP — рестарт PHP-FPM:
+sudo systemctl reload php8.1-fpm
+```
+
+### История мобильных исправлений (PRs)
+
+| PR | Что исправлено |
+|----|---------------|
+| #18 | Базовая мобильная вёрстка: бургер, корзина-иконка, sticky header |
+| #19 | "Второй гамбургер" (categories_title::before icon) |
+| #20 | Карточки товаров: фикс. высота картинок, 2 колонки grid |
+| #21 | Newsletter / КОНТАКТЫ кнопки full-width, categories dropdown |
+| #22 | Class-based categories toggle, Owl destroy approach |
+| #23 | Owl CSS override (вместо destroy), `.sticky-header { overflow: visible }` |
+
+---
+
 ## Лицензия
 
 Частный проект. Все права защищены.
