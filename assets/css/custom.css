@@ -357,12 +357,19 @@
         overflow-wrap: break-word;
     }
 
-    /* Lock body scroll когда открыт offcanvas / mini_cart */
+    /* ── Самое главное: Mazlay даёт .canvas_open → position:absolute; right:21px; top:28px
+       Наш бургер имеет оба класса (.canvas_open.mobile_menu_trigger), поэтому вырывался
+       из потока и плавал поверх всего. Возвращаем в нормальный поток. */
+    .mobile_menu_trigger,
+    .header_middle .canvas_open { position: static !important; }
+
+    /* Оригинальный canvas_open из offcanvas_menu — скрываем абсолютно надёжно */
+    .offcanvas_menu .canvas_open { display: none !important; }
+
+    /* Lock body scroll когда открыт offcanvas */
     body.no-scroll { overflow: hidden !important; position: fixed; width: 100%; }
 
-    /* ── Главное: ПОЛНОСТЬЮ прячем mini_cart fixed-панель на мобиле.
-       Это была причина горизонтального скролла справа (355px панель).
-       Иконка корзины ведёт прямо на /buyer/cart.php — см. header.php. */
+    /* ── ПОЛНОСТЬЮ прячем mini_cart fixed-панель на мобиле (была причиной right overflow) */
     .mini_cart {
         display: none !important;
         visibility: hidden !important;
@@ -450,15 +457,6 @@
         font-size: 1.2rem; color: #666;
     }
 
-    /* Триггер-гамбургер в шапке (виден на мобиле) */
-    .mobile_menu_trigger { display: inline-flex !important; align-items: center; margin-left: 6px; }
-    .mobile_menu_trigger a {
-        display: inline-flex; align-items: center; justify-content: center;
-        width: 44px; height: 44px; color: #fff; font-size: 1.4rem;
-        text-decoration: none; border-radius: 6px; transition: background 0.2s;
-    }
-    .mobile_menu_trigger a:hover,
-    .mobile_menu_trigger a:active { background: rgba(255,255,255,0.12); color: #fff; }
 }
 @media (min-width: 992px) {
     .mobile_menu_trigger { display: none !important; }
@@ -535,10 +533,33 @@
         white-space: nowrap; border-radius: 0 4px 4px 0; background: #d32f2f; color: #fff; border: none;
     }
 
-    /* Иконки wishlist/cart */
+    /* ── Иконки wishlist/cart + бургер — все в один flex-ряд ── */
     .header_configure_area {
-        display: inline-flex; align-items: center; gap: 2px; white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 0;
+        flex-shrink: 0; /* не сжимается */
     }
+
+    /* Бургер-кнопка (.canvas_open.mobile_menu_trigger) — в потоке, не абсолютно */
+    .mobile_menu_trigger {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    .mobile_menu_trigger a {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 44px; height: 44px; color: #fff; font-size: 1.4rem;
+        text-decoration: none; border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.3);
+        transition: background 0.2s;
+    }
+    .mobile_menu_trigger a:hover,
+    .mobile_menu_trigger a:active { background: rgba(255,255,255,0.15); }
+
     .header_wishlist a,
     .mini_cart_wrapper > a {
         display: inline-flex; align-items: center; justify-content: center;
@@ -558,7 +579,7 @@
     .header_bottom .container { padding: 0 12px; }
     .header_bottom .row { align-items: center; min-height: 44px; flex-wrap: nowrap; }
 
-    /* Скрываем десктоп-меню и телефон */
+    /* Скрываем десктоп-меню, телефон и ОРИГИНАЛЬНЫЙ бургер Mazlay в красной полосе */
     .header_bottom .col-lg-6,
     .header_bottom .col-lg-3:last-child,
     .main_menu,
@@ -574,10 +595,6 @@
     /* Скрываем выпавшее меню категорий на мобиле */
     .categories_menu_toggle { display: none; }
     .categories_title h2.active + .categories_menu_toggle { display: block; }
-
-    /* ── Canvas open (hamburger) ── */
-    .canvas_open { display: flex !important; align-items: center; padding: 0 12px; }
-    .canvas_open a { font-size: 1.8rem; color: #fff; line-height: 1; }
 
     /* ── Offcanvas menu ── */
     .offcanvas_menu_wrapper {
@@ -844,6 +861,47 @@
     .mini_cart_wrapper > a { pointer-events: auto; }
     .mini_cart_wrapper .mini_cart,
     .mini_cart_wrapper .mini_cart.active { display: none !important; }
+
+    /* ── Страница входа / регистрации ── */
+    .customer_login .col-lg-6,
+    .customer_login .col-md-6 {
+        flex: 0 0 100% !important; max-width: 100% !important;
+        margin-bottom: 24px;
+    }
+    .account_form { padding: 24px 16px !important; }
+    /* ВОЙТИ кнопка — полная ширина, заметная */
+    .login_submit { text-align: left; }
+    .login_submit .button,
+    .login_submit a.button {
+        display: block !important;
+        width: 100% !important;
+        text-align: center !important;
+        padding: 14px 20px !important;
+        height: auto !important;
+        line-height: 1.4 !important;
+        font-size: 0.95rem !important;
+        box-sizing: border-box !important;
+        float: none !important;
+    }
+    .login_submit button[type=submit],
+    .account_form button[type=submit] {
+        display: block !important;
+        width: 100% !important;
+        padding: 14px 20px !important;
+        height: auto !important;
+        line-height: 1.4 !important;
+        font-size: 0.95rem !important;
+        box-sizing: border-box !important;
+    }
+    /* Поля формы — полная ширина, не масштабировать на iOS */
+    .account_form input[type=text],
+    .account_form input[type=email],
+    .account_form input[type=password],
+    .account_form input[type=tel] {
+        width: 100% !important;
+        font-size: 16px !important;
+        box-sizing: border-box !important;
+    }
 
     /* ── Newsletter ── */
     .newsletter_area .row > [class*="col-"] {
