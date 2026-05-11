@@ -71,6 +71,49 @@ document.addEventListener('DOMContentLoaded', function () {
             if (menu) menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
         });
     });
+
+    var isMobile = function () { return window.matchMedia('(max-width: 991px)').matches; };
+
+    // ── Body lock when offcanvas is open (prevents background scroll & x-overflow)
+    var lockObserver = new MutationObserver(function () {
+        var wrap = document.querySelector('.offcanvas_menu_wrapper');
+        if (!wrap) return;
+        if (wrap.classList.contains('active')) document.body.classList.add('no-scroll');
+        else document.body.classList.remove('no-scroll');
+    });
+    var ocWrap = document.querySelector('.offcanvas_menu_wrapper');
+    if (ocWrap) lockObserver.observe(ocWrap, { attributes: true, attributeFilter: ['class'] });
+
+    // ── Cart icon: на мобиле — прямая ссылка на /buyer/cart.php, не открывать панель
+    document.querySelectorAll('.mini_cart_wrapper > a').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+            if (isMobile()) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                window.location.href = (window.APP_URL || '') + '/buyer/cart.php';
+            }
+        }, true);
+    });
+
+    // ── Filter sidebar accordion: на мобиле каждый widget_list — collapsible
+    if (isMobile()) {
+        document.querySelectorAll('.sidebar_widget .widget_list').forEach(function (w) {
+            var h = w.querySelector('h3');
+            if (!h) return;
+            var body = document.createElement('div');
+            body.className = 'widget_body';
+            while (h.nextSibling) body.appendChild(h.nextSibling);
+            w.appendChild(body);
+            body.style.display = 'none';
+            h.style.cursor = 'pointer';
+            h.classList.add('widget_toggle');
+            h.addEventListener('click', function () {
+                var open = body.style.display !== 'none';
+                body.style.display = open ? 'none' : 'block';
+                h.classList.toggle('open', !open);
+            });
+        });
+    }
 });
 
 // Quantity input steppers

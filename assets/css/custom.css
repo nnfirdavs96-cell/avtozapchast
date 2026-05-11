@@ -326,13 +326,47 @@
 @media (max-width: 991px) {
     * { box-sizing: border-box; }
     img, video, iframe { max-width: 100%; height: auto; }
-    html, body { overflow-x: hidden !important; max-width: 100vw; -webkit-tap-highlight-color: transparent; }
-    .container, .container-fluid { max-width: 100%; padding-left: 16px; padding-right: 16px; }
+    html, body {
+        overflow-x: hidden !important;
+        max-width: 100vw;
+        width: 100%;
+        position: relative;
+        -webkit-tap-highlight-color: transparent;
+    }
+    /* Доп. guard на основные wrapper'ы — на случай если body{overflow-x} не сработает */
+    header, main, footer,
+    .main_header, .slider_area, .banner_area, .home_section_bg,
+    .breadcrumbs_area, .shop_area, .product_details, .footer_widgets_area,
+    .footer_bottom_area, .categories_product_area, .product_area,
+    .blog_area, .brand_area, .shipping_area, .welcome_title,
+    section, .section { max-width: 100vw; overflow-x: clip; }
+
+    .container, .container-fluid {
+        max-width: 100%;
+        width: 100%;
+        padding-left: 16px;
+        padding-right: 16px;
+    }
     .row { margin-left: -8px; margin-right: -8px; }
-    [class*="col-"] { padding-left: 8px; padding-right: 8px; }
+    [class*="col-"] { padding-left: 8px; padding-right: 8px; max-width: 100%; }
     table { max-width: 100%; }
     .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+    p, h1, h2, h3, h4, h5, h6, span, a, li {
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+
+    /* Lock body scroll когда открыт offcanvas / mini_cart */
+    body.no-scroll { overflow: hidden !important; position: fixed; width: 100%; }
+
+    /* ── Главное: ПОЛНОСТЬЮ прячем mini_cart fixed-панель на мобиле.
+       Это была причина горизонтального скролла справа (355px панель).
+       Иконка корзины ведёт прямо на /buyer/cart.php — см. header.php. */
+    .mini_cart {
+        display: none !important;
+        visibility: hidden !important;
+    }
 }
 
 /* ─── Мобильная кнопка авторизации — иконка вход/аккаунт в шапке ─── */
@@ -594,8 +628,44 @@
     .banner_area .single_banner { margin: 0; }
 
     /* ── Welcome / about strip ── */
-    .welcome_title h2 { font-size: 1.3rem; }
-    .welcome_title p  { font-size: 0.85rem; }
+    .welcome_title {
+        padding: 0 4px;
+        text-align: center;
+    }
+    .welcome_title h2 { font-size: 1.3rem; word-break: break-word; }
+    .welcome_title h3 { font-size: 0.9rem; word-break: break-word; }
+    .welcome_title p  {
+        font-size: 0.9rem;
+        line-height: 1.55;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
+        text-align: left;
+    }
+
+    /* ── Баннеры — картинки всю ширину ── */
+    .banner_area { overflow: hidden; }
+    .banner_thumb { width: 100%; overflow: hidden; border-radius: 6px; }
+    .banner_thumb img,
+    .single_banner img {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        display: block;
+        object-fit: cover;
+    }
+    .single_banner { margin: 0 0 12px; width: 100%; }
+
+    /* Слайдер: фоновое изображение и контент не вылазят */
+    .slider_area, .slider_section { overflow: hidden; }
+    .slider_area .single_slider {
+        max-width: 100vw;
+        background-size: cover !important;
+    }
+    .slider_carousel.owl-carousel { touch-action: pan-y; user-select: none; }
+    .slider_content { max-width: 100%; }
+    .slider_content h1,
+    .slider_content p { word-break: break-word; }
 
     /* ── Секция заголовков ── */
     .section_title h2 { font-size: 1.2rem; }
@@ -698,21 +768,70 @@
     .footer_payment img { max-width: 200px; }
 
     /* ── Каталог / страница магазина ── */
+    .shop_area { overflow-x: clip; }
     .shop_area .col-lg-3 {
         flex: 0 0 100% !important; max-width: 100% !important;
         order: 2; /* sidebar под товарами */
+        padding-left: 8px; padding-right: 8px;
     }
     .shop_area .col-lg-9 {
         flex: 0 0 100% !important; max-width: 100% !important;
         order: 1;
+        padding-left: 8px; padding-right: 8px;
     }
-    .shop_toolbar { flex-wrap: wrap; gap: 8px; }
+    .shop_toolbar, .shop_toolbar_wrapper { flex-wrap: wrap; gap: 8px; }
     .shop_toolbar .niceselect_option { width: auto; }
 
-    /* Каталог: сетка 2 в ряд */
-    .shop_product_wrap.grid .col-lg-4 {
-        flex: 0 0 50% !important; max-width: 50% !important;
+    /* Shop banner: contain картинки, без вылета */
+    .shop_banner_area, .shop_banner_thumb { overflow: hidden; border-radius: 6px; }
+    .shop_banner_thumb img {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        display: block;
+        object-fit: cover;
     }
+
+    /* Sidebar widget — аккордеон через JS (см. app.js) */
+    .sidebar_widget .widget_list {
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        padding: 0 14px;
+    }
+    .sidebar_widget .widget_list > h3 {
+        position: relative;
+        margin: 0;
+        padding: 14px 28px 14px 0;
+        font-size: 0.95rem;
+        font-weight: 700;
+        border-bottom: 1px solid transparent;
+    }
+    .sidebar_widget .widget_list > h3.widget_toggle::after {
+        content: '\f107'; /* fa-angle-down */
+        font-family: FontAwesome, 'Font Awesome 5 Free', sans-serif;
+        position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+        transition: transform 0.2s;
+        font-weight: 900;
+    }
+    .sidebar_widget .widget_list > h3.open::after { transform: translateY(-50%) rotate(180deg); }
+    .sidebar_widget .widget_list > h3.open { border-bottom-color: #eee; }
+    .sidebar_widget .widget_list .widget_body { padding: 12px 0 14px; }
+    .sidebar_widget .widget_list ul { list-style: none; padding: 0; margin: 0; }
+    .sidebar_widget .widget_list ul li { padding: 8px 0; }
+    .sidebar_widget .widget_list ul li a { color: #333; text-decoration: none; }
+
+    /* Каталог: сетка 2 в ряд */
+    .shop_product_wrap.grid .col-lg-4,
+    .shop_product_wrap .col-lg-4,
+    .shop_wrapper.grid .col-lg-4 {
+        flex: 0 0 50% !important; max-width: 50% !important;
+        padding-left: 6px !important; padding-right: 6px !important;
+    }
+    .shop_product_wrap .single_product { margin-bottom: 12px; }
+    .shop_product_wrap .product_name a { font-size: 0.82rem; line-height: 1.3; }
+    .shop_product_wrap .product_thumb img { width: 100%; height: auto; }
 
     /* ── Страница товара ── */
     .product_details .col-lg-6 {
@@ -720,11 +839,11 @@
         margin-bottom: 20px;
     }
 
-    /* ── Mini cart ── */
-    .mini_cart {
-        width: calc(100vw - 24px) !important;
-        right: -12px !important; left: -12px !important;
-    }
+    /* Mini cart panel ОТКЛЮЧЕНА на мобиле (см. .mini_cart{display:none} выше).
+       Иконка корзины .mini_cart_wrapper > a — это просто ссылка на /buyer/cart.php */
+    .mini_cart_wrapper > a { pointer-events: auto; }
+    .mini_cart_wrapper .mini_cart,
+    .mini_cart_wrapper .mini_cart.active { display: none !important; }
 
     /* ── Newsletter ── */
     .newsletter_area .row > [class*="col-"] {

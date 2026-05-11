@@ -139,6 +139,7 @@ $siteWa      = getSetting('site_whatsapp', '');
 </footer>
 
 <!-- Mazlay JS (plugins.js bundles jQuery + Bootstrap + all plugins) -->
+<script>window.APP_URL = <?= json_encode(APP_URL) ?>;</script>
 <script src="<?= MAZLAY_JS ?>/plugins.js"></script>
 <script src="<?= MAZLAY_JS ?>/main.js"></script>
 <script src="<?= APP_URL ?>/assets/js/app.js"></script>
