@@ -3,17 +3,19 @@ require_once dirname(__DIR__) . '/config/config.php';
 
 $db = getDB();
 
-// ── GET params ──────────────────────────────────────────────────────────────
-$q        = trim($_GET['q'] ?? '');
-$catId    = (int)($_GET['cat'] ?? 0);
-$brandId  = (int)($_GET['brand'] ?? 0);
-$sort     = in_array($_GET['sort'] ?? '', ['price_asc', 'price_desc', 'newest']) ? $_GET['sort'] : 'newest';
-$inStock  = isset($_GET['in_stock']) && $_GET['in_stock'] === '1';
-$page     = max(1, (int)($_GET['page'] ?? 1));
+// ── GET params (защита от массивов и нестроковых значений) ───────────────
+$_getStr = static fn($k, $d = '') => is_scalar($_GET[$k] ?? null) ? (string)$_GET[$k] : $d;
+$q        = trim($_getStr('q'));
+$catId    = (int)$_getStr('cat', '0');
+$brandId  = (int)$_getStr('brand', '0');
+$sortRaw  = $_getStr('sort');
+$sort     = in_array($sortRaw, ['price_asc', 'price_desc', 'newest'], true) ? $sortRaw : 'newest';
+$inStock  = $_getStr('in_stock') === '1';
+$page     = max(1, (int)$_getStr('page', '1'));
 $perPage  = 12;
-$view     = ($_GET['view'] ?? 'grid') === 'list' ? 'list' : 'grid';
-$priceMin = (float)($_GET['price_min'] ?? 0);
-$priceMax = (float)($_GET['price_max'] ?? 0);
+$view     = $_getStr('view', 'grid') === 'list' ? 'list' : 'grid';
+$priceMin = (float)$_getStr('price_min', '0');
+$priceMax = (float)$_getStr('price_max', '0');
 
 // ── Build WHERE ─────────────────────────────────────────────────────────────
 $where  = ['p.is_active = 1'];

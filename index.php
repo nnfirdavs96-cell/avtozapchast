@@ -18,6 +18,8 @@ $newParts = $db->query("SELECT p.*, b.name AS brand_name FROM parts p
 
 $blogPosts = $db->query("SELECT * FROM blog_posts WHERE is_published=1 ORDER BY created_at DESC LIMIT 5")->fetchAll();
 
+$sliders = $db->query("SELECT * FROM sliders WHERE is_active=1 ORDER BY sort_order ASC, id ASC")->fetchAll();
+
 require_once __DIR__ . '/includes/header.php';
 ?>
 <meta name="csrf" content="<?= generateCsrfToken() ?>">
@@ -45,49 +47,39 @@ require_once __DIR__ . '/includes/header.php';
 <!--top tags area end-->
 
 <!--slider area start-->
+<?php if (!empty($sliders)): ?>
 <section class="slider_section mb-80">
     <div class="slider_area slider_carousel owl-carousel">
-        <div class="single_slider d-flex align-items-center" data-bgimg="<?= APP_URL ?>/assets/img/slider/slider1.jpg">
+        <?php foreach ($sliders as $sl):
+            $imgUrl  = $sl['image_url'] ?? '';
+            if ($imgUrl && $imgUrl[0] !== '/' && !preg_match('~^https?://~i', $imgUrl)) {
+                $imgUrl = APP_URL . '/' . ltrim($imgUrl, '/');
+            } elseif ($imgUrl && $imgUrl[0] === '/') {
+                $imgUrl = APP_URL . $imgUrl;
+            }
+            $linkUrl = $sl['link_url'] ?: (APP_URL . '/catalog/index.php');
+        ?>
+        <div class="single_slider d-flex align-items-center" data-bgimg="<?= sanitize($imgUrl) ?>">
             <div class="container">
                 <div class="row">
                     <div class="col-12">
                         <div class="slider_content">
-                            <h1><?= t('new_arrivals') ?> <span><?= sanitize(getSetting('site_name', t('site_name'))) ?></span></h1>
-                            <p><?= t('tagline') ?></p>
-                            <a class="button" href="<?= APP_URL ?>/catalog/index.php"><?= t('shop') ?> <i class="fa fa-angle-double-right"></i></a>
+                            <?php if (!empty($sl['title'])): ?>
+                                <h1><?= sanitize($sl['title']) ?></h1>
+                            <?php endif; ?>
+                            <?php if (!empty($sl['subtitle'])): ?>
+                                <p><?= sanitize($sl['subtitle']) ?></p>
+                            <?php endif; ?>
+                            <a class="button" href="<?= sanitize($linkUrl) ?>"><?= t('shop') ?> <i class="fa fa-angle-double-right"></i></a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="single_slider d-flex align-items-center" data-bgimg="<?= APP_URL ?>/assets/img/slider/slider2.jpg">
-            <div class="container">
-                <div class="row">
-                    <div class="col-12">
-                        <div class="slider_content center">
-                            <h1><?= t('best_sellers') ?> <span><?= t('featured_products') ?></span></h1>
-                            <p><?= t('tagline') ?></p>
-                            <a class="button" href="<?= APP_URL ?>/catalog/index.php"><?= t('shop') ?> <i class="fa fa-angle-double-right"></i></a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="single_slider d-flex align-items-center" data-bgimg="<?= APP_URL ?>/assets/img/slider/slider3.jpg">
-            <div class="container">
-                <div class="row">
-                    <div class="col-12">
-                        <div class="slider_content">
-                            <h1><?= t('warehouse_stock') ?> <span><?= t('in_stock') ?></span></h1>
-                            <p><?= t('tagline') ?></p>
-                            <a class="button" href="<?= APP_URL ?>/catalog/index.php?in_stock=1"><?= t('shop') ?> <i class="fa fa-angle-double-right"></i></a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 <!--slider area end-->
 
 <!--banner area start-->

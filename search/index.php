@@ -1,9 +1,10 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 
-$q       = trim($_GET['q'] ?? '');
-$catId   = (int)($_GET['cat'] ?? 0);
-$page    = max(1, (int)($_GET['page'] ?? 1));
+$_getStr = static fn($k, $d = '') => is_scalar($_GET[$k] ?? null) ? (string)$_GET[$k] : $d;
+$q       = trim($_getStr('q'));
+$catId   = (int)$_getStr('cat', '0');
+$page    = max(1, (int)$_getStr('page', '1'));
 $perPage = 12;
 
 $pageTitle = t('search') . ($q ? ': ' . $q : '') . ' — ' . getSetting('site_name');
