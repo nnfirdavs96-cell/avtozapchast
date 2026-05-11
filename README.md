@@ -1129,6 +1129,202 @@ if ($flash = getFlashMessage()) {
 
 ---
 
+## CHANGELOG / История изменений
+
+История последних правок на ветке `claude/review-repository-CglIw` (PR #16).
+Описано в формате «что → где → зачем», чтобы любой разработчик мог
+сориентироваться в коде.
+
+### Mobile P0 — адаптация под iPhone 15 Pro Max и SE (PR #16)
+
+**Цель:** сделать сайт пригодным для использования с телефона
+(320–430px), без горизонтального скролла, с видимыми кнопками
+Войти/Регистрация и нормальными touch-targets ≥44×44px.
+
+| Файл | Что изменено |
+|------|--------------|
+| `includes/header.php` | Добавлены `.mobile_menu_trigger` (гамбургер) и `.header_auth_mobile` (иконка auth) — видны только на мобиле. |
+| `assets/css/custom.css` | Полностью переписана секция `@media (max-width: 991px)` и `≤767px`. Скрыт оригинальный `.canvas_open` из оффканваса (мы рисуем свой в шапке). |
+
+Ключевые правила в `custom.css`:
+```css
+html, body { overflow-x: hidden !important; max-width: 100vw; }
+.container { padding: 0 16px; max-width: 100%; }
+.offcanvas_menu_wrapper { width: 86vw; max-width: 340px; left: 0; margin-left: -100vw; }
+.offcanvas_menu_wrapper.active { margin-left: 0; }
+button, a, .auth-link-mobile { min-width: 44px; min-height: 44px; }
+```
+
+**Структура мобильной шапки** (≤767px):
+1. `header_top` — спрятан (`display: none`).
+2. `header_middle` — логотип слева; справа `auth · wishlist · cart · hamburger`; поиск в отдельной строке во всю ширину.
+3. `header_bottom` (красная полоса) — только «ВСЕ КАТЕГОРИИ».
+
+### Динамические слайдеры (коммит b2d42e5)
+
+**Было:** `index.php` рендерил три захардкоженных слайда из шаблона
+Mazlay (`slider1.jpg`, `slider2.jpg`, `slider3.jpg`). Правки админа
+в `admin/sliders.php` ни на что не влияли.
+
+**Стало:** `index.php` читает из таблицы `sliders` и рендерит через
+`foreach`. URL картинки нормализуется: абсолютный → как есть,
+относительный → добавляется `APP_URL`. Если слайдов нет — секция
+полностью скрыта.
+
+```php
+$sliders = $db->query("SELECT * FROM sliders WHERE is_active=1
+                       ORDER BY sort_order ASC, id ASC")->fetchAll();
+```
+
+### Универсальный `renderRoleSidebar()` (коммит 41b82b2)
+
+**Было:** каждая страница в `/admin/*` имела свой захардкоженный
+сайдбар. Когда суперадмин переходил из `/superadmin/index.php` в
+`/admin/sliders.php` — пропадали ссылки «Настройки», «Валюты»,
+«Языки», «Бэкап», «Блог» (показывался узкий admin-сайдбар).
+
+**Стало:** функция `renderRoleSidebar(string $active = '')` в
+`includes/functions.php` смотрит `getCurrentUser()['role']` и
+выводит правильный набор пунктов:
+- `superadmin` — фиолетовый градиент, ★ Суперадмин, 11 пунктов.
+- `admin` — тёмный фон, 5 пунктов.
+- `manager` — тёмный фон, 5 пунктов.
+
+Все страницы в `admin/`, `superadmin/`, `manager/` теперь зовут:
+```php
+<?php renderRoleSidebar('orders'); ?>  // active = текущий пункт
+```
+
+### Фикс падения каталога — `urlencode()` array (коммиты a1c849c, 5b7fdae)
+
+**Симптом:** боты слали `?q[]=spam`, PHP 8.2 валился с
+`TypeError: urlencode(): Argument #1 ($string) must be of type string, array given`.
+
+**Корневых причин было две**:
+
+1. `$_GET['q']` мог прийти массивом — `trim()`/`urlencode()` падали.
+   Фикс — скалярный гард во всех публичных страницах
+   (`catalog/index.php`, `search/index.php`, `catalog/category.php`):
+   ```php
+   $_getStr = static fn($k, $d='') => is_scalar($_GET[$k] ?? null)
+                                      ? (string)$_GET[$k] : $d;
+   $q = trim($_getStr('q'));
+   ```
+
+2. **Коллизия имени переменной** `$q` между `catalog/index.php` (где
+   `$q` — строка поиска) и `includes/header.php` (где он использовал
+   `$q = array_merge($queryParams, ['lang'=>$lCode])` в циклах языков
+   и валют). После include шапка перетирала строку массивом и
+   `http_build_query()` принимал массив в `urlencode()`.
+   Фикс — переименовать в `header.php` локальную переменную
+   на `$qHdr`.
+
+### Безопасный `sanitize()` (коммит a1c849c)
+
+`sanitize()` теперь корректно обрабатывает массивы и объекты —
+возвращает пустую строку вместо TypeError:
+```php
+function sanitize($input): string {
+    if (is_array($input) || is_object($input)) return '';
+    return htmlspecialchars((string)($input ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+}
+```
+
+### Внешние ссылки и flash-уведомления (коммит a50c094)
+
+- Соцссылки в футере получили `target="_blank" rel="noopener noreferrer"`.
+- Flash-баннер живёт **8 секунд** вместо 4 (читаемее на медленном
+  интернете), кнопка-крестик для ручного закрытия.
+
+---
+
+## Как продолжить разработку
+
+### 1. Стиль кода
+
+- Все запросы — **подготовленные** (`$db->prepare()`+`execute()`).
+  Никаких конкатенаций пользовательских данных в SQL.
+- Все выводы в HTML — через `sanitize($value)`.
+- Все POST-формы должны включать CSRF-токен:
+  ```html
+  <input type="hidden" name="csrf_token" value="<?= sanitize(generateCsrfToken()) ?>">
+  ```
+  и валидироваться через `verifyCsrfToken($_POST['csrf_token'] ?? '')`.
+- Любой `$_GET['x']` сначала пропускайте через `is_scalar()` —
+  боты систематически шлют массивы.
+
+### 2. Где править стили
+
+- **Не трогайте** `assets/mazlay-css/style.css` — это шаблон, при
+  обновлении Mazlay перетрётся.
+- Все правки — в `assets/css/custom.css`, в конец секции, к которой
+  они относятся (admin / storefront / mobile).
+- Мобильная вёрстка живёт в `@media (max-width: 991px/767px/390px)`
+  в самом низу файла.
+
+### 3. Как добавить страницу в админке
+
+1. Создайте `admin/myfeature.php`.
+2. В начале — `require_once dirname(__DIR__) . '/config/config.php'` и
+   `requireRole(['admin', 'superadmin'])`.
+3. Подключите шапку: `require_once dirname(__DIR__) . '/includes/header.php'`.
+4. Поставьте сайдбар: `<?php renderRoleSidebar('myfeature'); ?>` и
+   добавьте новый пункт `myfeature` в массив навигации внутри
+   `renderRoleSidebar()` в `includes/functions.php`.
+5. Подключите футер: `require_once dirname(__DIR__) . '/includes/footer.php'`.
+
+### 4. Как обновить production
+
+На сервере (`/var/www/html/avtozapchast`):
+```bash
+sudo git pull origin main
+sudo systemctl reload php8.2-fpm
+sudo systemctl reload nginx
+```
+
+Если `git status` показывает 199 «изменённых» файлов — это разница
+прав доступа. Лечится один раз:
+```bash
+sudo git config core.fileMode false
+sudo git checkout -- .
+```
+
+### 5. Локальная разработка
+
+```bash
+git clone https://github.com/nnfirdavs96-cell/avtozapchast.git
+cd avtozapchast
+mysql -u root -p < sql/schema.sql
+mysql -u root -p < sql/seed.sql
+cp config/config.example.php config/config.php   # отредактируйте БД-доступы
+php -S localhost:8000
+```
+
+Открыть `http://localhost:8000`. Дефолтные аккаунты — см. раздел
+[Аккаунты по умолчанию](#аккаунты-по-умолчанию).
+
+### 6. Ветвление и PR
+
+- Разработка ведётся в feature-ветках: `feature/<задача>` или
+  `fix/<тикет>`.
+- Бот Claude использует ветку `claude/review-repository-CglIw` —
+  не пушьте туда свои коммиты вручную.
+- PR в `main` → review → squash-merge.
+
+### 7. Контрольный список перед коммитом
+
+- [ ] Все `$_GET`/`$_POST` обёрнуты в `is_scalar()` или
+      приведены к нужному типу (`(int)`, `(string)`).
+- [ ] POST-формы проверяют CSRF.
+- [ ] Вывод данных — через `sanitize()`.
+- [ ] SQL — только подготовленные запросы.
+- [ ] Если правили `header.php`/`functions.php` — проверить, что
+      ничего не сломалось у всех ролей (buyer/manager/admin/superadmin).
+- [ ] Если правили CSS — проверить на 320px / 430px / 768px / 1280px.
+- [ ] Если правили админку — проверить, что сайдбар не пропал.
+
+---
+
 ## Лицензия
 
 Частный проект. Все права защищены.
