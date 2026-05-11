@@ -6,33 +6,6 @@ $siteTg      = getSetting('site_telegram', '');
 $siteWa      = getSetting('site_whatsapp', '');
 ?>
 
-<!-- newsletter -->
-<div class="newsletter_area">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6 col-md-6">
-                <div class="newsletter_info">
-                    <h3><?= t('newsletter') ?></h3>
-                    <p><?= t('newsletter_text') ?></p>
-                </div>
-            </div>
-            <div class="col-lg-6 col-md-6">
-                <div class="newsletter_form_box">
-                    <form id="mc-form" class="mc-form footer-newsletter">
-                        <input type="email" name="email" id="mc-email" placeholder="<?= t('your_email') ?>" autocomplete="off" required>
-                        <button id="mc-submit" type="submit"><?= t('subscribe') ?></button>
-                    </form>
-                    <div class="mailchimp-alerts">
-                        <div class="mailchimp-submitting"></div>
-                        <div class="mailchimp-success"></div>
-                        <div class="mailchimp-error"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- footer widgets -->
 <footer class="footer_widgets">
     <!-- shipping -->

@@ -47,7 +47,7 @@ unset($queryParams['lang'], $queryParams['currency']);
     <?= sanitize($flash['message']) ?>
     <button onclick="this.parentNode.remove()" style="float:right;background:none;border:none;color:inherit;font-size:1.2rem;cursor:pointer">&times;</button>
 </div>
-<script>setTimeout(()=>{const f=document.getElementById('flash-global');if(f)f.remove();},4000)</script>
+<script>setTimeout(()=>{const f=document.getElementById('flash-global');if(f)f.remove();},8000)</script>
 <?php endif; ?>
 
 <!-- Offcanvas -->

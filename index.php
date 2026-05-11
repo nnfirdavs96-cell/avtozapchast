@@ -342,24 +342,23 @@ require_once __DIR__ . '/includes/header.php';
 </div>
 <!--brand area end-->
 
-<!--newsletter area start-->
+<!--social/contact strip-->
 <div class="newsletter_area">
     <div class="container">
         <div class="newsletter_inner">
             <div class="row">
                 <div class="col-lg-4 col-md-6">
                     <div class="newsletter_container">
-                        <h3><?= t('subscribe') ?></h3>
+                        <h3><?= t('follow_us') ?></h3>
                         <p><?= t('newsletter_text') ?></p>
                         <div class="footer_social">
                             <ul>
                                 <?php if (getSetting('site_telegram')): ?>
-                                <li><a href="https://t.me/<?= sanitize(getSetting('site_telegram')) ?>" class="twitter"><i class="fa fa-telegram"></i></a></li>
+                                <li><a href="https://t.me/<?= sanitize(getSetting('site_telegram')) ?>" class="twitter" target="_blank" rel="noopener noreferrer"><i class="fa fa-telegram"></i></a></li>
                                 <?php endif; ?>
                                 <?php if (getSetting('site_whatsapp')): ?>
-                                <li><a href="https://wa.me/<?= sanitize(getSetting('site_whatsapp')) ?>" class="facebook"><i class="fa fa-whatsapp"></i></a></li>
+                                <li><a href="https://wa.me/<?= sanitize(getSetting('site_whatsapp')) ?>" class="facebook" target="_blank" rel="noopener noreferrer"><i class="fa fa-whatsapp"></i></a></li>
                                 <?php endif; ?>
-                                <li><a class="rss" href="#"><i class="icon-rss"></i></a></li>
                             </ul>
                         </div>
                     </div>
@@ -390,7 +389,6 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         </div>
     </div>
-</div>
-<!--newsletter area end-->
+</div><!--end social/contact strip-->
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
