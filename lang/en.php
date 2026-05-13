@@ -3,7 +3,7 @@ return [
     // Common
     'site_name'          => 'AutoParts',
     'tagline'            => 'Professional Auto Parts',
-    'search_placeholder' => 'Search by part number, name, brand...',
+    'search_placeholder' => 'Part number, name, brand or VIN (17 chars)...',
     'all_categories'     => 'All Categories',
     'search'             => 'Search',
     'login'              => 'Login',
