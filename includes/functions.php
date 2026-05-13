@@ -289,6 +289,29 @@ function getWishlistCount(): int {
 }
 
 /**
+ * Returns the effective markup % for a product.
+ * Priority: product-level → category-level → global setting.
+ */
+function getEffectiveMarkup(int $partId, int $categoryId): float {
+    try {
+        $db = getDB();
+        if ($partId > 0) {
+            $s = $db->prepare("SELECT markup_percent FROM parts WHERE id = ? AND markup_percent IS NOT NULL LIMIT 1");
+            $s->execute([$partId]);
+            $v = $s->fetchColumn();
+            if ($v !== false) return (float)$v;
+        }
+        if ($categoryId > 0) {
+            $s = $db->prepare("SELECT markup_percent FROM categories WHERE id = ? AND markup_percent IS NOT NULL LIMIT 1");
+            $s->execute([$categoryId]);
+            $v = $s->fetchColumn();
+            if ($v !== false) return (float)$v;
+        }
+    } catch (Exception $e) {}
+    return (float)getSetting('global_markup', '0');
+}
+
+/**
  * Get site setting value
  */
 function getSetting(string $key, string $default = ''): string {
