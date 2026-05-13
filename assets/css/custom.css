@@ -626,16 +626,26 @@
     .slider_area .single_slider {
         min-height: 280px !important;
         background-position: center center !important;
-        padding: 20px 0;
+        padding: 16px 0;
+        align-items: flex-start !important;   /* контент к верху */
     }
-    .slider_content { padding: 0 16px; }
+    .slider_area .single_slider .container { width: 100%; }
+    .slider_content {
+        padding: 0 14px;
+        text-align: left !important;          /* в левый угол */
+        max-width: 70%;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.55); /* читаемость поверх фото */
+    }
     .slider_content h1 {
-        font-size: 1.4rem !important;
-        line-height: 1.2 !important;
-        margin-bottom: 8px;
+        font-size: 1.15rem !important;
+        line-height: 1.15 !important;
+        margin-bottom: 6px;
     }
-    .slider_content p { font-size: 0.85rem !important; margin-bottom: 14px; }
-    .slider_content .button { padding: 10px 20px !important; font-size: 0.82rem !important; }
+    .slider_content p { font-size: 0.78rem !important; margin-bottom: 10px; }
+    .slider_content .button {
+        padding: 7px 14px !important;
+        font-size: 0.74rem !important;
+    }
 
     /* ── Баннеры 1 колонка ── */
     .banner_area .col-lg-4,
