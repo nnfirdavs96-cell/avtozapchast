@@ -220,7 +220,7 @@ INSERT INTO `parts` (`part_number`, `name`, `description`, `brand_id`, `category
 INSERT INTO `site_settings` (`key`, `value`) VALUES
 ('site_name',     'АвтоЗапчасть'),
 ('site_email',    'info@avtozapchast.ru'),
-('site_phone',    '+7 (800) 555-35-35'),
+('site_phone',    '+992 92 646-46-46'),
 ('site_address',  'г. Худжанд, 19 мкр, дом 30'),
 ('site_currency', 'SM'),
 ('items_per_page','12');
