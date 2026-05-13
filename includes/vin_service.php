@@ -1,0 +1,372 @@
+<?php
+/**
+ * VIN Decoder Service
+ * Supports: NHTSA (free, no key) and custom paid API (configurable from admin panel)
+ */
+class VinService
+{
+    // Position 10 → model year
+    private static array $yearMap = [
+        'A'=>[1980,2010],'B'=>[1981,2011],'C'=>[1982,2012],'D'=>[1983,2013],
+        'E'=>[1984,2014],'F'=>[1985,2015],'G'=>[1986,2016],'H'=>[1987,2017],
+        'J'=>[1988,2018],'K'=>[1989,2019],'L'=>[1990,2020],'M'=>[1991,2021],
+        'N'=>[1992,2022],'P'=>[1993,2023],'R'=>[1994,2024],'S'=>[1995,2025],
+        'T'=>[1996,2026],'V'=>[1997,2027],'W'=>[1998,2028],'X'=>[1999,2029],
+        'Y'=>[2000,2030],
+        '1'=>2001,'2'=>2002,'3'=>2003,'4'=>2004,'5'=>2005,
+        '6'=>2006,'7'=>2007,'8'=>2008,'9'=>2009,
+    ];
+
+    // WMI (3-char) → [Make, Country]
+    private static array $wmiDb = [
+        // Russia / CIS
+        'XTA' => ['Lada (ВАЗ)',      'Россия'],
+        'XTT' => ['TagAZ',            'Россия'],
+        'XUF' => ['GAZ (Газ)',        'Россия'],
+        'XTH' => ['UAZ (УАЗ)',        'Россия'],
+        'XW8' => ['Renault Россия',   'Россия'],
+        'X7L' => ['BMW Россия',       'Россия'],
+        'X9F' => ['Ford Россия',      'Россия'],
+        'XWE' => ['VW Россия',        'Россия'],
+        'XW0' => ['Chevrolet Россия', 'Россия'],
+        'XV1' => ['KIA Россия',       'Россия'],
+        // Japan
+        'JT2' => ['Toyota',   'Япония'], 'JT3' => ['Toyota',   'Япония'],
+        'JT4' => ['Toyota',   'Япония'], 'JT6' => ['Toyota',   'Япония'],
+        'JT8' => ['Toyota',   'Япония'], 'JTE' => ['Toyota',   'Япония'],
+        'JTM' => ['Toyota',   'Япония'], 'JTN' => ['Toyota',   'Япония'],
+        'JHM' => ['Honda',    'Япония'], 'JH4' => ['Acura',    'Япония'],
+        'JN1' => ['Nissan',   'Япония'], 'JN3' => ['Nissan',   'Япония'],
+        'JN8' => ['Nissan',   'Япония'], 'JNR' => ['Infiniti', 'Япония'],
+        'JM1' => ['Mazda',    'Япония'], 'JM3' => ['Mazda',    'Япония'],
+        'JS1' => ['Suzuki',   'Япония'], 'JS2' => ['Suzuki',   'Япония'],
+        'JS3' => ['Suzuki',   'Япония'], 'JF1' => ['Subaru',   'Япония'],
+        'JF2' => ['Subaru',   'Япония'], 'JAA' => ['Isuzu',    'Япония'],
+        'JA4' => ['Mitsubishi','Япония'],'JA3' => ['Mitsubishi','Япония'],
+        'JD1' => ['Daihatsu', 'Япония'], 'JD2' => ['Daihatsu', 'Япония'],
+        // Germany
+        'WBA' => ['BMW',            'Германия'], 'WBS' => ['BMW M',       'Германия'],
+        'WBY' => ['BMW i',          'Германия'], 'WBX' => ['BMW X',       'Германия'],
+        'WDB' => ['Mercedes-Benz',  'Германия'], 'WDD' => ['Mercedes-Benz','Германия'],
+        'WDC' => ['Mercedes-Benz',  'Германия'], 'WDF' => ['Mercedes-Benz','Германия'],
+        'WVW' => ['Volkswagen',     'Германия'], 'WV2' => ['VW Commercial','Германия'],
+        'WAU' => ['Audi',           'Германия'], 'WA1' => ['Audi SUV',    'Германия'],
+        'WP0' => ['Porsche',        'Германия'], 'WP1' => ['Porsche SUV', 'Германия'],
+        'W0L' => ['Opel',           'Германия'], 'W0V' => ['Opel',        'Германия'],
+        'WF0' => ['Ford Германия',  'Германия'], 'WME' => ['Smart',       'Германия'],
+        // Czech / Slovak
+        'TMB' => ['Škoda', 'Чехия'], 'TMA' => ['Škoda', 'Чехия'],
+        // Spain
+        'VSS' => ['SEAT', 'Испания'], 'VS6' => ['SEAT', 'Испания'],
+        // France
+        'VF1' => ['Renault',  'Франция'], 'VF3' => ['Peugeot', 'Франция'],
+        'VF7' => ['Citroën',  'Франция'], 'VF6' => ['Renault',  'Франция'],
+        // Sweden
+        'YV1' => ['Volvo', 'Швеция'], 'YV4' => ['Volvo SUV', 'Швеция'],
+        'YS3' => ['Saab',  'Швеция'],
+        // UK
+        'SAJ' => ['Jaguar',     'Великобритания'], 'SAL' => ['Land Rover', 'Великобритания'],
+        'SCC' => ['Lotus',      'Великобритания'], 'SCF' => ['Aston Martin','Великобритания'],
+        'SBM' => ['McLaren',    'Великобритания'],
+        // Italy
+        'ZFF' => ['Ferrari',     'Италия'], 'ZAR' => ['Alfa Romeo', 'Италия'],
+        'ZFA' => ['Fiat',        'Италия'], 'ZHW' => ['Lamborghini','Италия'],
+        'ZLA' => ['Lancia',      'Италия'],
+        // Korea
+        'KMH' => ['Hyundai', 'Южная Корея'], 'KMF' => ['Hyundai', 'Южная Корея'],
+        'KNA' => ['Kia',     'Южная Корея'], 'KND' => ['Kia',     'Южная Корея'],
+        'KL4' => ['Daewoo',  'Южная Корея'], 'KL1' => ['Daewoo',  'Южная Корея'],
+        // USA (common)
+        '1HG' => ['Honda США',     'США'], '1G1' => ['Chevrolet', 'США'],
+        '1FA' => ['Ford',           'США'], '1FT' => ['Ford Truck','США'],
+        '1GT' => ['GMC',            'США'], '2HG' => ['Honda Канада','Канада'],
+        // China
+        'LFV' => ['VW Китай',    'Китай'], 'LGX' => ['Buick Китай',  'Китай'],
+        'LJ1' => ['Suzuki Китай','Китай'], 'LSG' => ['GM China',      'Китай'],
+    ];
+
+    // First-char country fallback
+    private static array $countryMap = [
+        '1'=>'США','2'=>'Канада','3'=>'Мексика','4'=>'США','5'=>'США',
+        '6'=>'Австралия','7'=>'Новая Зеландия',
+        'J'=>'Япония','K'=>'Южная Корея','L'=>'Китай',
+        'S'=>'Великобритания','T'=>'Чехия/Словакия',
+        'V'=>'Франция/Испания','W'=>'Германия',
+        'X'=>'Россия/СНГ','Y'=>'Швеция','Z'=>'Италия',
+    ];
+
+    // ── Public API ────────────────────────────────────────────────────────
+
+    public static function validate(string $vin): bool
+    {
+        $vin = strtoupper(trim($vin));
+        if (strlen($vin) !== 17) return false;
+        if (!preg_match('/^[A-HJ-NPR-Z0-9]{17}$/', $vin)) return false;
+        return self::verifyCheckDigit($vin);
+    }
+
+    public static function decode(string $vin): array
+    {
+        $vin = strtoupper(trim($vin));
+
+        $cached = self::getCache($vin);
+        if ($cached) {
+            $cached['from_cache'] = true;
+            return $cached;
+        }
+
+        $local  = self::parseLocal($vin);
+        $remote = getSetting('vin_search_enabled', '1') === '1' ? self::callApi($vin) : [];
+
+        // Merge: remote overwrites only non-empty local fields
+        $result = $local;
+        foreach ($remote as $k => $v) {
+            if ($v !== '' && $v !== null && $v !== 0) {
+                $result[$k] = $v;
+            }
+        }
+        $result['vin']        = $vin;
+        $result['from_cache'] = false;
+        $result['source']     = empty($remote) ? 'local' : getSetting('vin_api_provider', 'nhtsa');
+
+        self::setCache($vin, $result);
+        return $result;
+    }
+
+    public static function searchCompatibleParts(string $make, string $model, int $year): array
+    {
+        try {
+            $db = getDB();
+
+            // Priority 1: parts_compatibility table
+            $cond   = [];
+            $params = [];
+            if ($make)  { $cond[] = 'cm.make LIKE ?';  $params[] = "%{$make}%"; }
+            if ($model) { $cond[] = 'cm.model LIKE ?'; $params[] = "%{$model}%"; }
+            if ($year > 0) {
+                $cond[]   = '(cm.year_from IS NULL OR cm.year_from <= ?)';
+                $cond[]   = '(cm.year_to   IS NULL OR cm.year_to   >= ?)';
+                $params[] = $year; $params[] = $year;
+            }
+            if ($cond) {
+                $whereSQL = implode(' AND ', $cond);
+                $stmt = $db->prepare(
+                    "SELECT DISTINCT p.*, b.name AS brand_name, c.name AS category_name
+                     FROM parts_compatibility pc
+                     JOIN car_models cm ON cm.id = pc.car_model_id AND cm.is_active = 1
+                     JOIN parts p ON p.id = pc.part_id AND p.is_active = 1
+                     LEFT JOIN brands b ON b.id = p.brand_id
+                     LEFT JOIN categories c ON c.id = p.category_id
+                     WHERE {$whereSQL}
+                     ORDER BY p.name LIMIT 40"
+                );
+                $stmt->execute($params);
+                $rows = $stmt->fetchAll();
+                if (!empty($rows)) return $rows;
+            }
+        } catch (Exception $e) {}
+        return [];
+    }
+
+    public static function getStats(): array
+    {
+        try {
+            $db = getDB();
+            return [
+                'cache_total'  => (int)$db->query("SELECT COUNT(*) FROM vin_cache")->fetchColumn(),
+                'models_total' => (int)$db->query("SELECT COUNT(*) FROM car_models WHERE is_active=1")->fetchColumn(),
+                'compat_total' => (int)$db->query("SELECT COUNT(*) FROM parts_compatibility")->fetchColumn(),
+            ];
+        } catch (Exception $e) {
+            return ['cache_total'=>0,'models_total'=>0,'compat_total'=>0];
+        }
+    }
+
+    public static function clearCache(): int
+    {
+        try {
+            $db = getDB();
+            $db->exec("DELETE FROM vin_cache");
+            return 1;
+        } catch (Exception $e) { return 0; }
+    }
+
+    // ── Private: local decode ─────────────────────────────────────────────
+
+    private static function parseLocal(string $vin): array
+    {
+        $wmi3    = substr($vin, 0, 3);
+        $wmi2    = substr($vin, 0, 2);
+        $yearCh  = strtoupper($vin[9]);
+
+        $wmiInfo = self::$wmiDb[$wmi3] ?? self::$wmiDb[$wmi2] ?? null;
+        $make    = $wmiInfo ? $wmiInfo[0] : '';
+        $country = $wmiInfo ? $wmiInfo[1] : (self::$countryMap[strtoupper($vin[0])] ?? 'Неизвестно');
+        $year    = self::decodeYear($yearCh, (bool)$wmiInfo);
+
+        return [
+            'make'         => $make,
+            'model'        => '',
+            'year'         => $year,
+            'country'      => $country,
+            'body_type'    => '',
+            'engine'       => '',
+            'cylinders'    => '',
+            'displacement' => '',
+            'fuel_type'    => '',
+            'drive_type'   => '',
+            'manufacturer' => $make,
+            'plant_country'=> '',
+            'wmi'          => $wmi3,
+        ];
+    }
+
+    private static function decodeYear(string $char, bool $isKnownModern): int
+    {
+        // Numeric chars → unambiguous
+        $numericMap = ['1'=>2001,'2'=>2002,'3'=>2003,'4'=>2004,'5'=>2005,
+                       '6'=>2006,'7'=>2007,'8'=>2008,'9'=>2009];
+        if (isset($numericMap[$char])) return $numericMap[$char];
+
+        // Letter chars have two possible years
+        $map = self::$yearMap;
+        if (!isset($map[$char])) return 0;
+        $val = $map[$char];
+        if (!is_array($val)) return $val;
+        // If second year (2010+) is ≤ current year + 1, prefer it for known makes
+        $currentYear = (int)date('Y');
+        [$old, $new] = $val;
+        return ($isKnownModern || $new <= $currentYear + 1) ? $new : $old;
+    }
+
+    // ── Private: check digit ──────────────────────────────────────────────
+
+    private static function verifyCheckDigit(string $vin): bool
+    {
+        $trans   = ['A'=>1,'B'=>2,'C'=>3,'D'=>4,'E'=>5,'F'=>6,'G'=>7,'H'=>8,
+                    'J'=>1,'K'=>2,'L'=>3,'M'=>4,'N'=>5,'P'=>7,'R'=>9,
+                    'S'=>2,'T'=>3,'U'=>4,'V'=>5,'W'=>6,'X'=>7,'Y'=>8,'Z'=>9];
+        $weights = [8,7,6,5,4,3,2,10,0,9,8,7,6,5,4,3,2];
+        $sum = 0;
+        for ($i = 0; $i < 17; $i++) {
+            $c   = $vin[$i];
+            $val = is_numeric($c) ? (int)$c : ($trans[$c] ?? 0);
+            $sum += $val * $weights[$i];
+        }
+        $rem      = $sum % 11;
+        $expected = $rem === 10 ? 'X' : (string)$rem;
+        return $vin[8] === $expected;
+    }
+
+    // ── Private: API calls ────────────────────────────────────────────────
+
+    private static function callApi(string $vin): array
+    {
+        $provider = getSetting('vin_api_provider', 'nhtsa');
+        $timeout  = (int)getSetting('vin_api_timeout', '8');
+        return $provider === 'custom'
+            ? self::callCustomApi($vin, $timeout)
+            : self::callNhtsa($vin, $timeout);
+    }
+
+    private static function callNhtsa(string $vin, int $timeout = 8): array
+    {
+        $url = "https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/{$vin}?format=json";
+        $ctx = stream_context_create(['http' => ['timeout' => $timeout, 'ignore_errors' => true]]);
+        $raw = @file_get_contents($url, false, $ctx);
+        if (!$raw) return [];
+        $json = json_decode($raw, true);
+        if (empty($json['Results'])) return [];
+
+        $f = [];
+        foreach ($json['Results'] as $item) {
+            if (!empty($item['Value']) && $item['Value'] !== 'Not Applicable') {
+                $f[$item['Variable']] = $item['Value'];
+            }
+        }
+
+        $cylinders    = $f['Engine Number of Cylinders'] ?? '';
+        $displacement = $f['Displacement (L)'] ?? '';
+        $engineStr    = trim(
+            ($cylinders ? $cylinders . ' цил.' : '') . ' ' .
+            ($displacement ? $displacement . 'L' : '')
+        );
+
+        return [
+            'make'         => $f['Make'] ?? '',
+            'model'        => $f['Model'] ?? '',
+            'year'         => (int)($f['Model Year'] ?? 0),
+            'body_type'    => $f['Body Class'] ?? '',
+            'engine'       => $engineStr,
+            'cylinders'    => $cylinders,
+            'displacement' => $displacement,
+            'fuel_type'    => $f['Fuel Type - Primary'] ?? '',
+            'drive_type'   => $f['Drive Type'] ?? '',
+            'manufacturer' => $f['Manufacturer Name'] ?? '',
+            'plant_country'=> $f['Plant Country'] ?? '',
+        ];
+    }
+
+    private static function callCustomApi(string $vin, int $timeout = 10): array
+    {
+        $url = getSetting('vin_api_url', '');
+        $key = getSetting('vin_api_key', '');
+        if (!$url) return [];
+
+        $url  = str_replace(['{VIN}', '{vin}'], $vin, $url);
+        $hdrs = array_filter([
+            "Accept: application/json",
+            $key ? "Authorization: Bearer {$key}" : '',
+            $key ? "X-Api-Key: {$key}" : '',
+        ]);
+        $ctx  = stream_context_create(['http' => [
+            'timeout'       => $timeout,
+            'ignore_errors' => true,
+            'header'        => implode("\r\n", $hdrs),
+        ]]);
+        $raw  = @file_get_contents($url, false, $ctx);
+        if (!$raw) return [];
+        $json = json_decode($raw, true);
+        if (!is_array($json)) return [];
+
+        return [
+            'make'      => $json['make']      ?? $json['brand']     ?? '',
+            'model'     => $json['model']      ?? '',
+            'year'      => (int)($json['year'] ?? $json['modelYear'] ?? 0),
+            'body_type' => $json['bodyType']   ?? $json['body']      ?? '',
+            'engine'    => $json['engine']     ?? '',
+            'fuel_type' => $json['fuelType']   ?? $json['fuel']      ?? '',
+            'drive_type'=> $json['driveType']  ?? $json['drive']     ?? '',
+        ];
+    }
+
+    // ── Private: cache ────────────────────────────────────────────────────
+
+    private static function getCache(string $vin): ?array
+    {
+        try {
+            $db   = getDB();
+            $stmt = $db->prepare(
+                "SELECT result FROM vin_cache
+                 WHERE vin = ? AND cached_at > DATE_SUB(NOW(), INTERVAL 30 DAY)"
+            );
+            $stmt->execute([$vin]);
+            $row = $stmt->fetch();
+            return $row ? json_decode($row['result'], true) : null;
+        } catch (Exception $e) { return null; }
+    }
+
+    private static function setCache(string $vin, array $data): void
+    {
+        try {
+            $db = getDB();
+            $db->prepare(
+                "INSERT INTO vin_cache (vin, result, source) VALUES (?,?,?)
+                 ON DUPLICATE KEY UPDATE result=?, source=?, cached_at=NOW()"
+            )->execute([
+                $vin, json_encode($data), $data['source'] ?? 'local',
+                json_encode($data), $data['source'] ?? 'local',
+            ]);
+        } catch (Exception $e) {}
+    }
+}
