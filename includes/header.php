@@ -127,6 +127,7 @@ unset($queryParams['lang'], $queryParams['currency']);
                                     <?php endforeach; ?>
                                 </ul>
                             </li>
+                            <li><a href="<?= APP_URL ?>/pages/vin.php"><i class="fa fa-search"></i> VIN</a></li>
                             <li><a href="<?= APP_URL ?>/pages/blog.php"><?= t('blog') ?></a></li>
                             <li><a href="<?= APP_URL ?>/pages/about.php"><?= t('about') ?></a></li>
                             <li><a href="<?= APP_URL ?>/pages/contact.php"><?= t('contact') ?></a></li>
@@ -341,6 +342,7 @@ unset($queryParams['lang'], $queryParams['currency']);
                                             <?php endforeach; ?>
                                         </ul>
                                     </li>
+                                    <li><a href="<?= APP_URL ?>/pages/vin.php" style="color:#d32f2f;font-weight:700;"><i class="fa fa-search"></i> VIN</a></li>
                                     <li><a href="<?= APP_URL ?>/pages/blog.php"><?= t('blog') ?></a></li>
                                     <li><a href="<?= APP_URL ?>/pages/about.php"><?= t('about') ?></a></li>
                                     <li><a href="<?= APP_URL ?>/pages/contact.php"><?= t('contact') ?></a></li>
