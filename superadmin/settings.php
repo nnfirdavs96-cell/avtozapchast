@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'site_telegram', 'site_whatsapp', 'meta_description', 'meta_keywords',
         'items_per_page', 'default_lang', 'default_currency',
         'warehouse_api_url', 'warehouse_api_key',
+        'map_lat', 'map_lng', 'map_zoom',
     ];
     // Checkboxes
     $checkboxes = ['show_language_switcher', 'show_currency_switcher', 'warehouse_api_enabled'];
@@ -128,6 +129,29 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                   <input type="text" name="site_address" class="form-control" value="<?= sv($settings, 'site_address') ?>">
                 </div>
               </div>
+
+              <!-- Карта -->
+              <div class="col-12">
+                <div class="az-form-group">
+                  <label style="font-weight:700">📍 Метка на карте (страница Контакты)</label>
+                  <div class="row">
+                    <div class="col-md-4">
+                      <label style="font-size:0.85rem;color:#666">Широта (Latitude)</label>
+                      <input type="text" name="map_lat" class="form-control" value="<?= sv($settings, 'map_lat', '40.29864545672122') ?>" placeholder="40.29864545672122">
+                    </div>
+                    <div class="col-md-4">
+                      <label style="font-size:0.85rem;color:#666">Долгота (Longitude)</label>
+                      <input type="text" name="map_lng" class="form-control" value="<?= sv($settings, 'map_lng', '69.6142315387528') ?>" placeholder="69.6142315387528">
+                    </div>
+                    <div class="col-md-4">
+                      <label style="font-size:0.85rem;color:#666">Масштаб (15–18)</label>
+                      <input type="number" name="map_zoom" class="form-control" value="<?= sv($settings, 'map_zoom', '16') ?>" min="10" max="20" placeholder="16">
+                    </div>
+                  </div>
+                  <small class="text-muted">Откройте <a href="https://maps.google.com" target="_blank">Google Maps</a>, найдите нужное место, нажмите правой кнопкой → "Что здесь?" — скопируйте координаты.</small>
+                </div>
+              </div>
+
               <div class="col-md-6">
                 <div class="az-form-group">
                   <label>Telegram (@username)</label>

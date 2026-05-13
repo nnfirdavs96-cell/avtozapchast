@@ -21,6 +21,11 @@ UPDATE site_settings SET value = 'г. Худжанд, 19 мкр, дом 30'  WHE
 UPDATE site_settings SET value = '+992 92 646-46-46'             WHERE `key` = 'site_phone';
 UPDATE site_settings SET value = 'АвтоЗапчасть'                  WHERE `key` = 'site_name';
 
+-- 4. Координаты карты (19 мкр, Худжанд)
+INSERT INTO site_settings (`key`, `value`) VALUES ('map_lat',  '40.29864545672122') ON DUPLICATE KEY UPDATE `value`='40.29864545672122';
+INSERT INTO site_settings (`key`, `value`) VALUES ('map_lng',  '69.6142315387528')  ON DUPLICATE KEY UPDATE `value`='69.6142315387528';
+INSERT INTO site_settings (`key`, `value`) VALUES ('map_zoom', '16')                ON DUPLICATE KEY UPDATE `value`='16';
+
 -- 4. SEO: мета под таджикский рынок
 UPDATE site_settings SET value = 'АвтоЗапчасть — Ҳуҷанд. Қисмҳои автомобилӣ бо сифати баланд ва нархи мувофиқ.' WHERE `key` = 'meta_description';
 UPDATE site_settings SET value = 'автозапчасти, запчасти, Худжанд, Таджикистан, авто, двигатель' WHERE `key` = 'meta_keywords';
