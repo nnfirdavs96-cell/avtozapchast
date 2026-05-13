@@ -2,6 +2,40 @@
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/vin_service.php';
 
+function getCarImageUrl(string $make, string $model, int $year): string {
+    $make  = strtolower(trim($make));
+    $model = strtolower(trim($model));
+
+    // Russian/CIS brands — Wikipedia Commons static images
+    $staticMap = [
+        'lada'  => 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Lada_Vesta_sedan_%28facelift%2C_side%29.jpg/800px-Lada_Vesta_sedan_%28facelift%2C_side%29.jpg',
+        'uaz'   => 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/UAZ_Patriot_2014.jpg/800px-UAZ_Patriot_2014.jpg',
+        'gaz'   => 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Volga_3111.jpg/800px-Volga_3111.jpg',
+    ];
+    if (isset($staticMap[$make])) return $staticMap[$make];
+
+    // imagin.studio make slugs (free public CDN)
+    $makeMap = [
+        'toyota'=>'toyota','honda'=>'honda','nissan'=>'nissan','lexus'=>'lexus',
+        'mazda'=>'mazda','subaru'=>'subaru','mitsubishi'=>'mitsubishi','suzuki'=>'suzuki',
+        'infiniti'=>'infiniti','acura'=>'acura',
+        'bmw'=>'bmw','mercedes'=>'mercedes-benz','mercedes-benz'=>'mercedes-benz',
+        'volkswagen'=>'volkswagen','vw'=>'volkswagen','audi'=>'audi','porsche'=>'porsche',
+        'opel'=>'opel','seat'=>'seat','skoda'=>'skoda','volvo'=>'volvo',
+        'renault'=>'renault','peugeot'=>'peugeot','citroen'=>'citroen',
+        'fiat'=>'fiat','alfa romeo'=>'alfa-romeo','jaguar'=>'jaguar',
+        'land rover'=>'land-rover','range rover'=>'land-rover',
+        'hyundai'=>'hyundai','kia'=>'kia',
+        'ford'=>'ford','chevrolet'=>'chevrolet','dodge'=>'dodge','jeep'=>'jeep',
+        'chrysler'=>'chrysler','cadillac'=>'cadillac','lincoln'=>'lincoln',
+        'tesla'=>'tesla',
+    ];
+    $makeSlug  = $makeMap[$make] ?? rawurlencode($make);
+    $modelSlug = trim(preg_replace('/[^a-z0-9]+/', '-', $model), '-');
+
+    return "https://cdn.imagin.studio/getimage?customer=de&make={$makeSlug}&modelFamily={$modelSlug}&zoomType=fullscreen&angle=side-34&width=900";
+}
+
 $pageTitle = 'VIN-поиск запчастей — ' . getSetting('site_name');
 
 $vin            = strtoupper(trim($_GET['vin'] ?? $_POST['vin'] ?? ''));
@@ -82,29 +116,53 @@ require_once dirname(__DIR__) . '/includes/header.php';
     <div style="max-width:900px;margin:0 auto;">
 
         <div style="background:#fff;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,0.08);overflow:hidden;margin-bottom:32px;">
-            <!-- Header -->
-            <div style="background:linear-gradient(135deg,#1a1a2e 0%,#d32f2f 100%);padding:24px 28px;color:#fff;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-                <div style="background:rgba(255,255,255,0.15);border-radius:8px;padding:14px 18px;font-family:monospace;font-size:1.2rem;letter-spacing:3px;font-weight:700;">
+            <!-- Car photo banner -->
+            <?php
+            $carImgUrl = getCarImageUrl($result['make'] ?? '', $result['model'] ?? '', (int)($result['year'] ?? 0));
+            ?>
+            <div style="position:relative;height:260px;background:#1a1a2e;overflow:hidden;">
+                <img id="carImg"
+                     src="<?= sanitize($carImgUrl) ?>"
+                     alt="<?= sanitize(($result['make'] ?? '') . ' ' . ($result['model'] ?? '')) ?>"
+                     style="width:100%;height:100%;object-fit:cover;object-position:center;"
+                     onerror="this.style.display='none';document.getElementById('carImgFallback').style.display='flex';">
+                <!-- Fallback silhouette -->
+                <div id="carImgFallback" style="display:none;position:absolute;inset:0;background:linear-gradient(135deg,#1a1a2e 0%,#2d3561 100%);align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+                    <svg width="180" height="80" viewBox="0 0 180 80" fill="none" xmlns="http://www.w3.org/2000/svg" opacity="0.25">
+                        <path d="M12 54 L20 28 Q26 18 42 17 L80 14 Q100 13 116 17 L142 28 L168 54 L170 62 L10 62 Z" fill="white"/>
+                        <circle cx="40" cy="64" r="12" fill="white"/>
+                        <circle cx="140" cy="64" r="12" fill="white"/>
+                        <rect x="26" y="42" width="128" height="18" rx="3" fill="#1a1a2e"/>
+                        <path d="M46 17 L54 34 L126 34 L134 17" stroke="#1a1a2e" stroke-width="1.5" fill="none"/>
+                    </svg>
+                    <span style="color:rgba(255,255,255,0.35);font-size:0.85rem;letter-spacing:0.5px;">Фото недоступно</span>
+                </div>
+                <!-- Dark gradient overlay at bottom -->
+                <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(10,10,30,0.88) 0%,rgba(10,10,30,0.15) 55%,transparent 100%);pointer-events:none;"></div>
+                <!-- VIN badge top-right -->
+                <div style="position:absolute;top:14px;right:16px;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:8px;padding:7px 14px;font-family:monospace;font-size:0.95rem;letter-spacing:2px;color:#fff;font-weight:700;border:1px solid rgba(255,255,255,0.12);">
                     <?= sanitize($vin) ?>
                 </div>
-                <div>
-                    <div style="font-size:1.5rem;font-weight:800;">
-                        <?= sanitize(($result['make'] ?? '') . ' ' . ($result['model'] ?? '')) ?>
-                    </div>
-                    <div style="opacity:0.8;font-size:0.9rem;">
-                        <?= sanitize($result['year'] > 0 ? $result['year'] . ' г.' : '') ?>
-                        <?= sanitize($result['country'] ? ' · ' . $result['country'] : '') ?>
-                    </div>
-                </div>
-                <div style="margin-left:auto;">
+                <!-- Source/cache badges top-left -->
+                <div style="position:absolute;top:14px;left:16px;display:flex;gap:6px;">
                     <?php if (!empty($result['from_cache'])): ?>
-                    <span style="background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:20px;font-size:0.75rem;">
+                    <span style="background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);padding:4px 10px;border-radius:20px;font-size:0.72rem;color:rgba(255,255,255,0.8);">
                         <i class="fa fa-database"></i> Кэш
                     </span>
                     <?php endif; ?>
-                    <span style="background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:20px;font-size:0.75rem;margin-left:4px;">
+                    <span style="background:rgba(211,47,47,0.75);backdrop-filter:blur(4px);padding:4px 10px;border-radius:20px;font-size:0.72rem;color:#fff;">
                         <i class="fa fa-plug"></i> <?= sanitize(strtoupper($result['source'] ?? 'local')) ?>
                     </span>
+                </div>
+                <!-- Car name overlay bottom -->
+                <div style="position:absolute;bottom:18px;left:24px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.5);">
+                    <div style="font-size:2rem;font-weight:900;line-height:1.1;letter-spacing:-0.5px;">
+                        <?= sanitize(($result['make'] ?? '') . ' ' . ($result['model'] ?? '')) ?>
+                    </div>
+                    <div style="font-size:0.95rem;opacity:0.75;margin-top:5px;">
+                        <?= sanitize($result['year'] > 0 ? $result['year'] . ' г.' : '') ?>
+                        <?= sanitize(!empty($result['country']) ? ' · ' . $result['country'] : '') ?>
+                    </div>
                 </div>
             </div>
 
