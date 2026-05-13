@@ -30,7 +30,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
     <!--contact map start-->
     <div class="contact_map">
         <div class="map-area">
-        <iframe src="https://maps.google.com/maps?q=Худжанд+19+микрорайон+Таджикистан&z=15&output=embed" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+        <iframe src="https://maps.google.com/maps?q=40.2960,69.6310&z=16&output=embed&hl=ru" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
         </div>
     </div>
     <!--contact map end-->
