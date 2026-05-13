@@ -647,12 +647,28 @@
         font-size: 0.74rem !important;
     }
 
-    /* ── Баннеры 1 колонка ── */
+    /* ── Баннеры — горизонтальный скролл ── */
+    .banner_area .row {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        gap: 10px;
+        padding: 4px 14px 12px;
+        margin: 0 -14px;
+        scrollbar-width: none;
+    }
+    .banner_area .row::-webkit-scrollbar { display: none; }
     .banner_area .col-lg-4,
     .banner_area .col-md-4 {
-        flex: 0 0 100% !important;
-        max-width: 100% !important;
-        margin-bottom: 12px;
+        flex: 0 0 85% !important;
+        max-width: 85% !important;
+        min-width: 280px;
+        scroll-snap-align: start;
+        margin-bottom: 0 !important;
+        padding: 0 !important;
     }
     .banner_area .single_banner { margin: 0; }
 
@@ -700,19 +716,34 @@
     .section_title h2 { font-size: 1.2rem; }
     .mb-80 { margin-bottom: 40px !important; }
 
-    /* ── Категории-карусель — 3 в ряд на 430px ── */
+    /* ── Категории — горизонтальный скролл ── */
     .categories_product_inner:not(.owl-loaded) {
-        display: grid !important;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        gap: 10px;
+        padding: 4px 14px 12px;
+        margin: 0 -14px;
+        scrollbar-width: none;
+    }
+    .categories_product_inner:not(.owl-loaded)::-webkit-scrollbar { display: none; }
+    .categories_product_inner:not(.owl-loaded) > .single_categories_product {
+        flex: 0 0 38% !important;
+        max-width: 38% !important;
+        min-width: 130px;
+        scroll-snap-align: start;
+        margin: 0 !important;
     }
     .single_categories_product { margin: 0 !important; }
     .categories_product_content h4 { font-size: 0.72rem; text-align: center; }
     .categories_product_content h4 a { color: #333; }
 
-    /* Owl-loaded categories: 3 visible */
+    /* Owl-loaded categories: горизонтальный скролл вместо карусели */
     .owl-carousel.categories_product_inner .single_categories_product {
-        min-width: calc(33.33% - 8px) !important;
+        min-width: 130px !important;
     }
 
     /* ── Табы товаров ── */
@@ -722,15 +753,30 @@
         border-radius: 20px;
     }
 
-    /* ── Карточки товаров — 2 в ряд (carousel и обычная сетка) ── */
+    /* ── Карточки товаров — горизонтальный скролл ── */
     .product_carousel:not(.owl-loaded) {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        gap: 10px;
+        padding: 4px 14px 12px;
+        margin: 0 -14px;
+        scrollbar-width: none;
     }
+    .product_carousel:not(.owl-loaded)::-webkit-scrollbar { display: none; }
     .product_carousel.owl-loaded .col-lg-3 { min-width: 200px; }
-    .product_carousel .col-lg-3,
-    /* Товары на главной (tab-pane > row > col-lg-3 > product_items) */
+    .product_carousel:not(.owl-loaded) > .col-lg-3,
+    .product_carousel:not(.owl-loaded) > div {
+        flex: 0 0 70% !important;
+        max-width: 70% !important;
+        min-width: 220px;
+        scroll-snap-align: start;
+        padding: 0 !important;
+    }
+    /* Owl-loaded tabs: keep original grid behavior in tab-panes */
     .tab-pane .col-lg-3,
     .tab-content .col-lg-3 {
         flex: 0 0 50% !important;
