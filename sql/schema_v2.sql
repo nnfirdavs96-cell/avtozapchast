@@ -37,9 +37,9 @@ CREATE TABLE IF NOT EXISTS `currencies` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `currencies` (`code`,`name_ru`,`name_tg`,`name_en`,`symbol`,`rate`,`is_active`,`is_default`) VALUES
-('RUB', 'Российский рубль', 'Рубли русӣ',    'Russian Ruble',   '₽',  1.000000, 1, 1),
+('RUB', 'Российский рубль', 'Рубли русӣ',    'Russian Ruble',   '₽',  1.000000, 1, 0),
 ('USD', 'Доллар США',       'Доллари Амрико', 'US Dollar',       '$',  0.011000, 1, 0),
-('TJS', 'Таджикский сомони','Сомони',          'Tajik Somoni',    'SM', 0.120000, 1, 0);
+('TJS', 'Таджикский сомони','Сомони',          'Tajik Somoni',    'SM', 0.115000, 1, 1);
 
 -- --------------------------------------------------------
 -- Table: languages
@@ -170,8 +170,8 @@ INSERT IGNORE INTO `site_settings` (`key`, `value`) VALUES
 ('warehouse_api_url',    'https://api.encar.com/search/car/list/mobile'),
 ('warehouse_api_key',    ''),
 ('warehouse_api_enabled','0'),
-('default_lang',         'ru'),
-('default_currency',     'RUB'),
+('default_lang',         'tg'),
+('default_currency',     'TJS'),
 ('show_language_switcher','1'),
 ('show_currency_switcher','1'),
 ('site_phone2',          ''),

@@ -221,6 +221,6 @@ INSERT INTO `site_settings` (`key`, `value`) VALUES
 ('site_name',     'АвтоЗапчасть'),
 ('site_email',    'info@avtozapchast.ru'),
 ('site_phone',    '+7 (800) 555-35-35'),
-('site_address',  'г. Москва, ул. Автомобильная, д. 1'),
-('site_currency', '₽'),
+('site_address',  'г. Худжанд, 19 мкр, дом 30'),
+('site_currency', 'SM'),
 ('items_per_page','12');
