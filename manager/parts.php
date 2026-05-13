@@ -31,18 +31,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Save (add or edit)
-    $pnum   = trim($_POST['part_number'] ?? '');
-    $name   = trim($_POST['name'] ?? '');
-    $desc   = trim($_POST['description'] ?? '');
-    $brand  = (int)($_POST['brand_id'] ?? 0);
-    $cat    = (int)($_POST['category_id'] ?? 0);
-    $price  = (float)str_replace(',', '.', $_POST['price'] ?? 0);
-    $stock  = (int)($_POST['stock'] ?? 0);
-    $weight = isset($_POST['weight']) && $_POST['weight'] !== ''
-              ? (float)str_replace(',', '.', $_POST['weight'])
-              : null;
-    $dims   = trim($_POST['dimensions'] ?? '') ?: null;
-    $pid    = (int)($_POST['id'] ?? 0);
+    $pnum      = trim($_POST['part_number'] ?? '');
+    $name      = trim($_POST['name'] ?? '');
+    $desc      = trim($_POST['description'] ?? '');
+    $brand     = (int)($_POST['brand_id'] ?? 0);
+    $cat       = (int)($_POST['category_id'] ?? 0);
+    $price     = (float)str_replace(',', '.', $_POST['price'] ?? 0);
+    $costPrice = ($_POST['cost_price'] ?? '') !== '' ? (float)str_replace(',', '.', $_POST['cost_price']) : null;
+    $markupPct = ($_POST['markup_percent'] ?? '') !== '' ? (float)str_replace(',', '.', $_POST['markup_percent']) : null;
+    $stock     = (int)($_POST['stock'] ?? 0);
+    $weight    = isset($_POST['weight']) && $_POST['weight'] !== ''
+                 ? (float)str_replace(',', '.', $_POST['weight'])
+                 : null;
+    $dims      = trim($_POST['dimensions'] ?? '') ?: null;
+    $pid       = (int)($_POST['id'] ?? 0);
 
     if (empty($pnum))  $errors[] = 'Укажите артикул (номер детали).';
     if (empty($name))  $errors[] = 'Укажите название.';
@@ -70,17 +72,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->prepare(
                 "UPDATE parts
                  SET part_number=?, name=?, description=?, brand_id=?, category_id=?,
-                     price=?, stock=?, weight=?, dimensions=?, images=?, updated_at=NOW()
+                     price=?, cost_price=?, markup_percent=?, stock=?, weight=?, dimensions=?, images=?, updated_at=NOW()
                  WHERE id=?"
-            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $stock, $weight, $dims, $imagesJson, $pid]);
+            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $costPrice, $markupPct, $stock, $weight, $dims, $imagesJson, $pid]);
             flashMessage('success', 'Запчасть обновлена.');
         } else {
             $db->prepare(
                 "INSERT INTO parts
                      (part_number, name, description, brand_id, category_id,
-                      price, stock, weight, dimensions, images, is_active, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())"
-            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $stock, $weight, $dims, $imagesJson]);
+                      price, cost_price, markup_percent, stock, weight, dimensions, images, is_active, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())"
+            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $costPrice, $markupPct, $stock, $weight, $dims, $imagesJson]);
             flashMessage('success', 'Запчасть добавлена.');
         }
         redirect(APP_URL . '/manager/parts.php');
@@ -224,10 +226,26 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                                        placeholder="BKR6EK" required>
                             </div>
                             <div class="az-form-group">
-                                <label>Цена (₽) *</label>
-                                <input type="number" name="price" step="0.01" min="0"
+                                <label>Цена продажи (₽) *</label>
+                                <input type="number" id="fieldPrice" name="price" step="0.01" min="0"
                                        value="<?= sanitize($editPart['price'] ?? ($_POST['price'] ?? '')) ?>"
                                        placeholder="1500.00" required>
+                            </div>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;background:#fafafa;border:1px solid #e9ecef;border-radius:8px;padding:14px;margin-bottom:16px;">
+                            <div class="az-form-group" style="margin:0;">
+                                <label>Себестоимость / закупка (₽)</label>
+                                <input type="number" id="fieldCostPrice" name="cost_price" step="0.01" min="0"
+                                       value="<?= sanitize((string)($editPart['cost_price'] ?? ($_POST['cost_price'] ?? ''))) ?>"
+                                       placeholder="1000.00">
+                            </div>
+                            <div class="az-form-group" style="margin:0;">
+                                <label>Наценка (%)</label>
+                                <input type="number" id="fieldMarkup" name="markup_percent" step="0.01" min="0" max="1000"
+                                       value="<?= sanitize((string)($editPart['markup_percent'] ?? ($_POST['markup_percent'] ?? ''))) ?>"
+                                       placeholder="Пусто — категорийная/глобальная">
+                                <small style="color:#888;font-size:0.78rem;">Заполните для авторасчёта цены</small>
                             </div>
                         </div>
 
@@ -321,6 +339,22 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                         </div>
                     </form>
                     <script>
+                    // Markup auto-calculation: price = cost_price * (1 + markup/100)
+                    (function() {
+                        const cost   = document.getElementById('fieldCostPrice');
+                        const markup = document.getElementById('fieldMarkup');
+                        const price  = document.getElementById('fieldPrice');
+                        function recalc() {
+                            const c = parseFloat(cost.value);
+                            const m = parseFloat(markup.value);
+                            if (!isNaN(c) && c > 0 && !isNaN(m) && m >= 0) {
+                                price.value = (c * (1 + m / 100)).toFixed(2);
+                            }
+                        }
+                        cost.addEventListener('input', recalc);
+                        markup.addEventListener('input', recalc);
+                    })();
+
                     const newImageUrls = [];
                     function updateNewImagesField() {
                         document.getElementById('newImages').value = newImageUrls.join(',');

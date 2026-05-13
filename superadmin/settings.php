@@ -17,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'items_per_page', 'default_lang', 'default_currency',
         'warehouse_api_url', 'warehouse_api_key',
         'map_lat', 'map_lng', 'map_zoom',
+        'global_markup',
     ];
     // Checkboxes
     $checkboxes = ['show_language_switcher', 'show_currency_switcher', 'warehouse_api_enabled'];
@@ -260,6 +261,26 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
               <label>API ключ</label>
               <input type="text" name="warehouse_api_key" class="form-control" value="<?= sv($settings, 'warehouse_api_key') ?>" placeholder="sk_live_...">
               <small class="text-muted">Ключ хранится в базе данных. Не передавайте его третьим лицам.</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Наценка товаров -->
+        <div class="az-card mb-24">
+          <div class="az-card-header"><h4 class="az-card-title">Наценка товаров</h4></div>
+          <div class="az-card-body">
+            <div class="row">
+              <div class="col-md-4">
+                <div class="az-form-group">
+                  <label>Глобальная наценка (%)</label>
+                  <input type="number" name="global_markup" class="form-control" min="0" max="1000" step="0.01"
+                         value="<?= sv($settings, 'global_markup', '0') ?>" placeholder="0">
+                  <small class="text-muted">
+                    Применяется ко всем товарам, у которых не задана собственная или категорийная наценка.<br>
+                    <strong>Приоритет:</strong> наценка товара &gt; наценка категории &gt; глобальная наценка.
+                  </small>
+                </div>
+              </div>
             </div>
           </div>
         </div>
