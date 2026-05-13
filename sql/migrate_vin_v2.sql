@@ -2,8 +2,8 @@
 -- Run: mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_vin_v2.sql
 
 CREATE TABLE IF NOT EXISTS `vin_search_history` (
-    `id`         INT AUTO_INCREMENT PRIMARY KEY,
-    `user_id`    INT NOT NULL,
+    `id`         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id`    INT UNSIGNED NOT NULL,
     `vin`        CHAR(17) NOT NULL,
     `make`       VARCHAR(100) DEFAULT NULL,
     `model`      VARCHAR(100) DEFAULT NULL,
@@ -16,9 +16,9 @@ CREATE TABLE IF NOT EXISTS `vin_search_history` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `part_analogs` (
-    `id`             INT AUTO_INCREMENT PRIMARY KEY,
-    `part_id`        INT NOT NULL,
-    `analog_part_id` INT NOT NULL,
+    `id`             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `part_id`        INT UNSIGNED NOT NULL,
+    `analog_part_id` INT UNSIGNED NOT NULL,
     `confidence`     ENUM('exact','high','medium','low') DEFAULT 'high',
     `notes`          VARCHAR(255) DEFAULT NULL,
     `created_at`     DATETIME DEFAULT CURRENT_TIMESTAMP,
