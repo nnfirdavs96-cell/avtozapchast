@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             redirect(APP_URL . '/superadmin/vin.php?action=models');
         }
-        $action = 'edit_model';
+        $action = $mid ? 'edit_model' : 'new_model';
         $editId = $mid;
     }
 
@@ -111,10 +111,12 @@ function sv2(array $s, string $k, string $d = ''): string {
 }
 
 $editCar = null;
-if ($editId && in_array($action, ['edit_model'])) {
-    $stmt = $db->prepare("SELECT * FROM car_models WHERE id=? LIMIT 1");
-    $stmt->execute([$editId]);
-    $editCar = $stmt->fetch();
+if ($editId && $action === 'edit_model') {
+    try {
+        $stmt = $db->prepare("SELECT * FROM car_models WHERE id=? LIMIT 1");
+        $stmt->execute([$editId]);
+        $editCar = $stmt->fetch();
+    } catch (Exception $e) {}
 }
 
 // Models list (paginated)
@@ -128,28 +130,37 @@ if ($modSearch) {
     $modParams[] = "%$modSearch%"; $modParams[] = "%$modSearch%";
 }
 $modWhereSQL = 'WHERE ' . implode(' AND ', $modWhere);
-$modTotal = (int)$db->prepare("SELECT COUNT(*) FROM car_models cm $modWhereSQL")->execute($modParams)->fetchColumn();
-$modTotal = (int)$db->prepare("SELECT COUNT(*) FROM car_models cm $modWhereSQL")->execute($modParams)->fetchColumn();
-// fix above — need to re-execute
-$cnt = $db->prepare("SELECT COUNT(*) FROM car_models cm $modWhereSQL");
-$cnt->execute($modParams); $modTotal = (int)$cnt->fetchColumn();
-$modPages  = max(1,(int)ceil($modTotal / $modPer));
-$modOffset = ($modPage - 1) * $modPer;
-$modStmt   = $db->prepare("SELECT cm.*, (SELECT COUNT(*) FROM parts_compatibility pc WHERE pc.car_model_id=cm.id) AS compat_count FROM car_models cm $modWhereSQL ORDER BY cm.make,cm.model LIMIT $modPer OFFSET $modOffset");
-$modStmt->execute($modParams);
-$models = $modStmt->fetchAll();
+$modTotal  = 0;
+$models    = [];
+$migrationMissing = false;
+try {
+    $cnt = $db->prepare("SELECT COUNT(*) FROM car_models cm $modWhereSQL");
+    $cnt->execute($modParams);
+    $modTotal = (int)$cnt->fetchColumn();
+    $modOffset = (max(1,$modPage) - 1) * $modPer;
+    $modStmt = $db->prepare("SELECT cm.*, (SELECT COUNT(*) FROM parts_compatibility pc WHERE pc.car_model_id=cm.id) AS compat_count FROM car_models cm $modWhereSQL ORDER BY cm.make,cm.model LIMIT $modPer OFFSET $modOffset");
+    $modStmt->execute($modParams);
+    $models = $modStmt->fetchAll();
+} catch (Exception $e) {
+    $migrationMissing = true;
+}
+$modPages = max(1,(int)ceil($modTotal / $modPer));
 
 // Compat list
 $compatList = [];
 if ($action === 'compat') {
-    $compatList = $db->query(
-        "SELECT pc.id, p.name AS part_name, p.part_number,
-                cm.make, cm.model, cm.year_from, cm.year_to
-         FROM parts_compatibility pc
-         JOIN parts p ON p.id = pc.part_id
-         JOIN car_models cm ON cm.id = pc.car_model_id
-         ORDER BY cm.make, cm.model LIMIT 100"
-    )->fetchAll();
+    try {
+        $compatList = $db->query(
+            "SELECT pc.id, p.name AS part_name, p.part_number,
+                    cm.make, cm.model, cm.year_from, cm.year_to
+             FROM parts_compatibility pc
+             JOIN parts p ON p.id = pc.part_id
+             JOIN car_models cm ON cm.id = pc.car_model_id
+             ORDER BY cm.make, cm.model LIMIT 100"
+        )->fetchAll();
+    } catch (Exception $e) {
+        $migrationMissing = true;
+    }
 }
 
 // Test VIN (AJAX-like via GET)
@@ -204,6 +215,12 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
     <?php endif; ?>
     <?php if (!empty($errors)): ?>
         <div class="az-alert az-alert-danger"><?php foreach ($errors as $e) echo '<div>' . sanitize($e) . '</div>'; ?></div>
+    <?php endif; ?>
+    <?php if (!empty($migrationMissing)): ?>
+        <div class="az-alert az-alert-warning" style="background:#fff3cd;border:1px solid #ffc107;color:#856404;">
+            <strong><i class="fa fa-exclamation-triangle"></i> Миграция БД ещё не запущена.</strong><br>
+            На сервере выполните: <code>mysql -u avtouser -p avtozapchast &lt; sql/migrate_vin.sql</code>
+        </div>
     <?php endif; ?>
 
     <!-- ================================================================ -->
@@ -524,7 +541,8 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                     <select name="part_id" style="width:100%;">
                         <option value="">— Выберите запчасть —</option>
                         <?php
-                        $allParts = $db->query("SELECT id,part_number,name FROM parts WHERE is_active=1 ORDER BY name LIMIT 500")->fetchAll();
+                        $allParts = [];
+                        try { $allParts = $db->query("SELECT id,part_number,name FROM parts WHERE is_active=1 ORDER BY name LIMIT 500")->fetchAll(); } catch (Exception $e) {}
                         foreach ($allParts as $pt):
                         ?>
                         <option value="<?= (int)$pt['id'] ?>">
@@ -538,7 +556,8 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                     <label>Автомобили <small style="color:#aaa;">(удерживайте Ctrl для выбора нескольких)</small></label>
                     <select name="model_ids[]" multiple size="8" style="width:100%;">
                         <?php
-                        $allModels = $db->query("SELECT id,make,model,year_from,year_to FROM car_models WHERE is_active=1 ORDER BY make,model")->fetchAll();
+                        $allModels = [];
+                        try { $allModels = $db->query("SELECT id,make,model,year_from,year_to FROM car_models WHERE is_active=1 ORDER BY make,model")->fetchAll(); } catch (Exception $e) {}
                         foreach ($allModels as $cm):
                             $yr = ($cm['year_from'] ? $cm['year_from'] : '?') . '–' . ($cm['year_to'] ? $cm['year_to'] : 'н.в.');
                         ?>
@@ -579,7 +598,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                             </td>
                             <td>
                                 <?= sanitize($cl['make']) ?> <?= sanitize($cl['model']) ?><br>
-                                <span style="color:#aaa;"><?= (int)$cl['year_from']?:'?' ?>–<?= $cl['year_to']?:(int)$cl['year_to']:'н.в.' ?></span>
+                                <span style="color:#aaa;"><?= $cl['year_from'] ? (int)$cl['year_from'] : '?' ?>–<?= $cl['year_to'] ? (int)$cl['year_to'] : 'н.в.' ?></span>
                             </td>
                             <td>
                                 <form method="POST">
