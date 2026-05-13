@@ -22,12 +22,12 @@ function initCurrency(): string {
         $row = $db->query("SELECT code FROM currencies WHERE is_default=1 AND is_active=1 LIMIT 1")->fetch();
         if ($row) { $_SESSION['currency'] = $row['code']; return $row['code']; }
     } catch (Exception $e) {}
-    $_SESSION['currency'] = 'RUB';
-    return 'RUB';
+    $_SESSION['currency'] = 'TJS';
+    return 'TJS';
 }
 
 function getActiveCurrency(): string {
-    return $_SESSION['currency'] ?? 'RUB';
+    return $_SESSION['currency'] ?? 'TJS';
 }
 
 function getCurrencies(): array {

@@ -27,12 +27,12 @@ function initLang(): string {
             return $row['value'];
         }
     } catch (Exception $e) {}
-    $_SESSION['lang'] = 'ru';
-    return 'ru';
+    $_SESSION['lang'] = 'tg';
+    return 'tg';
 }
 
 function getLang(): string {
-    return $_SESSION['lang'] ?? 'ru';
+    return $_SESSION['lang'] ?? 'tg';
 }
 
 function loadTranslations(string $lang): array {
