@@ -1137,32 +1137,56 @@
     .categories_menu_toggle > ul > li > a:active { background: #f8f8f8; }
     .categories_menu_toggle .categories_mega_menu { display: none; }
 
-    /* ─── 4. Карточки товаров — 2 в ряд: переопределяем Owl CSS напрямую ─── */
-    /* Owl DOM: product_carousel > owl-stage-outer > owl-stage > owl-item > col-lg-3 > product_items > single_product */
+    /* ─── 4. Карточки товаров — горизонтальный скролл ─── */
     .product_carousel.owl-loaded .owl-stage-outer {
-        overflow: visible !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
         width: 100% !important;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
     }
+    .product_carousel.owl-loaded .owl-stage-outer::-webkit-scrollbar { display: none; }
     .product_carousel.owl-loaded .owl-stage {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
+        display: flex !important;
+        flex-wrap: nowrap !important;
         transform: none !important;
-        width: 100% !important;
-        gap: 12px !important;
+        width: max-content !important;
+        gap: 10px !important;
+        padding: 4px 14px 12px !important;
     }
-    /* display:contents делает все обёртки прозрачными — single_product становится прямым grid-item */
-    .product_carousel.owl-loaded .owl-item,
+    .product_carousel.owl-loaded .owl-item {
+        display: block !important;
+        flex: 0 0 240px !important;
+        width: 240px !important;
+        min-width: 0 !important;
+        scroll-snap-align: start;
+    }
     .product_carousel.owl-loaded .col-lg-3,
     .product_carousel.owl-loaded .product_items { display: contents !important; }
     .product_carousel.owl-loaded .owl-nav,
     .product_carousel.owl-loaded .owl-dots { display: none !important; }
     /* Fallback когда Owl не инициализирован */
     .product_carousel:not(.owl-loaded) {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
-        gap: 12px !important;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        gap: 10px !important;
+        padding: 4px 14px 12px !important;
+        margin: 0 -14px;
+        scrollbar-width: none;
     }
-    .product_carousel:not(.owl-loaded) > .col-lg-3,
+    .product_carousel:not(.owl-loaded)::-webkit-scrollbar { display: none; }
+    .product_carousel:not(.owl-loaded) > .col-lg-3 {
+        flex: 0 0 240px !important;
+        width: 240px !important;
+        max-width: 240px !important;
+        scroll-snap-align: start;
+        padding: 0 !important;
+    }
     .product_carousel:not(.owl-loaded) .product_items { display: contents !important; }
 
     /* ─── 5. Табы "Рекомендуемые товары" — перенос на следующую строку ─── */
@@ -1177,30 +1201,51 @@
         display: inline-block;
     }
 
-    /* ─── 6. Сетка категорий — 2 в ряд: переопределяем Owl CSS напрямую ─── */
+    /* ─── 6. Категории — горизонтальный скролл ─── */
     .categories_product_inner.owl-loaded .owl-stage-outer {
-        overflow: visible !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
         width: 100% !important;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
     }
+    .categories_product_inner.owl-loaded .owl-stage-outer::-webkit-scrollbar { display: none; }
     .categories_product_inner.owl-loaded .owl-stage {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
+        display: flex !important;
+        flex-wrap: nowrap !important;
         transform: none !important;
-        width: 100% !important;
+        width: max-content !important;
         gap: 10px !important;
+        padding: 4px 14px 12px !important;
     }
     .categories_product_inner.owl-loaded .owl-item {
         display: block !important;
-        width: auto !important;
+        flex: 0 0 140px !important;
+        width: 140px !important;
         min-width: 0 !important;
+        scroll-snap-align: start;
     }
     .categories_product_inner.owl-loaded .owl-nav,
     .categories_product_inner.owl-loaded .owl-dots { display: none !important; }
     /* Fallback когда Owl не инициализирован */
     .categories_product_inner:not(.owl-loaded) {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
         gap: 10px !important;
+        padding: 4px 14px 12px !important;
+        margin: 0 -14px;
+        scrollbar-width: none;
+    }
+    .categories_product_inner:not(.owl-loaded)::-webkit-scrollbar { display: none; }
+    .categories_product_inner:not(.owl-loaded) > .single_categories_product {
+        flex: 0 0 140px !important;
+        max-width: 140px !important;
+        scroll-snap-align: start;
     }
     /* Картинки и подписи категорий */
     .single_categories_product .categories_product_thumb img {
