@@ -133,12 +133,11 @@ class VinService
         return $result;
     }
 
-    public static function searchCompatibleParts(string $make, string $model, int $year): array
+    public static function searchCompatibleParts(string $make, string $model, int $year, ?int $categoryId = null): array
     {
         try {
             $db = getDB();
 
-            // Priority 1: parts_compatibility table
             $cond   = [];
             $params = [];
             if ($make)  { $cond[] = 'cm.make LIKE ?';  $params[] = "%{$make}%"; }
@@ -148,24 +147,171 @@ class VinService
                 $cond[]   = '(cm.year_to   IS NULL OR cm.year_to   >= ?)';
                 $params[] = $year; $params[] = $year;
             }
-            if ($cond) {
-                $whereSQL = implode(' AND ', $cond);
-                $stmt = $db->prepare(
-                    "SELECT DISTINCT p.*, b.name AS brand_name, c.name AS category_name
-                     FROM parts_compatibility pc
-                     JOIN car_models cm ON cm.id = pc.car_model_id AND cm.is_active = 1
-                     JOIN parts p ON p.id = pc.part_id AND p.is_active = 1
-                     LEFT JOIN brands b ON b.id = p.brand_id
-                     LEFT JOIN categories c ON c.id = p.category_id
-                     WHERE {$whereSQL}
-                     ORDER BY p.name LIMIT 40"
-                );
-                $stmt->execute($params);
-                $rows = $stmt->fetchAll();
-                if (!empty($rows)) return $rows;
+            if ($categoryId !== null && $categoryId > 0) {
+                $cond[]   = 'p.category_id = ?';
+                $params[] = $categoryId;
             }
+            if (!$cond) return [];
+
+            $whereSQL = implode(' AND ', $cond);
+            $stmt = $db->prepare(
+                "SELECT DISTINCT p.*, b.name AS brand_name, c.name AS category_name
+                 FROM parts_compatibility pc
+                 JOIN car_models cm ON cm.id = pc.car_model_id AND cm.is_active = 1
+                 JOIN parts p ON p.id = pc.part_id AND p.is_active = 1
+                 LEFT JOIN brands b ON b.id = p.brand_id
+                 LEFT JOIN categories c ON c.id = p.category_id
+                 WHERE {$whereSQL}
+                 ORDER BY p.name LIMIT 60"
+            );
+            $stmt->execute($params);
+            return $stmt->fetchAll();
         } catch (Exception $e) {}
         return [];
+    }
+
+    /**
+     * Returns category facets [{id, name, count}] for compatible parts (ignores categoryId filter).
+     */
+    public static function getCategoryFacets(string $make, string $model, int $year): array
+    {
+        try {
+            $db = getDB();
+            $cond = []; $params = [];
+            if ($make)  { $cond[] = 'cm.make LIKE ?';  $params[] = "%{$make}%"; }
+            if ($model) { $cond[] = 'cm.model LIKE ?'; $params[] = "%{$model}%"; }
+            if ($year > 0) {
+                $cond[]   = '(cm.year_from IS NULL OR cm.year_from <= ?)';
+                $cond[]   = '(cm.year_to   IS NULL OR cm.year_to   >= ?)';
+                $params[] = $year; $params[] = $year;
+            }
+            if (!$cond) return [];
+            $whereSQL = implode(' AND ', $cond);
+            $stmt = $db->prepare(
+                "SELECT c.id, c.name, COUNT(DISTINCT p.id) AS cnt
+                 FROM parts_compatibility pc
+                 JOIN car_models cm ON cm.id = pc.car_model_id AND cm.is_active = 1
+                 JOIN parts p ON p.id = pc.part_id AND p.is_active = 1
+                 JOIN categories c ON c.id = p.category_id
+                 WHERE {$whereSQL}
+                 GROUP BY c.id, c.name
+                 ORDER BY cnt DESC, c.name"
+            );
+            $stmt->execute($params);
+            return $stmt->fetchAll();
+        } catch (Exception $e) { return []; }
+    }
+
+    /**
+     * Find analog parts for a given part:
+     *  1) explicit mappings from part_analogs
+     *  2) auto-detected: same category + at least one shared compatible car
+     */
+    public static function getAnalogs(int $partId, int $limit = 6): array
+    {
+        if ($partId <= 0) return [];
+        try {
+            $db = getDB();
+            $rows = [];
+
+            // 1) Explicit (table may not exist on older installs)
+            try {
+                $s = $db->prepare(
+                    "SELECT p.*, b.name AS brand_name, c.name AS category_name,
+                            pa.confidence AS analog_confidence, 'explicit' AS analog_source
+                     FROM part_analogs pa
+                     JOIN parts p ON p.id = pa.analog_part_id AND p.is_active = 1
+                     LEFT JOIN brands b ON b.id = p.brand_id
+                     LEFT JOIN categories c ON c.id = p.category_id
+                     WHERE pa.part_id = ?
+                     ORDER BY FIELD(pa.confidence,'exact','high','medium','low'), p.name
+                     LIMIT ?"
+                );
+                $s->bindValue(1, $partId, PDO::PARAM_INT);
+                $s->bindValue(2, $limit, PDO::PARAM_INT);
+                $s->execute();
+                $rows = $s->fetchAll();
+            } catch (Exception $e) {}
+
+            if (count($rows) >= $limit) return array_slice($rows, 0, $limit);
+            $seen = array_column($rows, 'id');
+
+            // 2) Auto-detected
+            $s = $db->prepare(
+                "SELECT DISTINCT p2.*, b.name AS brand_name, c.name AS category_name,
+                        'high' AS analog_confidence, 'auto' AS analog_source
+                 FROM parts p1
+                 JOIN parts_compatibility pc1 ON pc1.part_id = p1.id
+                 JOIN parts_compatibility pc2 ON pc2.car_model_id = pc1.car_model_id AND pc2.part_id <> p1.id
+                 JOIN parts p2 ON p2.id = pc2.part_id
+                                AND p2.is_active = 1
+                                AND p2.category_id = p1.category_id
+                 LEFT JOIN brands b ON b.id = p2.brand_id
+                 LEFT JOIN categories c ON c.id = p2.category_id
+                 WHERE p1.id = ?
+                 ORDER BY p2.price ASC
+                 LIMIT ?"
+            );
+            $s->bindValue(1, $partId, PDO::PARAM_INT);
+            $s->bindValue(2, $limit * 2, PDO::PARAM_INT);
+            $s->execute();
+            foreach ($s->fetchAll() as $r) {
+                if (in_array((int)$r['id'], $seen, true)) continue;
+                $rows[] = $r;
+                $seen[] = (int)$r['id'];
+                if (count($rows) >= $limit) break;
+            }
+            return $rows;
+        } catch (Exception $e) { return []; }
+    }
+
+    /**
+     * Save a user's VIN search to history (deduped: same VIN within 1h = ignored).
+     */
+    public static function recordSearch(int $userId, string $vin, array $decoded): void
+    {
+        if ($userId <= 0) return;
+        try {
+            $db = getDB();
+            $s = $db->prepare(
+                "SELECT id FROM vin_search_history
+                 WHERE user_id = ? AND vin = ? AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+                 LIMIT 1"
+            );
+            $s->execute([$userId, $vin]);
+            if ($s->fetchColumn()) return;
+
+            $db->prepare(
+                "INSERT INTO vin_search_history (user_id, vin, make, model, year)
+                 VALUES (?,?,?,?,?)"
+            )->execute([
+                $userId,
+                $vin,
+                $decoded['make']  ?? null,
+                $decoded['model'] ?? null,
+                (int)($decoded['year'] ?? 0) ?: null,
+            ]);
+        } catch (Exception $e) {}
+    }
+
+    public static function getUserHistory(int $userId, int $limit = 10): array
+    {
+        if ($userId <= 0) return [];
+        try {
+            $db = getDB();
+            $s = $db->prepare(
+                "SELECT vin, make, model, year, MAX(created_at) AS created_at
+                 FROM vin_search_history
+                 WHERE user_id = ?
+                 GROUP BY vin, make, model, year
+                 ORDER BY created_at DESC
+                 LIMIT ?"
+            );
+            $s->bindValue(1, $userId, PDO::PARAM_INT);
+            $s->bindValue(2, $limit,  PDO::PARAM_INT);
+            $s->execute();
+            return $s->fetchAll();
+        } catch (Exception $e) { return []; }
     }
 
     public static function getStats(): array
