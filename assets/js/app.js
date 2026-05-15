@@ -139,3 +139,28 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Scroll-to-top fallback (на случай если scrollUp-плагин не работает)
+document.addEventListener('DOMContentLoaded', function() {
+    // Ждём создания #scrollUp плагином
+    setTimeout(function() {
+        var btn = document.getElementById('scrollUp');
+        if (!btn) {
+            // Создаём кнопку сами
+            btn = document.createElement('a');
+            btn.id = 'scrollUp';
+            btn.href = '#';
+            btn.innerHTML = '<i class="fa fa-angle-double-up"></i>';
+            document.body.appendChild(btn);
+        }
+        // Перехватываем клик
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        // Показ/скрытие при скролле
+        window.addEventListener('scroll', function() {
+            btn.style.display = window.scrollY > 300 ? 'block' : 'none';
+        }, { passive: true });
+    }, 800);
+});
