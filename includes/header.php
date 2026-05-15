@@ -74,18 +74,6 @@ unset($queryParams['lang'], $queryParams['currency']);
                                     <?php endforeach; ?>
                                 </ul>
                             </li>
-                            <li class="currency">
-                                <a href="#"><?= $currency ?> <i class="ion-chevron-down"></i></a>
-                                <ul class="dropdown_currency">
-                                    <?php foreach ($currencies as $cur):
-                                        $qHdr = array_merge($queryParams, ['currency'=>$cur['code']]);
-                                        $cName  = 'name_' . $lang;
-                                        $cLabel = $cur[$cName] ?? $cur['name_ru'];
-                                    ?>
-                                    <li><a href="<?= $currentUrl ?>?<?= http_build_query($qHdr) ?>"><?= sanitize($cur['symbol'] . ' ' . $cLabel) ?></a></li>
-                                    <?php endforeach; ?>
-                                </ul>
-                            </li>
                         </ul>
                     </div>
                     <div class="header_top_links">
@@ -160,18 +148,6 @@ unset($queryParams['lang'], $queryParams['currency']);
                                             $qHdr = array_merge($queryParams, ['lang'=>$lCode]);
                                         ?>
                                         <li><a href="<?= $currentUrl ?>?<?= http_build_query($qHdr) ?>"><?= $lData['flag'] ?> <?= $lData['name'] ?></a></li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                </li>
-                                <li class="currency">
-                                    <a href="#"><?= $currency ?> <?= getCurrencySymbol() ?> <i class="ion-chevron-down"></i></a>
-                                    <ul class="dropdown_currency">
-                                        <?php foreach ($currencies as $cur):
-                                            $qHdr = array_merge($queryParams, ['currency'=>$cur['code']]);
-                                            $cName  = 'name_' . $lang;
-                                            $cLabel = $cur[$cName] ?? $cur['name_ru'];
-                                        ?>
-                                        <li><a href="<?= $currentUrl ?>?<?= http_build_query($qHdr) ?>"><?= sanitize($cur['symbol'] . ' — ' . $cLabel) ?></a></li>
                                         <?php endforeach; ?>
                                     </ul>
                                 </li>
