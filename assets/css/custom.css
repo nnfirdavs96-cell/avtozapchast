@@ -307,16 +307,16 @@
     position: relative;
     overflow: hidden;
 }
-/* Белый fill ползёт слева-направо поверх красной таблетки за 15 сек */
-.slider_area .owl-dots .owl-dot.active.dot-anim::after {
-    content: '';
+/* Реальный span вставляется через JS — анимация гарантированно стартует с нуля */
+.slider_area .owl-dots .owl-dot .dot-progress {
     position: absolute;
     top: 0; left: 0;
     height: 100%;
     width: 0;
     background: rgba(255,255,255,0.5);
-    border-radius: inherit;
+    border-radius: 20px;
     animation: sliderDotProgress 15s linear forwards;
+    pointer-events: none;
 }
 
 /* Empty states */

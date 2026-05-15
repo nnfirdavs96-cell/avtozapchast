@@ -41,13 +41,11 @@
         dots: true,
     });
 
-    /* Сброс прогресс-анимации: убираем/возвращаем класс dot-anim чтобы ::after рестартовал */
+    /* Прогресс-таймер: вставляем новый span в активную точку — анимация стартует с нуля */
     function resetSliderDotProgress() {
-        var $dots = $sliderCarousel.find('.owl-dots .owl-dot');
-        $dots.removeClass('dot-anim');
-        /* Reflow — браузер применяет удаление класса */
-        void $sliderCarousel[0].offsetWidth;
-        $dots.filter('.active').addClass('dot-anim');
+        $sliderCarousel.find('.owl-dots .owl-dot .dot-progress').remove();
+        $sliderCarousel.find('.owl-dots .owl-dot.active')
+            .append('<span class="dot-progress"></span>');
     }
     $sliderCarousel.on('changed.owl.carousel initialized.owl.carousel', function() {
         setTimeout(resetSliderDotProgress, 30);
