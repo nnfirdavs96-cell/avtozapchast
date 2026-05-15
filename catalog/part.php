@@ -379,12 +379,14 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                             <div class="az-alert" style="background:#f5f5f5;border:1px solid #e0e0e0;color:#666;padding:12px 16px;border-radius:6px;font-size:0.88rem;">
                                                 <i class="fa fa-info-circle"></i> <?= t('review_purchase_only') ?>
                                             </div>
+                                        <?php elseif ($myReview && $myReview['status'] === 'pending'): ?>
+                                            <div style="text-align:center;padding:24px 10px;">
+                                                <div style="font-size:2.2rem;margin-bottom:10px;">✅</div>
+                                                <p style="font-size:1rem;font-weight:600;margin-bottom:6px;color:#333;"><?= t('review_submitted') ?></p>
+                                                <p style="font-size:0.85rem;color:#888;line-height:1.6;"><?= t('review_pending') ?></p>
+                                            </div>
                                         <?php else: ?>
-                                            <?php if ($myReview && $myReview['status'] === 'pending'): ?>
-                                                <div class="az-alert az-alert-warning" style="background:#fff8e1;border:1px solid #ffe082;color:#795548;padding:10px 14px;border-radius:6px;margin-bottom:14px;font-size:0.88rem;">
-                                                    <i class="fa fa-clock-o"></i> <?= t('review_pending') ?>
-                                                </div>
-                                            <?php elseif ($myReview && $myReview['status'] === 'rejected'): ?>
+                                            <?php if ($myReview && $myReview['status'] === 'rejected'): ?>
                                                 <div class="az-alert az-alert-danger" style="background:#ffebee;border:1px solid #ffcdd2;color:#c62828;padding:10px 14px;border-radius:6px;margin-bottom:14px;font-size:0.88rem;">
                                                     <i class="fa fa-times-circle"></i> <?= t('review_rejected') ?>
                                                 </div>
