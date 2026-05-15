@@ -29,7 +29,8 @@
     
 
     /*---slider activation---*/
-    $('.slider_carousel').owlCarousel({
+    var $sliderCarousel = $('.slider_carousel');
+    $sliderCarousel.owlCarousel({
         animateOut: 'fadeOut',
 		loop: true,
         nav: false,
@@ -38,6 +39,18 @@
         autoplayHoverPause: true,
         items: 1,
         dots: true,
+    });
+
+    /* Сброс прогресс-анимации: убираем/возвращаем класс dot-anim чтобы ::after рестартовал */
+    function resetSliderDotProgress() {
+        var $dots = $sliderCarousel.find('.owl-dots .owl-dot');
+        $dots.removeClass('dot-anim');
+        /* Reflow — браузер применяет удаление класса */
+        void $sliderCarousel[0].offsetWidth;
+        $dots.filter('.active').addClass('dot-anim');
+    }
+    $sliderCarousel.on('changed.owl.carousel initialized.owl.carousel', function() {
+        setTimeout(resetSliderDotProgress, 30);
     });
     
 

@@ -298,6 +298,27 @@
 .main_header  { position: relative; z-index: 100; }
 .slider_section, .home_section_bg, .breadcrumbs_area { position: relative; z-index: 1; }
 
+/* ── Слайдер: прогресс-таймер на активной точке ── */
+@keyframes sliderDotProgress {
+    from { width: 0; }
+    to   { width: 100%; }
+}
+.slider_area .owl-dots .owl-dot {
+    position: relative;
+    overflow: hidden;
+}
+/* Белый fill ползёт слева-направо поверх красной таблетки за 15 сек */
+.slider_area .owl-dots .owl-dot.active.dot-anim::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    width: 0;
+    background: rgba(255,255,255,0.5);
+    border-radius: inherit;
+    animation: sliderDotProgress 15s linear forwards;
+}
+
 /* Empty states */
 .empty_state { text-align: center; padding: 48px 16px; color: #888; }
 .empty_state i { font-size: 3rem; color: #ddd; display: block; margin-bottom: 12px; }
