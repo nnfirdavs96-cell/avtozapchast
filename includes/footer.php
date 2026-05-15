@@ -140,8 +140,12 @@ $siteWa      = getSetting('site_whatsapp', '');
 
 <!-- Mazlay JS (plugins.js bundles jQuery + Bootstrap + all plugins) -->
 <script>window.APP_URL = <?= json_encode(APP_URL) ?>;</script>
+<?php
+$mainJsV = @filemtime(APP_ROOT . '/assets/mazlay-js/main.js') ?: time();
+$appJsV  = @filemtime(APP_ROOT . '/assets/js/app.js') ?: time();
+?>
 <script src="<?= MAZLAY_JS ?>/plugins.js"></script>
-<script src="<?= MAZLAY_JS ?>/main.js"></script>
-<script src="<?= APP_URL ?>/assets/js/app.js"></script>
+<script src="<?= MAZLAY_JS ?>/main.js?v=<?= $mainJsV ?>"></script>
+<script src="<?= APP_URL ?>/assets/js/app.js?v=<?= $appJsV ?>"></script>
 </body>
 </html>
