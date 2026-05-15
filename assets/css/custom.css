@@ -287,23 +287,37 @@
    NEWSLETTER / SUBSCRIBE — desktop fix
    ══════════════════════════════════════════════ */
 
-/* Subscribe form: input + кнопка в одну строку, кнопка шире для длинного текста */
+/* Subscribe form: flex-layout, input + кнопка в одну строку */
 .subscribe_form form {
-    position: relative;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch;
+    border: 1px solid #ebebeb;
+    border-radius: 4px;
     overflow: hidden;
+    background: #fff;
+    position: relative;
 }
 .subscribe_form form input {
-    padding-right: 160px !important;
+    flex: 1 1 auto !important;
+    border: none !important;
+    outline: none !important;
+    padding: 0 14px !important;
+    height: 50px !important;
+    font-size: 13px;
+    background: transparent;
+    width: auto !important;
+    position: static !important;
 }
 .subscribe_form form button {
-    position: absolute !important;
-    right: 0; top: 0;
-    width: 150px !important;
-    height: 100% !important;
-    padding: 0 12px !important;
+    flex: 0 0 auto !important;
+    position: static !important;
+    width: auto !important;
+    padding: 0 18px !important;
+    height: 50px !important;
     font-size: 12px !important;
     white-space: nowrap;
-    overflow: hidden;
+    border-radius: 0 !important;
 }
 
 /* Контактная кнопка "ТАМОС" */
