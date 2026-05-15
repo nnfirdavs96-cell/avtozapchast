@@ -333,20 +333,118 @@ unset($queryParams['lang'], $queryParams['currency']);
                         <div class="main_menu">
                             <nav>
                                 <ul>
-                                    <li><a href="<?= APP_URL ?>/index.php"><?= t('home') ?></a></li>
-                                    <li class="menu-item-has-children">
-                                        <a href="<?= APP_URL ?>/catalog/index.php"><?= t('shop') ?></a>
-                                        <ul class="sub_menu">
-                                            <?php foreach ($catTree as $cat): ?>
-                                            <li><a href="<?= APP_URL ?>/catalog/category.php?slug=<?= urlencode($cat['slug']) ?>"><?= sanitize(tField($cat,'name')) ?></a></li>
-                                            <?php endforeach; ?>
-                                        </ul>
+                                    <!-- ДОМ -->
+                                    <li class="menu-item-has-children az-has-megamenu">
+                                        <a href="<?= APP_URL ?>/index.php"><?= t('home') ?></a>
+                                        <div class="az-megamenu az-megamenu--sm">
+                                            <ul class="az-megamenu__list">
+                                                <li><a href="<?= APP_URL ?>/index.php"><i class="fa fa-home"></i> <?= t('home') ?></a></li>
+                                                <li><a href="<?= APP_URL ?>/catalog/index.php?sort=new"><i class="fa fa-star-o"></i> Новинки</a></li>
+                                                <li><a href="<?= APP_URL ?>/catalog/index.php?sale=1"><i class="fa fa-tag"></i> Акции и скидки</a></li>
+                                                <li><a href="<?= APP_URL ?>/pages/vin.php"><i class="fa fa-search"></i> VIN-поиск</a></li>
+                                            </ul>
+                                        </div>
                                     </li>
-                                    <li><a href="<?= APP_URL ?>/pages/vin.php" style="color:#d32f2f;font-weight:700;"><i class="fa fa-search"></i> VIN</a></li>
-                                    <li><a href="<?= APP_URL ?>/pages/blog.php"><?= t('blog') ?></a></li>
-                                    <li><a href="<?= APP_URL ?>/pages/about.php"><?= t('about') ?></a></li>
-                                    <li><a href="<?= APP_URL ?>/pages/contact.php"><?= t('contact') ?></a></li>
-                                    <li><a href="<?= APP_URL ?>/pages/faq.php"><?= t('faq') ?></a></li>
+
+                                    <!-- МАГАЗИН — мега-меню -->
+                                    <li class="menu-item-has-children az-has-megamenu az-has-megamenu--wide">
+                                        <a href="<?= APP_URL ?>/catalog/index.php"><?= t('shop') ?></a>
+                                        <div class="az-megamenu az-megamenu--wide">
+                                            <?php
+                                            $catChunks = array_chunk($catTree, (int)ceil(count($catTree)/3));
+                                            ?>
+                                            <div class="az-megamenu__inner">
+                                                <?php foreach ($catChunks as $chunk): ?>
+                                                <div class="az-megamenu__col">
+                                                    <ul class="az-megamenu__list">
+                                                        <?php foreach ($chunk as $cat): ?>
+                                                        <li>
+                                                            <a href="<?= APP_URL ?>/catalog/category.php?slug=<?= urlencode($cat['slug']) ?>">
+                                                                <?= sanitize(tField($cat,'name')) ?>
+                                                                <?php if (!empty($cat['children'])): ?>
+                                                                <span class="az-mega-count"><?= count($cat['children']) ?></span>
+                                                                <?php endif; ?>
+                                                            </a>
+                                                        </li>
+                                                        <?php endforeach; ?>
+                                                    </ul>
+                                                </div>
+                                                <?php endforeach; ?>
+                                                <div class="az-megamenu__col az-megamenu__col--promo">
+                                                    <div class="az-mega-promo">
+                                                        <span class="az-mega-promo__tag">Популярно</span>
+                                                        <p class="az-mega-promo__text">Запчасти для Toyota, BMW, Lada и других марок</p>
+                                                        <a href="<?= APP_URL ?>/catalog/index.php" class="az-mega-promo__btn">Весь каталог</a>
+                                                    </div>
+                                                    <div class="az-mega-links">
+                                                        <a href="<?= APP_URL ?>/catalog/index.php?sort=popular"><i class="fa fa-fire"></i> Хиты продаж</a>
+                                                        <a href="<?= APP_URL ?>/catalog/index.php?sort=new"><i class="fa fa-star-o"></i> Новинки</a>
+                                                        <a href="<?= APP_URL ?>/catalog/index.php?sale=1"><i class="fa fa-percent"></i> Скидки</a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="az-megamenu__footer">
+                                                <a href="<?= APP_URL ?>/catalog/index.php">Посмотреть все категории <i class="fa fa-arrow-right"></i></a>
+                                                <a href="<?= APP_URL ?>/pages/vin.php"><i class="fa fa-search"></i> Найти по VIN</a>
+                                            </div>
+                                        </div>
+                                    </li>
+
+                                    <!-- VIN -->
+                                    <li><a href="<?= APP_URL ?>/pages/vin.php" class="az-nav-vin"><i class="fa fa-search"></i> VIN</a></li>
+
+                                    <!-- БЛОГ -->
+                                    <li class="menu-item-has-children az-has-megamenu">
+                                        <a href="<?= APP_URL ?>/pages/blog.php"><?= t('blog') ?></a>
+                                        <div class="az-megamenu az-megamenu--sm">
+                                            <ul class="az-megamenu__list">
+                                                <li><a href="<?= APP_URL ?>/pages/blog.php"><i class="fa fa-newspaper-o"></i> Все статьи</a></li>
+                                                <li><a href="<?= APP_URL ?>/pages/blog.php?cat=news"><i class="fa fa-rss"></i> Новости</a></li>
+                                                <li><a href="<?= APP_URL ?>/pages/blog.php?cat=tips"><i class="fa fa-wrench"></i> Советы по ТО</a></li>
+                                                <li><a href="<?= APP_URL ?>/pages/blog.php?cat=review"><i class="fa fa-star-half-o"></i> Обзоры запчастей</a></li>
+                                            </ul>
+                                        </div>
+                                    </li>
+
+                                    <!-- СТРАНИЦЫ -->
+                                    <li class="menu-item-has-children az-has-megamenu">
+                                        <a href="#">Страницы</a>
+                                        <div class="az-megamenu az-megamenu--sm">
+                                            <ul class="az-megamenu__list">
+                                                <li><a href="<?= APP_URL ?>/pages/about.php"><i class="fa fa-building-o"></i> <?= t('about') ?></a></li>
+                                                <li><a href="<?= APP_URL ?>/pages/contact.php"><i class="fa fa-envelope-o"></i> <?= t('contact') ?></a></li>
+                                                <li><a href="<?= APP_URL ?>/pages/faq.php"><i class="fa fa-question-circle-o"></i> <?= t('faq') ?></a></li>
+                                                <li><a href="<?= APP_URL ?>/pages/vin.php"><i class="fa fa-search"></i> VIN-поиск</a></li>
+                                                <li><a href="<?= APP_URL ?>/buyer/orders.php"><i class="fa fa-truck"></i> Мои заказы</a></li>
+                                            </ul>
+                                        </div>
+                                    </li>
+
+                                    <!-- О НАС -->
+                                    <li class="menu-item-has-children az-has-megamenu">
+                                        <a href="<?= APP_URL ?>/pages/about.php"><?= t('about') ?></a>
+                                        <div class="az-megamenu az-megamenu--sm">
+                                            <ul class="az-megamenu__list">
+                                                <li><a href="<?= APP_URL ?>/pages/about.php"><i class="fa fa-info-circle"></i> О компании</a></li>
+                                                <li><a href="<?= APP_URL ?>/pages/about.php#team"><i class="fa fa-users"></i> Наша команда</a></li>
+                                                <li><a href="<?= APP_URL ?>/pages/about.php#reviews"><i class="fa fa-comments-o"></i> Отзывы клиентов</a></li>
+                                                <li><a href="<?= APP_URL ?>/pages/contact.php"><i class="fa fa-map-marker"></i> Наши магазины</a></li>
+                                            </ul>
+                                        </div>
+                                    </li>
+
+                                    <!-- СВЯЗАТЬСЯ -->
+                                    <li class="menu-item-has-children az-has-megamenu">
+                                        <a href="<?= APP_URL ?>/pages/contact.php"><?= t('contact') ?></a>
+                                        <div class="az-megamenu az-megamenu--sm">
+                                            <ul class="az-megamenu__list">
+                                                <li><a href="<?= APP_URL ?>/pages/contact.php"><i class="fa fa-envelope-o"></i> Форма обратной связи</a></li>
+                                                <li><a href="<?= APP_URL ?>/pages/contact.php#map"><i class="fa fa-map-o"></i> Схема проезда</a></li>
+                                                <li><a href="tel:<?= sanitize($sitePhone) ?>"><i class="fa fa-phone"></i> <?= sanitize($sitePhone) ?></a></li>
+                                                <li><a href="<?= APP_URL ?>/pages/faq.php"><i class="fa fa-question-circle-o"></i> FAQ</a></li>
+                                            </ul>
+                                        </div>
+                                    </li>
                                 </ul>
                             </nav>
                         </div>
