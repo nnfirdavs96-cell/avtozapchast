@@ -43,7 +43,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $body_tg    = trim($_POST['body_tg'] ?? '');
     $body_en    = trim($_POST['body_en'] ?? '');
     $imagePath  = trim($_POST['image_path'] ?? '');
+    $category   = trim($_POST['category'] ?? 'news');
     $published  = isset($_POST['is_published']) ? 1 : 0;
+    $allowedCats = ['news','tips','review','other'];
+    if (!in_array($category, $allowedCats)) $category = 'news';
 
     if (empty($slug))     $errors[] = 'Укажите slug (URL-идентификатор).';
     if (!preg_match('/^[a-z0-9\-]+$/i', $slug)) $errors[] = 'Slug: только латиница, цифры, дефис.';
@@ -58,22 +61,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         if ($uid) {
             $db->prepare(
-                "UPDATE blog_posts SET slug=?, title_ru=?, title_tg=?, title_en=?,
+                "UPDATE blog_posts SET slug=?, category=?, title_ru=?, title_tg=?, title_en=?,
                  excerpt_ru=?, excerpt_tg=?, excerpt_en=?,
                  body_ru=?, body_tg=?, body_en=?, image_path=?, is_published=?, updated_at=NOW()
                  WHERE id=?"
-            )->execute([$slug, $title_ru, $title_tg, $title_en,
+            )->execute([$slug, $category, $title_ru, $title_tg, $title_en,
                         $excerpt_ru, $excerpt_tg, $excerpt_en,
                         $body_ru, $body_tg, $body_en,
                         $imagePath ?: null, $published, $uid]);
             flashMessage('success', 'Статья обновлена.');
         } else {
             $db->prepare(
-                "INSERT INTO blog_posts (slug, title_ru, title_tg, title_en,
+                "INSERT INTO blog_posts (slug, category, title_ru, title_tg, title_en,
                  excerpt_ru, excerpt_tg, excerpt_en, body_ru, body_tg, body_en,
                  image_path, is_published, author_id)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)"
-            )->execute([$slug, $title_ru, $title_tg, $title_en,
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+            )->execute([$slug, $category, $title_ru, $title_tg, $title_en,
                         $excerpt_ru, $excerpt_tg, $excerpt_en,
                         $body_ru, $body_tg, $body_en,
                         $imagePath ?: null, $published, $_SESSION['user_id']]);
@@ -134,6 +137,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
             <li><a href="<?= APP_URL ?>/manager/categories.php"><i class="fa fa-sitemap"></i> Категории</a></li>
             <li><a href="<?= APP_URL ?>/manager/brands.php"><i class="fa fa-tag"></i> Бренды</a></li>
             <li><a href="<?= APP_URL ?>/manager/blog.php" class="active"><i class="fa fa-newspaper-o"></i> Блог</a></li>
+            <li><a href="<?= APP_URL ?>/manager/pages.php"><i class="fa fa-file-text-o"></i> Страницы</a></li>
             <li style="border-top:1px solid rgba(255,255,255,0.1);margin-top:12px;">
                 <a href="<?= APP_URL ?>/index.php"><i class="fa fa-home"></i> На сайт</a>
             </li>
@@ -262,6 +266,18 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     <div>
                         <div class="az-card">
                             <h3>Публикация</h3>
+                            <div class="az-form-group">
+                                <label>Категория</label>
+                                <select name="category" style="width:100%;padding:8px 10px;border:1px solid #ced4da;border-radius:6px;font-size:0.875rem;">
+                                    <?php
+                                    $cats = ['news'=>'Новости','tips'=>'Советы по ТО','review'=>'Обзоры запчастей','other'=>'Другое'];
+                                    $curCat = $editPost['category'] ?? $_POST['category'] ?? 'news';
+                                    foreach ($cats as $v => $l):
+                                    ?>
+                                    <option value="<?= $v ?>" <?= $curCat === $v ? 'selected' : '' ?>><?= $l ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                             <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:0.875rem;">
                                 <input type="checkbox" name="is_published" value="1"
                                        <?= ($editPost['is_published'] ?? 1) ? 'checked' : '' ?>
@@ -383,7 +399,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <tr>
                             <th style="width:70px;">Фото</th>
                             <th>Заголовок (RU)</th>
-                            <th>Slug</th>
+                            <th>Категория</th>
                             <th>Автор</th>
                             <th style="text-align:center;">Статус</th>
                             <th>Дата</th>
@@ -409,7 +425,12 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 <td style="font-size:0.875rem;font-weight:600;">
                                     <?= sanitize(truncate($post['title_ru'], 60)) ?>
                                 </td>
-                                <td><code style="font-size:0.78rem;color:#888;"><?= sanitize($post['slug']) ?></code></td>
+                                <td>
+                                    <?php $catLabels = ['news'=>'Новости','tips'=>'Советы по ТО','review'=>'Обзоры','other'=>'Другое']; ?>
+                                    <span class="badge badge-info" style="font-size:0.72rem;">
+                                        <?= $catLabels[$post['category'] ?? 'news'] ?? 'Новости' ?>
+                                    </span>
+                                </td>
                                 <td style="font-size:0.8rem;color:#888;"><?= sanitize($post['author_name'] ?? '—') ?></td>
                                 <td style="text-align:center;">
                                     <span class="badge badge-<?= $post['is_published'] ? 'success' : 'warning' ?>">
