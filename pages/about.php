@@ -21,19 +21,24 @@ function sec(array $sections, string $slug, string $field): string {
 }
 
 // Featured real customer reviews for the «Что говорят клиенты» showcase
-$featuredReviews = $db->query(
-    "SELECT u.username AS name, r.rating, r.comment, 'shop' AS kind, NULL AS part_name
-       FROM shop_reviews r JOIN users u ON u.id = r.user_id
-      WHERE r.status='approved' AND r.is_featured=1
-     UNION ALL
-     SELECT u.username AS name, r.rating, r.comment, 'product' AS kind, p.name AS part_name
-       FROM product_reviews r
-       JOIN users u ON u.id = r.user_id
-       JOIN parts p ON p.id = r.part_id
-      WHERE r.status='approved' AND r.is_featured=1
-     ORDER BY RAND()
-     LIMIT 9"
-)->fetchAll();
+try {
+    $featuredReviews = $db->query(
+        "SELECT u.username AS name, r.rating, r.comment, 'shop' AS kind, NULL AS part_name
+           FROM shop_reviews r JOIN users u ON u.id = r.user_id
+          WHERE r.status='approved' AND r.is_featured=1
+         UNION ALL
+         SELECT u.username AS name, r.rating, r.comment, 'product' AS kind, p.name AS part_name
+           FROM product_reviews r
+           JOIN users u ON u.id = r.user_id
+           JOIN parts p ON p.id = r.part_id
+          WHERE r.status='approved' AND r.is_featured=1
+         ORDER BY RAND()
+         LIMIT 9"
+    )->fetchAll();
+} catch (PDOException $e) {
+    // Reviews migration not applied yet — fall back to manual testimonials
+    $featuredReviews = [];
+}
 
 require_once dirname(__DIR__) . '/includes/header.php';
 ?>

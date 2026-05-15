@@ -296,13 +296,18 @@ function getProductRatings(array $partIds): array {
     if (empty($partIds)) return [];
     $in  = implode(',', array_fill(0, count($partIds), '?'));
     $db  = getDB();
-    $st  = $db->prepare(
-        "SELECT part_id, AVG(rating) avg_r, COUNT(*) cnt
-         FROM product_reviews
-         WHERE status='approved' AND part_id IN ($in)
-         GROUP BY part_id"
-    );
-    $st->execute($partIds);
+    try {
+        $st = $db->prepare(
+            "SELECT part_id, AVG(rating) avg_r, COUNT(*) cnt
+             FROM product_reviews
+             WHERE status='approved' AND part_id IN ($in)
+             GROUP BY part_id"
+        );
+        $st->execute($partIds);
+    } catch (PDOException $e) {
+        // Reviews migration not applied yet — degrade gracefully
+        return [];
+    }
     $out = [];
     foreach ($st as $row) {
         $out[(int)$row['part_id']] = ['avg' => round((float)$row['avg_r'], 1), 'count' => (int)$row['cnt']];
@@ -344,9 +349,13 @@ function userPurchasedPart(int $userId, int $partId): bool {
  */
 function getShopRatingSummary(): array {
     $db = getDB();
-    $row = $db->query(
-        "SELECT AVG(rating) avg_r, COUNT(*) cnt FROM shop_reviews WHERE status='approved'"
-    )->fetch();
+    try {
+        $row = $db->query(
+            "SELECT AVG(rating) avg_r, COUNT(*) cnt FROM shop_reviews WHERE status='approved'"
+        )->fetch();
+    } catch (PDOException $e) {
+        return ['avg' => 0.0, 'count' => 0];
+    }
     return [
         'avg'   => $row && $row['cnt'] ? round((float)$row['avg_r'], 1) : 0.0,
         'count' => $row ? (int)$row['cnt'] : 0,

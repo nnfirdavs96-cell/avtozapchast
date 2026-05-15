@@ -5,21 +5,26 @@ $pageTitle = t('shop_reviews') . ' — ' . getSetting('site_name');
 $db   = getDB();
 $csrf = generateCsrfToken();
 
-$summary = getShopRatingSummary();
-
-$reviews = $db->query(
-    "SELECT r.rating, r.comment, r.created_at, u.username
-     FROM shop_reviews r
-     JOIN users u ON u.id = r.user_id
-     WHERE r.status = 'approved'
-     ORDER BY r.is_featured DESC, r.created_at DESC"
-)->fetchAll();
-
+$summary  = getShopRatingSummary();
+$reviews  = [];
 $myReview = null;
-if (isLoggedIn()) {
-    $mr = $db->prepare("SELECT rating, comment, status FROM shop_reviews WHERE user_id = ? LIMIT 1");
-    $mr->execute([(int)$_SESSION['user_id']]);
-    $myReview = $mr->fetch() ?: null;
+try {
+    $reviews = $db->query(
+        "SELECT r.rating, r.comment, r.created_at, u.username
+         FROM shop_reviews r
+         JOIN users u ON u.id = r.user_id
+         WHERE r.status = 'approved'
+         ORDER BY r.is_featured DESC, r.created_at DESC"
+    )->fetchAll();
+
+    if (isLoggedIn()) {
+        $mr = $db->prepare("SELECT rating, comment, status FROM shop_reviews WHERE user_id = ? LIMIT 1");
+        $mr->execute([(int)$_SESSION['user_id']]);
+        $myReview = $mr->fetch() ?: null;
+    }
+} catch (PDOException $e) {
+    // Reviews migration not applied yet
+    $reviews = [];
 }
 
 require_once dirname(__DIR__) . '/includes/header.php';

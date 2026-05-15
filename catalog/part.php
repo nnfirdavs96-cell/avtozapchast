@@ -43,28 +43,34 @@ if (!is_array($images)) $images = [];
 $mainImage = !empty($images[0]) ? productImageUrl($images, 0) : APP_URL . '/assets/img/product/product1.jpg';
 
 // Approved reviews + aggregate rating
-$revStmt = $db->prepare(
-    "SELECT r.rating, r.comment, r.created_at, u.username
-     FROM product_reviews r
-     JOIN users u ON u.id = r.user_id
-     WHERE r.part_id = ? AND r.status = 'approved'
-     ORDER BY r.created_at DESC"
-);
-$revStmt->execute([$id]);
-$reviews     = $revStmt->fetchAll();
-$reviewCount = count($reviews);
-$avgRating   = $reviewCount ? round(array_sum(array_column($reviews, 'rating')) / $reviewCount, 1) : 0;
-
-// Current user's own review (any status) — so they see its moderation state
+$reviews   = [];
 $myReview  = null;
 $canReview = false;
-if (isLoggedIn()) {
-    $uid = (int)$_SESSION['user_id'];
-    $mr = $db->prepare("SELECT rating, comment, status FROM product_reviews WHERE part_id = ? AND user_id = ? LIMIT 1");
-    $mr->execute([$id, $uid]);
-    $myReview  = $mr->fetch() ?: null;
-    $canReview = userPurchasedPart($uid, $id);
+try {
+    $revStmt = $db->prepare(
+        "SELECT r.rating, r.comment, r.created_at, u.username
+         FROM product_reviews r
+         JOIN users u ON u.id = r.user_id
+         WHERE r.part_id = ? AND r.status = 'approved'
+         ORDER BY r.created_at DESC"
+    );
+    $revStmt->execute([$id]);
+    $reviews = $revStmt->fetchAll();
+
+    // Current user's own review (any status) — so they see its moderation state
+    if (isLoggedIn()) {
+        $uid = (int)$_SESSION['user_id'];
+        $mr = $db->prepare("SELECT rating, comment, status FROM product_reviews WHERE part_id = ? AND user_id = ? LIMIT 1");
+        $mr->execute([$id, $uid]);
+        $myReview  = $mr->fetch() ?: null;
+        $canReview = userPurchasedPart($uid, $id);
+    }
+} catch (PDOException $e) {
+    // Reviews migration not applied yet — product page still works without reviews
+    $reviews = [];
 }
+$reviewCount = count($reviews);
+$avgRating   = $reviewCount ? round(array_sum(array_column($reviews, 'rating')) / $reviewCount, 1) : 0;
 
 $stock     = getStockStatus((int)$part['stock']);
 $pageTitle = $part['name'];
