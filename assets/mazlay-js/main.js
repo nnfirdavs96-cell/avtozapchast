@@ -30,6 +30,23 @@
 
     /*---slider activation---*/
     var $sliderCarousel = $('.slider_carousel');
+
+    /* Прогресс-таймер: вставляем новый span в активную точку — анимация стартует с нуля */
+    function resetSliderDotProgress() {
+        $sliderCarousel.find('.owl-dots .owl-dot .dot-progress').remove();
+        $sliderCarousel.find('.owl-dots .owl-dot.active')
+            .append('<span class="dot-progress"></span>');
+    }
+
+    /* ВАЖНО: события owl стреляют синхронно при .owlCarousel(...),
+       поэтому биндим обработчики ДО инициализации */
+    $sliderCarousel.on('changed.owl.carousel', function() {
+        setTimeout(resetSliderDotProgress, 30);
+    });
+    $sliderCarousel.on('initialized.owl.carousel', function() {
+        setTimeout(resetSliderDotProgress, 100);
+    });
+
     $sliderCarousel.owlCarousel({
         animateOut: 'fadeOut',
 		loop: true,
@@ -41,20 +58,8 @@
         dots: true,
     });
 
-    /* Прогресс-таймер: вставляем новый span в активную точку — анимация стартует с нуля */
-    function resetSliderDotProgress() {
-        $sliderCarousel.find('.owl-dots .owl-dot .dot-progress').remove();
-        $sliderCarousel.find('.owl-dots .owl-dot.active')
-            .append('<span class="dot-progress"></span>');
-    }
-    /* При смене слайда — короткая задержка */
-    $sliderCarousel.on('changed.owl.carousel', function() {
-        setTimeout(resetSliderDotProgress, 30);
-    });
-    /* При первой загрузке owl ещё не поставил .active на точку — ждём дольше */
-    $sliderCarousel.on('initialized.owl.carousel', function() {
-        setTimeout(resetSliderDotProgress, 300);
-    });
+    /* Подстраховка: если событие inicialized всё же было пропущено — запустим вручную */
+    setTimeout(resetSliderDotProgress, 500);
     
 
      /*---categories column7 activation---*/
