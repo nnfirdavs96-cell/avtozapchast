@@ -38,7 +38,8 @@ unset($queryParams['lang'], $queryParams['currency']);
     <link rel="shortcut icon" type="image/x-icon" href="<?= APP_URL ?>/assets/img/favicon.ico">
     <link rel="stylesheet" href="<?= MAZLAY_CSS ?>/plugins.css">
     <link rel="stylesheet" href="<?= MAZLAY_CSS ?>/style.css">
-    <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/custom.css">
+    <?php $cssV = @filemtime(APP_ROOT . '/assets/css/custom.css') ?: time(); ?>
+    <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/custom.css?v=<?= $cssV ?>">
 </head>
 <body>
 
