@@ -47,8 +47,13 @@
         $sliderCarousel.find('.owl-dots .owl-dot.active')
             .append('<span class="dot-progress"></span>');
     }
-    $sliderCarousel.on('changed.owl.carousel initialized.owl.carousel', function() {
+    /* При смене слайда — короткая задержка */
+    $sliderCarousel.on('changed.owl.carousel', function() {
         setTimeout(resetSliderDotProgress, 30);
+    });
+    /* При первой загрузке owl ещё не поставил .active на точку — ждём дольше */
+    $sliderCarousel.on('initialized.owl.carousel', function() {
+        setTimeout(resetSliderDotProgress, 300);
     });
     
 
