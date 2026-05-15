@@ -646,7 +646,14 @@
         easingType: 'linear',
         scrollSpeed: 900,
         animation: 'fade'
-    });   
+    });
+    // Перехватываем клик — заменяем jQuery animate на нативный scroll
+    setTimeout(function() {
+        $('#scrollUp').off('click').on('click', function(e) {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }, 300);
     
     /*---countdown activation---*/
 		

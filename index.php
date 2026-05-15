@@ -373,7 +373,7 @@ require_once __DIR__ . '/includes/header.php';
                         <p><?= sanitize(getSetting('site_phone','+7 (495) 123-45-67')) ?></p>
                         <div class="app_img">
                             <ul>
-                                <li><a href="<?= APP_URL ?>/pages/contact.php" class="button" style="display:block;text-align:center;padding:10px 20px"><?= t('contact') ?></a></li>
+                                <li><a href="<?= APP_URL ?>/pages/contact.php" class="az-contact-btn"><?= t('contact') ?></a></li>
                             </ul>
                         </div>
                     </div>
