@@ -269,6 +269,25 @@ function truncate(string $str, int $len = 100, string $suffix = '...'): string {
 }
 
 /**
+ * Render a 0–5 star rating as Font Awesome icons
+ */
+function starsHtml(float $rating): string {
+    $full = (int)floor($rating);
+    $half = ($rating - $full) >= 0.5;
+    $html = '';
+    for ($i = 1; $i <= 5; $i++) {
+        if ($i <= $full) {
+            $html .= '<i class="fa fa-star" style="color:#f5a623;"></i>';
+        } elseif ($i === $full + 1 && $half) {
+            $html .= '<i class="fa fa-star-half-o" style="color:#f5a623;"></i>';
+        } else {
+            $html .= '<i class="fa fa-star-o" style="color:#ccc;"></i>';
+        }
+    }
+    return $html;
+}
+
+/**
  * Get stock status label
  */
 function getStockStatus(int $stock): array {

@@ -42,6 +42,27 @@ if (!is_array($images)) $images = [];
 
 $mainImage = !empty($images[0]) ? productImageUrl($images, 0) : APP_URL . '/assets/img/product/product1.jpg';
 
+// Approved reviews + aggregate rating
+$revStmt = $db->prepare(
+    "SELECT r.rating, r.comment, r.created_at, u.username
+     FROM product_reviews r
+     JOIN users u ON u.id = r.user_id
+     WHERE r.part_id = ? AND r.status = 'approved'
+     ORDER BY r.created_at DESC"
+);
+$revStmt->execute([$id]);
+$reviews     = $revStmt->fetchAll();
+$reviewCount = count($reviews);
+$avgRating   = $reviewCount ? round(array_sum(array_column($reviews, 'rating')) / $reviewCount, 1) : 0;
+
+// Current user's own review (any status) — so they see its moderation state
+$myReview = null;
+if (isLoggedIn()) {
+    $mr = $db->prepare("SELECT rating, comment, status FROM product_reviews WHERE part_id = ? AND user_id = ? LIMIT 1");
+    $mr->execute([$id, (int)$_SESSION['user_id']]);
+    $myReview = $mr->fetch() ?: null;
+}
+
 $stock     = getStockStatus((int)$part['stock']);
 $pageTitle = $part['name'];
 $csrf      = generateCsrfToken();
@@ -305,12 +326,111 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 </div>
                             </div>
 
-                            <!-- Reviews tab (placeholder) -->
+                            <!-- Reviews tab -->
                             <div class="tab-pane fade" id="reviews" role="tabpanel">
                                 <div class="reviews_wrapper">
                                     <div class="comment_title">
-                                        <h2><?= t('reviews') ?? 'Reviews' ?></h2>
-                                        <p><?= t('no_reviews') ?? 'No reviews yet.' ?></p>
+                                        <h2><?= t('reviews') ?> (<?= $reviewCount ?>)</h2>
+                                        <?php if ($reviewCount): ?>
+                                        <p style="font-size:1.05rem;">
+                                            <?= starsHtml($avgRating) ?>
+                                            <strong style="margin-left:6px;"><?= $avgRating ?></strong>
+                                            <span style="color:#888;font-size:0.9rem;">— <?= t('based_on_reviews', ['n' => $reviewCount]) ?></span>
+                                        </p>
+                                        <?php else: ?>
+                                        <p><?= t('no_reviews') ?></p>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <?php if ($reviewCount): ?>
+                                    <div class="reviews_list" style="margin:24px 0;">
+                                        <?php foreach ($reviews as $rv): ?>
+                                        <div style="border:1px solid #eee;border-radius:8px;padding:16px 18px;margin-bottom:14px;background:#fff;">
+                                            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+                                                <strong style="font-size:0.95rem;"><?= sanitize($rv['username']) ?></strong>
+                                                <span style="font-size:0.8rem;color:#999;"><?= date('d.m.Y', strtotime($rv['created_at'])) ?></span>
+                                            </div>
+                                            <div style="margin:6px 0 8px;font-size:0.95rem;"><?= starsHtml((float)$rv['rating']) ?></div>
+                                            <p style="margin:0;color:#555;line-height:1.6;"><?= nl2br(sanitize($rv['comment'])) ?></p>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <?php endif; ?>
+
+                                    <!-- Submit / edit review -->
+                                    <div class="review_form_wrap" style="margin-top:30px;padding-top:24px;border-top:2px solid #f0f0f0;">
+                                        <h3 style="font-size:1.1rem;margin-bottom:14px;"><?= t('write_review') ?></h3>
+
+                                        <?php if (!isLoggedIn()): ?>
+                                            <p style="color:#777;">
+                                                <a href="<?= APP_URL ?>/auth/login.php?redirect=<?= urlencode('/catalog/part.php?id=' . $id) ?>"
+                                                   style="color:#d32f2f;font-weight:600;"><?= t('login_to_review') ?></a>
+                                            </p>
+                                        <?php else: ?>
+                                            <?php if ($myReview && $myReview['status'] === 'pending'): ?>
+                                                <div class="az-alert az-alert-warning" style="background:#fff8e1;border:1px solid #ffe082;color:#795548;padding:10px 14px;border-radius:6px;margin-bottom:14px;font-size:0.88rem;">
+                                                    <i class="fa fa-clock-o"></i> <?= t('review_pending') ?>
+                                                </div>
+                                            <?php elseif ($myReview && $myReview['status'] === 'rejected'): ?>
+                                                <div class="az-alert az-alert-danger" style="background:#ffebee;border:1px solid #ffcdd2;color:#c62828;padding:10px 14px;border-radius:6px;margin-bottom:14px;font-size:0.88rem;">
+                                                    <i class="fa fa-times-circle"></i> <?= t('review_rejected') ?>
+                                                </div>
+                                            <?php elseif ($myReview && $myReview['status'] === 'approved'): ?>
+                                                <p style="color:#888;font-size:0.86rem;margin-bottom:14px;"><?= t('review_edit_hint') ?></p>
+                                            <?php endif; ?>
+
+                                            <form method="POST" action="<?= APP_URL ?>/api/review_submit.php" id="reviewForm">
+                                                <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
+                                                <input type="hidden" name="part_id" value="<?= $id ?>">
+                                                <input type="hidden" name="rating" id="ratingInput" value="<?= $myReview ? (int)$myReview['rating'] : 5 ?>">
+
+                                                <div style="margin-bottom:14px;">
+                                                    <label style="display:block;font-size:0.88rem;font-weight:600;margin-bottom:6px;"><?= t('your_rating') ?></label>
+                                                    <div id="starPicker" style="font-size:1.6rem;cursor:pointer;display:inline-flex;gap:4px;">
+                                                        <?php for ($s = 1; $s <= 5; $s++): ?>
+                                                        <i class="fa fa-star" data-val="<?= $s ?>" style="color:#ccc;transition:color .12s;"></i>
+                                                        <?php endfor; ?>
+                                                    </div>
+                                                </div>
+
+                                                <div style="margin-bottom:14px;">
+                                                    <label style="display:block;font-size:0.88rem;font-weight:600;margin-bottom:6px;"><?= t('your_review') ?></label>
+                                                    <textarea name="comment" rows="4" required minlength="10" maxlength="2000"
+                                                              style="width:100%;border:1px solid #ddd;border-radius:6px;padding:10px 12px;font-size:0.92rem;resize:vertical;"
+                                                              placeholder="..."><?= $myReview ? sanitize($myReview['comment']) : '' ?></textarea>
+                                                </div>
+
+                                                <button type="submit" class="btn btn-md btn-black-default-hover"
+                                                        style="background:#d32f2f;color:#fff;border:none;padding:10px 26px;border-radius:6px;font-weight:600;cursor:pointer;">
+                                                    <?= t('submit_review') ?>
+                                                </button>
+                                            </form>
+
+                                            <script>
+                                            (function () {
+                                                var picker = document.getElementById('starPicker');
+                                                var input  = document.getElementById('ratingInput');
+                                                if (!picker || !input) return;
+                                                var stars = picker.querySelectorAll('i');
+                                                function paint(v) {
+                                                    stars.forEach(function (st) {
+                                                        st.style.color = (parseInt(st.dataset.val, 10) <= v) ? '#f5a623' : '#ccc';
+                                                    });
+                                                }
+                                                paint(parseInt(input.value, 10) || 5);
+                                                stars.forEach(function (st) {
+                                                    st.addEventListener('mouseenter', function () { paint(parseInt(st.dataset.val, 10)); });
+                                                    st.addEventListener('click', function () {
+                                                        input.value = st.dataset.val;
+                                                        paint(parseInt(st.dataset.val, 10));
+                                                    });
+                                                });
+                                                picker.addEventListener('mouseleave', function () {
+                                                    paint(parseInt(input.value, 10) || 5);
+                                                });
+                                            })();
+                                            </script>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
