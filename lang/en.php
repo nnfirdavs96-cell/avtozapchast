@@ -218,7 +218,7 @@ return [
     'shop_reviews_desc'  => 'What customers think about our shop and service',
     'leave_shop_review'  => 'Leave a shop review',
     'company_rating'     => 'Shop rating',
-    'review_purchase_only' => 'You can only review a product you have purchased (after the order is delivered).',
+    'review_purchase_only' => 'You can only review a product you have purchased (after the order is delivered — this prevents review manipulation; all reviews are checked by a moderator via the admin panel).',
     'review_need_purchase' => 'To leave a review, first buy and receive this product.',
     'no_shop_reviews'    => 'No shop reviews yet. Be the first!',
 
