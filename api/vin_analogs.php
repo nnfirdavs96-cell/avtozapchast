@@ -15,7 +15,7 @@ $analogs = VinService::getAnalogs($partId, 6);
 $items = [];
 foreach ($analogs as $a) {
     $imgs  = json_decode($a['images'] ?? '[]', true) ?: [];
-    $thumb = $imgs[0] ?? '';
+    $thumb = !empty($imgs[0]) ? productImageUrl($imgs, 0) : '';
     $st    = getStockStatus((int)$a['stock']);
     $items[] = [
         'id'            => (int)$a['id'],
