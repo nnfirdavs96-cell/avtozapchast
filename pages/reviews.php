@@ -76,8 +76,8 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     <?php elseif ($myReview && $myReview['status'] === 'pending'): ?>
                         <div style="text-align:center;padding:20px 10px;">
                             <div style="font-size:2.4rem;margin-bottom:12px;">✅</div>
-                            <p style="font-size:1rem;font-weight:600;margin-bottom:6px;color:#333;"><?= t('review_submitted') ?></p>
-                            <p style="font-size:0.85rem;color:#888;line-height:1.6;"><?= t('review_pending') ?></p>
+                            <p style="font-size:1rem;font-weight:600;margin-bottom:6px;color:#333;"><?= sanitize(getSetting('review_msg_submitted', t('review_submitted'))) ?></p>
+                            <p style="font-size:0.85rem;color:#888;line-height:1.6;"><?= sanitize(getSetting('review_msg_pending', t('review_pending'))) ?></p>
                         </div>
                     <?php else: ?>
                         <?php if ($myReview && $myReview['status'] === 'rejected'): ?>
