@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($row && $row['is_default'] && !$active) {
             flashMessage('danger', 'Нельзя деактивировать язык по умолчанию.');
         } else {
-            $db->prepare("UPDATE languages SET is_active = ?, updated_at = NOW() WHERE code = ?")->execute([$active, $code]);
+            $db->prepare("UPDATE languages SET is_active = ? WHERE code = ?")->execute([$active, $code]);
             flashMessage('success', 'Статус языка обновлён.');
         }
         redirect(APP_URL . '/superadmin/languages.php');
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($postAction === 'set_default' && $code) {
         $db->exec("UPDATE languages SET is_default = 0");
-        $db->prepare("UPDATE languages SET is_default = 1, is_active = 1, updated_at = NOW() WHERE code = ?")->execute([$code]);
+        $db->prepare("UPDATE languages SET is_default = 1, is_active = 1 WHERE code = ?")->execute([$code]);
         $db->prepare("INSERT INTO site_settings (`key`, `value`) VALUES ('default_lang', ?) ON DUPLICATE KEY UPDATE `value`=?, updated_at=NOW()")
            ->execute([$code, $code]);
         flashMessage('success', "Язык {$code} установлен по умолчанию.");
