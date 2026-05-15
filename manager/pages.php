@@ -28,6 +28,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title_ru   = trim($_POST['title_ru']   ?? '');
     $title_tg   = trim($_POST['title_tg']   ?? '');
     $title_en   = trim($_POST['title_en']   ?? '');
+    $subtitle_ru = trim($_POST['subtitle_ru'] ?? '');
+    $subtitle_tg = trim($_POST['subtitle_tg'] ?? '');
+    $subtitle_en = trim($_POST['subtitle_en'] ?? '');
     $content_ru = trim($_POST['content_ru'] ?? '');
     $content_tg = trim($_POST['content_tg'] ?? '');
     $content_en = trim($_POST['content_en'] ?? '');
@@ -41,10 +44,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db->prepare(
             "UPDATE site_sections
              SET title_ru=?, title_tg=?, title_en=?,
+                 subtitle_ru=?, subtitle_tg=?, subtitle_en=?,
                  content_ru=?, content_tg=?, content_en=?,
                  image=?, sort_order=?, is_active=?
              WHERE id=?"
         )->execute([$title_ru, $title_tg, $title_en,
+                    $subtitle_ru, $subtitle_tg, $subtitle_en,
                     $content_ru ?: null, $content_tg ?: null, $content_en ?: null,
                     $image ?: null, $sortOrder, $isActive, $uid]);
         flashMessage('success', 'Раздел обновлён.');
@@ -127,6 +132,10 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 <div style="display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start;">
 
                     <div>
+                        <?php
+                        $hasSubtitle = in_array($editSection['section_group'] ?? '', ['testimonials']);
+                        $subtitleLabel = ['ru'=>'Должность / Роль','tg'=>'Вазифа / Нақш','en'=>'Role / Position'];
+                        ?>
                         <!-- RU -->
                         <div class="az-card">
                             <h3><span style="background:#cc0000;color:#fff;border-radius:3px;padding:1px 6px;font-size:0.75rem;">RU</span> Русский</h3>
@@ -135,6 +144,16 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 <input type="text" name="title_ru"
                                        value="<?= sanitize($editSection['title_ru'] ?? '') ?>" required>
                             </div>
+                            <?php if ($hasSubtitle): ?>
+                            <div class="az-form-group">
+                                <label><?= $subtitleLabel['ru'] ?></label>
+                                <input type="text" name="subtitle_ru"
+                                       value="<?= sanitize($editSection['subtitle_ru'] ?? '') ?>"
+                                       placeholder="Например: Постоянный клиент">
+                            </div>
+                            <?php else: ?>
+                                <input type="hidden" name="subtitle_ru" value="<?= sanitize($editSection['subtitle_ru'] ?? '') ?>">
+                            <?php endif; ?>
                             <div class="az-form-group" style="margin-bottom:0;">
                                 <label>Текст раздела</label>
                                 <textarea name="content_ru" rows="6"
@@ -150,6 +169,15 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 <input type="text" name="title_tg"
                                        value="<?= sanitize($editSection['title_tg'] ?? '') ?>">
                             </div>
+                            <?php if ($hasSubtitle): ?>
+                            <div class="az-form-group">
+                                <label><?= $subtitleLabel['tg'] ?></label>
+                                <input type="text" name="subtitle_tg"
+                                       value="<?= sanitize($editSection['subtitle_tg'] ?? '') ?>">
+                            </div>
+                            <?php else: ?>
+                                <input type="hidden" name="subtitle_tg" value="<?= sanitize($editSection['subtitle_tg'] ?? '') ?>">
+                            <?php endif; ?>
                             <div class="az-form-group" style="margin-bottom:0;">
                                 <label>Матн</label>
                                 <textarea name="content_tg" rows="5"><?= sanitize($editSection['content_tg'] ?? '') ?></textarea>
@@ -164,6 +192,15 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 <input type="text" name="title_en"
                                        value="<?= sanitize($editSection['title_en'] ?? '') ?>">
                             </div>
+                            <?php if ($hasSubtitle): ?>
+                            <div class="az-form-group">
+                                <label><?= $subtitleLabel['en'] ?></label>
+                                <input type="text" name="subtitle_en"
+                                       value="<?= sanitize($editSection['subtitle_en'] ?? '') ?>">
+                            </div>
+                            <?php else: ?>
+                                <input type="hidden" name="subtitle_en" value="<?= sanitize($editSection['subtitle_en'] ?? '') ?>">
+                            <?php endif; ?>
                             <div class="az-form-group" style="margin-bottom:0;">
                                 <label>Content</label>
                                 <textarea name="content_en" rows="5"><?= sanitize($editSection['content_en'] ?? '') ?></textarea>
@@ -260,14 +297,20 @@ require_once dirname(__DIR__) . '/includes/header.php';
             <h2 style="margin:0 0 16px;font-size:1.1rem;">Разделы страниц сайта</h2>
 
             <?php
-            $groups = ['about' => 'Страница «О нас»'];
-            foreach ($groups as $groupKey => $groupLabel):
+            $groups = [
+                'about'        => ['label' => 'О нас — Основные разделы',         'icon' => 'fa-info-circle',    'link' => '/pages/about.php#about'],
+                'benefits'     => ['label' => 'О нас — Преимущества (3 иконки)',   'icon' => 'fa-star',           'link' => '/pages/about.php'],
+                'faq'          => ['label' => 'О нас — FAQ / Аккордеон',           'icon' => 'fa-question-circle','link' => '/pages/about.php#reviews'],
+                'testimonials' => ['label' => 'О нас — Отзывы клиентов',           'icon' => 'fa-comments',       'link' => '/pages/about.php#reviews'],
+            ];
+            foreach ($groups as $groupKey => $groupMeta):
                 $groupSections = array_filter($sections, fn($s) => $s['section_group'] === $groupKey);
+                $groupLabel = $groupMeta['label'];
             ?>
             <div class="az-card" style="padding:0;overflow:hidden;margin-bottom:20px;">
                 <div style="padding:14px 20px;background:#f8f9fa;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;">
-                    <strong style="font-size:0.9rem;"><i class="fa fa-file-text-o" style="color:#d32f2f;margin-right:6px;"></i><?= $groupLabel ?></strong>
-                    <a href="<?= APP_URL ?>/pages/about.php" target="_blank" class="az-btn az-btn-secondary az-btn-sm">
+                    <strong style="font-size:0.9rem;"><i class="fa <?= $groupMeta['icon'] ?>" style="color:#d32f2f;margin-right:6px;"></i><?= $groupLabel ?></strong>
+                    <a href="<?= APP_URL . $groupMeta['link'] ?>" target="_blank" class="az-btn az-btn-secondary az-btn-sm">
                         <i class="fa fa-external-link"></i> Посмотреть
                     </a>
                 </div>
@@ -277,7 +320,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             <th style="width:50px;">Фото</th>
                             <th>Раздел (slug)</th>
                             <th>Заголовок RU</th>
-                            <th>Таджикский</th>
+                            <th><?= $groupKey === 'testimonials' ? 'Роль' : 'Таджикский' ?></th>
                             <th style="text-align:center;">Статус</th>
                             <th style="text-align:center;">Действия</th>
                         </tr>
@@ -297,7 +340,13 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             </td>
                             <td><code style="font-size:0.78rem;color:#888;"><?= sanitize($sec['slug']) ?></code></td>
                             <td style="font-size:0.875rem;font-weight:600;"><?= sanitize($sec['title_ru']) ?></td>
-                            <td style="font-size:0.82rem;color:#666;"><?= sanitize($sec['title_tg'] ?: '—') ?></td>
+                            <td style="font-size:0.82rem;color:#666;">
+                                <?php if ($groupKey === 'testimonials'): ?>
+                                    <?= sanitize($sec['subtitle_ru'] ?: '—') ?>
+                                <?php else: ?>
+                                    <?= sanitize($sec['title_tg'] ?: '—') ?>
+                                <?php endif; ?>
+                            </td>
                             <td style="text-align:center;">
                                 <span class="badge badge-<?= $sec['is_active'] ? 'success' : 'warning' ?>">
                                     <?= $sec['is_active'] ? 'Активен' : 'Скрыт' ?>
