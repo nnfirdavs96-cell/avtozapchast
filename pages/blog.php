@@ -7,9 +7,13 @@ $page = max(1, (int)($_GET['page'] ?? 1));
 $perPage = 6;
 $offset  = ($page - 1) * $perPage;
 
-$total = (int)$db->query("SELECT COUNT(*) FROM blog_posts WHERE is_published=1")->fetchColumn();
+$catFilter = $_GET['cat'] ?? '';
+$catLabels = ['news'=>'Новости','tips'=>'Советы по ТО','review'=>'Обзоры запчастей'];
+$catWhere  = $catFilter ? "AND bp.category = " . $db->quote($catFilter) : '';
+
+$total = (int)$db->query("SELECT COUNT(*) FROM blog_posts bp WHERE bp.is_published=1 $catWhere")->fetchColumn();
 $pages = max(1, ceil($total / $perPage));
-$stmt  = $db->prepare("SELECT bp.*, u.username AS author FROM blog_posts bp LEFT JOIN users u ON u.id=bp.author_id WHERE bp.is_published=1 ORDER BY bp.created_at DESC LIMIT $perPage OFFSET $offset");
+$stmt  = $db->prepare("SELECT bp.*, u.username AS author FROM blog_posts bp LEFT JOIN users u ON u.id=bp.author_id WHERE bp.is_published=1 $catWhere ORDER BY bp.created_at DESC LIMIT $perPage OFFSET $offset");
 $stmt->execute();
 $posts = $stmt->fetchAll();
 
@@ -33,6 +37,18 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     <div class="blog_wrapper mb-30">
                         <div class="blog_header">
                             <h1><?= t('blog') ?></h1>
+                            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;margin-bottom:4px;">
+                                <a href="<?= APP_URL ?>/pages/blog.php"
+                                   style="padding:5px 14px;border-radius:20px;font-size:0.82rem;font-weight:600;text-decoration:none;border:1px solid <?= !$catFilter ? '#d32f2f' : '#ddd' ?>;background:<?= !$catFilter ? '#d32f2f' : '#fff' ?>;color:<?= !$catFilter ? '#fff' : '#555' ?>;">
+                                    Все статьи
+                                </a>
+                                <?php foreach ($catLabels as $k => $l): ?>
+                                <a href="<?= APP_URL ?>/pages/blog.php?cat=<?= $k ?>"
+                                   style="padding:5px 14px;border-radius:20px;font-size:0.82rem;font-weight:600;text-decoration:none;border:1px solid <?= $catFilter===$k ? '#d32f2f' : '#ddd' ?>;background:<?= $catFilter===$k ? '#d32f2f' : '#fff' ?>;color:<?= $catFilter===$k ? '#fff' : '#555' ?>;">
+                                    <?= $l ?>
+                                </a>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                         <div class="blog_wrapper_inner">
                             <?php if (empty($posts)): ?>

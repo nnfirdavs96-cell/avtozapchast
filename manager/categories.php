@@ -144,6 +144,7 @@ function renderCatRows(array $cats, string $csrf, int $depth = 0): void {
                 <li><a href="<?= APP_URL ?>/manager/categories.php" class="active"><i class="fa fa-sitemap"></i> <?= t('categories_mgmt') ?></a></li>
                 <li><a href="<?= APP_URL ?>/manager/brands.php"><i class="fa fa-tag"></i> <?= t('brands_mgmt') ?></a></li>
                 <li><a href="<?= APP_URL ?>/manager/blog.php"><i class="fa fa-newspaper-o"></i> Блог</a></li>
+            <li><a href="<?= APP_URL ?>/manager/pages.php"><i class="fa fa-file-text-o"></i> Страницы</a></li>
                 <li style="border-top:1px solid rgba(255,255,255,0.1);margin-top:20px;">
                     <a href="<?= APP_URL ?>/index.php"><i class="fa fa-home"></i> На сайт</a>
                 </li>
