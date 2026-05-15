@@ -306,11 +306,11 @@
     overflow: hidden;
 }
 
-/* Контактная кнопка "ТАМОС" — по ширине колонки */
+/* Контактная кнопка "ТАМОС" */
 .newsletter_container.col_3 .app_img ul { list-style: none; margin: 0; padding: 0; }
 .newsletter_container.col_3 .app_img ul li { display: block; margin: 0; }
-.newsletter_container.col_3 .app_img ul li a.button {
-    display: inline-block;
+a.az-contact-btn {
+    display: inline-block !important;
     padding: 10px 28px;
     background: #C70909;
     color: #fff !important;
@@ -322,8 +322,9 @@
     transition: background 0.2s;
     margin-top: 8px;
     white-space: nowrap;
+    width: auto !important;
 }
-.newsletter_container.col_3 .app_img ul li a.button:hover { background: #222; }
+a.az-contact-btn:hover { background: #222; color: #fff !important; }
 
 /* ══════════════════════════════════════════════
    МЕГА-МЕНЮ (desktop only)
