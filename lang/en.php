@@ -214,6 +214,13 @@ return [
     'review_rating_invalid' => 'Please provide a rating from 1 to 5.',
     'based_on_reviews'   => 'based on :n reviews',
     'review_by'          => 'Review by',
+    'shop_reviews'       => 'Shop Reviews',
+    'shop_reviews_desc'  => 'What customers think about our shop and service',
+    'leave_shop_review'  => 'Leave a shop review',
+    'company_rating'     => 'Shop rating',
+    'review_purchase_only' => 'You can only review a product you have purchased (after the order is delivered).',
+    'review_need_purchase' => 'To leave a review, first buy and receive this product.',
+    'no_shop_reviews'    => 'No shop reviews yet. Be the first!',
 
     // Auth & forms
     'login_desc'         => 'Enter your email and password to access your account.',

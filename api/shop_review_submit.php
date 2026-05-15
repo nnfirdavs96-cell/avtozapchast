@@ -1,17 +1,15 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 
-// Form POST → redirect back to product page with a flash message
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    redirect(APP_URL . '/catalog/index.php');
+    redirect(APP_URL . '/pages/reviews.php');
 }
 
-$partId = (int)($_POST['part_id'] ?? 0);
-$back   = APP_URL . '/catalog/part.php?id=' . $partId . '#reviews';
+$back = APP_URL . '/pages/reviews.php#form';
 
 if (!isLoggedIn()) {
     flashMessage('danger', t('login_to_review'));
-    redirect(APP_URL . '/auth/login.php?redirect=' . urlencode('/catalog/part.php?id=' . $partId));
+    redirect(APP_URL . '/auth/login.php?redirect=' . urlencode('/pages/reviews.php'));
 }
 
 if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
@@ -36,32 +34,17 @@ if (mb_strlen($comment) > 2000) {
 }
 
 $db = getDB();
-
-// Product must exist and be active
-$chk = $db->prepare("SELECT id FROM parts WHERE id = ? AND is_active = 1");
-$chk->execute([$partId]);
-if (!$chk->fetch()) {
-    flashMessage('danger', 'Товар не найден.');
-    redirect(APP_URL . '/catalog/index.php');
-}
-
-// Only buyers of a delivered order may review this product
-if (!userPurchasedPart($userId, $partId)) {
-    flashMessage('danger', t('review_need_purchase'));
-    redirect($back);
-}
-
-// One review per user per product — resubmit overwrites and returns to moderation
 $stmt = $db->prepare(
-    "INSERT INTO product_reviews (part_id, user_id, rating, comment, status)
-     VALUES (?, ?, ?, ?, 'pending')
+    "INSERT INTO shop_reviews (user_id, rating, comment, status)
+     VALUES (?, ?, ?, 'pending')
      ON DUPLICATE KEY UPDATE
          rating = VALUES(rating),
          comment = VALUES(comment),
          status = 'pending',
+         is_featured = 0,
          updated_at = CURRENT_TIMESTAMP"
 );
-$stmt->execute([$partId, $userId, $rating, $comment]);
+$stmt->execute([$userId, $rating, $comment]);
 
 flashMessage('success', t('review_submitted'));
 redirect($back);

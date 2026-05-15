@@ -20,6 +20,21 @@ function sec(array $sections, string $slug, string $field): string {
     return sanitize($val);
 }
 
+// Featured real customer reviews for the «Что говорят клиенты» showcase
+$featuredReviews = $db->query(
+    "SELECT u.username AS name, r.rating, r.comment, 'shop' AS kind, NULL AS part_name
+       FROM shop_reviews r JOIN users u ON u.id = r.user_id
+      WHERE r.status='approved' AND r.is_featured=1
+     UNION ALL
+     SELECT u.username AS name, r.rating, r.comment, 'product' AS kind, p.name AS part_name
+       FROM product_reviews r
+       JOIN users u ON u.id = r.user_id
+       JOIN parts p ON p.id = r.part_id
+      WHERE r.status='approved' AND r.is_featured=1
+     ORDER BY RAND()
+     LIMIT 9"
+)->fetchAll();
+
 require_once dirname(__DIR__) . '/includes/header.php';
 ?>
 <?= breadcrumb([['label'=>t('home'),'url'=>APP_URL.'/index.php'],['label'=>t('about')]]) ?>
@@ -163,25 +178,44 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     <div class="testimonials-area">
                         <div class="faq-client_title"><h2><?= t('what_customers_say') ?></h2></div>
                         <div class="testimonial-two owl-carousel">
-                            <?php foreach ($testimonials as $tm):
-                                $lang = getLang();
-                                $s    = $sections[$tm['slug']] ?? null;
-                                $tmName = $s ? ((!empty($s['title_'.$lang]) ? $s['title_'.$lang] : $s['title_ru']) ?: '') : t($tm['slug'] . '_name');
-                                $tmRole = $s ? ((!empty($s['subtitle_'.$lang]) ? $s['subtitle_'.$lang] : $s['subtitle_ru']) ?: '') : '';
-                                $tmText = $s ? ((!empty($s['content_'.$lang]) ? $s['content_'.$lang] : $s['content_ru']) ?: '') : t($tm['slug'] . '_text');
-                                $tmImg  = ($s && !empty($s['image'])) ? $s['image'] : APP_URL . '/assets/img/about/' . $tm['img'];
-                            ?>
-                            <div class="testimonial-wrap-two text-center">
-                                <div class="quote-container">
-                                    <div class="quote-image"><img src="<?= sanitize($tmImg) ?>" alt="<?= sanitize($tmName) ?>"></div>
-                                    <div class="testimonials-text"><p><?= sanitize($tmText) ?></p></div>
-                                    <div class="author">
-                                        <h6><?= sanitize($tmName) ?></h6>
-                                        <?php if ($tmRole): ?><p><?= sanitize($tmRole) ?></p><?php endif; ?>
+                            <?php if (!empty($featuredReviews)): ?>
+                                <?php foreach ($featuredReviews as $fr):
+                                    $frRole = $fr['kind'] === 'product' && $fr['part_name']
+                                        ? t('reviews') . ': ' . $fr['part_name']
+                                        : t('shop_reviews');
+                                ?>
+                                <div class="testimonial-wrap-two text-center">
+                                    <div class="quote-container">
+                                        <div style="font-size:1.1rem;margin-bottom:10px;"><?= starsHtml((float)$fr['rating']) ?></div>
+                                        <div class="testimonials-text"><p><?= sanitize($fr['comment']) ?></p></div>
+                                        <div class="author">
+                                            <h6><?= sanitize($fr['name']) ?></h6>
+                                            <p><?= sanitize($frRole) ?></p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <?php endforeach; ?>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <?php foreach ($testimonials as $tm):
+                                    $lang = getLang();
+                                    $s    = $sections[$tm['slug']] ?? null;
+                                    $tmName = $s ? ((!empty($s['title_'.$lang]) ? $s['title_'.$lang] : $s['title_ru']) ?: '') : t($tm['slug'] . '_name');
+                                    $tmRole = $s ? ((!empty($s['subtitle_'.$lang]) ? $s['subtitle_'.$lang] : $s['subtitle_ru']) ?: '') : '';
+                                    $tmText = $s ? ((!empty($s['content_'.$lang]) ? $s['content_'.$lang] : $s['content_ru']) ?: '') : t($tm['slug'] . '_text');
+                                    $tmImg  = ($s && !empty($s['image'])) ? $s['image'] : APP_URL . '/assets/img/about/' . $tm['img'];
+                                ?>
+                                <div class="testimonial-wrap-two text-center">
+                                    <div class="quote-container">
+                                        <div class="quote-image"><img src="<?= sanitize($tmImg) ?>" alt="<?= sanitize($tmName) ?>"></div>
+                                        <div class="testimonials-text"><p><?= sanitize($tmText) ?></p></div>
+                                        <div class="author">
+                                            <h6><?= sanitize($tmName) ?></h6>
+                                            <?php if ($tmRole): ?><p><?= sanitize($tmRole) ?></p><?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>

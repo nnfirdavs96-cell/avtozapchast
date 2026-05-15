@@ -56,11 +56,14 @@ $reviewCount = count($reviews);
 $avgRating   = $reviewCount ? round(array_sum(array_column($reviews, 'rating')) / $reviewCount, 1) : 0;
 
 // Current user's own review (any status) — so they see its moderation state
-$myReview = null;
+$myReview  = null;
+$canReview = false;
 if (isLoggedIn()) {
+    $uid = (int)$_SESSION['user_id'];
     $mr = $db->prepare("SELECT rating, comment, status FROM product_reviews WHERE part_id = ? AND user_id = ? LIMIT 1");
-    $mr->execute([$id, (int)$_SESSION['user_id']]);
-    $myReview = $mr->fetch() ?: null;
+    $mr->execute([$id, $uid]);
+    $myReview  = $mr->fetch() ?: null;
+    $canReview = userPurchasedPart($uid, $id);
 }
 
 $stock     = getStockStatus((int)$part['stock']);
@@ -366,6 +369,10 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                 <a href="<?= APP_URL ?>/auth/login.php?redirect=<?= urlencode('/catalog/part.php?id=' . $id) ?>"
                                                    style="color:#d32f2f;font-weight:600;"><?= t('login_to_review') ?></a>
                                             </p>
+                                        <?php elseif (!$canReview && !$myReview): ?>
+                                            <div class="az-alert" style="background:#f5f5f5;border:1px solid #e0e0e0;color:#666;padding:12px 16px;border-radius:6px;font-size:0.88rem;">
+                                                <i class="fa fa-info-circle"></i> <?= t('review_purchase_only') ?>
+                                            </div>
                                         <?php else: ?>
                                             <?php if ($myReview && $myReview['status'] === 'pending'): ?>
                                                 <div class="az-alert az-alert-warning" style="background:#fff8e1;border:1px solid #ffe082;color:#795548;padding:10px 14px;border-radius:6px;margin-bottom:14px;font-size:0.88rem;">

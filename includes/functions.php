@@ -288,6 +288,72 @@ function starsHtml(float $rating): string {
 }
 
 /**
+ * Aggregate approved-review rating for a set of products.
+ * Returns [part_id => ['avg' => float, 'count' => int]]
+ */
+function getProductRatings(array $partIds): array {
+    $partIds = array_values(array_unique(array_map('intval', $partIds)));
+    if (empty($partIds)) return [];
+    $in  = implode(',', array_fill(0, count($partIds), '?'));
+    $db  = getDB();
+    $st  = $db->prepare(
+        "SELECT part_id, AVG(rating) avg_r, COUNT(*) cnt
+         FROM product_reviews
+         WHERE status='approved' AND part_id IN ($in)
+         GROUP BY part_id"
+    );
+    $st->execute($partIds);
+    $out = [];
+    foreach ($st as $row) {
+        $out[(int)$row['part_id']] = ['avg' => round((float)$row['avg_r'], 1), 'count' => (int)$row['cnt']];
+    }
+    return $out;
+}
+
+/**
+ * Compact rating line for product cards. Returns '' if no approved reviews.
+ */
+function productStarsInline(int $partId, array $ratings): string {
+    if (empty($ratings[$partId]) || $ratings[$partId]['count'] < 1) return '';
+    $r = $ratings[$partId];
+    return '<div class="product_rating" style="margin:4px 0 2px;font-size:0.82rem;white-space:nowrap;">'
+        . starsHtml((float)$r['avg'])
+        . '<span style="color:#999;margin-left:5px;">(' . $r['count'] . ')</span>'
+        . '</div>';
+}
+
+/**
+ * Has the user actually bought this part in a delivered order?
+ */
+function userPurchasedPart(int $userId, int $partId): bool {
+    if ($userId <= 0 || $partId <= 0) return false;
+    $db = getDB();
+    $st = $db->prepare(
+        "SELECT 1
+         FROM order_items oi
+         JOIN orders o ON o.id = oi.order_id
+         WHERE o.user_id = ? AND oi.part_id = ? AND o.status = 'delivered'
+         LIMIT 1"
+    );
+    $st->execute([$userId, $partId]);
+    return (bool)$st->fetchColumn();
+}
+
+/**
+ * Approved shop-review summary: ['avg' => float, 'count' => int]
+ */
+function getShopRatingSummary(): array {
+    $db = getDB();
+    $row = $db->query(
+        "SELECT AVG(rating) avg_r, COUNT(*) cnt FROM shop_reviews WHERE status='approved'"
+    )->fetch();
+    return [
+        'avg'   => $row && $row['cnt'] ? round((float)$row['avg_r'], 1) : 0.0,
+        'count' => $row ? (int)$row['cnt'] : 0,
+    ];
+}
+
+/**
  * Get stock status label
  */
 function getStockStatus(int $stock): array {

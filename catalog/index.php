@@ -88,6 +88,7 @@ $partsStmt = $db->prepare(
 );
 $partsStmt->execute($params);
 $parts = $partsStmt->fetchAll();
+$ratings = getProductRatings(array_column($parts, 'id'));
 
 // ── Sidebar data ────────────────────────────────────────────────────────────
 $allCategories = getCategories();
@@ -355,6 +356,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                         <div class="price_box">
                                             <span class="current_price"><?= formatPrice($part['price']) ?></span>
                                         </div>
+                                        <?= productStarsInline((int)$part['id'], $ratings) ?>
                                     </div>
                                     <div class="action_links">
                                         <ul>
@@ -392,6 +394,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                         <div class="price_box">
                                             <span class="current_price"><?= formatPrice($part['price']) ?></span>
                                         </div>
+                                        <?= productStarsInline((int)$part['id'], $ratings) ?>
                                         <div class="product_desc">
                                             <p><?= t('part_number') ?>: <?= sanitize($part['part_number']) ?></p>
                                         </div>
@@ -474,6 +477,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                         <div class="price_box">
                                             <span class="current_price"><?= formatPrice($part['price']) ?></span>
                                         </div>
+                                        <?= productStarsInline((int)$part['id'], $ratings) ?>
                                     </div>
                                     <div class="action_links">
                                         <ul>
@@ -511,6 +515,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                         <div class="price_box">
                                             <span class="current_price"><?= formatPrice($part['price']) ?></span>
                                         </div>
+                                        <?= productStarsInline((int)$part['id'], $ratings) ?>
                                         <div class="product_desc">
                                             <p><?= t('part_number') ?>: <?= sanitize($part['part_number']) ?></p>
                                         </div>
