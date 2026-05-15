@@ -291,7 +291,10 @@
 /* Контейнер nav — overflow visible чтобы мегаменю выпадало */
 .header_bottom .main_menu nav { position: static; }
 .main_menu nav > ul { position: static; }
-.main_menu nav > ul > li.az-has-megamenu { position: static; }
+/* Узкие дропдауны: relative к своему li */
+.main_menu nav > ul > li.az-has-megamenu { position: relative; }
+/* Широкое мегаменю МАГАЗИН: static → привязывается к контейнеру */
+.main_menu nav > ul > li.az-has-megamenu--wide { position: static; }
 
 /* Стрелка-индикатор */
 .main_menu nav > ul > li.az-has-megamenu > a::after {
