@@ -60,6 +60,7 @@ $siteWa      = getSetting('site_whatsapp', '');
                             <div class="footer_menu">
                                 <ul>
                                     <li><a href="<?= APP_URL ?>/pages/about.php"><?= t('about') ?></a></li>
+                                    <li><a href="<?= APP_URL ?>/pages/reviews.php"><?= t('shop_reviews') ?></a></li>
                                     <li><a href="<?= APP_URL ?>/pages/blog.php"><?= t('blog') ?></a></li>
                                     <li><a href="<?= APP_URL ?>/pages/faq.php"><?= t('faq') ?></a></li>
                                     <li><a href="<?= APP_URL ?>/pages/contact.php"><?= t('contact') ?></a></li>

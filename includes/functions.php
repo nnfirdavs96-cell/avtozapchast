@@ -269,6 +269,100 @@ function truncate(string $str, int $len = 100, string $suffix = '...'): string {
 }
 
 /**
+ * Render a 0–5 star rating as Font Awesome icons
+ */
+function starsHtml(float $rating): string {
+    $full = (int)floor($rating);
+    $half = ($rating - $full) >= 0.5;
+    $html = '';
+    for ($i = 1; $i <= 5; $i++) {
+        if ($i <= $full) {
+            $html .= '<i class="fa fa-star" style="color:#f5a623;"></i>';
+        } elseif ($i === $full + 1 && $half) {
+            $html .= '<i class="fa fa-star-half-o" style="color:#f5a623;"></i>';
+        } else {
+            $html .= '<i class="fa fa-star-o" style="color:#ccc;"></i>';
+        }
+    }
+    return $html;
+}
+
+/**
+ * Aggregate approved-review rating for a set of products.
+ * Returns [part_id => ['avg' => float, 'count' => int]]
+ */
+function getProductRatings(array $partIds): array {
+    $partIds = array_values(array_unique(array_map('intval', $partIds)));
+    if (empty($partIds)) return [];
+    $in  = implode(',', array_fill(0, count($partIds), '?'));
+    $db  = getDB();
+    try {
+        $st = $db->prepare(
+            "SELECT part_id, AVG(rating) avg_r, COUNT(*) cnt
+             FROM product_reviews
+             WHERE status='approved' AND part_id IN ($in)
+             GROUP BY part_id"
+        );
+        $st->execute($partIds);
+    } catch (PDOException $e) {
+        // Reviews migration not applied yet — degrade gracefully
+        return [];
+    }
+    $out = [];
+    foreach ($st as $row) {
+        $out[(int)$row['part_id']] = ['avg' => round((float)$row['avg_r'], 1), 'count' => (int)$row['cnt']];
+    }
+    return $out;
+}
+
+/**
+ * Compact rating line for product cards. Returns '' if no approved reviews.
+ */
+function productStarsInline(int $partId, array $ratings): string {
+    if (empty($ratings[$partId]) || $ratings[$partId]['count'] < 1) return '';
+    $r = $ratings[$partId];
+    return '<div class="product_rating" style="margin:4px 0 2px;font-size:0.82rem;white-space:nowrap;">'
+        . starsHtml((float)$r['avg'])
+        . '<span style="color:#999;margin-left:5px;">(' . $r['count'] . ')</span>'
+        . '</div>';
+}
+
+/**
+ * Has the user actually bought this part in a delivered order?
+ */
+function userPurchasedPart(int $userId, int $partId): bool {
+    if ($userId <= 0 || $partId <= 0) return false;
+    $db = getDB();
+    $st = $db->prepare(
+        "SELECT 1
+         FROM order_items oi
+         JOIN orders o ON o.id = oi.order_id
+         WHERE o.user_id = ? AND oi.part_id = ? AND o.status = 'delivered'
+         LIMIT 1"
+    );
+    $st->execute([$userId, $partId]);
+    return (bool)$st->fetchColumn();
+}
+
+/**
+ * Approved shop-review summary: ['avg' => float, 'count' => int]
+ */
+function getShopRatingSummary(): array {
+    $db = getDB();
+    try {
+        $row = $db->query(
+            "SELECT AVG(rating) avg_r, COUNT(*) cnt FROM shop_reviews WHERE status='approved'"
+        )->fetch();
+    } catch (PDOException $e) {
+        return ['avg' => 0.0, 'count' => 0];
+    }
+    return [
+        'avg'   => $row && $row['cnt'] ? round((float)$row['avg_r'], 1) : 0.0,
+        'count' => $row ? (int)$row['cnt'] : 0,
+    ];
+}
+
+/**
  * Get stock status label
  */
 function getStockStatus(int $stock): array {

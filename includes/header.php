@@ -119,6 +119,7 @@ unset($queryParams['lang'], $queryParams['currency']);
                             <li><a href="<?= APP_URL ?>/pages/vin.php"><i class="fa fa-search"></i> VIN</a></li>
                             <li><a href="<?= APP_URL ?>/pages/blog.php"><?= t('blog') ?></a></li>
                             <li><a href="<?= APP_URL ?>/pages/about.php"><?= t('about') ?></a></li>
+                            <li><a href="<?= APP_URL ?>/pages/reviews.php"><?= t('shop_reviews') ?></a></li>
                             <li><a href="<?= APP_URL ?>/pages/contact.php"><?= t('contact') ?></a></li>
                             <li><a href="<?= APP_URL ?>/pages/faq.php"><?= t('faq') ?></a></li>
                         </ul>
@@ -389,6 +390,7 @@ unset($queryParams['lang'], $queryParams['currency']);
                                         <div class="az-megamenu az-megamenu--sm">
                                             <ul class="az-megamenu__list">
                                                 <li><a href="<?= APP_URL ?>/pages/about.php"><i class="fa fa-building-o"></i> <?= t('about') ?></a></li>
+                                                <li><a href="<?= APP_URL ?>/pages/reviews.php"><i class="fa fa-star"></i> <?= t('shop_reviews') ?></a></li>
                                                 <li><a href="<?= APP_URL ?>/pages/contact.php"><i class="fa fa-envelope-o"></i> <?= t('contact') ?></a></li>
                                                 <li><a href="<?= APP_URL ?>/pages/faq.php"><i class="fa fa-question-circle-o"></i> <?= t('faq') ?></a></li>
                                                 <li><a href="<?= APP_URL ?>/pages/vin.php"><i class="fa fa-search"></i> VIN-поиск</a></li>

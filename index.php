@@ -16,6 +16,12 @@ $bestParts = $db->query("SELECT p.*, b.name AS brand_name FROM parts p
 $newParts = $db->query("SELECT p.*, b.name AS brand_name FROM parts p
     LEFT JOIN brands b ON b.id=p.brand_id WHERE p.is_active=1 ORDER BY p.id DESC LIMIT 10")->fetchAll();
 
+$ratings = getProductRatings(array_merge(
+    array_column($featParts, 'id'),
+    array_column($bestParts, 'id'),
+    array_column($newParts, 'id')
+));
+
 $blogPosts = $db->query("SELECT * FROM blog_posts WHERE is_published=1 ORDER BY created_at DESC LIMIT 5")->fetchAll();
 
 $sliders = $db->query("SELECT * FROM sliders WHERE is_active=1 ORDER BY sort_order ASC, id ASC")->fetchAll();
@@ -221,6 +227,7 @@ require_once __DIR__ . '/includes/header.php';
                                                 <div class="price_box">
                                                     <span class="current_price"><?= formatPrice($part['price']) ?></span>
                                                 </div>
+                                                <?= productStarsInline((int)$part['id'], $ratings) ?>
                                             </div>
                                             <div class="action_links">
                                                 <ul>

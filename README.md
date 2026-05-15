@@ -158,16 +158,31 @@ mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/schema_v3.sql
 
 # Версия 4: sliders + image_path в блоге
 mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/schema_v4.sql
+
+# CMS: категории блога + разделы страницы «О нас» (site_sections)
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_cms.sql
+
+# Отзывы на товары (product_reviews) — применять ПОСЛЕ migrate_cms
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_reviews.sql
+
+# Отзывы о магазине + флаг витрины (shop_reviews, is_featured)
+# ВАЖНО: строго ПОСЛЕ migrate_reviews.sql
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_reviews_v2.sql
 ```
 
 > ⚠️ Если выводятся ошибки `Duplicate entry` — это нормально. Это значит, что данные уже есть в базе.
+>
+> ⚠️ Порядок миграций отзывов важен: `migrate_reviews.sql` создаёт
+> `product_reviews`, а `migrate_reviews_v2.sql` добавляет к ней колонку
+> `is_featured` и создаёт `shop_reviews`. Все миграции идемпотентны
+> (`IF NOT EXISTS` / `INSERT IGNORE`) — можно запускать повторно.
 
 Проверить, что таблицы созданы:
 ```bash
 mysql -u avtouser -p'Avto@2024!' avtozapchast -e "SHOW TABLES;"
 ```
 
-Должны появиться: `users`, `categories`, `brands`, `parts`, `orders`, `order_items`, `cart`, `wishlist`, `site_settings`, `currencies`, `languages`, `blog_posts`, `sliders`, `backups`, `warehouse_api_log`.
+Должны появиться: `users`, `categories`, `brands`, `parts`, `orders`, `order_items`, `cart`, `wishlist`, `site_settings`, `currencies`, `languages`, `blog_posts`, `sliders`, `backups`, `warehouse_api_log`, `site_sections`, `product_reviews`, `shop_reviews`.
 
 ### Шаг 4: Настройка config.php
 
@@ -415,7 +430,9 @@ avtozapchast/
 │   ├── parts.php           #   - CRUD запчастей + изображения
 │   ├── categories.php      #   - Иерархические категории
 │   ├── brands.php          #   - Бренды (Bosch, NGK и т.д.)
-│   └── blog.php            #   - CRUD блога (RU/TG/EN + обложка)
+│   ├── blog.php            #   - CRUD блога (RU/TG/EN + обложка + категория)
+│   ├── pages.php           #   - CMS: разделы страницы «О нас»
+│   └── reviews.php         #   - Модерация отзывов (товары/магазин)
 │
 ├── superadmin/             # 🔧 Панель суперадминистратора
 │   ├── index.php           #   - Главный дашборд (вся статистика)
@@ -442,14 +459,25 @@ avtozapchast/
 │   └── logout.php          #   - Выход
 │
 ├── api/                    # 🌐 API endpoints
-│   └── upload.php          #   - Загрузка изображений (manager/admin/superadmin)
+│   ├── upload.php          #   - Загрузка изображений (manager/admin/superadmin)
+│   ├── cart.php            #   - Корзина (add/remove/count)
+│   ├── wishlist.php        #   - Избранное
+│   ├── search.php          #   - Живой поиск
+│   ├── vin_analogs.php     #   - VIN: аналоги запчастей
+│   ├── review_submit.php   #   - Отправка отзыва на товар (после покупки)
+│   └── shop_review_submit.php #  - Отправка отзыва о магазине
 │
 ├── catalog/                # 🛒 Каталог
-│   ├── shop.php            #   - Список товаров с фильтрами
-│   └── product.php         #   - Карточка товара
+│   ├── index.php           #   - Список товаров с фильтрами (+ звёзды-рейтинг)
+│   ├── category.php        #   - Товары категории (+ звёзды-рейтинг)
+│   └── part.php            #   - Карточка товара + вкладка «Отзывы»
 │
 ├── pages/                  # 📄 Статичные страницы
-│   ├── about.php           #   - О компании
+│   ├── about.php           #   - О компании (CMS site_sections + витрина отзывов)
+│   ├── reviews.php         #   - Отзывы о магазине (публичная страница + форма)
+│   ├── blog.php            #   - Блог (фильтр по категориям)
+│   ├── blog-detail.php     #   - Статья блога
+│   ├── vin.php             #   - VIN-поиск запчастей
 │   ├── contact.php         #   - Контакты + карта
 │   ├── faq.php             #   - Часто задаваемые вопросы
 │   └── 404.php             #   - Страница не найдена
@@ -490,7 +518,12 @@ avtozapchast/
 │   ├── schema.sql          #   - v1: основные таблицы
 │   ├── schema_v2.sql       #   - v2: wishlist, currencies, blog
 │   ├── schema_v3.sql       #   - v3: backups, warehouse log
-│   └── schema_v4.sql       #   - v4: sliders, blog image
+│   ├── schema_v4.sql       #   - v4: sliders, blog image
+│   ├── migrate_cms.sql     #   - CMS: site_sections + категория блога
+│   ├── migrate_reviews.sql #   - Отзывы на товары (product_reviews)
+│   ├── migrate_reviews_v2.sql # - Отзывы о магазине + is_featured
+│   ├── only_tjs_currency.sql  # - Оставить только валюту TJS (СМН)
+│   └── migrate_vin*.sql    #   - VIN-поиск (декодер, аналоги)
 │
 └── storage/                # 💼 Хранилище
     └── backups/            #   - SQL-дампы резервных копий
@@ -609,13 +642,34 @@ avtozapchast/
 - CRUD статей на 3 языках (RU/TG/EN)
 - Загрузка обложки статьи
 - Slug (URL-friendly идентификатор) с авто-генерацией из заголовка
+- Категория статьи (Новости / Советы по ТО / Обзоры / Другое)
 - Черновик / Опубликовано
+
+**Страницы — CMS «О нас»** (`/manager/pages.php`):
+- Редактирование разделов страницы «О нас» из `site_sections`
+- 4 группы: основные разделы, преимущества (3 иконки), FAQ (4 пункта), отзывы (3 шт.)
+- Многоязычно (RU/TG/EN), загрузка изображений, сортировка, скрыть/показать
+
+**Отзывы — модерация** (`/manager/reviews.php`):
+- Переключатель **Товары / Магазин**
+- Фильтры по статусу (ожидают / одобрены / отклонены / все) со счётчиками
+- Одобрить / отклонить / удалить
+- Тумблер «в витрину О нас» (`is_featured`) — одобренный отзыв
+  попадает в блок «Что говорят клиенты» на странице «О нас»
+- Бейдж количества ожидающих модерации во всех сайдбарах менеджера
 
 ### 👤 Покупатель
 
 **Витрина** (`/index.php`):
 - Просмотр товаров, поиск, фильтры
+- Средний рейтинг (звёзды) в карточках товаров
 - Добавление в корзину/избранное
+
+**Отзывы:**
+- Отзыв на товар (`/catalog/part.php`) — только после получения заказа,
+  с премодерацией; на вкладке «Отзывы» виден статус своего отзыва
+- Отзыв о магазине (`/pages/reviews.php`) — для любого авторизованного,
+  с премодерацией
 
 **Личный кабинет** (`/buyer/`):
 - История заказов
@@ -1126,14 +1180,90 @@ if ($flash = getFlashMessage()) {
 | `getStockStatus($qty)` | Статус остатка (in / low / out) |
 | `getOrderStatusLabel($status)` | Человеческое название статуса |
 | `getOrderStatusClass($status)` | CSS-класс для бейджа |
+| `starsHtml($rating)` | HTML звёзд по оценке 0–5 (FontAwesome) |
+| `getProductRatings($partIds)` | `[part_id => [avg, count]]` по одобренным отзывам |
+| `productStarsInline($partId, $ratings)` | Компактная строка звёзд для карточки товара |
+| `userPurchasedPart($userId, $partId)` | Купил ли пользователь товар (доставленный заказ) |
+| `getShopRatingSummary()` | `[avg, count]` по одобренным отзывам о магазине |
+
+> Хелперы отзывов (`getProductRatings`, `getShopRatingSummary`) обёрнуты
+> в `try/catch (PDOException)` — возвращают пусто, если миграции отзывов
+> ещё не применены, чтобы страницы не падали.
 
 ---
 
 ## CHANGELOG / История изменений
 
-История последних правок на ветке `claude/review-repository-CglIw` (PR #16).
 Описано в формате «что → где → зачем», чтобы любой разработчик мог
-сориентироваться в коде.
+сориентироваться в коде. Новые записи — сверху.
+
+### Система отзывов: товары + магазин (PR #57)
+
+**Цель:** реальные отзывы от покупателей вместо пустой заглушки, с
+премодерацией и защитой от накруток.
+
+**Правила:** отзыв оставляет только авторизованный пользователь; каждый
+отзыв проходит модерацию; на товар можно оставить отзыв **только после
+получения** (доставленный заказ); один отзыв на товар/магазин от
+пользователя (повторная отправка перезаписывает и снова уходит на проверку).
+
+| Файл | Что изменено / добавлено |
+|------|--------------------------|
+| `sql/migrate_reviews.sql` | **Новый.** Таблица `product_reviews` (part_id, user_id, rating 1-5, comment, status pending/approved/rejected, uk part+user, FK cascade). |
+| `sql/migrate_reviews_v2.sql` | **Новый.** Таблица `shop_reviews` (отзывы о магазине) + колонка `is_featured` в `product_reviews`. Применять строго после `migrate_reviews.sql`. |
+| `api/review_submit.php` | **Новый.** Приём отзыва на товар: CSRF, проверка авторизации, проверка покупки (`userPurchasedPart`), валидация, `INSERT … ON DUPLICATE KEY UPDATE` со сбросом в `pending`. |
+| `api/shop_review_submit.php` | **Новый.** Приём отзыва о магазине (без проверки покупки, только авторизация). |
+| `pages/reviews.php` | **Новый.** Публичная страница «Отзывы о магазине»: рейтинг компании, список одобренных, форма со звёздами. |
+| `manager/reviews.php` | **Новый.** Модерация: переключатель Товары/Магазин, фильтры по статусу со счётчиками, одобрить / отклонить / удалить, тумблер «в витрину О нас» (is_featured). |
+| `catalog/part.php` | Вкладка «Отзывы»: средний рейтинг, список, форма; гейтинг по покупке; статус своего отзыва. |
+| `catalog/index.php`, `catalog/category.php`, `index.php` | Звёзды-рейтинг в карточках товаров (`getProductRatings` + `productStarsInline`). |
+| `pages/about.php` | Блок «Что говорят клиенты» подтягивает реальные отзывы с `is_featured=1`; фолбэк на ручные `site_sections`, если ничего не помечено. |
+| `includes/functions.php` | Новые хелперы: `starsHtml`, `getProductRatings`, `productStarsInline`, `userPurchasedPart`, `getShopRatingSummary`. Все запросы к таблицам отзывов обёрнуты в `try/catch (PDOException)` — страницы работают без миграции. |
+| `includes/header.php`, `footer.php` | Ссылка «Отзывы о магазине» в шапке, мегаменю и футере. |
+| Сайдбары менеджера | Пункт «Отзывы» с бейджем числа ожидающих модерации. |
+| `lang/ru|tg|en.php` | Строки интерфейса отзывов (RU/TG/EN). |
+
+> **Деградация без миграции:** если таблицы `product_reviews` /
+> `shop_reviews` ещё не созданы, главная, каталог, категория, страница
+> товара и «О нас» работают как раньше (запросы в `try/catch` →
+> пустой результат). Сайт не упадёт при любом порядке деплоя.
+
+### CMS страницы «О нас» и категории блога (PR #55, #56)
+
+**Цель:** контент статичных блоков редактируется из админки, без правки кода.
+
+| Файл | Что изменено / добавлено |
+|------|--------------------------|
+| `sql/migrate_cms.sql` | **Новый.** Колонка `category` в `blog_posts`; таблица `site_sections` (slug-keyed, многоязычные `title/subtitle/content_ru|tg|en`, image, sort_order, is_active). Дефолтные строки: hero, team, reviews, stores, signature, 3 benefit, 4 faq, 3 testimonial. |
+| `manager/pages.php` | **Новый.** Редактор разделов «О нас»: 4 группы (основные / преимущества / FAQ / отзывы), поле «Роль/Должность» для отзывов, загрузка изображений. |
+| `manager/blog.php` | Поле «Категория» (news / tips / review / other) в форме и списке статей. |
+| `pages/about.php` | Все блоки (hero, подпись, 3 иконки преимуществ, FAQ-аккордеон, витрина) читаются из `site_sections` с фолбэком на `t()`-ключи. |
+| `pages/blog.php` | Фильтр-табы по категориям (`?cat=`). |
+| Сайдбары менеджера | Пункт «Страницы». |
+
+### Только сомони (TJS / СМН) (PR #51, #53)
+
+| Файл | Что изменено |
+|------|--------------|
+| `sql/only_tjs_currency.sql` | **Новый.** Отключает все валюты кроме TJS, символ `СМН`, `is_default=1`. |
+| `includes/currency.php` | Фолбэк-валюта — TJS со символом `СМН`; `getCurrencySymbol()` → `СМН`. |
+| `includes/header.php` | Удалён переключатель валют (десктоп + оффканвас). |
+
+### Мега-меню навигации (PR #50)
+
+| Файл | Что изменено |
+|------|--------------|
+| `includes/header.php` | Классы `az-has-megamenu` / `az-megamenu--sm` / `az-megamenu--wide`. |
+| `assets/css/custom.css` | Стили мега-меню; `li.az-has-megamenu{position:relative}`, `--wide{position:static}`; `.sticky-header,.header_bottom{overflow:visible}`. |
+
+### Cache-busting и фиксы вёрстки (PR #52, #53, #54)
+
+| Файл | Что изменено |
+|------|--------------|
+| `includes/header.php`, `footer.php` | `?v=<filemtime>` к `custom.css`, `main.js`, `app.js` — браузер всегда тянет свежую статику. |
+| `includes/functions.php` | `productImageUrl()` различает абсолютный URL и относительный путь — фикс «двойного URL» (фото товаров не отображались). |
+| `assets/css/custom.css` | Subscribe-форма на `flexbox`; кнопка ТАМОС `inline-flex` height 50px. |
+| `assets/mazlay-js/main.js`, `assets/js/app.js` | Кнопка «наверх» через `window.scrollTo({top:0,behavior:'smooth'})`. |
 
 ### Mobile P0 — адаптация под iPhone 15 Pro Max и SE (PR #16)
 
@@ -1278,9 +1408,19 @@ function sanitize($input): string {
 На сервере (`/var/www/html/avtozapchast`):
 ```bash
 sudo git pull origin main
+
+# Применить новые миграции, если они появились в этом обновлении
+# (идемпотентны — повторный запуск безопасен; порядок важен)
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_cms.sql
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_reviews.sql
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_reviews_v2.sql
+
 sudo systemctl reload php8.2-fpm
 sudo systemctl reload nginx
 ```
+
+> Код устойчив к отсутствию таблиц отзывов (запросы в `try/catch`), но
+> миграции всё равно нужно применить, чтобы функционал заработал.
 
 Если `git status` показывает 199 «изменённых» файлов — это разница
 прав доступа. Лечится один раз:

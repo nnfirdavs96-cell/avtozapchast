@@ -138,6 +138,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
             <li><a href="<?= APP_URL ?>/manager/brands.php"><i class="fa fa-tag"></i> Бренды</a></li>
             <li><a href="<?= APP_URL ?>/manager/blog.php" class="active"><i class="fa fa-newspaper-o"></i> Блог</a></li>
             <li><a href="<?= APP_URL ?>/manager/pages.php"><i class="fa fa-file-text-o"></i> Страницы</a></li>
+            <li><a href="<?= APP_URL ?>/manager/reviews.php"><i class="fa fa-star"></i> Отзывы</a></li>
             <li style="border-top:1px solid rgba(255,255,255,0.1);margin-top:12px;">
                 <a href="<?= APP_URL ?>/index.php"><i class="fa fa-home"></i> На сайт</a>
             </li>
