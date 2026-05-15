@@ -721,9 +721,13 @@
     
     /*---categories slideToggle---*/
     $(".categories_title").on("click", function() {
+        // On mobile the class-based toggle in app.js (.is-open) owns this menu.
+        // Running jQuery slideToggle here too leaves inline height:0/overflow:hidden
+        // that clips the category list -> empty dropdown box.
+        if ($(window).width() < 992) return;
         $(this).toggleClass('active');
         $('.categories_menu_toggle').slideToggle('medium');
-    }); 
+    });
 
     /*---widget sub categories---*/
     $(".sub_categories1 > a").on("click", function() {
