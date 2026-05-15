@@ -430,7 +430,9 @@ avtozapchast/
 │   ├── parts.php           #   - CRUD запчастей + изображения
 │   ├── categories.php      #   - Иерархические категории
 │   ├── brands.php          #   - Бренды (Bosch, NGK и т.д.)
-│   └── blog.php            #   - CRUD блога (RU/TG/EN + обложка)
+│   ├── blog.php            #   - CRUD блога (RU/TG/EN + обложка + категория)
+│   ├── pages.php           #   - CMS: разделы страницы «О нас»
+│   └── reviews.php         #   - Модерация отзывов (товары/магазин)
 │
 ├── superadmin/             # 🔧 Панель суперадминистратора
 │   ├── index.php           #   - Главный дашборд (вся статистика)
@@ -457,14 +459,25 @@ avtozapchast/
 │   └── logout.php          #   - Выход
 │
 ├── api/                    # 🌐 API endpoints
-│   └── upload.php          #   - Загрузка изображений (manager/admin/superadmin)
+│   ├── upload.php          #   - Загрузка изображений (manager/admin/superadmin)
+│   ├── cart.php            #   - Корзина (add/remove/count)
+│   ├── wishlist.php        #   - Избранное
+│   ├── search.php          #   - Живой поиск
+│   ├── vin_analogs.php     #   - VIN: аналоги запчастей
+│   ├── review_submit.php   #   - Отправка отзыва на товар (после покупки)
+│   └── shop_review_submit.php #  - Отправка отзыва о магазине
 │
 ├── catalog/                # 🛒 Каталог
-│   ├── shop.php            #   - Список товаров с фильтрами
-│   └── product.php         #   - Карточка товара
+│   ├── index.php           #   - Список товаров с фильтрами (+ звёзды-рейтинг)
+│   ├── category.php        #   - Товары категории (+ звёзды-рейтинг)
+│   └── part.php            #   - Карточка товара + вкладка «Отзывы»
 │
 ├── pages/                  # 📄 Статичные страницы
-│   ├── about.php           #   - О компании
+│   ├── about.php           #   - О компании (CMS site_sections + витрина отзывов)
+│   ├── reviews.php         #   - Отзывы о магазине (публичная страница + форма)
+│   ├── blog.php            #   - Блог (фильтр по категориям)
+│   ├── blog-detail.php     #   - Статья блога
+│   ├── vin.php             #   - VIN-поиск запчастей
 │   ├── contact.php         #   - Контакты + карта
 │   ├── faq.php             #   - Часто задаваемые вопросы
 │   └── 404.php             #   - Страница не найдена
@@ -505,7 +518,12 @@ avtozapchast/
 │   ├── schema.sql          #   - v1: основные таблицы
 │   ├── schema_v2.sql       #   - v2: wishlist, currencies, blog
 │   ├── schema_v3.sql       #   - v3: backups, warehouse log
-│   └── schema_v4.sql       #   - v4: sliders, blog image
+│   ├── schema_v4.sql       #   - v4: sliders, blog image
+│   ├── migrate_cms.sql     #   - CMS: site_sections + категория блога
+│   ├── migrate_reviews.sql #   - Отзывы на товары (product_reviews)
+│   ├── migrate_reviews_v2.sql # - Отзывы о магазине + is_featured
+│   ├── only_tjs_currency.sql  # - Оставить только валюту TJS (СМН)
+│   └── migrate_vin*.sql    #   - VIN-поиск (декодер, аналоги)
 │
 └── storage/                # 💼 Хранилище
     └── backups/            #   - SQL-дампы резервных копий
@@ -624,13 +642,34 @@ avtozapchast/
 - CRUD статей на 3 языках (RU/TG/EN)
 - Загрузка обложки статьи
 - Slug (URL-friendly идентификатор) с авто-генерацией из заголовка
+- Категория статьи (Новости / Советы по ТО / Обзоры / Другое)
 - Черновик / Опубликовано
+
+**Страницы — CMS «О нас»** (`/manager/pages.php`):
+- Редактирование разделов страницы «О нас» из `site_sections`
+- 4 группы: основные разделы, преимущества (3 иконки), FAQ (4 пункта), отзывы (3 шт.)
+- Многоязычно (RU/TG/EN), загрузка изображений, сортировка, скрыть/показать
+
+**Отзывы — модерация** (`/manager/reviews.php`):
+- Переключатель **Товары / Магазин**
+- Фильтры по статусу (ожидают / одобрены / отклонены / все) со счётчиками
+- Одобрить / отклонить / удалить
+- Тумблер «в витрину О нас» (`is_featured`) — одобренный отзыв
+  попадает в блок «Что говорят клиенты» на странице «О нас»
+- Бейдж количества ожидающих модерации во всех сайдбарах менеджера
 
 ### 👤 Покупатель
 
 **Витрина** (`/index.php`):
 - Просмотр товаров, поиск, фильтры
+- Средний рейтинг (звёзды) в карточках товаров
 - Добавление в корзину/избранное
+
+**Отзывы:**
+- Отзыв на товар (`/catalog/part.php`) — только после получения заказа,
+  с премодерацией; на вкладке «Отзывы» виден статус своего отзыва
+- Отзыв о магазине (`/pages/reviews.php`) — для любого авторизованного,
+  с премодерацией
 
 **Личный кабинет** (`/buyer/`):
 - История заказов
@@ -1141,6 +1180,15 @@ if ($flash = getFlashMessage()) {
 | `getStockStatus($qty)` | Статус остатка (in / low / out) |
 | `getOrderStatusLabel($status)` | Человеческое название статуса |
 | `getOrderStatusClass($status)` | CSS-класс для бейджа |
+| `starsHtml($rating)` | HTML звёзд по оценке 0–5 (FontAwesome) |
+| `getProductRatings($partIds)` | `[part_id => [avg, count]]` по одобренным отзывам |
+| `productStarsInline($partId, $ratings)` | Компактная строка звёзд для карточки товара |
+| `userPurchasedPart($userId, $partId)` | Купил ли пользователь товар (доставленный заказ) |
+| `getShopRatingSummary()` | `[avg, count]` по одобренным отзывам о магазине |
+
+> Хелперы отзывов (`getProductRatings`, `getShopRatingSummary`) обёрнуты
+> в `try/catch (PDOException)` — возвращают пусто, если миграции отзывов
+> ещё не применены, чтобы страницы не падали.
 
 ---
 
