@@ -42,7 +42,7 @@ function getCurrencies(): array {
         $_CURRENCIES_CACHE = $currencies;
         return $currencies;
     } catch (Exception $e) {
-        return [['code'=>'RUB','name_ru'=>'Рубль','name_tg'=>'Рубл','name_en'=>'Ruble','symbol'=>'₽','rate'=>1]];
+        return [['code'=>'TJS','name_ru'=>'Таджикский сомони','name_tg'=>'Сомони','name_en'=>'Tajik Somoni','symbol'=>'СМН','rate'=>1]];
     }
 }
 
@@ -62,7 +62,7 @@ function getCurrencySymbol(?string $code = null): string {
     foreach (getCurrencies() as $c) {
         if ($c['code'] === $code) return $c['symbol'];
     }
-    return '₽';
+    return 'СМН';
 }
 
 /**
