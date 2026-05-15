@@ -22,7 +22,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!in_array($pTbl, $allowed, true)) $pTbl = 'product_reviews';
     $return  = APP_URL . '/manager/reviews.php?type=' . $pType . '&status=' . urlencode($_POST['status'] ?? 'pending');
 
-    if ($rid && $do === 'approve') {
+    if ($do === 'save_messages') {
+        $keys = ['review_msg_submitted', 'review_msg_pending', 'review_msg_purchase_only'];
+        $stmt = $db->prepare("INSERT INTO site_settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value=VALUES(value)");
+        foreach ($keys as $k) {
+            $val = trim($_POST[$k] ?? '');
+            if ($val !== '') $stmt->execute([$k, $val]);
+        }
+        flashMessage('success', 'Тексты сообщений сохранены.');
+        redirect(APP_URL . '/manager/reviews.php?type=' . $pType . '&status=' . urlencode($_POST['status'] ?? 'pending') . '#msg-settings');
+    } elseif ($rid && $do === 'approve') {
         $db->prepare("UPDATE `$pTbl` SET status='approved' WHERE id=?")->execute([$rid]);
         flashMessage('success', 'Отзыв опубликован.');
     } elseif ($rid && $do === 'reject') {
@@ -115,6 +124,56 @@ require_once dirname(__DIR__) . '/includes/header.php';
             <?php if ($flash = getFlashMessage()): ?>
                 <div class="az-alert az-alert-<?= sanitize($flash['type']) ?>"><?= sanitize($flash['message']) ?></div>
             <?php endif; ?>
+
+            <!-- ── Message texts settings ──────────────────────────────────── -->
+            <details id="msg-settings" style="margin-bottom:20px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa;">
+                <summary style="padding:14px 18px;cursor:pointer;font-weight:600;font-size:0.92rem;list-style:none;display:flex;justify-content:space-between;align-items:center;">
+                    <span><i class="fa fa-pencil-square-o" style="color:#d32f2f;margin-right:6px;"></i> Тексты сообщений для пользователей</span>
+                    <i class="fa fa-chevron-down" style="color:#999;font-size:0.75rem;"></i>
+                </summary>
+                <div style="padding:18px;border-top:1px solid #e0e0e0;">
+                    <p style="font-size:0.82rem;color:#888;margin-bottom:16px;">Редактируйте тексты, которые видят покупатели. Оставьте поле пустым — будет использован текст по умолчанию.</p>
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
+                        <input type="hidden" name="do" value="save_messages">
+                        <input type="hidden" name="type" value="<?= $type ?>">
+                        <input type="hidden" name="status" value="<?= $statusFilter ?>">
+
+                        <div style="margin-bottom:14px;">
+                            <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:5px;">
+                                ✅ Заголовок подтверждения (после отправки отзыва)
+                            </label>
+                            <input type="text" name="review_msg_submitted" maxlength="200"
+                                   placeholder="<?= htmlspecialchars(t('review_submitted')) ?>"
+                                   value="<?= htmlspecialchars(getSetting('review_msg_submitted')) ?>"
+                                   style="width:100%;border:1px solid #ddd;border-radius:6px;padding:9px 12px;font-size:0.9rem;">
+                        </div>
+
+                        <div style="margin-bottom:14px;">
+                            <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:5px;">
+                                ⏳ Пояснение под заголовком (отзыв на проверке)
+                            </label>
+                            <input type="text" name="review_msg_pending" maxlength="300"
+                                   placeholder="<?= htmlspecialchars(t('review_pending')) ?>"
+                                   value="<?= htmlspecialchars(getSetting('review_msg_pending')) ?>"
+                                   style="width:100%;border:1px solid #ddd;border-radius:6px;padding:9px 12px;font-size:0.9rem;">
+                        </div>
+
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:5px;">
+                                🔒 Сообщение «только после покупки» (страница товара)
+                            </label>
+                            <textarea name="review_msg_purchase_only" rows="2" maxlength="500"
+                                      placeholder="<?= htmlspecialchars(t('review_purchase_only')) ?>"
+                                      style="width:100%;border:1px solid #ddd;border-radius:6px;padding:9px 12px;font-size:0.9rem;resize:vertical;"><?= htmlspecialchars(getSetting('review_msg_purchase_only')) ?></textarea>
+                        </div>
+
+                        <button type="submit" style="background:#d32f2f;color:#fff;border:none;padding:9px 22px;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.9rem;">
+                            <i class="fa fa-save"></i> Сохранить тексты
+                        </button>
+                    </form>
+                </div>
+            </details>
 
             <!-- Type switch -->
             <div style="display:flex;gap:10px;margin-bottom:18px;border-bottom:2px solid #eee;padding-bottom:0;">

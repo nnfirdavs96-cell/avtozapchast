@@ -377,13 +377,13 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                             </p>
                                         <?php elseif (!$canReview && !$myReview): ?>
                                             <div class="az-alert" style="background:#f5f5f5;border:1px solid #e0e0e0;color:#666;padding:12px 16px;border-radius:6px;font-size:0.88rem;">
-                                                <i class="fa fa-info-circle"></i> <?= t('review_purchase_only') ?>
+                                                <i class="fa fa-info-circle"></i> <?= sanitize(getSetting('review_msg_purchase_only', t('review_purchase_only'))) ?>
                                             </div>
                                         <?php elseif ($myReview && $myReview['status'] === 'pending'): ?>
                                             <div style="text-align:center;padding:24px 10px;">
                                                 <div style="font-size:2.2rem;margin-bottom:10px;">✅</div>
-                                                <p style="font-size:1rem;font-weight:600;margin-bottom:6px;color:#333;"><?= t('review_submitted') ?></p>
-                                                <p style="font-size:0.85rem;color:#888;line-height:1.6;"><?= t('review_pending') ?></p>
+                                                <p style="font-size:1rem;font-weight:600;margin-bottom:6px;color:#333;"><?= sanitize(getSetting('review_msg_submitted', t('review_submitted'))) ?></p>
+                                                <p style="font-size:0.85rem;color:#888;line-height:1.6;"><?= sanitize(getSetting('review_msg_pending', t('review_pending'))) ?></p>
                                             </div>
                                         <?php else: ?>
                                             <?php if ($myReview && $myReview['status'] === 'rejected'): ?>
