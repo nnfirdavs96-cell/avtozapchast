@@ -429,6 +429,14 @@ function paginationHtml(array $page, string $baseUrl): string {
  */
 function productImageUrl($images, int $index = 0): string {
     if (is_string($images)) $images = json_decode($images, true);
-    if (!empty($images[$index])) return UPLOAD_URL . $images[$index];
+    if (!empty($images[$index])) {
+        $img = $images[$index];
+        // Уже абсолютный URL или корневой путь — возвращаем как есть
+        if (preg_match('#^(https?:)?//#i', $img) || str_starts_with($img, '/')) {
+            return $img;
+        }
+        // Относительный путь вида "products/foo.jpg" — добавляем UPLOAD_URL
+        return UPLOAD_URL . ltrim($img, '/');
+    }
     return APP_URL . '/assets/img/product/placeholder.jpg';
 }

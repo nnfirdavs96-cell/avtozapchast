@@ -40,7 +40,7 @@ $related = $relStmt->fetchAll();
 $images = is_string($part['images']) ? json_decode($part['images'], true) : ($part['images'] ?? []);
 if (!is_array($images)) $images = [];
 
-$mainImage = !empty($images[0]) ? UPLOAD_URL . $images[0] : APP_URL . '/assets/img/product/product1.jpg';
+$mainImage = !empty($images[0]) ? productImageUrl($images, 0) : APP_URL . '/assets/img/product/product1.jpg';
 
 $stock     = getStockStatus((int)$part['stock']);
 $pageTitle = $part['name'];
@@ -77,14 +77,14 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <?php if (count($images) > 1): ?>
                         <div class="single-zoom-thumb">
                             <ul class="s-tab-zoom owl-carousel single-product-active" id="gallery_01">
-                                <?php foreach ($images as $i => $img): ?>
+                                <?php foreach ($images as $i => $img): $imgU = productImageUrl($images, $i); ?>
                                 <li>
                                     <a href="#"
                                        class="elevatezoom-gallery <?= $i === 0 ? 'active' : '' ?>"
                                        data-update=""
-                                       data-image="<?= sanitize(UPLOAD_URL . $img) ?>"
-                                       data-zoom-image="<?= sanitize(UPLOAD_URL . $img) ?>">
-                                        <img src="<?= sanitize(UPLOAD_URL . $img) ?>"
+                                       data-image="<?= sanitize($imgU) ?>"
+                                       data-zoom-image="<?= sanitize($imgU) ?>">
+                                        <img src="<?= sanitize($imgU) ?>"
                                              alt="<?= sanitize($part['name']) ?> <?= $i + 1 ?>"/>
                                     </a>
                                 </li>
