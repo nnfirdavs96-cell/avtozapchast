@@ -287,7 +287,13 @@
    NEWSLETTER / SUBSCRIBE — desktop fix
    ══════════════════════════════════════════════ */
 
-/* Subscribe form: flex-layout, input + кнопка в одну строку */
+/* Newsletter: выравниваем 3 колонки, контент не растягивается на всю ширину */
+.newsletter_area .newsletter_inner .row { align-items: flex-start; }
+.newsletter_container { max-width: 420px; }
+.newsletter_container.col_3 { margin-left: auto; }
+
+/* Subscribe form: flex-layout, input + кнопка в одну строку, ограничена по ширине */
+.subscribe_form { max-width: 400px; }
 .subscribe_form form {
     display: flex !important;
     flex-direction: row !important;
