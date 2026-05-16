@@ -651,13 +651,19 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
         position: relative;
         -webkit-tap-highlight-color: transparent;
     }
-    /* Доп. guard на основные wrapper'ы — на случай если body{overflow-x} не сработает */
-    header, main, footer,
-    .main_header, .slider_area, .banner_area, .home_section_bg,
+    /* Доп. guard на основные wrapper'ы — на случай если body{overflow-x} не сработает.
+       ВАЖНО: header/.main_header сюда НЕ входят — overflow-x:clip заодно режет
+       overflow-y, из-за чего выпадающее меню «Все категории» обрезалось шапкой
+       (уходило за баннер). Горизонтальный скролл и так гасит body{overflow-x:hidden}. */
+    main, footer,
+    .slider_area, .banner_area, .home_section_bg,
     .breadcrumbs_area, .shop_area, .product_details, .footer_widgets_area,
     .footer_bottom_area, .categories_product_area, .product_area,
     .blog_area, .brand_area, .shipping_area, .welcome_title,
     section, .section { max-width: 100vw; overflow-x: clip; }
+
+    /* Шапка должна позволять выпадающему меню категорий выходить за свои границы */
+    header, .main_header { max-width: 100vw; overflow: visible !important; }
 
     .container, .container-fluid {
         max-width: 100%;
