@@ -14,7 +14,7 @@
   let lastQuery = '';
 
   function formatPrice(p) {
-    return parseFloat(p).toLocaleString('ru-RU', { maximumFractionDigits: 0 }) + ' ₽';
+    return parseFloat(p).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' <span class="cur-sym">смн</span>';
   }
 
   function renderResults(results, query) {

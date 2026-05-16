@@ -73,10 +73,12 @@ function formatPrice($priceRub, ?string $currency = null): string {
     $rate     = getCurrencyRate($currency);
     $converted = (float)$priceRub * $rate;
     $symbol    = getCurrencySymbol($currency);
+    $symLower  = function_exists('mb_strtolower') ? mb_strtolower($symbol, 'UTF-8') : strtolower($symbol);
+    $symHtml   = '<span class="cur-sym">' . $symLower . '</span>';
     if ($currency === 'RUB') {
-        return number_format($converted, 0, ',', ' ') . ' ' . $symbol;
+        return number_format($converted, 0, ',', ' ') . ' ' . $symHtml;
     }
-    return $symbol . number_format($converted, 2, '.', ',');
+    return number_format($converted, 2, '.', ',') . ' ' . $symHtml;
 }
 
 /**

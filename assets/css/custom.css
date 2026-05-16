@@ -1,5 +1,14 @@
 /* АвтоЗапчасть — custom overrides for Mazlay template */
 
+/* Валюта в цене — мелкими строчными буквами после суммы (650.00 смн) */
+.cur-sym {
+    font-size: 0.72em;
+    font-weight: 500;
+    opacity: 0.75;
+    margin-left: 2px;
+    text-transform: lowercase;
+}
+
 /* Admin sidebar / panel common styles */
 .az-panel { display: flex; min-height: 100vh; }
 .az-sidebar {
