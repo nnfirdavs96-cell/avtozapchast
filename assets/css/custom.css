@@ -822,7 +822,7 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
 
     /* ── Header middle: логотип слева, иконки справа, поиск ниже ── */
     .header_middle { padding: 10px 0; background: #222; }
-    .header_middle .container { padding: 0 12px; }
+    .header_middle .container { padding: 0 16px; }
     .header_middle .row { display: flex; align-items: center; flex-wrap: wrap; margin: 0; }
 
     /* Логотип */
@@ -904,7 +904,7 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
 
     /* ── Header bottom / Nav ── */
     .header_bottom { background: #d32f2f; padding: 0; }
-    .header_bottom .container { padding: 0 12px; }
+    .header_bottom .container { padding: 0 16px; }
     .header_bottom .row { align-items: center; min-height: 44px; flex-wrap: nowrap; }
 
     /* Скрываем десктоп-меню, телефон и ОРИГИНАЛЬНЫЙ бургер Mazlay в красной полосе */
@@ -949,7 +949,7 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
 
     /* ── Top tags (категории strip) ── */
     .top_tags_area { padding: 8px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .top_tags_area .container { padding: 0 12px; }
+    .top_tags_area .container { padding: 0 16px; }
     .top_tags_area ul {
         flex-wrap: nowrap; gap: 10px;
         padding-bottom: 4px; font-size: 0.78rem;
