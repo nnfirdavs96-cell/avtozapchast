@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 requireRole(['manager', 'admin', 'superadmin']);
+requirePermission('brands');
 
 $db     = getDB();
 $csrf   = generateCsrfToken();

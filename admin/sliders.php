@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 requireRole(['admin', 'superadmin']);
+requirePermission('sliders');
 
 $db   = getDB();
 $csrf = generateCsrfToken();
