@@ -7,8 +7,9 @@
 UPDATE currencies SET is_default = 0;
 UPDATE currencies SET is_default = 1 WHERE code = 'TJS';
 
--- Актуальный курс: 1 RUB ≈ 0.115 TJS (май 2026)
-UPDATE currencies SET rate = 0.115000 WHERE code = 'TJS';
+-- Прямое ценообразование в сомони: цена в БД = цена на витрине (rate = 1).
+-- Сайт только для таджикского рынка, пересчёт из рублей не нужен.
+UPDATE currencies SET rate = 1.000000 WHERE code = 'TJS';
 UPDATE currencies SET rate = 1.000000 WHERE code = 'RUB';
 UPDATE currencies SET rate = 0.011000 WHERE code = 'USD';
 

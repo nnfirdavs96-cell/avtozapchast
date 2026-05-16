@@ -228,7 +228,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                                        placeholder="BKR6EK" required>
                             </div>
                             <div class="az-form-group">
-                                <label>Цена продажи (₽) *</label>
+                                <label>Цена продажи (СМН) *</label>
                                 <input type="number" id="fieldPrice" name="price" step="0.01" min="0"
                                        value="<?= sanitize($editPart['price'] ?? ($_POST['price'] ?? '')) ?>"
                                        placeholder="1500.00" required>
@@ -237,7 +237,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
 
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;background:#fafafa;border:1px solid #e9ecef;border-radius:8px;padding:14px;margin-bottom:16px;">
                             <div class="az-form-group" style="margin:0;">
-                                <label>Себестоимость / закупка (₽)</label>
+                                <label>Себестоимость / закупка (СМН)</label>
                                 <input type="number" id="fieldCostPrice" name="cost_price" step="0.01" min="0"
                                        value="<?= sanitize((string)($editPart['cost_price'] ?? ($_POST['cost_price'] ?? ''))) ?>"
                                        placeholder="1000.00">

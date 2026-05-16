@@ -212,7 +212,7 @@ function adminSidebar(string $active = ''): void {
                                            placeholder="BKR6EK" required>
                                 </div>
                                 <div class="az-form-group">
-                                    <label>Цена продажи (₽) *</label>
+                                    <label>Цена продажи (СМН) *</label>
                                     <input type="number" id="fieldPrice" name="price" step="0.01" min="0.01"
                                            value="<?= sanitize((string)($editPart['price'] ?? ($_POST['price'] ?? ''))) ?>"
                                            placeholder="1500.00" required>
@@ -221,7 +221,7 @@ function adminSidebar(string $active = ''): void {
 
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;background:#fafafa;border:1px solid #e9ecef;border-radius:8px;padding:14px;margin-bottom:8px;">
                                 <div class="az-form-group" style="margin:0;">
-                                    <label>Себестоимость / закупка (₽)</label>
+                                    <label>Себестоимость / закупка (СМН)</label>
                                     <input type="number" id="fieldCostPrice" name="cost_price" step="0.01" min="0"
                                            value="<?= sanitize((string)($editPart['cost_price'] ?? ($_POST['cost_price'] ?? ''))) ?>"
                                            placeholder="1000.00">
