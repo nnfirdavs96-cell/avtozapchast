@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 requireRole(['manager', 'admin', 'superadmin']);
+requirePermission('products');
 
 $db     = getDB();
 $csrf   = generateCsrfToken();
@@ -235,6 +236,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                             </div>
                         </div>
 
+                        <?php if (userCan('markup')): ?>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;background:#fafafa;border:1px solid #e9ecef;border-radius:8px;padding:14px;margin-bottom:16px;">
                             <div class="az-form-group" style="margin:0;">
                                 <label>Себестоимость / закупка (СМН)</label>
@@ -250,6 +252,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                                 <small style="color:#888;font-size:0.78rem;">Заполните для авторасчёта цены</small>
                             </div>
                         </div>
+                        <?php endif; ?>
 
                         <div class="az-form-group">
                             <label>Название *</label>
@@ -346,6 +349,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                         const cost   = document.getElementById('fieldCostPrice');
                         const markup = document.getElementById('fieldMarkup');
                         const price  = document.getElementById('fieldPrice');
+                        if (!cost || !markup || !price) return; // markup fields hidden by permission
                         function recalc() {
                             const c = parseFloat(cost.value);
                             const m = parseFloat(markup.value);

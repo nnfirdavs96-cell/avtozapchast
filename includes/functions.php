@@ -58,6 +58,85 @@ function requireRole($role): void {
 }
 
 /**
+ * Catalog of permission-controlled sections.
+ * Superadmin delegates these per-user to admin/manager staff.
+ * key => ['label' => ..., 'roles' => [roles this section is relevant for]]
+ */
+function permissionSections(): array {
+    return [
+        'products'   => ['label' => 'Товары / Запчасти',          'roles' => ['admin','manager']],
+        'markup'     => ['label' => 'Себестоимость и наценка',     'roles' => ['admin','manager']],
+        'sliders'    => ['label' => 'Слайдер / Баннеры',           'roles' => ['admin']],
+        'orders'     => ['label' => 'Заказы',                      'roles' => ['admin']],
+        'users'      => ['label' => 'Пользователи',                'roles' => ['admin']],
+        'categories' => ['label' => 'Категории',                   'roles' => ['manager']],
+        'brands'     => ['label' => 'Бренды',                      'roles' => ['manager']],
+        'blog'       => ['label' => 'Блог',                        'roles' => ['admin','manager']],
+        'pages'      => ['label' => 'Страницы (CMS)',              'roles' => ['manager']],
+        'reviews'    => ['label' => 'Отзывы',                      'roles' => ['manager']],
+        'warehouse'  => ['label' => 'Склад API',                   'roles' => ['admin']],
+        'vin'        => ['label' => 'VIN-поиск',                   'roles' => ['admin']],
+    ];
+}
+
+/**
+ * Sidebar keys that map onto a permission section
+ * (admin uses "products", manager uses "parts" for the same area).
+ */
+function permissionAlias(string $key): string {
+    return $key === 'parts' ? 'products' : $key;
+}
+
+/**
+ * Explicit per-user allowed sections.
+ * Returns NULL when the superadmin has NOT configured this user
+ * → no restriction, behaves exactly as before (graceful default).
+ * Returns array (possibly empty) when explicitly configured.
+ */
+function getUserAllowedSections(int $userId): ?array {
+    static $cache = [];
+    if (array_key_exists($userId, $cache)) return $cache[$userId];
+    try {
+        $db   = getDB();
+        $stmt = $db->prepare("SELECT sections FROM user_permissions WHERE user_id = ? LIMIT 1");
+        $stmt->execute([$userId]);
+        $row = $stmt->fetch();
+        if (!$row) { return $cache[$userId] = null; }
+        $list = json_decode((string)$row['sections'], true);
+        return $cache[$userId] = (is_array($list) ? $list : []);
+    } catch (PDOException $e) {
+        // Table not migrated yet → no restriction
+        return $cache[$userId] = null;
+    }
+}
+
+/**
+ * Can the CURRENT user access a permission section?
+ * superadmin: always. No explicit config: always (as before).
+ */
+function userCan(string $section): bool {
+    if (!isLoggedIn()) return false;
+    $role = $_SESSION['role'] ?? '';
+    if ($role === 'superadmin') return true;
+    $section = permissionAlias($section);
+    $allowed = getUserAllowedSections((int)($_SESSION['user_id'] ?? 0));
+    if ($allowed === null) return true;          // not configured → unchanged behavior
+    return in_array($section, $allowed, true);
+}
+
+/**
+ * Gate a page by permission section. Call AFTER requireRole(...)
+ * so role/auth is already enforced; this only narrows access when
+ * the superadmin has explicitly restricted the user.
+ */
+function requirePermission(string $section): void {
+    if (($_SESSION['role'] ?? '') === 'superadmin') return;
+    if (userCan($section)) return;
+    flashMessage('danger', 'Доступ к этому разделу ограничён администратором.');
+    redirect(APP_URL . '/index.php');
+}
+
+/**
  * Redirect helper
  */
 function redirect(string $url): void {
@@ -88,6 +167,7 @@ function renderRoleSidebar(string $active = ''): void {
         $items = [
             ['key' => 'dashboard',  'href' => "$url/superadmin/index.php",   'icon' => 'fa-tachometer',   'label' => 'Панель'],
             ['key' => 'users',      'href' => "$url/superadmin/users.php",   'icon' => 'fa-users',        'label' => 'Пользователи'],
+            ['key' => 'permissions','href' => "$url/superadmin/permissions.php",'icon' => 'fa-shield',     'label' => 'Права доступа'],
             ['key' => 'orders',     'href' => "$url/admin/orders.php",       'icon' => 'fa-shopping-bag', 'label' => 'Заказы'],
             ['key' => 'products',   'href' => "$url/admin/products.php",     'icon' => 'fa-cogs',         'label' => 'Товары'],
             ['key' => 'sliders',    'href' => "$url/admin/sliders.php",      'icon' => 'fa-picture-o',    'label' => 'Слайдер'],
@@ -130,6 +210,11 @@ function renderRoleSidebar(string $active = ''): void {
     echo $logoHtml;
     echo '<nav><ul>';
     foreach ($items as $it) {
+        // Hide links the superadmin has restricted for this user.
+        // 'dashboard' is always visible (entry point).
+        if ($it['key'] !== 'dashboard' && !userCan(permissionAlias($it['key']))) {
+            continue;
+        }
         $cls = $it['key'] === $active ? ' class="active"' : '';
         echo '<li><a href="' . sanitize($it['href']) . '"' . $cls . '><i class="fa ' . sanitize($it['icon']) . '"></i> ' . sanitize($it['label']) . '</a></li>';
     }
