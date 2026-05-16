@@ -53,6 +53,9 @@ function formatBytes($bytes, $precision = 1): string {
       <a href="<?= APP_URL ?>/superadmin/users.php" class="az-sidebar-link">
         <i class="fa fa-users"></i> Пользователи
       </a>
+      <a href="<?= APP_URL ?>/superadmin/permissions.php" class="az-sidebar-link">
+        <i class="fa fa-shield"></i> Права доступа
+      </a>
       <a href="<?= APP_URL ?>/admin/orders.php" class="az-sidebar-link">
         <i class="fa fa-shopping-bag"></i> Заказы
       </a>

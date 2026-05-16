@@ -127,6 +127,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
     <nav class="az-sidebar-nav">
       <a href="<?= APP_URL ?>/superadmin/index.php" class="az-sidebar-link"><i class="fa fa-star"></i> Панель</a>
       <a href="<?= APP_URL ?>/superadmin/users.php" class="az-sidebar-link active" style="color:#ce93d8;"><i class="fa fa-users"></i> Пользователи</a>
+      <a href="<?= APP_URL ?>/superadmin/permissions.php" class="az-sidebar-link"><i class="fa fa-shield"></i> Права доступа</a>
       <a href="<?= APP_URL ?>/admin/orders.php" class="az-sidebar-link"><i class="fa fa-shopping-bag"></i> Заказы</a>
       <a href="<?= APP_URL ?>/admin/products.php" class="az-sidebar-link"><i class="fa fa-cogs"></i> Товары</a>
       <a href="<?= APP_URL ?>/admin/sliders.php" class="az-sidebar-link"><i class="fa fa-picture-o"></i> Слайдер</a>
@@ -218,6 +219,12 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
               <?php endif; ?>
             </div>
             <button type="submit" class="az-btn az-btn-primary"><?= $editUser ? 'Сохранить изменения' : 'Создать пользователя' ?></button>
+            <?php if ($editUser && in_array($editUser['role'] ?? '', ['admin','manager'], true)): ?>
+            <a href="<?= APP_URL ?>/superadmin/permissions.php?user_id=<?= (int)$editUser['id'] ?>"
+               class="az-btn az-btn-outline" style="margin-left:8px;border-color:#9b59b6;color:#6a1b9a;">
+              <i class="fa fa-shield"></i> Права доступа
+            </a>
+            <?php endif; ?>
           </form>
         </div>
       </div>
