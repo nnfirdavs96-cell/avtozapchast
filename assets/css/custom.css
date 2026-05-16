@@ -243,8 +243,13 @@
 /* Слайдер: гарантированный min-height и фон из data-bgimg */
 .slider_area .single_slider {
     min-height: 420px;
-    background-size: cover; background-position: center center;
-    background-repeat: no-repeat;
+    /* Mazlay style.css задаёт `background: #000` шорткатом ПОСЛЕ
+       background-size/position, сбрасывая их → картинка не растягивается
+       и слева остаётся чёрная полоса. Форсируем cover/center. */
+    background-size: cover !important;
+    background-position: center center !important;
+    background-repeat: no-repeat !important;
+    background-color: #000 !important;
 }
 
 /* Owl-carousel: показываем контейнер сразу (до инициализации плагина),
