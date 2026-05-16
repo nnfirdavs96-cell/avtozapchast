@@ -30,6 +30,7 @@
 
     /*---slider activation---*/
     var $sliderCarousel = $('.slider_carousel');
+    var sliderTimer = null;
 
     /* Прогресс-таймер: вставляем новый span в активную точку — анимация стартует с нуля */
     function resetSliderDotProgress() {
@@ -38,28 +39,50 @@
             .append('<span class="dot-progress"></span>');
     }
 
+    /* Свой таймер вместо встроенного owl autoplay.
+       Встроенный autoplay с loop+animateOut зависает после свайпа/ховера/
+       смены вкладки: прогресс-точка докручивается (серая), а слайд стоит.
+       setInterval надёжен и всегда синхронен с CSS-анимацией точки
+       (оба = 15s, сбрасываются вместе на каждой смене слайда). */
+    function startSliderTimer() {
+        clearInterval(sliderTimer);
+        sliderTimer = setInterval(function () {
+            $sliderCarousel.trigger('next.owl.carousel');
+        }, 15000);
+    }
+
     /* ВАЖНО: события owl стреляют синхронно при .owlCarousel(...),
        поэтому биндим обработчики ДО инициализации */
     $sliderCarousel.on('changed.owl.carousel', function() {
         setTimeout(resetSliderDotProgress, 30);
+        startSliderTimer();
     });
     $sliderCarousel.on('initialized.owl.carousel', function() {
         setTimeout(resetSliderDotProgress, 100);
+        startSliderTimer();
     });
 
     $sliderCarousel.owlCarousel({
         animateOut: 'fadeOut',
 		loop: true,
         nav: false,
-        autoplay: true,
-        autoplayTimeout: 15000,
-        autoplayHoverPause: true,
+        autoplay: false,
         items: 1,
         dots: true,
     });
 
-    /* Подстраховка: если событие inicialized всё же было пропущено — запустим вручную */
-    setTimeout(resetSliderDotProgress, 500);
+    /* Пауза при наведении (десктоп) — как было с autoplayHoverPause.
+       На мобиле ховера нет, свайп вызовет changed → таймер пересоберётся. */
+    $sliderCarousel.on('mouseenter', function () {
+        clearInterval(sliderTimer);
+        $sliderCarousel.find('.dot-progress').css('animation-play-state', 'paused');
+    }).on('mouseleave', function () {
+        resetSliderDotProgress();
+        startSliderTimer();
+    });
+
+    /* Подстраховка: если событие initialized всё же было пропущено — запустим вручную */
+    setTimeout(function () { resetSliderDotProgress(); startSliderTimer(); }, 500);
     
 
      /*---categories column7 activation---*/
