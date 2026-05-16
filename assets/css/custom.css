@@ -916,11 +916,17 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
     /* ВСЕ КАТЕГОРИИ — компактно */
     .header_bottom .col-lg-3:first-child { flex: 0 0 auto; max-width: 100%; padding: 0; }
     .categories_title h2 {
-        font-size: 0.8rem; padding: 0 12px; margin: 0;
+        font-size: 0.8rem; padding: 0 12px 0 44px; margin: 0;
         line-height: 44px; white-space: nowrap;
     }
-    /* Скрываем ≡-иконку Mazlay справа (categories_title::before = Ionicons \f394 на мобиле) */
-    .categories_title::before { display: none !important; }
+    /* ☰ иконка слева от «ВСЕ КАТЕГОРИИ» — как на десктопе
+       (Mazlay на мобиле кидает её вправо — возвращаем влево) */
+    .categories_title::before {
+        display: inline-block !important;
+        left: 16px !important;
+        right: auto !important;
+        font-size: 19px !important;
+    }
 
     /* Скрываем выпавшее меню категорий на мобиле */
     .categories_menu_toggle { display: none; }
