@@ -1,7 +1,8 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/autoeuro.php';
-requireRole('superadmin');
+requireRole(['superadmin', 'admin', 'manager']);
+requirePermission('warehouse');
 
 $db   = getDB();
 $csrf = generateCsrfToken();

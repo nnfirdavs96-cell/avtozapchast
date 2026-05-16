@@ -1,6 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
-requireRole(['admin', 'superadmin']);
+requireRole(['admin', 'manager', 'superadmin']);
 requirePermission('sliders');
 
 $db   = getDB();
