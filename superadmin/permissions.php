@@ -31,10 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'save') {
         $picked = $_POST['sections'] ?? [];
         if (!is_array($picked)) $picked = [];
-        // Keep only valid keys relevant to this user's role
+        // Keep only valid catalog keys (any section can go to any staff)
         $valid = [];
-        foreach ($sections as $key => $meta) {
-            if (in_array($u['role'], $meta['roles'], true) && in_array($key, $picked, true)) {
+        foreach ($sections as $key => $label) {
+            if (in_array($key, $picked, true)) {
                 $valid[] = $key;
             }
         }
@@ -74,10 +74,11 @@ $selId   = (int)($_GET['user_id'] ?? 0);
 $selUser = null;
 foreach ($staff as $st) { if ((int)$st['id'] === $selId) { $selUser = $st; break; } }
 
-$current = null; // null = not configured (full default access)
+$current = null; // null = not configured → role defaults shown
 if ($selUser && $tableReady) {
-    $current = getUserAllowedSections((int)$selUser['id']);
+    $current = getUserConfiguredSections((int)$selUser['id']);
 }
+$roleDefaults = $selUser ? roleDefaultSections($selUser['role']) : [];
 
 $pageTitle = 'Права доступа — ' . getSetting('site_name');
 require_once dirname(__DIR__) . '/includes/admin-header.php';
@@ -169,15 +170,17 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
             <input type="hidden" name="action" value="save">
 
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-bottom:20px;">
-              <?php foreach ($sections as $key => $meta):
-                if (!in_array($selUser['role'], $meta['roles'], true)) continue;
-                // Default (not configured) = everything checked = current full access
-                $checked = $isConfigured ? in_array($key, $current, true) : true;
+              <?php foreach ($sections as $key => $label):
+                // All sections available for any staff user.
+                // Not configured → role defaults define what's checked.
+                $checked = $isConfigured
+                    ? in_array($key, $current, true)
+                    : in_array($key, $roleDefaults, true);
               ?>
               <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid #e0e0e0;border-radius:8px;cursor:pointer;background:<?= $checked ? '#f5f0fa' : '#fff' ?>;">
                 <input type="checkbox" name="sections[]" value="<?= sanitize($key) ?>" <?= $checked ? 'checked' : '' ?>
                        style="width:18px;height:18px;cursor:pointer;">
-                <span style="font-size:0.92rem;font-weight:600;color:#333;"><?= sanitize($meta['label']) ?></span>
+                <span style="font-size:0.92rem;font-weight:600;color:#333;"><?= sanitize($label) ?></span>
               </label>
               <?php endforeach; ?>
             </div>

@@ -59,23 +59,23 @@ function requireRole($role): void {
 
 /**
  * Catalog of permission-controlled sections.
- * Superadmin delegates these per-user to admin/manager staff.
- * key => ['label' => ..., 'roles' => [roles this section is relevant for]]
+ * Any of these can be delegated by the superadmin to ANY staff
+ * user (admin or manager). key => label.
  */
 function permissionSections(): array {
     return [
-        'products'   => ['label' => 'Товары / Запчасти',          'roles' => ['admin','manager']],
-        'markup'     => ['label' => 'Себестоимость и наценка',     'roles' => ['admin','manager']],
-        'sliders'    => ['label' => 'Слайдер / Баннеры',           'roles' => ['admin']],
-        'orders'     => ['label' => 'Заказы',                      'roles' => ['admin']],
-        'users'      => ['label' => 'Пользователи',                'roles' => ['admin']],
-        'categories' => ['label' => 'Категории',                   'roles' => ['manager']],
-        'brands'     => ['label' => 'Бренды',                      'roles' => ['manager']],
-        'blog'       => ['label' => 'Блог',                        'roles' => ['admin','manager']],
-        'pages'      => ['label' => 'Страницы (CMS)',              'roles' => ['manager']],
-        'reviews'    => ['label' => 'Отзывы',                      'roles' => ['manager']],
-        'warehouse'  => ['label' => 'Склад API',                   'roles' => ['admin']],
-        'vin'        => ['label' => 'VIN-поиск',                   'roles' => ['admin']],
+        'products'   => 'Товары / Запчасти',
+        'markup'     => 'Себестоимость и наценка',
+        'sliders'    => 'Слайдер / Баннеры',
+        'orders'     => 'Заказы',
+        'users'      => 'Пользователи',
+        'categories' => 'Категории',
+        'brands'     => 'Бренды',
+        'blog'       => 'Блог',
+        'pages'      => 'Страницы (CMS)',
+        'reviews'    => 'Отзывы',
+        'warehouse'  => 'Склад API',
+        'vin'        => 'VIN-поиск',
     ];
 }
 
@@ -88,12 +88,26 @@ function permissionAlias(string $key): string {
 }
 
 /**
- * Explicit per-user allowed sections.
- * Returns NULL when the superadmin has NOT configured this user
- * → no restriction, behaves exactly as before (graceful default).
- * Returns array (possibly empty) when explicitly configured.
+ * Sections a role can reach by DEFAULT, when the superadmin has NOT
+ * configured the user. Mirrors the historical behaviour exactly so
+ * deploying changes nothing until permissions are explicitly set.
  */
-function getUserAllowedSections(int $userId): ?array {
+function roleDefaultSections(string $role): array {
+    if ($role === 'admin') {
+        return ['products','markup','sliders','orders','users',
+                'categories','brands','blog','pages','reviews','vin'];
+    }
+    if ($role === 'manager') {
+        return ['products','markup','categories','brands','blog','pages','reviews'];
+    }
+    return [];
+}
+
+/**
+ * Raw configured section list for a user, or NULL when the
+ * superadmin has never set it (→ role defaults apply).
+ */
+function getUserConfiguredSections(int $userId): ?array {
     static $cache = [];
     if (array_key_exists($userId, $cache)) return $cache[$userId];
     try {
@@ -101,33 +115,43 @@ function getUserAllowedSections(int $userId): ?array {
         $stmt = $db->prepare("SELECT sections FROM user_permissions WHERE user_id = ? LIMIT 1");
         $stmt->execute([$userId]);
         $row = $stmt->fetch();
-        if (!$row) { return $cache[$userId] = null; }
+        if (!$row) return $cache[$userId] = null;
         $list = json_decode((string)$row['sections'], true);
         return $cache[$userId] = (is_array($list) ? $list : []);
     } catch (PDOException $e) {
-        // Table not migrated yet → no restriction
+        // Table not migrated yet → defaults apply
         return $cache[$userId] = null;
     }
 }
 
 /**
+ * Effective allowed sections = explicit config, else role defaults.
+ */
+function effectiveAllowedSections(int $userId, string $role): array {
+    $cfg = getUserConfiguredSections($userId);
+    return $cfg === null ? roleDefaultSections($role) : $cfg;
+}
+
+/**
  * Can the CURRENT user access a permission section?
- * superadmin: always. No explicit config: always (as before).
+ * superadmin: always. Otherwise: explicit config, else role default.
  */
 function userCan(string $section): bool {
     if (!isLoggedIn()) return false;
     $role = $_SESSION['role'] ?? '';
     if ($role === 'superadmin') return true;
     $section = permissionAlias($section);
-    $allowed = getUserAllowedSections((int)($_SESSION['user_id'] ?? 0));
-    if ($allowed === null) return true;          // not configured → unchanged behavior
-    return in_array($section, $allowed, true);
+    return in_array(
+        $section,
+        effectiveAllowedSections((int)($_SESSION['user_id'] ?? 0), $role),
+        true
+    );
 }
 
 /**
  * Gate a page by permission section. Call AFTER requireRole(...)
- * so role/auth is already enforced; this only narrows access when
- * the superadmin has explicitly restricted the user.
+ * so role/auth is already enforced; this narrows access by the
+ * superadmin's per-user grant (default = role's historical access).
  */
 function requirePermission(string $section): void {
     if (($_SESSION['role'] ?? '') === 'superadmin') return;
