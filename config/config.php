@@ -1,9 +1,9 @@
 <?php
 define('APP_NAME', 'AvtoDoc');
 define('APP_URL', '');  // empty = relative URLs; set to https://yourdomain.com for production
-// Порт, на котором доступна панель управления (/admin, /superadmin, /manager).
-// На остальных портах эти разделы отдают 403. Сайт для покупателей — на любом порту.
-define('ADMIN_PORT', '8888');
+// Защита админ-раздела: nginx Basic Auth на /admin, /superadmin, /manager.
+// ADMIN_PORT='' отключает PHP-гейт (провайдер форвардит только порт 80).
+define('ADMIN_PORT', '');
 define('APP_ROOT', dirname(__DIR__));
 define('UPLOAD_PATH', APP_ROOT . '/assets/uploads/');
 define('UPLOAD_URL', APP_URL . '/assets/uploads/');
