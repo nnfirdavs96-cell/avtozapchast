@@ -42,11 +42,34 @@ function hasRole($role): bool {
 /**
  * Require specific role(s) - redirect if missing
  */
+/**
+ * Панель управления доступна только на ADMIN_PORT.
+ * На любом другом порту разделы admin/manager/superadmin отдают 403,
+ * чтобы случайный посетитель не попал в админку с основного адреса.
+ */
+function requireAdminPort(): void {
+    if (!defined('ADMIN_PORT') || ADMIN_PORT === '') return;
+    $port = $_SERVER['SERVER_PORT'] ?? '';
+    if ($port === '' || (string)$port === (string)ADMIN_PORT) return;
+    http_response_code(403);
+    header('Content-Type: text/html; charset=utf-8');
+    exit('<!doctype html><html lang="ru"><meta charset="utf-8">'
+        . '<title>403 — Доступ запрещён</title>'
+        . '<div style="font-family:Arial,sans-serif;text-align:center;padding:90px 20px;color:#222">'
+        . '<div style="font-size:72px;font-weight:900;color:#d32f2f;line-height:1">403</div>'
+        . '<p style="font-size:18px;margin-top:14px">Доступ к панели управления с этого адреса запрещён.</p>'
+        . '<p style="font-size:14px;color:#888">Панель управления открывается по отдельному адресу.</p>'
+        . '</div></html>');
+}
+
 function requireRole($role): void {
+    $roles = is_array($role) ? $role : [$role];
+    if (array_intersect($roles, ['admin', 'manager', 'superadmin'])) {
+        requireAdminPort();
+    }
     if (!isLoggedIn()) {
         redirect(APP_URL . '/auth/login.php?redirect=' . urlencode($_SERVER['REQUEST_URI']));
     }
-    $roles = is_array($role) ? $role : [$role];
     // superadmin has access everywhere
     if (in_array('superadmin', $roles, true) || $_SESSION['role'] === 'superadmin') {
         if ($_SESSION['role'] === 'superadmin') return;
