@@ -1,7 +1,7 @@
 <?php
 return [
     // Common
-    'site_name'          => 'AutoParts',
+    'site_name'          => 'AvtoDoc',
     'tagline'            => 'Professional Auto Parts',
     'search_placeholder' => 'Part number, name, brand or VIN (17 chars)...',
     'all_categories'     => 'All Categories',

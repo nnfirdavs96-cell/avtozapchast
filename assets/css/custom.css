@@ -245,9 +245,9 @@
 .logo a { text-decoration: none; display: inline-block; }
 .logo .logo-text {
     font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px;
-    color: #C70909; line-height: 1;
+    color: #fff; line-height: 1;
 }
-.logo .logo-text span { color: #fff; }
+.logo .logo-text span { color: #d32f2f; }
 
 /* Слайдер: гарантированный min-height и фон из data-bgimg */
 .slider_area .single_slider {
