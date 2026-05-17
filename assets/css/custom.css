@@ -242,12 +242,25 @@
  * ============================================================ */
 
 /* Логотип — белый текст на тёмном фоне header_middle (#222) */
-.logo a { text-decoration: none; display: inline-block; }
-.logo .logo-text {
-    font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px;
-    color: #fff; line-height: 1;
+.logo a {
+    text-decoration: none; display: inline-block;
+    transition: transform 0.35s cubic-bezier(.34,1.56,.64,1), filter 0.35s ease;
+    transform-origin: left center;
 }
-.logo .logo-text span { color: #d32f2f; }
+.logo .logo-text {
+    font-size: 2.1rem; font-weight: 900; letter-spacing: -1px;
+    color: #fff; line-height: 1; display: inline-block;
+}
+.logo .logo-text span {
+    color: #d32f2f;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+.logo a:hover { transform: scale(1.06); }
+.logo a:hover .logo-text span {
+    color: #ff1f1f;
+    text-shadow: 0 0 14px rgba(255,31,31,0.55);
+}
+.logo a:active { transform: scale(1.02); }
 
 /* Слайдер: гарантированный min-height и фон из data-bgimg */
 .slider_area .single_slider {
@@ -845,7 +858,7 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
     .header_middle [class*="col-sm-4"] {
         flex: 0 0 auto; max-width: none; padding: 0; width: auto;
     }
-    .logo .logo-text { font-size: 1.05rem; }
+    .logo .logo-text { font-size: 1.5rem; }
 
     /* Правый блок: на ту же строку справа */
     .header_middle .col-lg-10,
@@ -1357,7 +1370,7 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
    SMALL PHONES  ≤ 390 px  (iPhone 14/15 standard)
 ───────────────────────────────────────── */
 @media (max-width: 390px) {
-    .logo .logo-text { font-size: 1rem; }
+    .logo .logo-text { font-size: 1.3rem; }
     .slider_area .single_slider { min-height: 240px !important; }
     .slider_content h1 { font-size: 1.15rem !important; }
 
