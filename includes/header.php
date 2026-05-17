@@ -35,6 +35,7 @@ unset($queryParams['lang'], $queryParams['currency']);
     <meta name="description" content="<?= sanitize(getSetting('meta_description', t('tagline'))) ?>">
     <meta name="keywords" content="<?= sanitize(getSetting('meta_keywords', '')) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="<?= APP_URL ?>/assets/img/favicon.svg">
     <link rel="shortcut icon" type="image/x-icon" href="<?= APP_URL ?>/assets/img/favicon.ico">
     <link rel="stylesheet" href="<?= MAZLAY_CSS ?>/plugins.css">
     <link rel="stylesheet" href="<?= MAZLAY_CSS ?>/style.css">
