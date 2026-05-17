@@ -185,6 +185,9 @@ mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/only_tjs_currency.sql
 # Прямое ценообразование в СМН: курс TJS = 1.0 (цена в БД = цена на витрине 1:1)
 mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/tjs_direct_pricing.sql
 
+# Переименование сайта АвтоЗапчасть → AvtoDoc (обновляет site_settings)
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/rename_to_avtodoc.sql
+
 # Гранулярные права: таблица user_permissions (суперадмин раздаёт разделы)
 mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_permissions.sql
 
@@ -224,6 +227,18 @@ define('APP_URL', 'https://yourdomain.com');
 // Для тестирования по IP:
 define('APP_URL', 'http://192.168.88.3');
 ```
+
+**Порт админ-панели (`ADMIN_PORT`):**
+```php
+// Разделы /admin, /superadmin, /manager доступны ТОЛЬКО на этом порту.
+// На любом другом порту они отдают 403 (защита от случайного входа).
+// Сайт для покупателей работает на всех портах как обычно.
+define('ADMIN_PORT', '8888');
+```
+> Чтобы порт 8888 реально заработал, нужно добавить второй
+> VirtualHost в Apache — см. раздел «Настройка веб-сервера → Apache →
+> Отдельный порт для админ-панели». Чтобы вообще отключить разделение
+> (админка снова на общем порту) — задайте `define('ADMIN_PORT', '');`.
 
 ### Шаг 5: Настройка database.php
 
@@ -381,6 +396,67 @@ a2ensite avtozapchast.conf
 apache2ctl configtest
 systemctl reload apache2
 ```
+
+#### Отдельный порт для админ-панели (8888)
+
+Цель — два уровня защиты: `/admin`, `/superadmin`, `/manager`
+открываются только по `:8888`, а на обычном `:80` отдают 403 (даже
+зная логин/пароль). Сайт для покупателей на `:80` не меняется.
+
+> Защита по порту уже реализована в коде (`ADMIN_PORT` +
+> `requireAdminPort()` в `includes/functions.php`). Ниже — как
+> сделать так, чтобы порт 8888 физически слушался Apache.
+
+1. Добавить порт в `/etc/apache2/ports.conf`:
+```apache
+Listen 80
+Listen 8888
+```
+
+2. Добавить второй VirtualHost в `/etc/apache2/sites-available/avtozapchast.conf`
+(тот же DocumentRoot, что и `:80`):
+```apache
+<VirtualHost *:8888>
+    ServerName yourdomain.com
+    DocumentRoot /var/www/html/avtozapchast
+
+    <Directory /var/www/html/avtozapchast>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+    <Directory /var/www/html/avtozapchast/config>
+        Require all denied
+    </Directory>
+    <Directory /var/www/html/avtozapchast/sql>
+        Require all denied
+    </Directory>
+    <Directory /var/www/html/avtozapchast/storage>
+        Require all denied
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/avtozapchast_8888_error.log
+    CustomLog ${APACHE_LOG_DIR}/avtozapchast_8888_access.log combined
+</VirtualHost>
+```
+
+3. **Обязательно** проверить конфиг до перезапуска, иначе сайт ляжет:
+```bash
+apache2ctl configtest      # должно быть: Syntax OK
+systemctl reload apache2
+```
+
+4. Проверка:
+
+| Адрес | Ожидаемо |
+|-------|----------|
+| `http://СЕРВЕР/` | сайт покупателей ✅ |
+| `http://СЕРВЕР/admin` | 403 ❌ |
+| `http://СЕРВЕР:8888/admin` | вход в админку ✅ |
+
+> Откатить разделение: убрать `Listen 8888` и блок `<VirtualHost
+> *:8888>`, `apache2ctl configtest`, `systemctl reload apache2`. В коде
+> при необходимости — `define('ADMIN_PORT', '')` в `config/config.php`.
 
 ### .htaccess (для Apache)
 
@@ -550,6 +626,7 @@ avtozapchast/
 │   ├── migrate_tajik_market.sql # - Язык/валюта/контакты TJ по умолчанию
 │   ├── only_tjs_currency.sql  # - Оставить только валюту TJS (СМН)
 │   ├── tjs_direct_pricing.sql # - Курс TJS=1: цена в БД = цена 1:1 на витрине
+│   ├── rename_to_avtodoc.sql # -  Переименование сайта → AvtoDoc (site_settings)
 │   ├── migrate_permissions.sql # - Гранулярные права (user_permissions)
 │   ├── schema_autoeuro.sql #   - AutoEuro API (склад, поиск/заказ)
 │   └── migrate_vin*.sql    #   - VIN-поиск (декодер, аналоги)
@@ -1245,6 +1322,7 @@ if ($flash = getFlashMessage()) {
 | `effectiveAllowedSections($uid,$role)` | Конфиг, иначе умолчание роли |
 | `userCan($section)` | Доступен ли раздел текущему пользователю |
 | `requirePermission($section)` | Гейт по гранту суперадмина (после `requireRole`) |
+| `requireAdminPort()` | 403, если админ-раздел открыт не на `ADMIN_PORT` |
 | `renderRoleSidebar($active)` | Сайдбар по роли, отфильтрован `userCan` |
 
 > Хелперы отзывов (`getProductRatings`, `getShopRatingSummary`) и прав
@@ -1258,6 +1336,64 @@ if ($flash = getFlashMessage()) {
 
 Описано в формате «что → где → зачем», чтобы любой разработчик мог
 сориентироваться в коде. Новые записи — сверху.
+
+### Защита админ-панели отдельным портом 8888 (PR #75)
+
+**Цель:** чтобы случайный посетитель не попал в админку с основного
+адреса — даже зная логин и пароль. Разделы `/admin`, `/superadmin`,
+`/manager` открываются только по `:8888`.
+
+| Файл | Что изменено / добавлено |
+|------|--------------------------|
+| `config/config.php` | Константа `ADMIN_PORT` (по умолчанию `8888`). Пусто = разделение отключено. |
+| `includes/functions.php` | `requireAdminPort()` — отдаёт 403, если запрос пришёл не на `ADMIN_PORT`. Вызывается в `requireRole()` только когда требуется роль `admin/manager/superadmin` — публичный сайт не затронут. |
+| README | Раздел «Apache → Отдельный порт для админ-панели»: `Listen 8888` + второй VirtualHost, `apache2ctl configtest` перед reload. |
+
+> Двухуровневая защита: (1) неизвестный порт 8888 + (2) логин/пароль.
+> Уровень 1 (код) — через `git pull`. Уровень 2 (порт слушается) —
+> настройка Apache по инструкции. Откат безопасен и описан в README.
+
+### Favicon AvtoDoc (PR #74)
+
+**Цель:** убрать авто-иконку браузера «AD», поставить брендовую.
+
+| Файл | Что изменено / добавлено |
+|------|--------------------------|
+| `assets/img/favicon.svg` | **Новый.** Тёмный фон, белая «A» + красная «D» (в стиле логотипа). |
+| `includes/header.php` | `<link rel="icon" type="image/svg+xml">` перед `.ico` (SVG приоритетнее, `.ico` — запасной). |
+
+> Только статика. После `git pull` иконка обновляется жёстким
+> обновлением вкладки (Ctrl+Shift+R).
+
+### Логотип AvtoDoc: крупнее + анимация (PR #73)
+
+| Файл | Что изменено |
+|------|--------------|
+| `assets/css/custom.css` | `.logo .logo-text` `1.5rem` → `2.1rem` (мобайл `1.05`→`1.5rem`, ≤390px `1`→`1.3rem`). Hover: `scale(1.06)` с упругим cubic-bezier + свечение красной части «Doc» (`text-shadow`), `active` `scale(1.02)`. |
+
+### Переименование сайта АвтоЗапчасть → AvtoDoc (PR #72)
+
+| Файл | Что изменено |
+|------|--------------|
+| `includes/header.php` | Логотип `Avto<span>Doc</span>` (Avto белым, Doc красным). |
+| `assets/css/custom.css` | `.logo-text` белый, `.logo-text span` красный `#d32f2f`. |
+| `lang/ru.php`, `tg.php`, `en.php` | `site_name` = `AvtoDoc`. |
+| `config/config.php` | `APP_NAME` = `AvtoDoc`. |
+| `includes/footer.php` | Дефолт `getSetting('site_name','AvtoDoc')`. |
+| `sql/schema.sql`, `sql/migrate_tajik_market.sql` | Сид `site_name` = `AvtoDoc`. |
+| `sql/rename_to_avtodoc.sql` | **Новый.** `UPDATE site_settings ... 'AvtoDoc'` для уже работающей БД. |
+
+> ⚠️ На рабочем сервере **обязательна миграция**
+> `sql/rename_to_avtodoc.sql` — сохранённое в `site_settings` имя
+> перекрывает дефолт из `lang/*`.
+
+### Формат цены, баннер, цвет полосы категорий (PR #71)
+
+| Файл | Что изменено |
+|------|--------------|
+| `includes/currency.php` | `formatPrice()` — сумма впереди, затем валюта строчными в `<span class="cur-sym">смн</span>` (было `СМН650.00` → стало `650.00 смн`). |
+| `assets/css/custom.css` | `.cur-sym` (0.72em, приглушённая, lowercase). `.slider_area .single_slider` — `cover/center/no-repeat !important` (Mazlay `background:#000` шорткатом сбрасывал size/position → чёрная полоса слева). `.categories_title` на мобиле `#d32f2f` (был двухцветный красный с `#C70909` Mazlay). |
+| `assets/js/main.js` | Формат цены в выпадающем поиске выровнен под `1,180.00 смн`. |
 
 ### Мобильная вёрстка: единый отступ 16px (PR #70)
 
@@ -1728,7 +1864,12 @@ git pull origin main
 # Применить НОВЫЕ миграции (идемпотентны, повторный запуск безопасен):
 mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_permissions.sql   # права (один раз)
 mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/tjs_direct_pricing.sql    # цены 1:1 в СМН
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/rename_to_avtodoc.sql     # имя сайта → AvtoDoc
 # (schema_autoeuro.sql — только если используете внешний склад AutoEuro)
+
+# Разделение админки на порт 8888 (один раз, см. «Apache → Отдельный
+# порт для админ-панели»): добавить Listen 8888 + VirtualHost, затем
+apache2ctl configtest && systemctl reload apache2   # ОБЯЗАТЕЛЬНО configtest до reload
 
 # Если правился JS/CSS — почистить кэш браузера / открыть в инкогнито.
 #   На iOS Safari — закрыть вкладку полностью или очистить данные сайта.
