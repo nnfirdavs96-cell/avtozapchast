@@ -285,6 +285,109 @@ php -r "require 'config/database.php'; \$db = getDB(); echo 'OK: ' . \$db->query
 
 ## Настройка веб-сервера
 
+### ⭐ Реальная конфигурация прод-сервера (10.230.13.107)
+
+> Это **фактическое состояние боевого сервера** — источник истины.
+> Разделы «Nginx (рекомендуется)» и «Apache» ниже — это общие примеры
+> для нового развёртывания. На текущем сервере работает то, что
+> описано здесь.
+
+**Веб-сервер:** `nginx` + `php-fpm 8.2` (сокет `/run/php/php8.2-fpm.sock`).
+Apache на сервере **установлен, но мёртв** (`apache2.service` failed) —
+его не трогаем, он ни на что не влияет.
+
+**Бинарники не в `PATH` рута** — вызывать по полному пути:
+`/usr/sbin/nginx -t`, `systemctl reload nginx`.
+
+#### Как было (до разбора, май 2026)
+
+На сервере оказались **две копии** проекта, обе — git-репозитории:
+
+| Папка | Что это | Состояние |
+|-------|---------|-----------|
+| `/var/www/html/` | старая копия с `.git` на ветке `claude/build-multilingual-currency-site-a12ui`, 178 несохранённых правок, **пустой** `assets/uploads/` | DocumentRoot **мёртвого** Apache |
+| `/var/www/html/avtozapchast/` | актуальная копия, ветка `main`, все правки, фото в `assets/uploads/` (`blog/ products/ sliders/`) | **отдаётся nginx** |
+
+Путаница была в том, что мёртвый Apache смотрел в `/var/www/html`, а
+живой nginx — уже правильно в `/var/www/html/avtozapchast`. Поэтому
+`git pull` в `avtozapchast` **всегда был корректным** и сразу попадал
+на сайт. Старую копию `/var/www/html` оставили нетронутой как бэкап,
+nginx её не отдаёт — на сайт не влияет.
+
+#### Как работает сейчас
+
+`/etc/nginx/sites-enabled/`:
+- `avtozapchast` → симлинк на `/etc/nginx/sites-available/avtozapchast`
+  — `server_name 10.230.13.107`, `root /var/www/html/avtozapchast`,
+  слушает **`listen 80;` и `listen 8888;`**
+- `avtosk.conf` — дефолтный `server_name _;`, тоже `root
+  /var/www/html/avtozapchast`, только `listen 80;`
+
+**Сайт и админка — один код + одна база `avtozapchast` (MySQL).**
+Порт 80 и порт 8888 — две «двери» в один и тот же сайт. Любое
+изменение в админке (товары, цены, слайдеры, фото, настройки)
+пишется в общую БД/папку и сразу видно на основном сайте.
+
+| Адрес | Что отдаётся |
+|-------|--------------|
+| `http://10.230.13.107/` | сайт для покупателей ✅ |
+| `http://10.230.13.107/admin` | **403** — PHP-гейт `requireAdminPort()` (порт ≠ 8888) |
+| `http://10.230.13.107:8888/admin` | админка (302 → форма входа) ✅ |
+| `http://10.230.13.107:8888/superadmin`, `/manager` | то же |
+
+Два уровня защиты: (1) нестандартный порт 8888 + (2) логин/пароль.
+
+#### Что именно меняли на сервере (порт 8888)
+
+PHP-защита (`ADMIN_PORT=8888` в `config/config.php` +
+`requireAdminPort()` в `includes/functions.php`) приехала через
+`git pull`. На стороне nginx — **одна строка** в активном конфиге:
+
+```bash
+# 1. Бэкап
+cp /etc/nginx/sites-available/avtozapchast /etc/nginx/sites-available/avtozapchast.bak
+
+# 2. Добавить listen 8888 сразу после первого listen 80
+sed -i '0,/listen 80;/s//listen 80;\n    listen 8888;/' /etc/nginx/sites-available/avtozapchast
+
+# 3. Проверить синтаксис (ОБЯЗАТЕЛЬНО до reload)
+/usr/sbin/nginx -t            # ждём: syntax is ok / test is successful
+
+# 4. Применить
+systemctl reload nginx
+
+# 5. Проверка
+curl -s -o /dev/null -w "корень 80:   %{http_code}\n" http://localhost/index.php   # 200
+curl -s -o /dev/null -w "/admin 80:   %{http_code}\n" http://localhost/admin/       # 403
+curl -s -o /dev/null -w "/admin 8888: %{http_code}\n" http://localhost:8888/admin/  # 302
+```
+
+> nginx передаёт реальный порт в PHP через `fastcgi_param SERVER_PORT
+> $server_port` (внутри `snippets/fastcgi-php.conf` / `fastcgi_params`),
+> поэтому `requireAdminPort()` корректно различает 80 и 8888.
+
+**Откат разделения:**
+```bash
+cp /etc/nginx/sites-available/avtozapchast.bak /etc/nginx/sites-available/avtozapchast
+/usr/sbin/nginx -t && systemctl reload nginx
+# при необходимости в коде: define('ADMIN_PORT', '') в config/config.php
+```
+
+> ⚠️ Многострочные heredoc (`cat > файл <<'EOF'`) при вставке в этот
+> терминал **склеивают строки** — конфиг ломается. Менять конфиги
+> только точечно (`sed`) или через файл в репозитории + `cp`.
+
+#### Обновление сайта на этом сервере
+
+```bash
+cd /var/www/html/avtozapchast        # ← ТОЛЬКО эта папка, не /var/www/html
+git pull origin main
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/rename_to_avtodoc.sql  # один раз
+systemctl reload php8.2-fpm          # если правился PHP
+```
+
+---
+
 ### Nginx (рекомендуется)
 
 Создать файл `/etc/nginx/sites-available/avtozapchast.conf`:
@@ -1347,11 +1450,13 @@ if ($flash = getFlashMessage()) {
 |------|--------------------------|
 | `config/config.php` | Константа `ADMIN_PORT` (по умолчанию `8888`). Пусто = разделение отключено. |
 | `includes/functions.php` | `requireAdminPort()` — отдаёт 403, если запрос пришёл не на `ADMIN_PORT`. Вызывается в `requireRole()` только когда требуется роль `admin/manager/superadmin` — публичный сайт не затронут. |
-| README | Раздел «Apache → Отдельный порт для админ-панели»: `Listen 8888` + второй VirtualHost, `apache2ctl configtest` перед reload. |
+| README | Раздел «Реальная конфигурация прод-сервера»: фактический сервер — **nginx + php-fpm 8.2** (не Apache, он мёртв). Реализация — `listen 8888;` в `/etc/nginx/sites-available/avtozapchast` через `sed`, `nginx -t` перед reload. История двух копий и обновление сайта. |
 
 > Двухуровневая защита: (1) неизвестный порт 8888 + (2) логин/пароль.
-> Уровень 1 (код) — через `git pull`. Уровень 2 (порт слушается) —
-> настройка Apache по инструкции. Откат безопасен и описан в README.
+> Уровень 1 (код) — через `git pull`. Уровень 2 — `listen 8888;` в
+> nginx-конфиге. Развёрнуто на проде 10.230.13.107: `/admin` на :80 →
+> 403, на :8888 → форма входа. Откат безопасен и описан в README.
+> Apache на сервере failed и игнорируется.
 
 ### Favicon AvtoDoc (PR #74)
 
