@@ -1,5 +1,5 @@
 <?php
-define('APP_NAME', 'АвтоЗапчасть');
+define('APP_NAME', 'AvtoDoc');
 define('APP_URL', '');  // empty = relative URLs; set to https://yourdomain.com for production
 define('APP_ROOT', dirname(__DIR__));
 define('UPLOAD_PATH', APP_ROOT . '/assets/uploads/');

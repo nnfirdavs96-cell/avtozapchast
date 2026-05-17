@@ -1,7 +1,7 @@
 <?php
 return [
     // Common
-    'site_name'          => 'АвтоЗапчасть',
+    'site_name'          => 'AvtoDoc',
     'tagline'            => 'Профессиональные автозапчасти',
     'search_placeholder' => 'Артикул, название, бренд или VIN (17 символов)...',
     'all_categories'     => 'Все категории',

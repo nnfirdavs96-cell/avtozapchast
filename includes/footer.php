@@ -126,7 +126,7 @@ $siteWa      = getSetting('site_whatsapp', '');
             <div class="row align-items-center">
                 <div class="col-lg-6 col-md-6">
                     <div class="copyright_area">
-                        <p>&copy; <?= date('Y') ?> <a href="<?= APP_URL ?>/index.php" class="text-uppercase"><?= sanitize(getSetting('site_name','АвтоЗапчасть')) ?></a>. Все права защищены.</p>
+                        <p>&copy; <?= date('Y') ?> <a href="<?= APP_URL ?>/index.php" class="text-uppercase"><?= sanitize(getSetting('site_name','AvtoDoc')) ?></a>. Все права защищены.</p>
                     </div>
                 </div>
                 <div class="col-lg-6 col-md-6">

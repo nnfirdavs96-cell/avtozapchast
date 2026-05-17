@@ -20,7 +20,7 @@ UPDATE site_settings SET value = 'TJS' WHERE `key` = 'default_currency';
 -- 3. Адрес и контактные данные
 UPDATE site_settings SET value = 'г. Худжанд, 19 мкр, дом 30'  WHERE `key` = 'site_address';
 UPDATE site_settings SET value = '+992 92 646-46-46'             WHERE `key` = 'site_phone';
-UPDATE site_settings SET value = 'АвтоЗапчасть'                  WHERE `key` = 'site_name';
+UPDATE site_settings SET value = 'AvtoDoc'                       WHERE `key` = 'site_name';
 
 -- 4. Координаты карты (19 мкр, Худжанд)
 INSERT INTO site_settings (`key`, `value`) VALUES ('map_lat',  '40.29864545672122') ON DUPLICATE KEY UPDATE `value`='40.29864545672122';
