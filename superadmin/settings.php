@@ -13,7 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $fields = [
         'site_name', 'site_email', 'site_phone', 'site_phone2', 'site_address',
-        'site_telegram', 'site_whatsapp', 'meta_description', 'meta_keywords',
+        'site_telegram', 'site_whatsapp', 'site_instagram', 'site_facebook',
+        'meta_description', 'meta_keywords',
         'items_per_page', 'default_lang', 'default_currency',
         'warehouse_api_url', 'warehouse_api_key',
         'map_lat', 'map_lng', 'map_zoom',
@@ -164,6 +165,18 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 <div class="az-form-group">
                   <label>WhatsApp (номер с кодом страны)</label>
                   <input type="text" name="site_whatsapp" class="form-control" value="<?= sv($settings, 'site_whatsapp') ?>" placeholder="79001234567">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="az-form-group">
+                  <label>Instagram (username или полная ссылка)</label>
+                  <input type="text" name="site_instagram" class="form-control" value="<?= sv($settings, 'site_instagram') ?>" placeholder="avtodoc или https://instagram.com/avtodoc">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="az-form-group">
+                  <label>Facebook (username или полная ссылка)</label>
+                  <input type="text" name="site_facebook" class="form-control" value="<?= sv($settings, 'site_facebook') ?>" placeholder="avtodoc или https://facebook.com/avtodoc">
                 </div>
               </div>
             </div>

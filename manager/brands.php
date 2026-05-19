@@ -40,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $country  = trim($_POST['country'] ?? '') ?: null;
     $desc     = trim($_POST['description'] ?? '') ?: null;
     $isActive = (int)(!empty($_POST['is_active']));
+    $logoPath = trim($_POST['logo_path'] ?? '') ?: null;
     $bid      = (int)($_POST['id'] ?? 0);
 
     if (empty($name)) {
@@ -62,14 +63,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         if ($bid) {
             $db->prepare(
-                "UPDATE brands SET name=?, slug=?, country=?, description=?, is_active=? WHERE id=?"
-            )->execute([$name, $slug, $country, $desc, $isActive, $bid]);
+                "UPDATE brands SET name=?, slug=?, country=?, description=?, logo_path=?, is_active=? WHERE id=?"
+            )->execute([$name, $slug, $country, $desc, $logoPath, $isActive, $bid]);
             flashMessage('success', 'Бренд обновлён.');
         } else {
             $db->prepare(
-                "INSERT INTO brands (name, slug, country, description, is_active)
-                 VALUES (?, ?, ?, ?, ?)"
-            )->execute([$name, $slug, $country, $desc, 1]);
+                "INSERT INTO brands (name, slug, country, description, logo_path, is_active)
+                 VALUES (?, ?, ?, ?, ?, ?)"
+            )->execute([$name, $slug, $country, $desc, $logoPath, 1]);
             flashMessage('success', 'Бренд добавлен.');
         }
         redirect(APP_URL . '/manager/brands.php');
@@ -196,6 +197,23 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                                       placeholder="Краткое описание бренда..."><?= sanitize($editBrand['description'] ?? ($_POST['description'] ?? '')) ?></textarea>
                         </div>
 
+                        <?php $curLogo = $editBrand['logo_path'] ?? ''; ?>
+                        <div class="az-form-group">
+                            <label>Логотип бренда (для блока партнёров на главной)</label>
+                            <input type="hidden" name="logo_path" id="brLogoPath" value="<?= sanitize($curLogo) ?>">
+                            <div id="brLogoPreview" style="margin:8px 0;<?= $curLogo ? '' : 'display:none;' ?>">
+                                <img src="<?= sanitize($curLogo) ?>" alt="" id="brLogoEl"
+                                     style="max-width:160px;max-height:90px;border:1px solid #dee2e6;border-radius:6px;background:#fff;padding:6px;">
+                                <button type="button" class="az-btn az-btn-danger az-btn-sm" onclick="brRemoveLogo()"
+                                        style="vertical-align:top;margin-left:8px;"><i class="fa fa-trash-o"></i> Удалить</button>
+                            </div>
+                            <input type="file" id="brLogoFile" accept="image/*" onchange="brUploadLogo(this)">
+                            <small style="color:#888;font-size:0.78rem;display:block;margin-top:4px;">
+                                JPG/PNG/WEBP, до 5 МБ. Если не задано — показывается стандартная картинка.
+                            </small>
+                            <span id="brLogoStatus" style="font-size:0.8rem;color:#0a7;"></span>
+                        </div>
+
                         <div class="az-form-group">
                             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin:0;">
                                 <input type="checkbox" name="is_active" value="1"
@@ -283,5 +301,39 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
         </div><!-- /.az-content -->
     </main>
 </div><!-- /.az-panel -->
+
+<script>
+async function brUploadLogo(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const status = document.getElementById('brLogoStatus');
+    status.style.color = '#0a7';
+    status.textContent = 'Загрузка...';
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+        const res  = await fetch('<?= APP_URL ?>/api/upload.php?type=brands', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.url) {
+            document.getElementById('brLogoPath').value = data.url;
+            document.getElementById('brLogoEl').src = data.url;
+            document.getElementById('brLogoPreview').style.display = '';
+            status.textContent = 'Загружено';
+        } else {
+            status.style.color = '#c30f0f';
+            status.textContent = data.error || 'Ошибка загрузки';
+        }
+    } catch (e) {
+        status.style.color = '#c30f0f';
+        status.textContent = 'Ошибка сети: ' + e.message;
+    }
+    input.value = '';
+}
+function brRemoveLogo() {
+    document.getElementById('brLogoPath').value = '';
+    document.getElementById('brLogoPreview').style.display = 'none';
+    document.getElementById('brLogoStatus').textContent = '';
+}
+</script>
 
 <?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>

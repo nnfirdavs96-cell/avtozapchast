@@ -88,6 +88,7 @@ return [
     'information'        => 'Маълумот',
     'customer_service'   => 'Хидматрасонӣ',
     'my_account_menu'    => 'Ҳисоби ман',
+    'follow_us'          => 'Мо дар шабакаҳо',
     'newsletter'         => 'Обуна',
     'newsletter_text'    => 'Ба хабарҳо ва акциякҳо обуна шавед',
     'subscribe'          => 'Обуна шудан',
