@@ -618,6 +618,33 @@ function breadcrumb(array $items): string {
 }
 
 /**
+ * Horizontal account navigation for buyer storefront pages
+ * (dashboard / orders / profile / cart / wishlist).
+ * $active = 'dashboard' | 'orders' | 'profile' | 'cart' | 'wishlist'
+ */
+function renderBuyerAccountNav(string $active = ''): string {
+    $url   = APP_URL;
+    $items = [
+        ['key' => 'dashboard', 'href' => "$url/buyer/index.php",    'icon' => 'fa-th-large',      'label' => t('dashboard')],
+        ['key' => 'orders',    'href' => "$url/buyer/orders.php",   'icon' => 'fa-list-alt',      'label' => 'Мои заказы'],
+        ['key' => 'profile',   'href' => "$url/buyer/profile.php",  'icon' => 'fa-user-o',        'label' => 'Профиль'],
+        ['key' => 'cart',      'href' => "$url/buyer/cart.php",     'icon' => 'fa-shopping-cart', 'label' => t('shopping_cart')],
+        ['key' => 'wishlist',  'href' => "$url/buyer/wishlist.php", 'icon' => 'fa-heart-o',       'label' => t('wishlist')],
+    ];
+    $h = '<nav class="az-account-nav">';
+    foreach ($items as $it) {
+        $cls = $it['key'] === $active ? ' class="active"' : '';
+        $h  .= '<a href="' . sanitize($it['href']) . '"' . $cls . '>'
+             . '<i class="fa ' . sanitize($it['icon']) . '"></i> '
+             . sanitize($it['label']) . '</a>';
+    }
+    $h .= '<a class="az-account-nav-out" href="' . $url . '/auth/logout.php">'
+        . '<i class="fa fa-sign-out"></i> ' . sanitize(t('logout')) . '</a>';
+    $h .= '</nav>';
+    return $h;
+}
+
+/**
  * Paginate query results
  */
 function paginate(string $countSql, string $dataSql, array $params, int $page, int $perPage = 12): array {

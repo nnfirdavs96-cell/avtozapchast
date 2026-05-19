@@ -271,12 +271,40 @@
     line-height: 1;
 }
 
+/* ── Buyer account area (storefront layout, no admin sidebar) ──────── */
+.az-account { background: var(--az-bg); padding: 34px 0 60px; }
+.az-account .container { max-width: 1200px; }
+.az-account-nav {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    background: var(--az-ink); border-radius: 4px;
+    padding: 6px; margin-bottom: 24px;
+}
+.az-account-nav a {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 11px 18px; border-radius: 3px;
+    color: rgba(255,255,255,0.7); text-decoration: none;
+    font-size: 0.82rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    transition: background 0.16s, color 0.16s;
+}
+.az-account-nav a i { opacity: 0.85; }
+.az-account-nav a:hover { color: #fff; background: rgba(255,255,255,0.06); text-decoration: none; }
+.az-account-nav a.active { background: var(--az-red); color: #fff; }
+.az-account-nav a.active i { opacity: 1; }
+.az-account-nav-out { margin-left: auto; color: rgba(255,150,150,0.85) !important; }
+.az-account-nav-out:hover { background: rgba(199,9,9,0.25) !important; color: #fff !important; }
+.az-account-body { min-width: 0; }
+
 /* Responsive admin */
 @media (max-width: 768px) {
     .az-panel { flex-direction: column; }
     .az-sidebar { width: 100%; height: auto; position: relative; }
     .az-stats { grid-template-columns: 1fr 1fr; }
     .az-content { padding: 16px; }
+    .az-account { padding: 18px 0 40px; }
+    .az-account-nav { gap: 2px; padding: 4px; }
+    .az-account-nav a { padding: 9px 12px; font-size: 0.72rem; letter-spacing: 0.2px; }
+    .az-account-nav-out { margin-left: 0; }
 }
 
 /* ============================================================

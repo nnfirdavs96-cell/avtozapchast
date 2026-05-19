@@ -43,73 +43,19 @@ try {
 } catch (Exception $e) { $recentOrders = []; }
 
 $pageTitle = t('dashboard');
-require_once dirname(__DIR__) . '/includes/admin-header.php';
+require_once dirname(__DIR__) . '/includes/header.php';
 ?>
+<meta name="csrf" content="<?= generateCsrfToken() ?>">
 
-<div class="az-panel">
+<?= breadcrumb([
+    ['label' => t('home'), 'url' => APP_URL . '/index.php'],
+    ['label' => t('dashboard')],
+]) ?>
 
-    <!-- ── Sidebar ─────────────────────────────────────────────────── -->
-    <aside class="az-sidebar">
-        <div class="az-sidebar-logo">
-            AUTO<span>PARTS</span>
-        </div>
-        <nav>
-            <ul>
-                <li>
-                    <a href="<?= APP_URL ?>/buyer/index.php" class="active">
-                        <i class="fa fa-dashboard"></i> <?= t('dashboard') ?>
-                    </a>
-                </li>
-                <li>
-                    <a href="<?= APP_URL ?>/buyer/orders.php">
-                        <i class="fa fa-list-alt"></i> Мои заказы
-                    </a>
-                </li>
-                <li>
-                    <a href="<?= APP_URL ?>/buyer/profile.php">
-                        <i class="fa fa-user-o"></i> Профиль
-                    </a>
-                </li>
-                <li>
-                    <a href="<?= APP_URL ?>/buyer/cart.php">
-                        <i class="fa fa-shopping-cart"></i> <?= t('shopping_cart') ?>
-                    </a>
-                </li>
-                <li>
-                    <a href="<?= APP_URL ?>/buyer/wishlist.php">
-                        <i class="fa fa-heart-o"></i> <?= t('wishlist') ?>
-                    </a>
-                </li>
-                <li style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);margin-top:20px;">
-                    <a href="<?= APP_URL ?>/auth/logout.php" style="color:rgba(255,100,100,0.85)!important;">
-                        <i class="fa fa-sign-out"></i> <?= t('logout') ?>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-    </aside>
-
-    <!-- ── Main ───────────────────────────────────────────────────── -->
-    <main class="az-main">
-        <div class="az-topbar">
-            <h1><?= t('dashboard') ?></h1>
-            <div style="display:flex;align-items:center;gap:16px;">
-                <span style="font-size:0.875rem;color:#666;display:inline-flex;align-items:center;gap:7px;">
-                    <?php if (!empty($user['avatar_path'])): ?>
-                        <img src="<?= sanitize($user['avatar_path']) ?>" alt="" style="width:26px;height:26px;border-radius:50%;object-fit:cover;">
-                    <?php else: ?>
-                        <i class="fa fa-user-o"></i>
-                    <?php endif; ?>
-                    <?= sanitize($user['username']) ?>
-                    <span style="background:#C70909;color:#fff;border-radius:4px;padding:2px 8px;font-size:0.75rem;"><?= sanitize($user['role']) ?></span>
-                </span>
-                <a href="<?= APP_URL ?>/index.php" style="font-size:0.85rem;color:#C70909;text-decoration:none;">
-                    <i class="fa fa-arrow-left"></i> В магазин
-                </a>
-            </div>
-        </div>
-
-        <div class="az-content">
+<div class="az-account">
+    <div class="container">
+        <?= renderBuyerAccountNav('dashboard') ?>
+        <div class="az-account-body">
 
             <!-- Stat cards -->
             <div class="az-stats">
@@ -202,8 +148,8 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 </a>
             </div>
 
-        </div><!-- /.az-content -->
-    </main>
-</div><!-- /.az-panel -->
+        </div><!-- /.az-account-body -->
+    </div><!-- /.container -->
+</div><!-- /.az-account -->
 
-<?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>
+<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>

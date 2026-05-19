@@ -106,40 +106,19 @@ $userStmt->execute([$user['id']]);
 $userData = $userStmt->fetch() ?: $user;
 
 $pageTitle = 'Мой профиль';
-require_once dirname(__DIR__) . '/includes/admin-header.php';
+require_once dirname(__DIR__) . '/includes/header.php';
 ?>
+<meta name="csrf" content="<?= generateCsrfToken() ?>">
 
-<div class="az-panel">
+<?= breadcrumb([
+    ['label' => t('home'), 'url' => APP_URL . '/index.php'],
+    ['label' => 'Мой профиль'],
+]) ?>
 
-    <!-- ── Sidebar ─────────────────────────────────────────────────── -->
-    <aside class="az-sidebar">
-        <div class="az-sidebar-logo">AUTO<span>PARTS</span></div>
-        <nav>
-            <ul>
-                <li><a href="<?= APP_URL ?>/buyer/index.php"><i class="fa fa-dashboard"></i> <?= t('dashboard') ?></a></li>
-                <li><a href="<?= APP_URL ?>/buyer/orders.php"><i class="fa fa-list-alt"></i> Мои заказы</a></li>
-                <li><a href="<?= APP_URL ?>/buyer/profile.php" class="active"><i class="fa fa-user-o"></i> Профиль</a></li>
-                <li><a href="<?= APP_URL ?>/buyer/cart.php"><i class="fa fa-shopping-cart"></i> <?= t('shopping_cart') ?></a></li>
-                <li><a href="<?= APP_URL ?>/buyer/wishlist.php"><i class="fa fa-heart-o"></i> <?= t('wishlist') ?></a></li>
-                <li style="border-top:1px solid rgba(255,255,255,0.1);margin-top:20px;">
-                    <a href="<?= APP_URL ?>/auth/logout.php" style="color:rgba(255,100,100,0.85)!important;">
-                        <i class="fa fa-sign-out"></i> <?= t('logout') ?>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-    </aside>
-
-    <!-- ── Main ───────────────────────────────────────────────────── -->
-    <main class="az-main">
-        <div class="az-topbar">
-            <h1>Мой профиль</h1>
-            <a href="<?= APP_URL ?>/index.php" style="font-size:0.85rem;color:#C70909;text-decoration:none;">
-                <i class="fa fa-arrow-left"></i> В магазин
-            </a>
-        </div>
-
-        <div class="az-content">
+<div class="az-account">
+    <div class="container">
+        <?= renderBuyerAccountNav('profile') ?>
+        <div class="az-account-body">
 
             <?php if (!empty($errors)): ?>
                 <div class="az-alert az-alert-danger">
@@ -295,9 +274,9 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 </form>
             </div>
 
-        </div><!-- /.az-content -->
-    </main>
-</div><!-- /.az-panel -->
+        </div><!-- /.az-account-body -->
+    </div><!-- /.container -->
+</div><!-- /.az-account -->
 
 <script>
 async function uploadAvatar(input) {
@@ -339,4 +318,4 @@ function removeAvatar() {
 }
 </script>
 
-<?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>
+<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
