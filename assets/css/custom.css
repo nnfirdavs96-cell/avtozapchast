@@ -241,26 +241,36 @@
  * Mazlay storefront — только то, чего нет в style.css Mazlay
  * ============================================================ */
 
-/* Логотип — белый текст на тёмном фоне header_middle (#222) */
+/* Тёмный фон всей шапки под логотип AvtoDoc */
+.header_top,
+.header_middle {
+    background: #1a1a1a !important;
+}
+.header_top,
+.header_top a,
+.header_top span,
+.header_middle .header_top_links a {
+    color: #e8e8e8 !important;
+}
+.header_top a:hover,
+.header_middle .header_top_links a:hover { color: #ff3636 !important; }
+
+/* Логотип — векторная картинка на тёмном фоне */
 .logo a {
     text-decoration: none; display: inline-block;
     transition: transform 0.35s cubic-bezier(.34,1.56,.64,1), filter 0.35s ease;
     transform-origin: left center;
 }
-.logo .logo-text {
-    font-size: 2.1rem; font-weight: 900; letter-spacing: -1px;
-    color: #fff; line-height: 1; display: inline-block;
+.logo .logo-img {
+    height: 64px; width: auto; display: block;
 }
-.logo .logo-text span {
-    color: #d32f2f;
-    transition: color 0.3s ease, text-shadow 0.3s ease;
-}
-.logo a:hover { transform: scale(1.06); }
-.logo a:hover .logo-text span {
-    color: #ff1f1f;
-    text-shadow: 0 0 14px rgba(255,31,31,0.55);
+.logo a:hover { transform: scale(1.05); }
+.logo a:hover .logo-img {
+    filter: drop-shadow(0 0 12px rgba(255,40,40,0.45));
 }
 .logo a:active { transform: scale(1.02); }
+@media (max-width: 991px) { .logo .logo-img { height: 52px; } }
+@media (max-width: 767px) { .logo .logo-img { height: 44px; } }
 
 /* Слайдер: гарантированный min-height и фон из data-bgimg */
 .slider_area .single_slider {

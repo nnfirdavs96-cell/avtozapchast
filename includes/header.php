@@ -184,7 +184,7 @@ unset($queryParams['lang'], $queryParams['currency']);
                     <div class="col-lg-2 col-md-4 col-sm-4 col-4">
                         <div class="logo">
                             <a href="<?= APP_URL ?>/index.php" aria-label="<?= sanitize($siteName) ?>">
-                                <span class="logo-text">Avto<span>Doc</span></span>
+                                <img src="<?= APP_URL ?>/assets/img/logo/avtodoc-logo.svg?v=<?= @filemtime(APP_ROOT.'/assets/img/logo/avtodoc-logo.svg') ?>" alt="AvtoDoc" class="logo-img">
                             </a>
                         </div>
                     </div>
