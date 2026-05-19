@@ -65,6 +65,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
 <!--shopping cart area start -->
 <div class="cart_page_bg">
     <div class="container">
+        <?= renderBuyerAccountNav('cart') ?>
         <div class="shopping_cart_area">
             <?php if (empty($cartItems)): ?>
             <div class="row">

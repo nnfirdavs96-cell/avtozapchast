@@ -277,7 +277,7 @@
 .az-account-nav {
     display: flex; flex-wrap: wrap; gap: 4px;
     background: var(--az-ink); border-radius: 4px;
-    padding: 6px; margin-bottom: 24px;
+    padding: 6px; margin: 22px 0 24px;
 }
 .az-account-nav a {
     display: inline-flex; align-items: center; gap: 8px;
