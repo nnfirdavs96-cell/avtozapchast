@@ -137,11 +137,14 @@ require_once __DIR__ . '/includes/header.php';
                     $catImages = ['category1.jpg','category2.jpg','category3.jpg','category4.jpg','category5.jpg','category6.jpg','category7.jpg'];
                     foreach ($categories as $i => $cat):
                         $img = $catImages[$i % count($catImages)];
+                        $catImgSrc = !empty($cat['image_path'])
+                            ? APP_URL . '/' . ltrim($cat['image_path'], '/')
+                            : APP_URL . '/assets/img/s-product/' . $img;
                     ?>
                     <div class="single_categories_product">
                         <div class="categories_product_thumb">
                             <a href="<?= APP_URL ?>/catalog/category.php?slug=<?= urlencode($cat['slug']) ?>">
-                                <img src="<?= APP_URL ?>/assets/img/s-product/<?= $img ?>" alt="<?= sanitize(tField($cat,'name')) ?>">
+                                <img src="<?= sanitize($catImgSrc) ?>" alt="<?= sanitize(tField($cat,'name')) ?>">
                             </a>
                         </div>
                         <div class="categories_product_content">
