@@ -1,5 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="6" fill="#1a1a1a"/>
-  <text x="2" y="24" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="19" fill="#ffffff">A</text>
-  <text x="16" y="24" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="19" fill="#d32f2f">D</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 340" fill="none">
+  <defs>
+    <linearGradient id="fvS" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ef2b2b"/><stop offset="1" stop-color="#b30d0d"/>
+    </linearGradient>
+    <linearGradient id="fvM" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#c4c9d2"/>
+    </linearGradient>
+  </defs>
+  <path d="M160 6 L300 54 V188 C300 268 234 312 160 338 C86 312 20 268 20 188 V54 Z"
+        fill="url(#fvS)" stroke="#7e0606" stroke-width="6"/>
+  <g transform="translate(160 176)">
+    <g fill="url(#fvM)">
+      <rect x="-13" y="-104" width="26" height="34" rx="5"/>
+      <rect x="-13" y="-104" width="26" height="34" rx="5" transform="rotate(36)"/>
+      <rect x="-13" y="-104" width="26" height="34" rx="5" transform="rotate(72)"/>
+      <rect x="-13" y="-104" width="26" height="34" rx="5" transform="rotate(108)"/>
+      <rect x="-13" y="-104" width="26" height="34" rx="5" transform="rotate(144)"/>
+      <rect x="-13" y="-104" width="26" height="34" rx="5" transform="rotate(180)"/>
+      <rect x="-13" y="-104" width="26" height="34" rx="5" transform="rotate(216)"/>
+      <rect x="-13" y="-104" width="26" height="34" rx="5" transform="rotate(252)"/>
+      <rect x="-13" y="-104" width="26" height="34" rx="5" transform="rotate(288)"/>
+      <rect x="-13" y="-104" width="26" height="34" rx="5" transform="rotate(324)"/>
+      <circle r="84"/>
+    </g>
+    <circle r="60" fill="url(#fvS)"/>
+    <circle r="40" fill="url(#fvM)"/>
+    <path d="M0 -34 L27 34 H13 L7.5 19 H-7.5 L-13 34 H-27 Z M-3 7 H3 L0 -10 Z" fill="#b30d0d"/>
+  </g>
 </svg>
