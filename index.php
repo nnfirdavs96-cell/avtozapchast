@@ -376,6 +376,12 @@ require_once __DIR__ . '/includes/header.php';
                                 <?php if (getSetting('site_facebook')): ?>
                                 <li><a href="<?= sanitize($socUrl(getSetting('site_facebook'), 'https://facebook.com/')) ?>" class="facebook" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i class="fa fa-facebook"></i></a></li>
                                 <?php endif; ?>
+                                <?php if (getSetting('site_youtube')): ?>
+                                <li><a href="<?= sanitize($socUrl(getSetting('site_youtube'), 'https://youtube.com/')) ?>" class="youtube" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fa fa-youtube"></i></a></li>
+                                <?php endif; ?>
+                                <?php if (getSetting('site_tiktok')): ?>
+                                <li><a href="<?= sanitize($socUrl(getSetting('site_tiktok'), 'https://tiktok.com/@')) ?>" class="tiktok" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><i class="fa fa-music"></i></a></li>
+                                <?php endif; ?>
                             </ul>
                         </div>
                     </div>
