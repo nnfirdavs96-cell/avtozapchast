@@ -329,10 +329,15 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                                 <?php endforeach; ?>
                             </div>
                             <label style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#f8f9fa;border:2px dashed #ced4da;border-radius:6px;cursor:pointer;font-size:0.825rem;color:#555;">
-                                <i class="fa fa-upload"></i> Загрузить фото (до 6, JPG/PNG/WEBP)
+                                <i class="fa fa-upload"></i> Загрузить фото
                                 <input type="file" id="imgUpload" multiple accept="image/*" style="display:none;" onchange="uploadImages(this)">
                             </label>
                             <span id="uploadStatus" style="font-size:0.8rem;color:#888;margin-left:8px;"></span>
+                            <div style="margin-top:10px;padding:10px 12px;background:#eef6ff;border:1px solid #cfe4fb;border-radius:6px;font-size:0.78rem;color:#1c5a99;line-height:1.55;">
+                                <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> 800&times;800&nbsp;px (квадрат, соотношение&nbsp;1:1)<br>
+                                Формат: <strong>JPG</strong>, PNG или WEBP &middot; до&nbsp;5&nbsp;МБ за файл<br>
+                                <span style="color:#5a87b3;">До 6 изображений. Первое будет главным.</span>
+                            </div>
                         </div>
 
                         <div style="display:flex;gap:12px;">
