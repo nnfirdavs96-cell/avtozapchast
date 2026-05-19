@@ -233,8 +233,8 @@ function renderRoleSidebar(string $active = ''): void {
             ['key' => 'blog',       'href' => "$url/superadmin/blog.php",       'icon' => 'fa-newspaper-o', 'label' => 'Блог'],
             ['key' => 'backup',     'href' => "$url/superadmin/backup.php",     'icon' => 'fa-archive',   'label' => 'Бэкапы'],
         ];
-        $logoHtml = '<div class="az-sidebar-logo" style="color:#fff;">★ Суперадмин</div>';
-        $asideStyle = 'background:linear-gradient(180deg,#2c1338 0%,#1a0a26 100%);';
+        $logoHtml = '<div class="az-sidebar-logo"><span style="color:#fcb700;">★</span> СУПЕР<span>АДМИН</span></div>';
+        $asideStyle = '';
     } elseif ($role === 'admin') {
         $items = [
             ['key' => 'dashboard', 'href' => "$url/admin/index.php",     'icon' => 'fa-tachometer',   'label' => 'Панель'],
