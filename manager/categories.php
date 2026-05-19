@@ -265,9 +265,11 @@ function renderCatRows(array $cats, string $csrf, int $depth = 0): void {
                                         style="vertical-align:top;margin-left:8px;"><i class="fa fa-trash-o"></i> Удалить</button>
                             </div>
                             <input type="file" id="catImgFile" accept="image/*" onchange="catUploadImg(this)">
-                            <small style="color:#888;font-size:0.78rem;display:block;margin-top:4px;">
-                                JPG/PNG/WEBP, до 5 МБ. Если не задано — на главной показывается стандартная картинка.
-                            </small>
+                            <div style="margin-top:8px;padding:10px 12px;background:#eef6ff;border:1px solid #cfe4fb;border-radius:6px;font-size:0.78rem;color:#1c5a99;line-height:1.55;">
+                                <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> 320&times;240&nbsp;px (соотношение&nbsp;4:3)<br>
+                                Формат: <strong>JPG</strong>, PNG или WEBP &middot; до&nbsp;5&nbsp;МБ<br>
+                                <span style="color:#5a87b3;">Если не задано — на главной показывается стандартная картинка.</span>
+                            </div>
                             <span id="catImgStatus" style="font-size:0.8rem;color:#0a7;"></span>
                         </div>
 

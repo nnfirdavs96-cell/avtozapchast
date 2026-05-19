@@ -244,6 +244,10 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 <input type="file" id="sectionImg" accept="image/*" style="display:none;" onchange="uploadSectionImg(this)">
                             </label>
                             <span id="uploadStatus" style="font-size:0.78rem;color:#888;display:block;"></span>
+                            <div style="margin-top:8px;padding:10px 12px;background:#eef6ff;border:1px solid #cfe4fb;border-radius:6px;font-size:0.78rem;color:#1c5a99;line-height:1.55;">
+                                <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> 1000&times;600&nbsp;px (соотношение&nbsp;5:3)<br>
+                                Формат: <strong>JPG</strong> или WEBP &middot; до&nbsp;5&nbsp;МБ
+                            </div>
                             <?php if (!empty($editSection['image'])): ?>
                                 <button type="button" onclick="removeImg()"
                                         class="az-btn az-btn-secondary az-btn-sm" style="margin-top:4px;">

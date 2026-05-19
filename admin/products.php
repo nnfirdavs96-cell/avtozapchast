@@ -254,9 +254,11 @@ function adminSidebar(string $active = ''): void {
 
                         <div class="az-card">
                             <h3>Изображения товара</h3>
-                            <p style="font-size:0.825rem;color:#888;margin-bottom:14px;">
-                                Загрузите до 6 изображений. Первое будет главным.
-                            </p>
+                            <div style="margin-bottom:14px;padding:10px 12px;background:#eef6ff;border:1px solid #cfe4fb;border-radius:6px;font-size:0.78rem;color:#1c5a99;line-height:1.55;">
+                                <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> 800&times;800&nbsp;px (квадрат, соотношение&nbsp;1:1)<br>
+                                Формат: <strong>JPG</strong>, PNG или WEBP &middot; до&nbsp;5&nbsp;МБ за файл<br>
+                                <span style="color:#5a87b3;">До 6 изображений. Первое будет главным.</span>
+                            </div>
 
                             <div id="imgGrid" class="img-grid">
                                 <?php foreach ($imgs as $imgUrl): ?>

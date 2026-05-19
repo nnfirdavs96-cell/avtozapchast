@@ -306,6 +306,10 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 <input type="file" id="coverImg" accept="image/*" style="display:none;" onchange="uploadCover(this)">
                             </label>
                             <span id="uploadStatus" style="font-size:0.78rem;color:#888;display:block;margin-top:6px;"></span>
+                            <div style="margin-top:8px;padding:10px 12px;background:#eef6ff;border:1px solid #cfe4fb;border-radius:6px;font-size:0.78rem;color:#1c5a99;line-height:1.55;">
+                                <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> 800&times;534&nbsp;px (соотношение&nbsp;3:2)<br>
+                                Формат: <strong>JPG</strong> или WEBP &middot; до&nbsp;5&nbsp;МБ
+                            </div>
                             <?php if (!empty($editPost['image_path'])): ?>
                                 <button type="button" onclick="removeCover()"
                                         class="az-btn az-btn-secondary az-btn-sm" style="margin-top:8px;">

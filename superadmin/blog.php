@@ -270,6 +270,10 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 <input type="file" id="coverImgBlog" accept="image/*" style="display:none;" onchange="uploadBlogCover(this)">
               </label>
               <span id="uploadStatusBlog" style="font-size:0.78rem;color:#888;margin-left:8px;"></span>
+              <div style="margin-top:8px;padding:10px 12px;background:#eef6ff;border:1px solid #cfe4fb;border-radius:6px;font-size:0.78rem;color:#1c5a99;line-height:1.55;">
+                <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> 800&times;534&nbsp;px (соотношение&nbsp;3:2)<br>
+                Формат: <strong>JPG</strong> или WEBP &middot; до&nbsp;5&nbsp;МБ
+              </div>
             </div>
 
             <button type="submit" class="az-btn az-btn-primary"><?= $editPost ? 'Сохранить изменения' : 'Создать статью' ?></button>
