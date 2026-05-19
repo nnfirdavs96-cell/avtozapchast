@@ -35,8 +35,8 @@ unset($queryParams['lang'], $queryParams['currency']);
     <meta name="description" content="<?= sanitize(getSetting('meta_description', t('tagline'))) ?>">
     <meta name="keywords" content="<?= sanitize(getSetting('meta_keywords', '')) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/svg+xml" href="<?= APP_URL ?>/assets/img/favicon.svg">
-    <link rel="shortcut icon" type="image/x-icon" href="<?= APP_URL ?>/assets/img/favicon.ico">
+    <link rel="icon" type="image/png" href="<?= APP_URL ?>/assets/img/logo/avtodoc-favicon.png?v=<?= @filemtime(APP_ROOT.'/assets/img/logo/avtodoc-favicon.png') ?>">
+    <link rel="apple-touch-icon" href="<?= APP_URL ?>/assets/img/logo/avtodoc-favicon.png">
     <link rel="stylesheet" href="<?= MAZLAY_CSS ?>/plugins.css">
     <link rel="stylesheet" href="<?= MAZLAY_CSS ?>/style.css">
     <?php $cssV = @filemtime(APP_ROOT . '/assets/css/custom.css') ?: time(); ?>
@@ -184,7 +184,7 @@ unset($queryParams['lang'], $queryParams['currency']);
                     <div class="col-lg-2 col-md-4 col-sm-4 col-4">
                         <div class="logo">
                             <a href="<?= APP_URL ?>/index.php" aria-label="<?= sanitize($siteName) ?>">
-                                <img src="<?= APP_URL ?>/assets/img/logo/avtodoc-logo.svg?v=<?= @filemtime(APP_ROOT.'/assets/img/logo/avtodoc-logo.svg') ?>" alt="AvtoDoc" class="logo-img">
+                                <img src="<?= APP_URL ?>/assets/img/logo/avtodoc-logo.png?v=<?= @filemtime(APP_ROOT.'/assets/img/logo/avtodoc-logo.png') ?>" alt="AvtoDoc" class="logo-img">
                             </a>
                         </div>
                     </div>
