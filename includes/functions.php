@@ -18,9 +18,16 @@ function getCurrentUser(): ?array {
     if (isset($_SESSION['user_data'])) return $_SESSION['user_data'];
 
     $db = getDB();
-    $stmt = $db->prepare("SELECT id, username, email, role, phone, is_active FROM users WHERE id = ? AND is_active = 1");
-    $stmt->execute([$_SESSION['user_id']]);
-    $user = $stmt->fetch();
+    try {
+        $stmt = $db->prepare("SELECT id, username, email, role, phone, avatar_path, is_active FROM users WHERE id = ? AND is_active = 1");
+        $stmt->execute([$_SESSION['user_id']]);
+        $user = $stmt->fetch();
+    } catch (PDOException $e) {
+        // avatar_path column may not exist yet (migration not run) — fall back
+        $stmt = $db->prepare("SELECT id, username, email, role, phone, is_active FROM users WHERE id = ? AND is_active = 1");
+        $stmt->execute([$_SESSION['user_id']]);
+        $user = $stmt->fetch();
+    }
     if ($user) {
         $_SESSION['user_data'] = $user;
         return $user;
