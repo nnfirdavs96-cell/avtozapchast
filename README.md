@@ -191,6 +191,16 @@ mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/rename_to_avtodoc.sql
 # Гранулярные права: таблица user_permissions (суперадмин раздаёт разделы)
 mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_permissions.sql
 
+# Изображение категории на главной (colonка categories.image_path)
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_category_image.sql
+
+# Логотип бренда/партнёра (колонка brands.logo_path)
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_brand_logo.sql
+
+# Аватар + сохранённый адрес доставки покупателя
+# (users.avatar_path, first_name, last_name, address, city, zip_code, country)
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_user_profile_fields.sql
+
 # AutoEuro API (склад, поиск/заказ) — опционально, если используете внешний склад
 mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/schema_autoeuro.sql
 ```
@@ -1440,6 +1450,82 @@ if ($flash = getFlashMessage()) {
 Описано в формате «что → где → зачем», чтобы любой разработчик мог
 сориентироваться в коде. Новые записи — сверху.
 
+### Кабинет покупателя: единый магазинный макет + навигация (PR #88, #89)
+
+**Цель:** страницы покупателя были в двух разных макетах — Профиль /
+Панель / Заказы использовали тёмную админ-панель с сайдбаром, а
+Корзина / Избранное — обычный магазинный вид. Покупатель не админ;
+всё приведено к магазинному виду.
+
+| Файл | Что изменено |
+|------|--------------|
+| `buyer/profile.php`, `buyer/index.php`, `buyer/orders.php` | `admin-header/footer` → `header/footer`; убраны `az-panel` / `az-sidebar` / `az-topbar`; добавлены хлебные крошки (`breadcrumb()`) и обёртка `.az-account` |
+| `buyer/cart.php`, `buyer/wishlist.php` | Добавлен вызов `renderBuyerAccountNav()` — навигация теперь одинакова на всех 5 страницах кабинета |
+| `includes/functions.php` | Новый помощник `renderBuyerAccountNav(string $active)` — горизонтальные вкладки Панель / Заказы / Профиль / Корзина / Избранное / Выход |
+| `assets/css/custom.css` | Стили `.az-account`, `.az-account-nav` (вкладки в фирменном тёмно-красном, адаптив) |
+
+> Контент-карточки (`.az-card`, `.az-table`, `.az-form-group`) —
+> глобальные, не тронуты, корректно рендерятся в магазинном макете.
+> Только CSS/PHP, миграций не требует.
+
+### Редизайн админ/профиль панелей под фирменный стиль (PR #87)
+
+**Цель:** админка выглядела как generic Bootstrap (Material-красный
+`#d32f2f`, серо-синий сайдбар) и не совпадала с витриной.
+
+| Файл | Что изменено |
+|------|--------------|
+| `assets/css/custom.css` | Единая система через CSS-переменные (`--az-red:#C70909` и др.). Все панели (покупатель/менеджер/админ/суперадмин) в фирменном красном `#C70909`. Тёмный графитовый сайдбар с красной активной полосой. Заголовки карточек — КАПС с красной меткой. Кнопки как в магазине (КАПС, радиус 3px, hover-подъём). Единые токены для таблиц/форм/бейджей/пагинации |
+| `includes/functions.php` | `renderRoleSidebar()`: убран чужеродный фиолетовый градиент суперадмина, золотая ★ для различения роли |
+| `buyer/profile.php`, `buyer/index.php` | Инлайн-цвета `#d32f2f` → `#C70909` |
+
+> **Высокоточечный файл:** весь стиль `.az-*` сосредоточен в
+> `assets/css/custom.css`. Публичная витрина не затронута — правки
+> только в админ-блоке. Требует Ctrl+F5 (сброс кэша CSS).
+
+### Профиль покупателя: аватар + адрес доставки (PR #86)
+
+**Цель:** покупатель не мог загрузить аватар; адрес приходилось
+вводить заново при каждом заказе.
+
+| Файл | Что изменено |
+|------|--------------|
+| `sql/add_user_profile_fields.sql` | **Новая идемпотентная миграция:** колонки `users.avatar_path, first_name, last_name, address, city, zip_code, country` (через `information_schema` + `PREPARE/EXECUTE`) |
+| `buyer/profile.php` | Загрузка/удаление аватара (предпросмотр), карточка «Адрес доставки». UPDATE-запросы в `try/catch` — сайт не падает, если миграция ещё не применена |
+| `buyer/checkout.php` | Автоподстановка сохранённого адреса в форму заказа (тоже в `try/catch`) |
+| `includes/functions.php` | `getCurrentUser()` читает `avatar_path` (с fallback-запросом без колонки) |
+| `includes/header.php`, `buyer/index.php` | Аватар вместо буквенного кружка |
+| `api/upload.php` | Добавлен тип загрузки `avatars` |
+
+> ⚠️ После `git pull` обязательно выполнить
+> `mysql ... < sql/add_user_profile_fields.sql` и
+> `chown -R www-data:www-data assets/uploads`. До миграции функции
+> аватара/адреса работают в режиме no-op (не ломают сайт).
+
+### Управляемый контент: изображения, бренды, соцсети (PR #81–#85)
+
+**Цель:** убрать хардкод картинок категорий и логотипов «партнёров»
+на главной; дать управление соцсетями; подсказать размеры загрузок.
+
+| Файл | Что изменено |
+|------|--------------|
+| `sql/add_category_image.sql`, `sql/add_brand_logo.sql` | Идемпотентные миграции: `categories.image_path`, `brands.logo_path` |
+| `manager/categories.php`, `manager/brands.php` | Загрузка изображения категории / логотипа бренда (предпросмотр, удаление) |
+| `index.php` | Картинки категорий и логотипы партнёров берутся из БД (fallback на стандартную) |
+| `superadmin/settings.php` | Соцсети Telegram, WhatsApp, Instagram, Facebook, **YouTube, TikTok**; ссылка «Партнёры» в сайдбаре |
+| `index.php` (футер) | Рендер всех соцсетей; умный хелпер `$socUrl` (username или полная ссылка) |
+| `lang/ru.php`, `lang/tg.php`, `lang/en.php` | Ключ `follow_us` (был сырой `FOLLOW_US`) |
+| `api/upload.php` | Типы загрузки `categories`, `brands` |
+| Все формы загрузки изображений (бренды, категории, слайдер, товары, блог, разделы) | Информационные подсказки с рекомендуемым размером / соотношением / форматом |
+
+### Брендинг: оригинальный логотип AvtoDoc (PR #80)
+
+| Файл | Что изменено |
+|------|--------------|
+| `assets/img/logo/avtodoc-logo.png` | Прозрачный вырез из оригинального PNG (фон удалён) |
+| `assets/img/logo/avtodoc-favicon.png` | Эмблема-щит 256×256 как favicon |
+| `includes/header.php`, `includes/admin-header.php` | Подключение PNG-логотипа и favicon |
+
 ### Защита админ-панели отдельным портом 8888 (PR #75)
 
 **Цель:** чтобы случайный посетитель не попал в админку с основного
@@ -1786,12 +1872,22 @@ mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_cms.sql
 mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_reviews.sql
 mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_reviews_v2.sql
 
+# Контент/профиль (этот цикл правок) — тоже идемпотентны:
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_category_image.sql
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_brand_logo.sql
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_user_profile_fields.sql
+
+# Папки загрузок должны быть доступны веб-серверу на запись
+sudo chown -R www-data:www-data assets/uploads && sudo chmod -R 775 assets/uploads
+
 sudo systemctl reload php8.2-fpm
 sudo systemctl reload nginx
 ```
 
-> Код устойчив к отсутствию таблиц отзывов (запросы в `try/catch`), но
-> миграции всё равно нужно применить, чтобы функционал заработал.
+> Код устойчив к отсутствию новых таблиц/колонок (запросы в
+> `try/catch`), но миграции всё равно нужно применить, чтобы
+> функционал (отзывы, изображения, аватар, адрес) заработал.
+> Если правился CSS/JS — сбросьте кэш браузера (Ctrl+F5 / инкогнито).
 
 Если `git status` показывает 199 «изменённых» файлов — это разница
 прав доступа. Лечится один раз:
