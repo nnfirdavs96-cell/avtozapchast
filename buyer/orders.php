@@ -55,40 +55,19 @@ $ordersStmt->execute([$userId]);
 $orders = $ordersStmt->fetchAll();
 
 $pageTitle = 'Мои заказы';
-require_once dirname(__DIR__) . '/includes/admin-header.php';
+require_once dirname(__DIR__) . '/includes/header.php';
 ?>
+<meta name="csrf" content="<?= generateCsrfToken() ?>">
 
-<div class="az-panel">
+<?= breadcrumb([
+    ['label' => t('home'), 'url' => APP_URL . '/index.php'],
+    ['label' => 'Мои заказы'],
+]) ?>
 
-    <!-- ── Sidebar ─────────────────────────────────────────────────── -->
-    <aside class="az-sidebar">
-        <div class="az-sidebar-logo">AUTO<span>PARTS</span></div>
-        <nav>
-            <ul>
-                <li><a href="<?= APP_URL ?>/buyer/index.php"><i class="fa fa-dashboard"></i> <?= t('dashboard') ?></a></li>
-                <li><a href="<?= APP_URL ?>/buyer/orders.php" class="active"><i class="fa fa-list-alt"></i> Мои заказы</a></li>
-                <li><a href="<?= APP_URL ?>/buyer/profile.php"><i class="fa fa-user-o"></i> Профиль</a></li>
-                <li><a href="<?= APP_URL ?>/buyer/cart.php"><i class="fa fa-shopping-cart"></i> <?= t('shopping_cart') ?></a></li>
-                <li><a href="<?= APP_URL ?>/buyer/wishlist.php"><i class="fa fa-heart-o"></i> <?= t('wishlist') ?></a></li>
-                <li style="border-top:1px solid rgba(255,255,255,0.1);margin-top:20px;">
-                    <a href="<?= APP_URL ?>/auth/logout.php" style="color:rgba(255,100,100,0.85)!important;">
-                        <i class="fa fa-sign-out"></i> <?= t('logout') ?>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-    </aside>
-
-    <!-- ── Main ───────────────────────────────────────────────────── -->
-    <main class="az-main">
-        <div class="az-topbar">
-            <h1>Мои заказы</h1>
-            <a href="<?= APP_URL ?>/index.php" style="font-size:0.85rem;color:#d32f2f;text-decoration:none;">
-                <i class="fa fa-arrow-left"></i> В магазин
-            </a>
-        </div>
-
-        <div class="az-content">
+<div class="az-account">
+    <div class="container">
+        <?= renderBuyerAccountNav('orders') ?>
+        <div class="az-account-body">
 
             <?php if ($orderDetail): ?>
             <!-- ── Order detail view ──────────────────────────────── -->
@@ -242,8 +221,8 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 <?php endif; ?>
             </div>
 
-        </div><!-- /.az-content -->
-    </main>
-</div><!-- /.az-panel -->
+        </div><!-- /.az-account-body -->
+    </div><!-- /.container -->
+</div><!-- /.az-account -->
 
-<?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>
+<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
