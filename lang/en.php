@@ -88,6 +88,7 @@ return [
     'information'        => 'Information',
     'customer_service'   => 'Customer Service',
     'my_account_menu'    => 'My Account',
+    'follow_us'          => 'Follow Us',
     'newsletter'         => 'Newsletter',
     'newsletter_text'    => 'Subscribe to news and promotions',
     'subscribe'          => 'Subscribe',

@@ -88,6 +88,7 @@ return [
     'information'        => 'Информация',
     'customer_service'   => 'Сервис',
     'my_account_menu'    => 'Мой аккаунт',
+    'follow_us'          => 'Мы в соцсетях',
     'newsletter'         => 'Подписка',
     'newsletter_text'    => 'Подпишитесь на новости и акции',
     'subscribe'          => 'Подписаться',

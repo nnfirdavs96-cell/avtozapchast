@@ -319,10 +319,13 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="brand_list">
                     <?php foreach ($bpair as $bi => $brand):
                         $bImg = $brandImages[$bi % count($brandImages)];
+                        $brandLogoSrc = !empty($brand['logo_path'])
+                            ? APP_URL . '/' . ltrim($brand['logo_path'], '/')
+                            : APP_URL . '/assets/img/brand/' . $bImg;
                     ?>
                     <div class="single_brand">
                         <a href="<?= APP_URL ?>/catalog/index.php?brand=<?= (int)$brand['id'] ?>">
-                            <img src="<?= APP_URL ?>/assets/img/brand/<?= $bImg ?>" alt="<?= sanitize($brand['name']) ?>" title="<?= sanitize($brand['name']) ?>">
+                            <img src="<?= sanitize($brandLogoSrc) ?>" alt="<?= sanitize($brand['name']) ?>" title="<?= sanitize($brand['name']) ?>">
                         </a>
                     </div>
                     <?php endforeach; ?>
@@ -355,11 +358,23 @@ require_once __DIR__ . '/includes/header.php';
                         <p><?= t('newsletter_text') ?></p>
                         <div class="footer_social">
                             <ul>
+                                <?php
+                                $socUrl = function (string $v, string $base): string {
+                                    $v = trim($v);
+                                    return preg_match('~^https?://~i', $v) ? $v : $base . ltrim($v, '@/');
+                                };
+                                ?>
                                 <?php if (getSetting('site_telegram')): ?>
-                                <li><a href="https://t.me/<?= sanitize(getSetting('site_telegram')) ?>" class="twitter" target="_blank" rel="noopener noreferrer"><i class="fa fa-telegram"></i></a></li>
+                                <li><a href="<?= sanitize($socUrl(getSetting('site_telegram'), 'https://t.me/')) ?>" class="twitter" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><i class="fa fa-telegram"></i></a></li>
                                 <?php endif; ?>
                                 <?php if (getSetting('site_whatsapp')): ?>
-                                <li><a href="https://wa.me/<?= sanitize(getSetting('site_whatsapp')) ?>" class="facebook" target="_blank" rel="noopener noreferrer"><i class="fa fa-whatsapp"></i></a></li>
+                                <li><a href="https://wa.me/<?= sanitize(preg_replace('/\D/', '', getSetting('site_whatsapp'))) ?>" class="facebook" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><i class="fa fa-whatsapp"></i></a></li>
+                                <?php endif; ?>
+                                <?php if (getSetting('site_instagram')): ?>
+                                <li><a href="<?= sanitize($socUrl(getSetting('site_instagram'), 'https://instagram.com/')) ?>" class="instagram" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fa fa-instagram"></i></a></li>
+                                <?php endif; ?>
+                                <?php if (getSetting('site_facebook')): ?>
+                                <li><a href="<?= sanitize($socUrl(getSetting('site_facebook'), 'https://facebook.com/')) ?>" class="facebook" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i class="fa fa-facebook"></i></a></li>
                                 <?php endif; ?>
                             </ul>
                         </div>
