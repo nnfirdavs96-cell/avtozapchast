@@ -161,7 +161,7 @@ unset($queryParams['lang'], $queryParams['currency']);
                         <div class="header_top_links text-right">
                             <ul>
                                 <?php if ($currentUser): ?>
-                                <li><a href="<?= APP_URL ?>/<?= $currentUser['role'] ?>/index.php"><i class="fa fa-user-o"></i> <?= sanitize($currentUser['username']) ?></a></li>
+                                <li><a href="<?= APP_URL ?>/<?= $currentUser['role'] ?>/index.php"><?php if (!empty($currentUser['avatar_path'])): ?><img src="<?= sanitize($currentUser['avatar_path']) ?>" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:5px;"><?php else: ?><i class="fa fa-user-o"></i> <?php endif; ?><?= sanitize($currentUser['username']) ?></a></li>
                                 <li><a href="<?= APP_URL ?>/auth/logout.php"><?= t('logout') ?></a></li>
                                 <?php else: ?>
                                 <li><a href="<?= APP_URL ?>/auth/register.php"><?= t('register') ?></a></li>

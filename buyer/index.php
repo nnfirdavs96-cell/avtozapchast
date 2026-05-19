@@ -94,9 +94,14 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
         <div class="az-topbar">
             <h1><?= t('dashboard') ?></h1>
             <div style="display:flex;align-items:center;gap:16px;">
-                <span style="font-size:0.875rem;color:#666;">
-                    <i class="fa fa-user-o"></i> <?= sanitize($user['username']) ?>
-                    &nbsp;<span style="background:#d32f2f;color:#fff;border-radius:4px;padding:2px 8px;font-size:0.75rem;"><?= sanitize($user['role']) ?></span>
+                <span style="font-size:0.875rem;color:#666;display:inline-flex;align-items:center;gap:7px;">
+                    <?php if (!empty($user['avatar_path'])): ?>
+                        <img src="<?= sanitize($user['avatar_path']) ?>" alt="" style="width:26px;height:26px;border-radius:50%;object-fit:cover;">
+                    <?php else: ?>
+                        <i class="fa fa-user-o"></i>
+                    <?php endif; ?>
+                    <?= sanitize($user['username']) ?>
+                    <span style="background:#d32f2f;color:#fff;border-radius:4px;padding:2px 8px;font-size:0.75rem;"><?= sanitize($user['role']) ?></span>
                 </span>
                 <a href="<?= APP_URL ?>/index.php" style="font-size:0.85rem;color:#d32f2f;text-decoration:none;">
                     <i class="fa fa-arrow-left"></i> В магазин
