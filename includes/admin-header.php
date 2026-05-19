@@ -13,7 +13,7 @@ $pageTitle   = isset($pageTitle) ? $pageTitle : ($siteName . ' — Panel');
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= sanitize($pageTitle) ?></title>
-    <link rel="shortcut icon" type="image/x-icon" href="<?= APP_URL ?>/assets/img/favicon.ico">
+    <link rel="icon" type="image/png" href="<?= APP_URL ?>/assets/img/logo/avtodoc-favicon.png">
     <link rel="stylesheet" href="<?= MAZLAY_CSS ?>/plugins.css">
     <link rel="stylesheet" href="<?= MAZLAY_CSS ?>/style.css">
     <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/custom.css">
