@@ -14,6 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fields = [
         'site_name', 'site_email', 'site_phone', 'site_phone2', 'site_address',
         'site_telegram', 'site_whatsapp', 'site_instagram', 'site_facebook',
+        'site_youtube', 'site_tiktok',
         'meta_description', 'meta_keywords',
         'items_per_page', 'default_lang', 'default_currency',
         'warehouse_api_url', 'warehouse_api_key',
@@ -76,6 +77,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
       <a href="<?= APP_URL ?>/superadmin/languages.php" class="az-sidebar-link"><i class="fa fa-language"></i> Языки</a>
       <a href="<?= APP_URL ?>/superadmin/warehouse.php" class="az-sidebar-link"><i class="fa fa-database"></i> Склад API</a>
       <a href="<?= APP_URL ?>/superadmin/blog.php" class="az-sidebar-link"><i class="fa fa-newspaper-o"></i> Блог</a>
+      <a href="<?= APP_URL ?>/manager/brands.php" class="az-sidebar-link"><i class="fa fa-handshake-o"></i> Партнёры</a>
       <a href="<?= APP_URL ?>/superadmin/backup.php" class="az-sidebar-link"><i class="fa fa-archive"></i> Бэкапы</a>
       <hr style="border-color:rgba(255,255,255,0.1);margin:12px 0;">
       <a href="<?= APP_URL ?>/index.php" class="az-sidebar-link"><i class="fa fa-home"></i> На сайт</a>
@@ -177,6 +179,18 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 <div class="az-form-group">
                   <label>Facebook (username или полная ссылка)</label>
                   <input type="text" name="site_facebook" class="form-control" value="<?= sv($settings, 'site_facebook') ?>" placeholder="avtodoc или https://facebook.com/avtodoc">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="az-form-group">
+                  <label>YouTube (username или полная ссылка)</label>
+                  <input type="text" name="site_youtube" class="form-control" value="<?= sv($settings, 'site_youtube') ?>" placeholder="@avtodoc или https://youtube.com/@avtodoc">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="az-form-group">
+                  <label>TikTok (username или полная ссылка)</label>
+                  <input type="text" name="site_tiktok" class="form-control" value="<?= sv($settings, 'site_tiktok') ?>" placeholder="@avtodoc или https://tiktok.com/@avtodoc">
                 </div>
               </div>
             </div>
