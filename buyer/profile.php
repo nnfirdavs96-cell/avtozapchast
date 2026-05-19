@@ -134,7 +134,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
     <main class="az-main">
         <div class="az-topbar">
             <h1>Мой профиль</h1>
-            <a href="<?= APP_URL ?>/index.php" style="font-size:0.85rem;color:#d32f2f;text-decoration:none;">
+            <a href="<?= APP_URL ?>/index.php" style="font-size:0.85rem;color:#C70909;text-decoration:none;">
                 <i class="fa fa-arrow-left"></i> В магазин
             </a>
         </div>
@@ -161,7 +161,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                         <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:14px;background:#f8f9fa;border-radius:8px;">
                             <div style="position:relative;">
                                 <div id="avatarCircle"
-                                     style="width:72px;height:72px;background:#d32f2f;border-radius:50%;display:<?= $curAvatar ? 'none' : 'flex' ?>;align-items:center;justify-content:center;color:#fff;font-size:1.9rem;font-weight:900;">
+                                     style="width:72px;height:72px;background:#C70909;border-radius:50%;display:<?= $curAvatar ? 'none' : 'flex' ?>;align-items:center;justify-content:center;color:#fff;font-size:1.9rem;font-weight:900;">
                                     <?= strtoupper(mb_substr($userData['username'], 0, 1)) ?>
                                 </div>
                                 <img id="avatarImg" src="<?= sanitize($curAvatar) ?>" alt=""
@@ -170,7 +170,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                             <div style="flex:1;">
                                 <div style="font-weight:700;font-size:1.05rem;"><?= sanitize($userData['username']) ?></div>
                                 <div style="font-size:0.8rem;color:#888;margin-bottom:8px;">
-                                    Роль: <span style="background:#d32f2f;color:#fff;border-radius:4px;padding:1px 7px;font-size:0.72rem;"><?= sanitize($userData['role']) ?></span>
+                                    Роль: <span style="background:#C70909;color:#fff;border-radius:4px;padding:1px 7px;font-size:0.72rem;"><?= sanitize($userData['role']) ?></span>
                                     &nbsp;·&nbsp;
                                     Регистрация: <?= sanitize(date('d.m.Y', strtotime($userData['created_at']))) ?>
                                 </div>

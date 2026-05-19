@@ -101,9 +101,9 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                         <i class="fa fa-user-o"></i>
                     <?php endif; ?>
                     <?= sanitize($user['username']) ?>
-                    <span style="background:#d32f2f;color:#fff;border-radius:4px;padding:2px 8px;font-size:0.75rem;"><?= sanitize($user['role']) ?></span>
+                    <span style="background:#C70909;color:#fff;border-radius:4px;padding:2px 8px;font-size:0.75rem;"><?= sanitize($user['role']) ?></span>
                 </span>
-                <a href="<?= APP_URL ?>/index.php" style="font-size:0.85rem;color:#d32f2f;text-decoration:none;">
+                <a href="<?= APP_URL ?>/index.php" style="font-size:0.85rem;color:#C70909;text-decoration:none;">
                     <i class="fa fa-arrow-left"></i> В магазин
                 </a>
             </div>
