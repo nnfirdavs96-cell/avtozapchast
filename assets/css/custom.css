@@ -415,7 +415,7 @@ body .brand_area .brand_container .owl-nav div i { color: #fff !important; font-
 body .brand_area .brand_container .owl-nav button span,
 body .brand_area .brand_container .owl-nav div span { color: #fff !important; font-size: 30px !important; }
 
-@media (max-width: 768px) {
+@media (max-width: 991px) {
     body .brand_area .brand_container { padding: 0 50px !important; }
     body .brand_area .brand_container .owl-nav .owl-prev,
     body .brand_area .brand_container .owl-nav .owl-next,
@@ -425,6 +425,13 @@ body .brand_area .brand_container .owl-nav div span { color: #fff !important; fo
     }
     body .brand_area .brand_container .owl-nav button i,
     body .brand_area .brand_container .owl-nav div i { font-size: 22px !important; }
+    body .brand_area .single_brand img { max-height: 90px !important; width: auto !important; max-width: 100% !important; object-fit: contain !important; }
+    body .brand_area .brand_list { padding: 0 8px !important; }
+}
+@media (max-width: 575px) {
+    body .brand_area .brand_container { padding: 0 44px !important; }
+    body .brand_area .single_brand { padding: 18px 8px !important; }
+    body .brand_area .single_brand img { max-height: 70px !important; }
 }
 
 /* blog_container не имеет row, поэтому col-lg-3 нужен flex-контейнер */

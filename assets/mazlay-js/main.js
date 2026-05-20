@@ -494,14 +494,15 @@
         autoplayTimeout: 3000,
         autoplayHoverPause: true,
         items: 6,
+        margin: 10,
         dots: false,
         responsiveClass: true,
 		responsive:{
 				0:{
-				items:1,
-			},
-            320:{
 				items:2,
+			},
+            480:{
+				items:3,
 			},
             576:{
 				items:3,
