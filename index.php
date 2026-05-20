@@ -310,35 +310,29 @@ require_once __DIR__ . '/includes/header.php';
                 <?php
                 $brandImages = ['brand1.jpg','brand2.jpg','brand3.jpg','brand4.jpg','brand5.jpg','brand6.jpg','brand7.jpg','brand8.jpg'];
                 try {
-                    $brands = $db->query("SELECT * FROM brands WHERE is_active=1 ORDER BY name LIMIT 8")->fetchAll();
+                    $brands = $db->query("SELECT * FROM brands WHERE is_active=1 ORDER BY name")->fetchAll();
                 } catch (Exception $e) { $brands = []; }
                 if (!empty($brands)):
-                    $brandPairs = array_chunk($brands, 2);
-                    foreach ($brandPairs as $bpair):
-                ?>
-                <div class="brand_list">
-                    <?php foreach ($bpair as $bi => $brand):
+                    foreach ($brands as $bi => $brand):
                         $bImg = $brandImages[$bi % count($brandImages)];
                         $brandLogoSrc = !empty($brand['logo_path'])
                             ? APP_URL . '/' . ltrim($brand['logo_path'], '/')
                             : APP_URL . '/assets/img/brand/' . $bImg;
-                    ?>
+                ?>
+                <div class="brand_list">
                     <div class="single_brand">
                         <a href="<?= APP_URL ?>/catalog/index.php?brand=<?= (int)$brand['id'] ?>">
                             <img src="<?= sanitize($brandLogoSrc) ?>" alt="<?= sanitize($brand['name']) ?>" title="<?= sanitize($brand['name']) ?>">
                         </a>
                     </div>
-                    <?php endforeach; ?>
                 </div>
                 <?php endforeach;
                 else:
-                    foreach (array_chunk($brandImages, 2) as $bpair): ?>
+                    foreach ($brandImages as $bi => $bImg): ?>
                 <div class="brand_list">
-                    <?php foreach ($bpair as $bImg): ?>
                     <div class="single_brand">
                         <a href="<?= APP_URL ?>/catalog/index.php"><img src="<?= APP_URL ?>/assets/img/brand/<?= $bImg ?>" alt=""></a>
                     </div>
-                    <?php endforeach; ?>
                 </div>
                 <?php endforeach; endif; ?>
             </div>
