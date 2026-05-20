@@ -370,6 +370,12 @@
 .brand_container:not(.owl-loaded) { display: flex; flex-wrap: wrap; }
 .brand_container:not(.owl-loaded) > .brand_list { flex: 0 0 25%; max-width: 25%; }
 
+/* Стрелки карусели брендов */
+.brand_container .owl-nav { position: absolute; top: 50%; left: 0; right: 0; transform: translateY(-50%); display: flex; justify-content: space-between; pointer-events: none; }
+.brand_container .owl-nav button { pointer-events: all; width: 36px; height: 36px; border-radius: 50% !important; background: var(--az-red) !important; color: #fff !important; font-size: 18px !important; line-height: 1 !important; display: flex; align-items: center; justify-content: center; border: none !important; box-shadow: 0 2px 8px rgba(0,0,0,0.25); transition: background .2s; }
+.brand_container .owl-nav button:hover { background: var(--az-red-dark) !important; }
+.brand_container { position: relative; }
+
 /* blog_container не имеет row, поэтому col-lg-3 нужен flex-контейнер */
 .blog_container:not(.owl-loaded) { display: flex; flex-wrap: wrap; }
 .blog_container:not(.owl-loaded) > .col-lg-3 { flex: 0 0 25%; max-width: 25%; }
