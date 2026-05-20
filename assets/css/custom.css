@@ -371,10 +371,47 @@
 .brand_container:not(.owl-loaded) > .brand_list { flex: 0 0 25%; max-width: 25%; }
 
 /* Стрелки карусели брендов */
-.brand_container .owl-nav { position: absolute; top: 50%; left: 0; right: 0; transform: translateY(-50%); display: flex; justify-content: space-between; pointer-events: none; }
-.brand_container .owl-nav button { pointer-events: all; width: 36px; height: 36px; border-radius: 50% !important; background: var(--az-red) !important; color: #fff !important; font-size: 18px !important; line-height: 1 !important; display: flex; align-items: center; justify-content: center; border: none !important; box-shadow: 0 2px 8px rgba(0,0,0,0.25); transition: background .2s; }
-.brand_container .owl-nav button:hover { background: var(--az-red-dark) !important; }
-.brand_container { position: relative; }
+.brand_area { position: relative; }
+.brand_container { position: static; }
+.brand_container .owl-nav { margin: 0 !important; }
+.brand_container .owl-nav button.owl-prev,
+.brand_container .owl-nav button.owl-next {
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%);
+    width: 52px !important;
+    height: 52px !important;
+    border-radius: 50% !important;
+    background: var(--az-red, #C70909) !important;
+    color: #fff !important;
+    font-size: 26px !important;
+    line-height: 1 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid #fff !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+    z-index: 50;
+    pointer-events: all;
+    transition: background .2s, transform .2s;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 1 !important;
+}
+.brand_container .owl-nav button.owl-prev { left: -22px !important; }
+.brand_container .owl-nav button.owl-next { right: -22px !important; }
+.brand_container .owl-nav button:hover {
+    background: var(--az-red-dark, #A00707) !important;
+    transform: translateY(-50%) scale(1.08);
+}
+.brand_container .owl-nav button i { color: #fff !important; }
+.brand_container .owl-nav button span { display: none !important; }
+@media (max-width: 768px) {
+    .brand_container .owl-nav button.owl-prev,
+    .brand_container .owl-nav button.owl-next { width: 40px !important; height: 40px !important; font-size: 20px !important; }
+    .brand_container .owl-nav button.owl-prev { left: -8px !important; }
+    .brand_container .owl-nav button.owl-next { right: -8px !important; }
+}
 
 /* blog_container не имеет row, поэтому col-lg-3 нужен flex-контейнер */
 .blog_container:not(.owl-loaded) { display: flex; flex-wrap: wrap; }
