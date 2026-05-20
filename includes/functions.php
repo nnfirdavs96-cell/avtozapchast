@@ -231,6 +231,10 @@ function renderRoleSidebar(string $active = ''): void {
             ['key' => 'warehouse',  'href' => "$url/superadmin/warehouse.php",  'icon' => 'fa-database',  'label' => 'Склад API'],
             ['key' => 'vin',        'href' => "$url/superadmin/vin.php",        'icon' => 'fa-search',    'label' => 'VIN-поиск'],
             ['key' => 'blog',       'href' => "$url/superadmin/blog.php",       'icon' => 'fa-newspaper-o', 'label' => 'Блог'],
+            ['key' => 'partners',   'href' => "$url/manager/brands.php",        'icon' => 'fa-handshake-o', 'label' => 'Партнёры'],
+            ['key' => 'pages',      'href' => "$url/manager/pages.php",         'icon' => 'fa-file-text-o', 'label' => 'Страницы'],
+            ['key' => 'reviews',    'href' => "$url/manager/reviews.php",       'icon' => 'fa-comments-o',  'label' => 'Отзывы'],
+            ['key' => 'categories', 'href' => "$url/manager/categories.php",    'icon' => 'fa-sitemap',     'label' => 'Категории'],
             ['key' => 'backup',     'href' => "$url/superadmin/backup.php",     'icon' => 'fa-archive',   'label' => 'Бэкапы'],
         ];
         $logoHtml = '<div class="az-sidebar-logo"><span style="color:#fcb700;">★</span> СУПЕР<span>АДМИН</span></div>';

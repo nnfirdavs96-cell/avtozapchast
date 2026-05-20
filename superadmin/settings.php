@@ -61,29 +61,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
 ?>
 
 <div class="az-panel">
-  <aside class="az-sidebar" style="background:#1a0533;">
-    <div class="az-sidebar-brand" style="background:rgba(155,89,182,0.3);border-bottom-color:rgba(155,89,182,0.3);">
-      <span style="color:#ce93d8;">&#x2605;</span> Суперадмин
-    </div>
-    <nav class="az-sidebar-nav">
-      <a href="<?= APP_URL ?>/superadmin/index.php" class="az-sidebar-link"><i class="fa fa-star"></i> Панель</a>
-      <a href="<?= APP_URL ?>/superadmin/users.php" class="az-sidebar-link"><i class="fa fa-users"></i> Пользователи</a>
-      <a href="<?= APP_URL ?>/superadmin/permissions.php" class="az-sidebar-link"><i class="fa fa-shield"></i> Права доступа</a>
-      <a href="<?= APP_URL ?>/admin/orders.php" class="az-sidebar-link"><i class="fa fa-shopping-bag"></i> Заказы</a>
-      <a href="<?= APP_URL ?>/admin/products.php" class="az-sidebar-link"><i class="fa fa-cogs"></i> Товары</a>
-      <a href="<?= APP_URL ?>/admin/sliders.php" class="az-sidebar-link"><i class="fa fa-picture-o"></i> Слайдер</a>
-      <a href="<?= APP_URL ?>/superadmin/settings.php" class="az-sidebar-link active" style="color:#ce93d8;"><i class="fa fa-cog"></i> Настройки</a>
-      <a href="<?= APP_URL ?>/superadmin/currencies.php" class="az-sidebar-link"><i class="fa fa-money"></i> Валюты</a>
-      <a href="<?= APP_URL ?>/superadmin/languages.php" class="az-sidebar-link"><i class="fa fa-language"></i> Языки</a>
-      <a href="<?= APP_URL ?>/superadmin/warehouse.php" class="az-sidebar-link"><i class="fa fa-database"></i> Склад API</a>
-      <a href="<?= APP_URL ?>/superadmin/blog.php" class="az-sidebar-link"><i class="fa fa-newspaper-o"></i> Блог</a>
-      <a href="<?= APP_URL ?>/manager/brands.php" class="az-sidebar-link"><i class="fa fa-handshake-o"></i> Партнёры</a>
-      <a href="<?= APP_URL ?>/superadmin/backup.php" class="az-sidebar-link"><i class="fa fa-archive"></i> Бэкапы</a>
-      <hr style="border-color:rgba(255,255,255,0.1);margin:12px 0;">
-      <a href="<?= APP_URL ?>/index.php" class="az-sidebar-link"><i class="fa fa-home"></i> На сайт</a>
-      <a href="<?= APP_URL ?>/auth/logout.php" class="az-sidebar-link" style="color:rgba(255,100,100,0.85)!important;"><i class="fa fa-sign-out"></i> Выйти</a>
-    </nav>
-  </aside>
+  <?php renderRoleSidebar('settings'); ?>
 
   <div class="az-main">
     <div class="az-topbar" style="border-bottom-color:#9b59b622;background:#f9f5ff;">
