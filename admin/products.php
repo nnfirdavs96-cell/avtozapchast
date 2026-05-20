@@ -136,25 +136,6 @@ $parts = $partsStmt->fetchAll();
 $pageTitle = 'Товары — Администратор';
 require_once dirname(__DIR__) . '/includes/header.php';
 
-function adminSidebar(string $active = ''): void {
-    $url = APP_URL;
-    $links = [
-        ['href' => '/admin/index.php',    'icon' => 'tachometer', 'label' => 'Панель'],
-        ['href' => '/admin/products.php', 'icon' => 'cogs',       'label' => 'Товары'],
-        ['href' => '/admin/sliders.php',  'icon' => 'picture-o',  'label' => 'Слайдер'],
-        ['href' => '/admin/orders.php',   'icon' => 'shopping-bag','label' => 'Заказы'],
-        ['href' => '/admin/users.php',    'icon' => 'users',       'label' => 'Пользователи'],
-    ];
-    echo '<aside class="az-sidebar"><div class="az-sidebar-logo">ADMIN<span>PANEL</span></div><nav><ul>';
-    foreach ($links as $l) {
-        $cls = strpos($_SERVER['REQUEST_URI'], $l['href']) !== false ? ' class="active"' : '';
-        echo "<li><a href=\"{$url}{$l['href']}\"{$cls}><i class=\"fa fa-{$l['icon']}\"></i> {$l['label']}</a></li>";
-    }
-    echo '<li style="border-top:1px solid rgba(255,255,255,0.1);margin-top:12px;">';
-    echo "<li><a href=\"{$url}/index.php\"><i class=\"fa fa-home\"></i> На сайт</a></li>";
-    echo "<li><a href=\"{$url}/auth/logout.php\" style=\"color:rgba(255,100,100,0.85)!important;\"><i class=\"fa fa-sign-out\"></i> Выйти</a></li>";
-    echo '</ul></nav></aside>';
-}
 ?>
 
 <div class="az-panel">
