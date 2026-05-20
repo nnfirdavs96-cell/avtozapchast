@@ -488,12 +488,14 @@
      $('.brand_container').on('changed.owl.carousel initialized.owl.carousel', function (event) {
         $(event.target).find('.owl-item').removeClass('last').eq(event.item.index + event.page.size - 1).addClass('last')}).owlCarousel({
 		loop: true,
-        nav: false,
-        autoplay: false,
-        autoplayTimeout: 8000,
+        nav: true,
+        navText: ['<i class="fa fa-angle-left"></i>','<i class="fa fa-angle-right"></i>'],
+        autoplay: true,
+        autoplayTimeout: 3000,
+        autoplayHoverPause: true,
         items: 6,
-        dots:false,
-        responsiveClass:true,
+        dots: false,
+        responsiveClass: true,
 		responsive:{
 				0:{
 				items:1,
