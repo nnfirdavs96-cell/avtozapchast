@@ -1,7 +1,7 @@
 <?php
 return [
     // Common
-    'site_name'          => 'AvtoDoc',
+    'site_name'          => 'AutoDoc',
     'tagline'            => 'Эҳтиёт қисмҳои касбии мошин',
     'search_placeholder' => 'Рақами маҳсулот, ном, бренд ё VIN (17 рақам)...',
     'all_categories'     => 'Ҳамаи категорияҳо',
