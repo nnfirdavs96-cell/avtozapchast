@@ -41,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $desc     = trim($_POST['description'] ?? '') ?: null;
     $isActive = (int)(!empty($_POST['is_active']));
     $logoPath = trim($_POST['logo_path'] ?? '') ?: null;
+    $sortOrd  = (int)($_POST['sort_order'] ?? 0);
     $bid      = (int)($_POST['id'] ?? 0);
 
     if (empty($name)) {
@@ -61,17 +62,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        if ($bid) {
-            $db->prepare(
-                "UPDATE brands SET name=?, slug=?, country=?, description=?, logo_path=?, is_active=? WHERE id=?"
-            )->execute([$name, $slug, $country, $desc, $logoPath, $isActive, $bid]);
-            flashMessage('success', 'Бренд обновлён.');
-        } else {
-            $db->prepare(
-                "INSERT INTO brands (name, slug, country, description, logo_path, is_active)
-                 VALUES (?, ?, ?, ?, ?, ?)"
-            )->execute([$name, $slug, $country, $desc, $logoPath, 1]);
-            flashMessage('success', 'Бренд добавлен.');
+        try {
+            if ($bid) {
+                $db->prepare(
+                    "UPDATE brands SET name=?, slug=?, country=?, description=?, logo_path=?, is_active=?, sort_order=? WHERE id=?"
+                )->execute([$name, $slug, $country, $desc, $logoPath, $isActive, $sortOrd, $bid]);
+                flashMessage('success', 'Бренд обновлён.');
+            } else {
+                $db->prepare(
+                    "INSERT INTO brands (name, slug, country, description, logo_path, is_active, sort_order)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)"
+                )->execute([$name, $slug, $country, $desc, $logoPath, 1, $sortOrd]);
+                flashMessage('success', 'Бренд добавлен.');
+            }
+        } catch (PDOException $e) {
+            // Fallback if sort_order column doesn't exist yet
+            if ($bid) {
+                $db->prepare(
+                    "UPDATE brands SET name=?, slug=?, country=?, description=?, logo_path=?, is_active=? WHERE id=?"
+                )->execute([$name, $slug, $country, $desc, $logoPath, $isActive, $bid]);
+            } else {
+                $db->prepare(
+                    "INSERT INTO brands (name, slug, country, description, logo_path, is_active)
+                     VALUES (?, ?, ?, ?, ?, ?)"
+                )->execute([$name, $slug, $country, $desc, $logoPath, 1]);
+            }
+            flashMessage('success', 'Бренд сохранён.');
         }
         redirect(APP_URL . '/manager/brands.php');
     }
@@ -89,13 +105,23 @@ if ($editId && $action === 'edit') {
 }
 
 // ── All brands with part count ────────────────────────────────────────
-$brands = $db->query(
-    "SELECT b.*,
-            (SELECT COUNT(*) FROM parts p WHERE p.brand_id = b.id AND p.is_active = 1) AS part_count
-     FROM brands b
-     WHERE b.is_active = 1
-     ORDER BY b.name ASC"
-)->fetchAll();
+try {
+    $brands = $db->query(
+        "SELECT b.*,
+                (SELECT COUNT(*) FROM parts p WHERE p.brand_id = b.id AND p.is_active = 1) AS part_count
+         FROM brands b
+         WHERE b.is_active = 1
+         ORDER BY b.sort_order ASC, b.name ASC"
+    )->fetchAll();
+} catch (PDOException $e) {
+    $brands = $db->query(
+        "SELECT b.*,
+                (SELECT COUNT(*) FROM parts p WHERE p.brand_id = b.id AND p.is_active = 1) AS part_count
+         FROM brands b
+         WHERE b.is_active = 1
+         ORDER BY b.name ASC"
+    )->fetchAll();
+}
 
 $pageTitle = 'Управление брендами';
 require_once dirname(__DIR__) . '/includes/admin-header.php';
@@ -196,6 +222,16 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                         </div>
 
                         <div class="az-form-group">
+                            <label>Порядок сортировки</label>
+                            <input type="number" name="sort_order"
+                                   value="<?= (int)($editBrand['sort_order'] ?? 0) ?>"
+                                   class="az-form-control" min="0" max="9999" style="max-width:200px;">
+                            <small style="color:#888;display:block;margin-top:4px;">
+                                Меньшие значения показываются первыми. 0 = по алфавиту.
+                            </small>
+                        </div>
+
+                        <div class="az-form-group">
                             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin:0;">
                                 <input type="checkbox" name="is_active" value="1"
                                        <?= (isset($editBrand) ? $editBrand['is_active'] : 1) ? 'checked' : '' ?>>
@@ -227,6 +263,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                         <thead>
                             <tr>
                                 <th>#</th>
+                                <th style="text-align:center;">Порядок</th>
                                 <th>Название</th>
                                 <th>Слаг</th>
                                 <th>Страна</th>
@@ -238,12 +275,13 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                         <tbody>
                             <?php if (empty($brands)): ?>
                                 <tr>
-                                    <td colspan="7" style="text-align:center;color:#aaa;padding:30px;">Брендов нет.</td>
+                                    <td colspan="8" style="text-align:center;color:#aaa;padding:30px;">Брендов нет.</td>
                                 </tr>
                             <?php else: ?>
-                                <?php foreach ($brands as $b): ?>
+                                <?php foreach ($brands as $i => $b): ?>
                                     <tr>
-                                        <td style="color:#888;font-size:0.8rem;"><?= (int)$b['id'] ?></td>
+                                        <td style="color:#888;font-size:0.85rem;"><?= $i + 1 ?></td>
+                                        <td style="text-align:center;color:#888;font-size:0.8rem;"><?= (int)($b['sort_order'] ?? 0) ?></td>
                                         <td style="font-weight:700;"><?= sanitize($b['name']) ?></td>
                                         <td><code style="font-size:0.75rem;color:#666;"><?= sanitize($b['slug']) ?></code></td>
                                         <td style="color:#888;font-size:0.85rem;"><?= sanitize($b['country'] ?? '—') ?></td>
