@@ -1450,6 +1450,74 @@ if ($flash = getFlashMessage()) {
 Описано в формате «что → где → зачем», чтобы любой разработчик мог
 сориентироваться в коде. Новые записи — сверху.
 
+### Карусель брендов: стрелки, автопрокрутка, мобильная адаптация (PR #97–#101)
+
+**Цель:** карусель партнёров/брендов на главной была статичной — без
+стрелок и автоскролла. Также бренды дублировались (логотипы клонировались
+OWL'ом из-за группировки по 2 в слайд) и плохо смотрелись на мобильных.
+
+| Файл | Что изменено |
+|------|--------------|
+| `index.php` | Бренды теперь по одному на слайд (а не парами) — нет клонирования; query: `ORDER BY sort_order ASC, name ASC` |
+| `manager/brands.php` | В таблице колонка `#` показывает порядковый номер (1,2,3…), не raw `id`; новая колонка **Порядок**, поле `sort_order` в форме |
+| `assets/mazlay-js/main.js` | `nav: true`, навигация FA-иконками, `autoplay: true` 3 сек с паузой при ховере; responsive: на мобильных 2 → 3 → 4 → 5 → 6 брендов |
+| `assets/css/custom.css` | Стрелки 60×60 (42×42 на мобильных), красные круги с белой обводкой, padding контейнера 60px (стрелки внутри), `body` в селекторах для максимальной специфичности |
+| `sql/add_brand_sort_order.sql` | Идемпотентная миграция: `ALTER TABLE brands ADD sort_order INT NOT NULL DEFAULT 0` |
+
+**Миграция:**
+```bash
+mysql -u root -p avtozapchast < sql/add_brand_sort_order.sql
+```
+
+### Единый сайдбар для всех админ-панелей (PR #96)
+
+**Цель:** на разных страницах админ-разделов был свой захардкоженный
+HTML-сайдбар (16 файлов), пункты различались. При переходе между страницами
+пункт «Партнёры» то появлялся, то пропадал.
+
+| Файл | Что изменено |
+|------|--------------|
+| `includes/functions.php` | В `renderRoleSidebar()` для суперадмина добавлены пункты **Партнёры, Страницы, Отзывы, Категории** |
+| 16 файлов (`admin/`, `manager/`, `superadmin/`) | Захардкоженные `<aside class="az-sidebar">…</aside>` заменены на вызов `<?php renderRoleSidebar('key'); ?>` |
+| Результат | `–364 / +19 строк`, единая точка истины для меню |
+
+Затронутые страницы: `superadmin/{index,users,permissions,settings,currencies,languages,blog,backup}.php`,
+`manager/{index,parts,categories,brands,blog,pages,reviews}.php`,
+`admin/products.php`.
+
+### Переименование AvtoDoc → AutoDoc (PR #95)
+
+**Цель:** обновление бренда до «AutoDoc».
+
+| Файл | Что изменено |
+|------|--------------|
+| `config/config.php` | `APP_NAME = 'AutoDoc'` |
+| `lang/ru.php`, `en.php`, `tg.php` | `site_name = 'AutoDoc'` |
+| `includes/footer.php` | Fallback для копирайта |
+| `assets/css/custom.css` | Комментарий обновлён |
+| `sql/rename_to_autodoc.sql` | `UPDATE settings SET value = REPLACE(value, 'AvtoDoc', 'AutoDoc')` |
+
+**Миграция (обязательна, иначе в БД останется старое значение):**
+```bash
+mysql -u root -p avtozapchast < sql/rename_to_autodoc.sql
+```
+
+Также можно через **Суперадмин → Настройки → Основные → Название сайта**.
+
+### Новый логотип AutoDoc с прозрачным фоном (PR #91, #92, #93, #94)
+
+**Цель:** заменить старый логотип на новый «AutoDoc».
+
+| Файл | Что изменено |
+|------|--------------|
+| `assets/img/logo/avtodoc-logo.png` | Новый логотип (600×180, RGBA, прозрачный фон) |
+| `includes/header.php` | Путь обновлён, `alt="AutoDoc"` |
+| `assets/img/logo/avtodoc-logo.jpg` | Удалён (был старый формат) |
+
+Алгоритм очистки фона: flood-fill от пограничных пикселей с проверкой по
+яркости и насыщенности (тёмный десатурированный фон → α=0, цветной/яркий
+контент → α=255), затем обрезка по контенту и масштабирование под веб.
+
 ### Кабинет покупателя: единый магазинный макет + навигация (PR #88, #89)
 
 **Цель:** страницы покупателя были в двух разных макетах — Профиль /
@@ -1876,6 +1944,10 @@ mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_reviews_v2.sql
 mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_category_image.sql
 mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_brand_logo.sql
 mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_user_profile_fields.sql
+
+# Ребрендинг + сортировка брендов (PR #95, #97):
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/rename_to_autodoc.sql
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_brand_sort_order.sql
 
 # Папки загрузок должны быть доступны веб-серверу на запись
 sudo chown -R www-data:www-data assets/uploads && sudo chmod -R 775 assets/uploads
