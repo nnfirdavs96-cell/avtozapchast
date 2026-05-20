@@ -386,8 +386,8 @@ body .brand_area .brand_container .single_brand {
     align-items: center !important;
     justify-content: center !important;
     width: 100% !important;
-    padding: 22px 14px !important;
-    min-height: 130px !important;
+    height: 100px !important;
+    padding: 12px !important;
     background: #fff !important;
     border: 1px solid #ececec !important;
     border-radius: 6px !important;
@@ -402,13 +402,13 @@ body .brand_area .brand_container .single_brand a {
     text-align: center !important;
 }
 body .brand_area .brand_container .single_brand img {
-    display: inline-block !important;
-    width: auto !important;
-    max-width: 90% !important;
-    max-height: 90px !important;
-    height: auto !important;
-    margin: 0 auto !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
     object-fit: contain !important;
+    margin: 0 auto !important;
 }
 
 body .brand_area .brand_container .owl-nav { margin: 0 !important; padding: 0 !important; position: static !important; }
@@ -468,13 +468,11 @@ body .brand_area .brand_container .owl-nav div span { color: #fff !important; fo
     }
     body .brand_area .brand_container .owl-nav button i,
     body .brand_area .brand_container .owl-nav div i { font-size: 22px !important; }
-    body .brand_area .brand_container .single_brand { min-height: 105px !important; padding: 18px 10px !important; }
-    body .brand_area .brand_container .single_brand img { max-height: 70px !important; }
+    body .brand_area .brand_container .single_brand { height: 85px !important; padding: 10px !important; }
 }
 @media (max-width: 575px) {
     body .brand_area .brand_container { padding: 0 46px !important; }
-    body .brand_area .brand_container .single_brand { min-height: 95px !important; padding: 14px 8px !important; }
-    body .brand_area .brand_container .single_brand img { max-height: 60px !important; }
+    body .brand_area .brand_container .single_brand { height: 75px !important; padding: 8px !important; }
 }
 
 /* blog_container не имеет row, поэтому col-lg-3 нужен flex-контейнер */
