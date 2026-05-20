@@ -1,5 +1,5 @@
 <?php
-define('APP_NAME', 'AvtoDoc');
+define('APP_NAME', 'AutoDoc');
 define('APP_URL', '');  // empty = relative URLs; set to https://yourdomain.com for production
 // Защита админ-раздела: nginx Basic Auth на /admin, /superadmin, /manager.
 // ADMIN_PORT='' отключает PHP-гейт (провайдер форвардит только порт 80).
