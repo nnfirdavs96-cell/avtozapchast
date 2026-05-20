@@ -310,8 +310,12 @@ require_once __DIR__ . '/includes/header.php';
                 <?php
                 $brandImages = ['brand1.jpg','brand2.jpg','brand3.jpg','brand4.jpg','brand5.jpg','brand6.jpg','brand7.jpg','brand8.jpg'];
                 try {
-                    $brands = $db->query("SELECT * FROM brands WHERE is_active=1 ORDER BY name")->fetchAll();
-                } catch (Exception $e) { $brands = []; }
+                    $brands = $db->query("SELECT * FROM brands WHERE is_active=1 ORDER BY sort_order ASC, name ASC")->fetchAll();
+                } catch (Exception $e) {
+                    try {
+                        $brands = $db->query("SELECT * FROM brands WHERE is_active=1 ORDER BY name")->fetchAll();
+                    } catch (Exception $e2) { $brands = []; }
+                }
                 if (!empty($brands)):
                     foreach ($brands as $bi => $brand):
                         $bImg = $brandImages[$bi % count($brandImages)];
