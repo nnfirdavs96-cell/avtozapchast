@@ -502,7 +502,7 @@
 				items:2,
 			},
             480:{
-				items:3,
+				items:2,
 			},
             576:{
 				items:3,

@@ -478,7 +478,7 @@ body .brand_area .brand_container .owl-nav div span { color: #fff !important; fo
 .footer_social ul li a:has(.fa-instagram):hover { background: #C70909 !important; }
 
 @media (max-width: 991px) {
-    body .brand_area .brand_container { padding: 0 56px !important; }
+    body .brand_area .brand_container { padding: 0 50px !important; }
     body .brand_area .brand_container .owl-nav .owl-prev,
     body .brand_area .brand_container .owl-nav .owl-next,
     body .brand_area .brand_container .owl-nav button.owl-prev,
@@ -487,11 +487,20 @@ body .brand_area .brand_container .owl-nav div span { color: #fff !important; fo
     }
     body .brand_area .brand_container .owl-nav button i,
     body .brand_area .brand_container .owl-nav div i { font-size: 22px !important; }
-    body .brand_area .brand_container .single_brand { height: 110px !important; padding: 8px !important; }
+    body .brand_area .brand_container .single_brand { height: 100px !important; padding: 6px !important; }
 }
 @media (max-width: 575px) {
-    body .brand_area .brand_container { padding: 0 46px !important; }
-    body .brand_area .brand_container .single_brand { height: 100px !important; padding: 6px !important; }
+    /* 2 логотипа в ряд → боксы шире, лого крупнее. Узкие отступы по бокам. */
+    body .brand_area .brand_container { padding: 0 38px !important; }
+    body .brand_area .brand_container .single_brand { height: 90px !important; padding: 8px 10px !important; }
+    body .brand_area .brand_container .owl-nav .owl-prev,
+    body .brand_area .brand_container .owl-nav .owl-next,
+    body .brand_area .brand_container .owl-nav button.owl-prev,
+    body .brand_area .brand_container .owl-nav button.owl-next {
+        width: 34px !important; height: 34px !important; min-width: 34px !important; font-size: 18px !important;
+    }
+    body .brand_area .brand_container .owl-nav button i,
+    body .brand_area .brand_container .owl-nav div i { font-size: 18px !important; }
 }
 
 /* blog_container не имеет row, поэтому col-lg-3 нужен flex-контейнер */
