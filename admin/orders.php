@@ -123,7 +123,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
             </div>
             <div class="col-md-4">
               <strong>Адрес доставки:</strong><br>
-              <small><?= nl2br(sanitize($orderDetail['shipping_address'] ?? '—')) ?></small>
+              <small><?= formatShippingAddress($orderDetail['shipping_address'] ?? '') ?></small>
             </div>
             <div class="col-md-4">
               <strong>Дата заказа:</strong><br>

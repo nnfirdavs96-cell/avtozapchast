@@ -114,7 +114,9 @@ function permissionSections(): array {
  * (admin uses "products", manager uses "parts" for the same area).
  */
 function permissionAlias(string $key): string {
-    return $key === 'parts' ? 'products' : $key;
+    if ($key === 'parts')   return 'products';
+    if ($key === 'banners') return 'sliders';
+    return $key;
 }
 
 /**
@@ -225,6 +227,7 @@ function renderRoleSidebar(string $active = ''): void {
             ['key' => 'orders',     'href' => "$url/admin/orders.php",       'icon' => 'fa-shopping-bag', 'label' => 'Заказы'],
             ['key' => 'products',   'href' => "$url/admin/products.php",     'icon' => 'fa-cogs',         'label' => 'Товары'],
             ['key' => 'sliders',    'href' => "$url/admin/sliders.php",      'icon' => 'fa-picture-o',    'label' => 'Слайдер'],
+            ['key' => 'banners',    'href' => "$url/admin/banners.php",      'icon' => 'fa-clone',        'label' => 'Баннеры'],
             ['key' => 'settings',   'href' => "$url/superadmin/settings.php",'icon' => 'fa-cog',          'label' => 'Настройки'],
             ['key' => 'currencies', 'href' => "$url/superadmin/currencies.php", 'icon' => 'fa-money',     'label' => 'Валюты'],
             ['key' => 'languages',  'href' => "$url/superadmin/languages.php",  'icon' => 'fa-language',  'label' => 'Языки'],
@@ -236,6 +239,7 @@ function renderRoleSidebar(string $active = ''): void {
             ['key' => 'reviews',    'href' => "$url/manager/reviews.php",       'icon' => 'fa-comments-o',  'label' => 'Отзывы'],
             ['key' => 'categories', 'href' => "$url/manager/categories.php",    'icon' => 'fa-sitemap',     'label' => 'Категории'],
             ['key' => 'backup',     'href' => "$url/superadmin/backup.php",     'icon' => 'fa-archive',   'label' => 'Бэкапы'],
+            ['key' => 'manual',     'href' => "$url/superadmin/manual.php",     'icon' => 'fa-book',      'label' => 'Руководство'],
         ];
         $logoHtml = '<div class="az-sidebar-logo"><span style="color:#fcb700;">★</span> СУПЕР<span>АДМИН</span></div>';
         $asideStyle = '';
@@ -244,6 +248,7 @@ function renderRoleSidebar(string $active = ''): void {
             ['key' => 'dashboard', 'href' => "$url/admin/index.php",     'icon' => 'fa-tachometer',   'label' => 'Панель'],
             ['key' => 'products',  'href' => "$url/admin/products.php",  'icon' => 'fa-cogs',         'label' => 'Товары'],
             ['key' => 'sliders',   'href' => "$url/admin/sliders.php",   'icon' => 'fa-picture-o',    'label' => 'Слайдер'],
+            ['key' => 'banners',   'href' => "$url/admin/banners.php",   'icon' => 'fa-clone',        'label' => 'Баннеры'],
             ['key' => 'orders',    'href' => "$url/admin/orders.php",    'icon' => 'fa-shopping-bag', 'label' => 'Заказы'],
             ['key' => 'users',     'href' => "$url/admin/users.php",     'icon' => 'fa-users',        'label' => 'Пользователи'],
             ['key' => 'vin',       'href' => "$url/superadmin/vin.php",  'icon' => 'fa-search',       'label' => 'VIN-поиск'],
@@ -401,6 +406,41 @@ function getOrderStatusClass(string $status): string {
         'cancelled'  => 'danger',
     ];
     return $classes[$status] ?? 'secondary';
+}
+
+/**
+ * Format a shipping address for display.
+ * Orders store the address as JSON (see buyer/checkout.php); decode it into
+ * readable HTML. Falls back to the raw value if it isn't valid JSON.
+ */
+function formatShippingAddress(?string $raw): string {
+    $raw = trim((string)$raw);
+    if ($raw === '') return '—';
+
+    $data = json_decode($raw, true);
+    if (!is_array($data)) {
+        return nl2br(sanitize($raw));
+    }
+
+    $name = trim(($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? ''));
+    $lines = [];
+    if ($name !== '')           $lines[] = $name;
+    if (!empty($data['phone'])) $lines[] = $data['phone'];
+    if (!empty($data['email'])) $lines[] = $data['email'];
+
+    $cityLine = trim(implode(', ', array_filter([
+        $data['zip_code'] ?? '',
+        $data['city']     ?? '',
+        $data['country']  ?? '',
+    ])));
+    $addr = trim(implode(', ', array_filter([
+        $data['address'] ?? '',
+        $cityLine,
+    ])));
+    if ($addr !== '') $lines[] = $addr;
+
+    if (empty($lines)) return '—';
+    return implode('<br>', array_map('sanitize', $lines));
 }
 
 /**

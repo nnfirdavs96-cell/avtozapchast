@@ -16,6 +16,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email       = trim($_POST['email'] ?? '');
         $phone       = trim($_POST['phone'] ?? '');
         $avatarPath  = trim($_POST['avatar_path'] ?? '') ?: null;
+        // Accept only app-relative paths or http(s) URLs (blocks javascript:/data: schemes)
+        if ($avatarPath !== null && !preg_match('~^(/|https?://)~i', $avatarPath)) {
+            $avatarPath = null;
+        }
         $firstName   = trim($_POST['first_name'] ?? '') ?: null;
         $lastName    = trim($_POST['last_name'] ?? '') ?: null;
         $address     = trim($_POST['address'] ?? '') ?: null;

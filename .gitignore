@@ -2,6 +2,9 @@
 *.sql.gz
 autodoc_export_*.sql
 
+# Generated manual PDF (built on demand by superadmin/manual.php)
+storage/manual/*.pdf
+
 # Uploaded media (keep .gitkeep placeholders)
 assets/uploads/*/*
 !assets/uploads/*/.gitkeep
