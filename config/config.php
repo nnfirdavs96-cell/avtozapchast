@@ -16,6 +16,14 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Prevent browsers from caching dynamic HTML so updated CSS/JS (versioned by
+// filemtime) are always picked up. Static assets are served directly by the
+// web server and keep their own caching, busted via ?v= query strings.
+if (!headers_sent()) {
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+}
+
 require_once APP_ROOT . '/config/database.php';
 require_once APP_ROOT . '/includes/functions.php';
 require_once APP_ROOT . '/includes/i18n.php';
