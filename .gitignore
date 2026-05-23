@@ -22,3 +22,6 @@ Thumbs.db
 
 # Legacy installer
 install_autoeuro.php
+
+# Per-server DB credentials (each server keeps its own, not in git)
+config/db_credentials.php
