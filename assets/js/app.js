@@ -55,13 +55,24 @@ function showToast(msg, type) {
 // CSRF token from meta tag
 window._csrf = document.querySelector('meta[name=csrf]') ? document.querySelector('meta[name=csrf]').content : '';
 
-// Apply data-bgimg as background-image (fallback if Mazlay main.js fails)
-document.addEventListener('DOMContentLoaded', function () {
+// Apply data-bgimg as background-image, picking the mobile variant on small screens
+function applyResponsiveBg() {
+    var isMobile = window.matchMedia('(max-width: 767px)').matches;
     document.querySelectorAll('[data-bgimg]').forEach(function (el) {
-        var url = el.getAttribute('data-bgimg');
-        if (url && !el.style.backgroundImage) {
-            el.style.backgroundImage = 'url(' + url + ')';
-        }
+        var desktop = el.getAttribute('data-bgimg');
+        var mobile  = el.getAttribute('data-bgimg-mobile');
+        var url = (isMobile && mobile) ? mobile : desktop;
+        if (url) el.style.backgroundImage = 'url(' + url + ')';
+    });
+}
+// Mazlay main.js re-applies data-bgimg on window 'load'; run after it so the mobile variant wins.
+window.addEventListener('load', applyResponsiveBg);
+document.addEventListener('DOMContentLoaded', function () {
+    applyResponsiveBg();
+    var _bgResizeT;
+    window.addEventListener('resize', function () {
+        clearTimeout(_bgResizeT);
+        _bgResizeT = setTimeout(applyResponsiveBg, 150);
     });
 
     // Toggle for the categories dropdown (class-based, works on mobile touch)

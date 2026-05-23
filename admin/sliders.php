@@ -8,16 +8,20 @@ $csrf = generateCsrfToken();
 
 // ── Ensure sliders table exists ───────────────────────────────────────
 $db->exec("CREATE TABLE IF NOT EXISTS `sliders` (
-  `id`         INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-  `title`      VARCHAR(255)  NOT NULL DEFAULT '',
-  `subtitle`   VARCHAR(255)  NOT NULL DEFAULT '',
-  `image_url`  VARCHAR(500)  NOT NULL,
-  `link_url`   VARCHAR(500)  NOT NULL DEFAULT '',
-  `sort_order` SMALLINT      NOT NULL DEFAULT 0,
-  `is_active`  TINYINT(1)    NOT NULL DEFAULT 1,
-  `created_at` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `id`               INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  `title`            VARCHAR(255)  NOT NULL DEFAULT '',
+  `subtitle`         VARCHAR(255)  NOT NULL DEFAULT '',
+  `image_url`        VARCHAR(500)  NOT NULL DEFAULT '',
+  `image_url_mobile` VARCHAR(500)  NOT NULL DEFAULT '',
+  `link_url`         VARCHAR(500)  NOT NULL DEFAULT '',
+  `sort_order`       SMALLINT      NOT NULL DEFAULT 0,
+  `is_active`        TINYINT(1)    NOT NULL DEFAULT 1,
+  `created_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+// Add mobile column to pre-existing tables
+try { $db->exec("ALTER TABLE `sliders` ADD COLUMN IF NOT EXISTS `image_url_mobile` VARCHAR(500) NOT NULL DEFAULT '' AFTER `image_url`"); } catch (Throwable $e) {}
 
 // ── POST handler ──────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -51,27 +55,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Save (add / edit)
-    $sid      = (int)($_POST['id'] ?? 0);
-    $title    = trim($_POST['title'] ?? '');
-    $subtitle = trim($_POST['subtitle'] ?? '');
-    $imgUrl   = trim($_POST['image_url'] ?? '');
-    $linkUrl  = trim($_POST['link_url'] ?? '');
-    $sort     = (int)($_POST['sort_order'] ?? 0);
+    $sid       = (int)($_POST['id'] ?? 0);
+    $title     = trim($_POST['title'] ?? '');
+    $subtitle  = trim($_POST['subtitle'] ?? '');
+    $imgUrl    = trim($_POST['image_url'] ?? '');
+    $imgMobile = trim($_POST['image_url_mobile'] ?? '');
+    $linkUrl   = trim($_POST['link_url'] ?? '');
+    $sort      = (int)($_POST['sort_order'] ?? 0);
 
-    if (empty($imgUrl)) {
-        flashMessage('danger', 'Загрузите изображение.');
+    if ($imgUrl === '' && $imgMobile === '') {
+        flashMessage('danger', 'Загрузите хотя бы одно изображение (десктоп или мобильное).');
         redirect(APP_URL . '/admin/sliders.php' . ($sid ? "?edit=$sid" : '?action=new'));
     }
 
     if ($sid) {
         $db->prepare(
-            "UPDATE sliders SET title=?, subtitle=?, image_url=?, link_url=?, sort_order=? WHERE id=?"
-        )->execute([$title, $subtitle, $imgUrl, $linkUrl, $sort, $sid]);
+            "UPDATE sliders SET title=?, subtitle=?, image_url=?, image_url_mobile=?, link_url=?, sort_order=? WHERE id=?"
+        )->execute([$title, $subtitle, $imgUrl, $imgMobile, $linkUrl, $sort, $sid]);
         flashMessage('success', 'Слайд обновлён.');
     } else {
         $db->prepare(
-            "INSERT INTO sliders (title, subtitle, image_url, link_url, sort_order, is_active) VALUES (?,?,?,?,?,1)"
-        )->execute([$title, $subtitle, $imgUrl, $linkUrl, $sort]);
+            "INSERT INTO sliders (title, subtitle, image_url, image_url_mobile, link_url, sort_order, is_active) VALUES (?,?,?,?,?,?,1)"
+        )->execute([$title, $subtitle, $imgUrl, $imgMobile, $linkUrl, $sort]);
         flashMessage('success', 'Слайд добавлен.');
     }
     redirect(APP_URL . '/admin/sliders.php');
@@ -123,32 +128,62 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     <input type="hidden" name="action" value="<?= $action === 'edit' ? 'edit' : 'add' ?>">
                     <?php if ($editSlide): ?><input type="hidden" name="id" value="<?= (int)$editSlide['id'] ?>"><?php endif; ?>
 
+                    <div class="az-alert az-alert-info" style="font-size:0.83rem;">
+                        <i class="fa fa-info-circle"></i> Загрузите хотя бы одну версию. Если мобильная не задана —
+                        на телефонах покажется десктопная (и наоборот).
+                    </div>
+
                     <div class="az-card">
-                        <h3>Изображение слайда *</h3>
-                        <div id="imgPreviewWrap" style="margin-bottom:12px;">
-                            <?php if ($editSlide && $editSlide['image_url']): ?>
-                                <img src="<?= sanitize($editSlide['image_url']) ?>" id="imgPreview"
+                        <h3><i class="fa fa-desktop"></i> Версия для десктопа</h3>
+                        <div id="dtPreviewWrap" style="margin-bottom:12px;">
+                            <?php if ($editSlide && !empty($editSlide['image_url'])): ?>
+                                <img src="<?= sanitize($editSlide['image_url']) ?>" id="dtPreview"
                                      style="max-width:100%;max-height:220px;object-fit:cover;border-radius:6px;border:1px solid #dee2e6;">
                             <?php else: ?>
-                                <div id="imgPlaceholder"
-                                     style="width:100%;height:180px;background:#f5f5f5;border:2px dashed #ced4da;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:2.5rem;">
+                                <div id="dtPlaceholder"
+                                     style="width:100%;height:160px;background:#f5f5f5;border:2px dashed #ced4da;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:2.5rem;">
                                     <i class="fa fa-image"></i>
                                 </div>
                             <?php endif; ?>
                         </div>
-
                         <label style="display:inline-flex;align-items:center;gap:8px;padding:9px 16px;background:#f8f9fa;border:2px dashed #ced4da;border-radius:6px;cursor:pointer;font-size:0.875rem;color:#555;">
-                            <i class="fa fa-upload"></i> <?= $editSlide ? 'Заменить изображение' : 'Загрузить изображение' ?>
-                            <input type="file" id="sliderImg" accept="image/*" style="display:none;" onchange="uploadSliderImg(this)">
+                            <i class="fa fa-upload"></i> Загрузить изображение
+                            <input type="file" accept="image/*" style="display:none;"
+                                   onchange="uploadSliderImg(this, 'imageUrl', 'dtPreview', 'dtPlaceholder', 'dtPreviewWrap', 'dtStatus')">
                         </label>
-                        <span id="uploadStatus" style="font-size:0.8rem;color:#888;margin-left:8px;"></span>
+                        <span id="dtStatus" style="font-size:0.8rem;color:#888;margin-left:8px;"></span>
                         <div style="margin-top:10px;padding:10px 12px;background:#eef6ff;border:1px solid #cfe4fb;border-radius:6px;font-size:0.78rem;color:#1c5a99;line-height:1.55;">
-                            <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> 1920&times;600&nbsp;px (широкий баннер, минимум&nbsp;1920&times;420&nbsp;px)<br>
-                            Формат: <strong>JPG</strong> или WEBP &middot; до&nbsp;5&nbsp;МБ<br>
-                            <span style="color:#5a87b3;">Изображение обрезается по центру под высоту слайдера — важный объект держите по центру.</span>
+                            <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> 1920&times;600&nbsp;px (широкий горизонтальный).<br>
+                            <span style="color:#5a87b3;">Обрезается по центру — важный объект держите по центру.</span>
                         </div>
                         <input type="hidden" name="image_url" id="imageUrl"
                                value="<?= sanitize($editSlide['image_url'] ?? '') ?>">
+                    </div>
+
+                    <div class="az-card">
+                        <h3><i class="fa fa-mobile"></i> Версия для мобильного</h3>
+                        <div id="mbPreviewWrap" style="margin-bottom:12px;">
+                            <?php if ($editSlide && !empty($editSlide['image_url_mobile'])): ?>
+                                <img src="<?= sanitize($editSlide['image_url_mobile']) ?>" id="mbPreview"
+                                     style="max-width:100%;max-height:280px;object-fit:cover;border-radius:6px;border:1px solid #dee2e6;">
+                            <?php else: ?>
+                                <div id="mbPlaceholder"
+                                     style="width:100%;height:160px;background:#f5f5f5;border:2px dashed #ced4da;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:2.5rem;">
+                                    <i class="fa fa-mobile"></i>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        <label style="display:inline-flex;align-items:center;gap:8px;padding:9px 16px;background:#f8f9fa;border:2px dashed #ced4da;border-radius:6px;cursor:pointer;font-size:0.875rem;color:#555;">
+                            <i class="fa fa-upload"></i> Загрузить изображение
+                            <input type="file" accept="image/*" style="display:none;"
+                                   onchange="uploadSliderImg(this, 'imageUrlMobile', 'mbPreview', 'mbPlaceholder', 'mbPreviewWrap', 'mbStatus')">
+                        </label>
+                        <span id="mbStatus" style="font-size:0.8rem;color:#888;margin-left:8px;"></span>
+                        <div style="margin-top:10px;padding:10px 12px;background:#eef6ff;border:1px solid #cfe4fb;border-radius:6px;font-size:0.78rem;color:#1c5a99;line-height:1.55;">
+                            <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> ~768&times;900&nbsp;px (вертикальный/квадратный).
+                        </div>
+                        <input type="hidden" name="image_url_mobile" id="imageUrlMobile"
+                               value="<?= sanitize($editSlide['image_url_mobile'] ?? '') ?>">
                     </div>
 
                     <div class="az-card">
@@ -189,8 +224,9 @@ require_once dirname(__DIR__) . '/includes/header.php';
             </div>
 
             <script>
-            async function uploadSliderImg(input) {
-                const status = document.getElementById('uploadStatus');
+            async function uploadSliderImg(input, fieldId, previewId, placeholderId, wrapId, statusId) {
+                const status = document.getElementById(statusId);
+                if (!input.files || !input.files[0]) return;
                 const fd = new FormData();
                 fd.append('file', input.files[0]);
                 status.textContent = 'Загрузка...';
@@ -198,17 +234,17 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     const res  = await fetch('<?= APP_URL ?>/api/upload.php?type=sliders', { method:'POST', body:fd });
                     const data = await res.json();
                     if (data.url) {
-                        document.getElementById('imageUrl').value = data.url;
-                        const prev = document.getElementById('imgPreview');
-                        const ph   = document.getElementById('imgPlaceholder');
+                        document.getElementById(fieldId).value = data.url;
+                        const prev = document.getElementById(previewId);
+                        const ph   = document.getElementById(placeholderId);
                         if (prev) { prev.src = data.url; }
                         else {
                             if (ph) ph.remove();
                             const img = document.createElement('img');
-                            img.id = 'imgPreview';
+                            img.id = previewId;
                             img.src = data.url;
-                            img.style.cssText = 'max-width:100%;max-height:220px;object-fit:cover;border-radius:6px;border:1px solid #dee2e6;';
-                            document.getElementById('imgPreviewWrap').appendChild(img);
+                            img.style.cssText = 'max-width:100%;max-height:280px;object-fit:cover;border-radius:6px;border:1px solid #dee2e6;';
+                            document.getElementById(wrapId).appendChild(img);
                         }
                         status.textContent = 'Загружено';
                     } else {
@@ -238,17 +274,24 @@ require_once dirname(__DIR__) . '/includes/header.php';
             <?php else: ?>
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;">
                     <?php foreach ($sliders as $slide): ?>
+                    <?php $previewImg = $slide['image_url'] ?: ($slide['image_url_mobile'] ?? ''); ?>
                     <div class="az-card" style="padding:0;overflow:hidden;<?= !$slide['is_active'] ? 'opacity:0.55;' : '' ?>">
                         <div style="position:relative;height:160px;background:#f5f5f5;">
-                            <?php if ($slide['image_url']): ?>
-                                <img src="<?= sanitize($slide['image_url']) ?>" alt=""
+                            <?php if ($previewImg): ?>
+                                <img src="<?= sanitize($previewImg) ?>" alt=""
                                      style="width:100%;height:100%;object-fit:cover;">
                             <?php else: ?>
                                 <div style="height:100%;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:2.5rem;">
                                     <i class="fa fa-image"></i>
                                 </div>
                             <?php endif; ?>
-                            <div style="position:absolute;top:8px;right:8px;">
+                            <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px;">
+                                <?php if (!empty($slide['image_url'])): ?>
+                                    <span class="badge badge-secondary" title="Есть десктоп-версия"><i class="fa fa-desktop"></i></span>
+                                <?php endif; ?>
+                                <?php if (!empty($slide['image_url_mobile'])): ?>
+                                    <span class="badge badge-secondary" title="Есть мобильная версия"><i class="fa fa-mobile"></i></span>
+                                <?php endif; ?>
                                 <span class="badge badge-<?= $slide['is_active'] ? 'success' : 'danger' ?>">
                                     <?= $slide['is_active'] ? 'Активен' : 'Скрыт' ?>
                                 </span>
