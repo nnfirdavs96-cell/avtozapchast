@@ -404,10 +404,8 @@ body .brand_area .brand_container .single_brand a {
 body .brand_area .brand_container .single_brand img {
     display: block !important;
     width: 100% !important;
-    height: 100% !important;
+    height: auto !important;
     max-width: 100% !important;
-    max-height: 100% !important;
-    object-fit: contain !important;
     margin: 0 auto !important;
 }
 
@@ -487,12 +485,13 @@ body .brand_area .brand_container .owl-nav div span { color: #fff !important; fo
     }
     body .brand_area .brand_container .owl-nav button i,
     body .brand_area .brand_container .owl-nav div i { font-size: 22px !important; }
-    body .brand_area .brand_container .single_brand { height: 100px !important; padding: 6px !important; }
+    body .brand_area .brand_container .single_brand { height: auto !important; min-height: 60px !important; padding: 12px 8px !important; }
+    body .brand_area .brand_container .single_brand a { height: auto !important; }
 }
 @media (max-width: 575px) {
-    /* 2 логотипа в ряд → боксы шире, лого крупнее. Узкие отступы по бокам. */
     body .brand_area .brand_container { padding: 0 38px !important; }
-    body .brand_area .brand_container .single_brand { height: 90px !important; padding: 8px 10px !important; }
+    body .brand_area .brand_container .single_brand { height: auto !important; min-height: 50px !important; padding: 12px 10px !important; }
+    body .brand_area .brand_container .single_brand a { height: auto !important; }
     body .brand_area .brand_container .owl-nav .owl-prev,
     body .brand_area .brand_container .owl-nav .owl-next,
     body .brand_area .brand_container .owl-nav button.owl-prev,
