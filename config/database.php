@@ -1,8 +1,17 @@
 <?php
-define('DB_HOST', 'localhost');
-define('DB_USER', 'avtouser');
-define('DB_PASS', 'Avto@2024!');
-define('DB_NAME', 'avtozapchast');
+// Per-server DB credentials live in config/db_credentials.php (git-ignored).
+// Each environment (Debian dev / Timeweb prod) keeps its own copy, so a
+// `git pull` never overwrites the other server's connection settings.
+$localCreds = __DIR__ . '/db_credentials.php';
+if (is_file($localCreds)) {
+    require $localCreds;
+}
+
+// Fallback defaults (Debian dev) — used only if db_credentials.php is absent.
+if (!defined('DB_HOST')) define('DB_HOST', 'localhost');
+if (!defined('DB_USER')) define('DB_USER', 'avtouser');
+if (!defined('DB_PASS')) define('DB_PASS', 'Avto@2024!');
+if (!defined('DB_NAME')) define('DB_NAME', 'avtozapchast');
 
 function getDB() {
     static $pdo = null;
