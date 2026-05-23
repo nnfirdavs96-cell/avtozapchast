@@ -9,6 +9,9 @@ $action = $_GET['action'] ?? 'list';
 $editId = (int)($_GET['id'] ?? 0);
 $errors = [];
 
+// Separate mobile image column (added on demand)
+try { $db->exec("ALTER TABLE `categories` ADD COLUMN IF NOT EXISTS `image_path_mobile` VARCHAR(500) NOT NULL DEFAULT '' AFTER `image_path`"); } catch (Throwable $e) {}
+
 // ── POST handler ──────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
@@ -43,6 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $sort         = (int)($_POST['sort_order'] ?? 0);
     $markupPct    = ($_POST['markup_percent'] ?? '') !== '' ? (float)str_replace(',', '.', $_POST['markup_percent']) : null;
     $imagePath    = trim($_POST['image_path'] ?? '') ?: null;
+    $imagePathMob = trim($_POST['image_path_mobile'] ?? '');
     $cid          = (int)($_POST['id'] ?? 0);
 
     if (empty($name)) {
@@ -65,14 +69,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         if ($cid) {
             $db->prepare(
-                "UPDATE categories SET name=?, slug=?, parent_id=?, description=?, image_path=?, sort_order=?, is_active=?, markup_percent=? WHERE id=?"
-            )->execute([$name, $slug, $parentId, $desc, $imagePath, $sort, $isActive, $markupPct, $cid]);
+                "UPDATE categories SET name=?, slug=?, parent_id=?, description=?, image_path=?, image_path_mobile=?, sort_order=?, is_active=?, markup_percent=? WHERE id=?"
+            )->execute([$name, $slug, $parentId, $desc, $imagePath, $imagePathMob, $sort, $isActive, $markupPct, $cid]);
             flashMessage('success', 'Категория обновлена.');
         } else {
             $db->prepare(
-                "INSERT INTO categories (name, slug, parent_id, description, image_path, sort_order, is_active, markup_percent)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-            )->execute([$name, $slug, $parentId, $desc, $imagePath, $sort, 1, $markupPct]);
+                "INSERT INTO categories (name, slug, parent_id, description, image_path, image_path_mobile, sort_order, is_active, markup_percent)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            )->execute([$name, $slug, $parentId, $desc, $imagePath, $imagePathMob, $sort, 1, $markupPct]);
             flashMessage('success', 'Категория добавлена.');
         }
         redirect(APP_URL . '/manager/categories.php');
@@ -233,23 +237,39 @@ function renderCatRows(array $cats, string $csrf, int $depth = 0): void {
                                       placeholder="Краткое описание категории"><?= sanitize($editCat['description'] ?? ($_POST['description'] ?? '')) ?></textarea>
                         </div>
 
-                        <?php $curImg = $editCat['image_path'] ?? ''; ?>
+                        <?php $curImg = $editCat['image_path'] ?? ''; $curImgMob = $editCat['image_path_mobile'] ?? ''; ?>
                         <div class="az-form-group">
-                            <label>Изображение категории (для главной страницы)</label>
+                            <label><i class="fa fa-desktop"></i> Изображение для десктопа (главная страница)</label>
                             <input type="hidden" name="image_path" id="catImagePath" value="<?= sanitize($curImg) ?>">
                             <div id="catImgPreview" style="margin:8px 0;<?= $curImg ? '' : 'display:none;' ?>">
                                 <img src="<?= sanitize($curImg) ?>" alt="" id="catImgEl"
                                      style="max-width:160px;max-height:120px;border:1px solid #dee2e6;border-radius:6px;background:#f5f5f5;">
-                                <button type="button" class="az-btn az-btn-danger az-btn-sm" onclick="catRemoveImg()"
+                                <button type="button" class="az-btn az-btn-danger az-btn-sm" onclick="catRemoveImg('catImagePath','catImgPreview','catImgStatus')"
                                         style="vertical-align:top;margin-left:8px;"><i class="fa fa-trash-o"></i> Удалить</button>
                             </div>
-                            <input type="file" id="catImgFile" accept="image/*" onchange="catUploadImg(this)">
+                            <input type="file" accept="image/*" onchange="catUploadImg(this,'catImagePath','catImgPreview','catImgEl','catImgStatus')">
                             <div style="margin-top:8px;padding:10px 12px;background:#eef6ff;border:1px solid #cfe4fb;border-radius:6px;font-size:0.78rem;color:#1c5a99;line-height:1.55;">
                                 <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> 320&times;240&nbsp;px (соотношение&nbsp;4:3)<br>
                                 Формат: <strong>JPG</strong>, PNG или WEBP &middot; до&nbsp;5&nbsp;МБ<br>
                                 <span style="color:#5a87b3;">Если не задано — на главной показывается стандартная картинка.</span>
                             </div>
                             <span id="catImgStatus" style="font-size:0.8rem;color:#0a7;"></span>
+                        </div>
+
+                        <div class="az-form-group">
+                            <label><i class="fa fa-mobile"></i> Изображение для мобильного (необязательно)</label>
+                            <input type="hidden" name="image_path_mobile" id="catImagePathMob" value="<?= sanitize($curImgMob) ?>">
+                            <div id="catImgPreviewMob" style="margin:8px 0;<?= $curImgMob ? '' : 'display:none;' ?>">
+                                <img src="<?= sanitize($curImgMob) ?>" alt="" id="catImgElMob"
+                                     style="max-width:140px;max-height:160px;border:1px solid #dee2e6;border-radius:6px;background:#f5f5f5;">
+                                <button type="button" class="az-btn az-btn-danger az-btn-sm" onclick="catRemoveImg('catImagePathMob','catImgPreviewMob','catImgStatusMob')"
+                                        style="vertical-align:top;margin-left:8px;"><i class="fa fa-trash-o"></i> Удалить</button>
+                            </div>
+                            <input type="file" accept="image/*" onchange="catUploadImg(this,'catImagePathMob','catImgPreviewMob','catImgElMob','catImgStatusMob')">
+                            <div style="margin-top:8px;padding:10px 12px;background:#fff7ec;border:1px solid #ffe2b8;border-radius:6px;font-size:0.78rem;color:#9a6e14;line-height:1.55;">
+                                <i class="fa fa-info-circle"></i> Если не задано — на телефоне используется десктопная версия.
+                            </div>
+                            <span id="catImgStatusMob" style="font-size:0.8rem;color:#0a7;"></span>
                         </div>
 
                         <div class="az-form-group">
@@ -311,10 +331,11 @@ function renderCatRows(array $cats, string $csrf, int $depth = 0): void {
 </div><!-- /.az-panel -->
 
 <script>
-async function catUploadImg(input) {
+async function catUploadImg(input, fieldId, previewId, imgElId, statusId) {
     const file = input.files[0];
     if (!file) return;
-    const status = document.getElementById('catImgStatus');
+    const status = document.getElementById(statusId);
+    status.style.color = '#0a7';
     status.textContent = 'Загрузка...';
     const fd = new FormData();
     fd.append('file', file);
@@ -322,9 +343,9 @@ async function catUploadImg(input) {
         const res  = await fetch('<?= APP_URL ?>/api/upload.php?type=categories', { method: 'POST', body: fd });
         const data = await res.json();
         if (data.url) {
-            document.getElementById('catImagePath').value = data.url;
-            document.getElementById('catImgEl').src = data.url;
-            document.getElementById('catImgPreview').style.display = '';
+            document.getElementById(fieldId).value = data.url;
+            document.getElementById(imgElId).src = data.url;
+            document.getElementById(previewId).style.display = '';
             status.textContent = 'Загружено';
         } else {
             status.style.color = '#c30f0f';
@@ -336,10 +357,10 @@ async function catUploadImg(input) {
     }
     input.value = '';
 }
-function catRemoveImg() {
-    document.getElementById('catImagePath').value = '';
-    document.getElementById('catImgPreview').style.display = 'none';
-    document.getElementById('catImgStatus').textContent = '';
+function catRemoveImg(fieldId, previewId, statusId) {
+    document.getElementById(fieldId).value = '';
+    document.getElementById(previewId).style.display = 'none';
+    document.getElementById(statusId).textContent = '';
 }
 </script>
 

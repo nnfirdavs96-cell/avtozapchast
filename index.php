@@ -60,16 +60,22 @@ require_once __DIR__ . '/includes/header.php';
 <?php if (!empty($sliders)): ?>
 <section class="slider_section mb-80">
     <div class="slider_area slider_carousel owl-carousel">
-        <?php foreach ($sliders as $sl):
-            $imgUrl  = $sl['image_url'] ?? '';
-            if ($imgUrl && $imgUrl[0] !== '/' && !preg_match('~^https?://~i', $imgUrl)) {
-                $imgUrl = APP_URL . '/' . ltrim($imgUrl, '/');
-            } elseif ($imgUrl && $imgUrl[0] === '/') {
-                $imgUrl = APP_URL . $imgUrl;
-            }
+        <?php
+        $normSlide = function (string $u): string {
+            $u = trim($u);
+            if ($u === '') return '';
+            if ($u[0] === '/') return APP_URL . $u;
+            if (!preg_match('~^https?://~i', $u)) return APP_URL . '/' . ltrim($u, '/');
+            return $u;
+        };
+        foreach ($sliders as $sl):
+            $imgDesktop = $normSlide($sl['image_url'] ?? '');
+            $imgMobile  = $normSlide($sl['image_url_mobile'] ?? '');
+            $imgUrl     = $imgDesktop ?: $imgMobile;       // base background
+            $imgMobile  = $imgMobile ?: $imgDesktop;       // fall back to desktop on mobile
             $linkUrl = $sl['link_url'] ?: (APP_URL . '/catalog/index.php');
         ?>
-        <div class="single_slider d-flex align-items-center" data-bgimg="<?= sanitize($imgUrl) ?>">
+        <div class="single_slider d-flex align-items-center" data-bgimg="<?= sanitize($imgUrl) ?>" data-bgimg-mobile="<?= sanitize($imgMobile) ?>">
             <div class="container">
                 <div class="row">
                     <div class="col-12">
@@ -166,11 +172,19 @@ require_once __DIR__ . '/includes/header.php';
                         $catImgSrc = !empty($cat['image_path'])
                             ? APP_URL . '/' . ltrim($cat['image_path'], '/')
                             : APP_URL . '/assets/img/s-product/' . $img;
+                        $catImgMob = !empty($cat['image_path_mobile'])
+                            ? APP_URL . '/' . ltrim($cat['image_path_mobile'], '/')
+                            : '';
                     ?>
                     <div class="single_categories_product">
                         <div class="categories_product_thumb">
                             <a href="<?= APP_URL ?>/catalog/category.php?slug=<?= urlencode($cat['slug']) ?>">
-                                <img src="<?= sanitize($catImgSrc) ?>" alt="<?= sanitize(tField($cat,'name')) ?>">
+                                <picture>
+                                    <?php if ($catImgMob !== ''): ?>
+                                    <source media="(max-width:767px)" srcset="<?= sanitize($catImgMob) ?>">
+                                    <?php endif; ?>
+                                    <img src="<?= sanitize($catImgSrc) ?>" alt="<?= sanitize(tField($cat,'name')) ?>">
+                                </picture>
                             </a>
                         </div>
                         <div class="categories_product_content">
