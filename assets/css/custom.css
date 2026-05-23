@@ -386,8 +386,8 @@ body .brand_area .brand_container .single_brand {
     align-items: center !important;
     justify-content: center !important;
     width: 100% !important;
-    height: 100px !important;
-    padding: 12px !important;
+    height: 130px !important;
+    padding: 8px !important;
     background: #fff !important;
     border: 1px solid #ececec !important;
     border-radius: 6px !important;
@@ -458,6 +458,25 @@ body .brand_area .brand_container .owl-nav div i { color: #fff !important; font-
 body .brand_area .brand_container .owl-nav button span,
 body .brand_area .brand_container .owl-nav div span { color: #fff !important; font-size: 28px !important; }
 
+/* ---- Иконки соцсетей: фирменные цвета (Instagram был серый) ---- */
+.footer_social ul li a.instagram {
+    background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%) !important;
+    color: #fff !important;
+}
+.footer_social ul li a.instagram:hover { background: #C70909 !important; }
+/* Точные бренд-цвета через иконку (telegram/whatsapp/facebook) */
+.footer_social ul li a:has(.fa-telegram) { background: #0088cc !important; color:#fff !important; }
+.footer_social ul li a:has(.fa-whatsapp) { background: #25D366 !important; color:#fff !important; }
+.footer_social ul li a:has(.fa-facebook) { background: #1877F2 !important; color:#fff !important; }
+.footer_social ul li a:has(.fa-instagram) {
+    background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%) !important;
+    color:#fff !important;
+}
+.footer_social ul li a:has(.fa-telegram):hover,
+.footer_social ul li a:has(.fa-whatsapp):hover,
+.footer_social ul li a:has(.fa-facebook):hover,
+.footer_social ul li a:has(.fa-instagram):hover { background: #C70909 !important; }
+
 @media (max-width: 991px) {
     body .brand_area .brand_container { padding: 0 56px !important; }
     body .brand_area .brand_container .owl-nav .owl-prev,
@@ -468,11 +487,11 @@ body .brand_area .brand_container .owl-nav div span { color: #fff !important; fo
     }
     body .brand_area .brand_container .owl-nav button i,
     body .brand_area .brand_container .owl-nav div i { font-size: 22px !important; }
-    body .brand_area .brand_container .single_brand { height: 85px !important; padding: 10px !important; }
+    body .brand_area .brand_container .single_brand { height: 110px !important; padding: 8px !important; }
 }
 @media (max-width: 575px) {
     body .brand_area .brand_container { padding: 0 46px !important; }
-    body .brand_area .brand_container .single_brand { height: 75px !important; padding: 8px !important; }
+    body .brand_area .brand_container .single_brand { height: 100px !important; padding: 6px !important; }
 }
 
 /* blog_container не имеет row, поэтому col-lg-3 нужен flex-контейнер */

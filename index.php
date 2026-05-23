@@ -26,6 +26,10 @@ $blogPosts = $db->query("SELECT * FROM blog_posts WHERE is_published=1 ORDER BY 
 
 $sliders = $db->query("SELECT * FROM sliders WHERE is_active=1 ORDER BY sort_order ASC, id ASC")->fetchAll();
 
+try {
+    $banners = $db->query("SELECT * FROM banners WHERE is_active=1 ORDER BY sort_order ASC, id ASC LIMIT 3")->fetchAll();
+} catch (Exception $e) { $banners = []; }
+
 require_once __DIR__ . '/includes/header.php';
 ?>
 <meta name="csrf" content="<?= generateCsrfToken() ?>">
@@ -101,27 +105,35 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         </div>
         <div class="row">
-            <div class="col-lg-4 col-md-4">
-                <figure class="single_banner">
-                    <div class="banner_thumb">
-                        <a href="<?= APP_URL ?>/catalog/index.php"><img src="<?= APP_URL ?>/assets/img/bg/banner1.jpg" alt=""></a>
-                    </div>
-                </figure>
-            </div>
-            <div class="col-lg-4 col-md-4">
-                <figure class="single_banner">
-                    <div class="banner_thumb">
-                        <a href="<?= APP_URL ?>/catalog/index.php"><img src="<?= APP_URL ?>/assets/img/bg/banner2.jpg" alt=""></a>
-                    </div>
-                </figure>
-            </div>
-            <div class="col-lg-4 col-md-4">
-                <figure class="single_banner">
-                    <div class="banner_thumb">
-                        <a href="<?= APP_URL ?>/catalog/index.php"><img src="<?= APP_URL ?>/assets/img/bg/banner3.jpg" alt=""></a>
-                    </div>
-                </figure>
-            </div>
+            <?php if (!empty($banners)): ?>
+                <?php foreach ($banners as $banner):
+                    $bImg = $banner['image_url'] ?? '';
+                    if ($bImg && $bImg[0] !== '/' && !preg_match('~^https?://~i', $bImg)) {
+                        $bImg = APP_URL . '/' . ltrim($bImg, '/');
+                    } elseif ($bImg && $bImg[0] === '/') {
+                        $bImg = APP_URL . $bImg;
+                    }
+                    $bLink = $banner['link_url'] ?: (APP_URL . '/catalog/index.php');
+                ?>
+                <div class="col-lg-4 col-md-4">
+                    <figure class="single_banner">
+                        <div class="banner_thumb">
+                            <a href="<?= sanitize($bLink) ?>"><img src="<?= sanitize($bImg) ?>" alt="<?= sanitize($banner['title'] ?? '') ?>"></a>
+                        </div>
+                    </figure>
+                </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <?php foreach (['banner1.jpg','banner2.jpg','banner3.jpg'] as $bImg): ?>
+                <div class="col-lg-4 col-md-4">
+                    <figure class="single_banner">
+                        <div class="banner_thumb">
+                            <a href="<?= APP_URL ?>/catalog/index.php"><img src="<?= APP_URL ?>/assets/img/bg/<?= $bImg ?>" alt=""></a>
+                        </div>
+                    </figure>
+                </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
     </div>
 </div>

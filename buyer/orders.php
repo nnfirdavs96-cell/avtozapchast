@@ -88,7 +88,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 <?php if (!empty($orderDetail['shipping_address'])): ?>
                 <div style="margin-bottom:16px;padding:12px;background:#f8f9fa;border-radius:6px;font-size:0.875rem;">
                     <strong>Адрес доставки:</strong><br>
-                    <?= nl2br(sanitize($orderDetail['shipping_address'])) ?>
+                    <?= formatShippingAddress($orderDetail['shipping_address']) ?>
                 </div>
                 <?php endif; ?>
 
