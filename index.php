@@ -105,20 +105,34 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         </div>
         <div class="row">
-            <?php if (!empty($banners)): ?>
-                <?php foreach ($banners as $banner):
-                    $bImg = $banner['image_url'] ?? '';
-                    if ($bImg && $bImg[0] !== '/' && !preg_match('~^https?://~i', $bImg)) {
-                        $bImg = APP_URL . '/' . ltrim($bImg, '/');
-                    } elseif ($bImg && $bImg[0] === '/') {
-                        $bImg = APP_URL . $bImg;
-                    }
+            <?php if (!empty($banners)):
+                $normBanner = function (string $u): string {
+                    $u = trim($u);
+                    if ($u === '') return '';
+                    if ($u[0] === '/') return APP_URL . $u;
+                    if (!preg_match('~^https?://~i', $u)) return APP_URL . '/' . ltrim($u, '/');
+                    return $u;
+                };
+                foreach ($banners as $banner):
+                    $bDesktop = $normBanner($banner['image_url'] ?? '');
+                    $bMobile  = $normBanner($banner['image_url_mobile'] ?? '');
+                    // Fall back to whichever version exists if one is missing
+                    $desktopSrc = $bDesktop ?: $bMobile;
+                    $mobileSrc  = $bMobile  ?: $bDesktop;
+                    if ($desktopSrc === '' && $mobileSrc === '') continue;
                     $bLink = $banner['link_url'] ?: (APP_URL . '/catalog/index.php');
                 ?>
                 <div class="col-lg-4 col-md-4">
                     <figure class="single_banner">
                         <div class="banner_thumb">
-                            <a href="<?= sanitize($bLink) ?>"><img src="<?= sanitize($bImg) ?>" alt="<?= sanitize($banner['title'] ?? '') ?>"></a>
+                            <a href="<?= sanitize($bLink) ?>">
+                                <picture>
+                                    <?php if ($mobileSrc !== '' && $mobileSrc !== $desktopSrc): ?>
+                                    <source media="(max-width:767px)" srcset="<?= sanitize($mobileSrc) ?>">
+                                    <?php endif; ?>
+                                    <img src="<?= sanitize($desktopSrc) ?>" alt="<?= sanitize($banner['title'] ?? '') ?>">
+                                </picture>
+                            </a>
                         </div>
                     </figure>
                 </div>
