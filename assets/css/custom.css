@@ -1415,17 +1415,14 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
     }
     .single_blog .blog_thumb img { width: 100%; object-fit: cover; max-height: 200px; }
 
-    /* ── Бренды — 3 в ряд ── */
+    /* Бренды-карусель стилизуется отдельными правилами выше (2 в ряд).
+       Старый блок «3 в ряд» с max-width:33.33% и max-height:50px удалён —
+       он ограничивал ширину бокса и высоту логотипа. */
     .brand_container:not(.owl-loaded) {
         display: grid !important;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 8px;
     }
-    .brand_container .brand_list {
-        flex: 0 0 33.33% !important;
-        max-width: 33.33% !important;
-    }
-    .brand_list img { max-height: 50px; object-fit: contain; }
 
     /* ── Доставка (shipping) ── */
     .shipping_inner {
