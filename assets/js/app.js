@@ -64,13 +64,66 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Toggle for the categories sidebar dropdown (when Mazlay JS is missing)
+    // Toggle for the categories dropdown (class-based, works on mobile touch)
     document.querySelectorAll('.categori_toggle').forEach(function (toggle) {
+        toggle.style.cursor = 'pointer';
         toggle.addEventListener('click', function () {
             var menu = this.closest('.categories_menu').querySelector('.categories_menu_toggle');
-            if (menu) menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+            if (menu) menu.classList.toggle('is-open');
         });
     });
+    // Close categories dropdown when clicking outside
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.categories_menu')) {
+            document.querySelectorAll('.categories_menu_toggle.is-open').forEach(function (m) {
+                m.classList.remove('is-open');
+            });
+        }
+    });
+
+    var isMobile = function () { return window.matchMedia('(max-width: 991px)').matches; };
+
+    // ── Body lock when offcanvas is open (prevents background scroll & x-overflow)
+    var lockObserver = new MutationObserver(function () {
+        var wrap = document.querySelector('.offcanvas_menu_wrapper');
+        if (!wrap) return;
+        if (wrap.classList.contains('active')) document.body.classList.add('no-scroll');
+        else document.body.classList.remove('no-scroll');
+    });
+    var ocWrap = document.querySelector('.offcanvas_menu_wrapper');
+    if (ocWrap) lockObserver.observe(ocWrap, { attributes: true, attributeFilter: ['class'] });
+
+    // ── Cart icon: на мобиле — прямая ссылка на /buyer/cart.php, не открывать панель
+    document.querySelectorAll('.mini_cart_wrapper > a').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+            if (isMobile()) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                window.location.href = (window.APP_URL || '') + '/buyer/cart.php';
+            }
+        }, true);
+    });
+
+    // ── Filter sidebar accordion: на мобиле каждый widget_list — collapsible
+    if (isMobile()) {
+        document.querySelectorAll('.sidebar_widget .widget_list').forEach(function (w) {
+            var h = w.querySelector('h3');
+            if (!h) return;
+            var body = document.createElement('div');
+            body.className = 'widget_body';
+            while (h.nextSibling) body.appendChild(h.nextSibling);
+            w.appendChild(body);
+            body.style.display = 'none';
+            h.style.cursor = 'pointer';
+            h.classList.add('widget_toggle');
+            h.addEventListener('click', function () {
+                var open = body.style.display !== 'none';
+                body.style.display = open ? 'none' : 'block';
+                h.classList.toggle('open', !open);
+            });
+        });
+    }
+
 });
 
 // Quantity input steppers
@@ -85,4 +138,29 @@ document.addEventListener('DOMContentLoaded', function() {
             input.value = val;
         });
     });
+});
+
+// Scroll-to-top fallback (на случай если scrollUp-плагин не работает)
+document.addEventListener('DOMContentLoaded', function() {
+    // Ждём создания #scrollUp плагином
+    setTimeout(function() {
+        var btn = document.getElementById('scrollUp');
+        if (!btn) {
+            // Создаём кнопку сами
+            btn = document.createElement('a');
+            btn.id = 'scrollUp';
+            btn.href = '#';
+            btn.innerHTML = '<i class="fa fa-angle-double-up"></i>';
+            document.body.appendChild(btn);
+        }
+        // Перехватываем клик
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        // Показ/скрытие при скролле
+        window.addEventListener('scroll', function() {
+            btn.style.display = window.scrollY > 300 ? 'block' : 'none';
+        }, { passive: true });
+    }, 800);
 });

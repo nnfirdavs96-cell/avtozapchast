@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 requireRole(['manager', 'admin', 'superadmin']);
+requirePermission('brands');
 
 $db     = getDB();
 $csrf   = generateCsrfToken();
@@ -39,6 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $country  = trim($_POST['country'] ?? '') ?: null;
     $desc     = trim($_POST['description'] ?? '') ?: null;
     $isActive = (int)(!empty($_POST['is_active']));
+    $logoPath = trim($_POST['logo_path'] ?? '') ?: null;
+    $sortOrd  = (int)($_POST['sort_order'] ?? 0);
     $bid      = (int)($_POST['id'] ?? 0);
 
     if (empty($name)) {
@@ -59,17 +62,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        if ($bid) {
-            $db->prepare(
-                "UPDATE brands SET name=?, slug=?, country=?, description=?, is_active=? WHERE id=?"
-            )->execute([$name, $slug, $country, $desc, $isActive, $bid]);
-            flashMessage('success', 'Бренд обновлён.');
-        } else {
-            $db->prepare(
-                "INSERT INTO brands (name, slug, country, description, is_active)
-                 VALUES (?, ?, ?, ?, ?)"
-            )->execute([$name, $slug, $country, $desc, 1]);
-            flashMessage('success', 'Бренд добавлен.');
+        try {
+            if ($bid) {
+                $db->prepare(
+                    "UPDATE brands SET name=?, slug=?, country=?, description=?, logo_path=?, is_active=?, sort_order=? WHERE id=?"
+                )->execute([$name, $slug, $country, $desc, $logoPath, $isActive, $sortOrd, $bid]);
+                flashMessage('success', 'Бренд обновлён.');
+            } else {
+                $db->prepare(
+                    "INSERT INTO brands (name, slug, country, description, logo_path, is_active, sort_order)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)"
+                )->execute([$name, $slug, $country, $desc, $logoPath, 1, $sortOrd]);
+                flashMessage('success', 'Бренд добавлен.');
+            }
+        } catch (PDOException $e) {
+            // Fallback if sort_order column doesn't exist yet
+            if ($bid) {
+                $db->prepare(
+                    "UPDATE brands SET name=?, slug=?, country=?, description=?, logo_path=?, is_active=? WHERE id=?"
+                )->execute([$name, $slug, $country, $desc, $logoPath, $isActive, $bid]);
+            } else {
+                $db->prepare(
+                    "INSERT INTO brands (name, slug, country, description, logo_path, is_active)
+                     VALUES (?, ?, ?, ?, ?, ?)"
+                )->execute([$name, $slug, $country, $desc, $logoPath, 1]);
+            }
+            flashMessage('success', 'Бренд сохранён.');
         }
         redirect(APP_URL . '/manager/brands.php');
     }
@@ -87,41 +105,32 @@ if ($editId && $action === 'edit') {
 }
 
 // ── All brands with part count ────────────────────────────────────────
-$brands = $db->query(
-    "SELECT b.*,
-            (SELECT COUNT(*) FROM parts p WHERE p.brand_id = b.id AND p.is_active = 1) AS part_count
-     FROM brands b
-     WHERE b.is_active = 1
-     ORDER BY b.name ASC"
-)->fetchAll();
+try {
+    $brands = $db->query(
+        "SELECT b.*,
+                (SELECT COUNT(*) FROM parts p WHERE p.brand_id = b.id AND p.is_active = 1) AS part_count
+         FROM brands b
+         WHERE b.is_active = 1
+         ORDER BY b.sort_order ASC, b.name ASC"
+    )->fetchAll();
+} catch (PDOException $e) {
+    $brands = $db->query(
+        "SELECT b.*,
+                (SELECT COUNT(*) FROM parts p WHERE p.brand_id = b.id AND p.is_active = 1) AS part_count
+         FROM brands b
+         WHERE b.is_active = 1
+         ORDER BY b.name ASC"
+    )->fetchAll();
+}
 
 $pageTitle = 'Управление брендами';
-require_once dirname(__DIR__) . '/includes/header.php';
+require_once dirname(__DIR__) . '/includes/admin-header.php';
 ?>
 
 <div class="az-panel">
 
     <!-- ── Sidebar ─────────────────────────────────────────────────── -->
-    <aside class="az-sidebar">
-        <div class="az-sidebar-logo">AUTO<span>PARTS</span></div>
-        <nav>
-            <ul>
-                <li><a href="<?= APP_URL ?>/manager/index.php"><i class="fa fa-dashboard"></i> <?= t('dashboard') ?></a></li>
-                <li><a href="<?= APP_URL ?>/manager/parts.php"><i class="fa fa-cogs"></i> <?= t('parts_mgmt') ?></a></li>
-                <li><a href="<?= APP_URL ?>/manager/categories.php"><i class="fa fa-sitemap"></i> <?= t('categories_mgmt') ?></a></li>
-                <li><a href="<?= APP_URL ?>/manager/brands.php" class="active"><i class="fa fa-tag"></i> <?= t('brands_mgmt') ?></a></li>
-                <li><a href="<?= APP_URL ?>/manager/blog.php"><i class="fa fa-newspaper-o"></i> Блог</a></li>
-                <li style="border-top:1px solid rgba(255,255,255,0.1);margin-top:20px;">
-                    <a href="<?= APP_URL ?>/index.php"><i class="fa fa-home"></i> На сайт</a>
-                </li>
-                <li>
-                    <a href="<?= APP_URL ?>/auth/logout.php" style="color:rgba(255,100,100,0.85)!important;">
-                        <i class="fa fa-sign-out"></i> <?= t('logout') ?>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-    </aside>
+    <?php renderRoleSidebar('partners'); ?>
 
     <!-- ── Main ───────────────────────────────────────────────────── -->
     <main class="az-main">
@@ -193,6 +202,35 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                       placeholder="Краткое описание бренда..."><?= sanitize($editBrand['description'] ?? ($_POST['description'] ?? '')) ?></textarea>
                         </div>
 
+                        <?php $curLogo = $editBrand['logo_path'] ?? ''; ?>
+                        <div class="az-form-group">
+                            <label>Логотип бренда (для блока партнёров на главной)</label>
+                            <input type="hidden" name="logo_path" id="brLogoPath" value="<?= sanitize($curLogo) ?>">
+                            <div id="brLogoPreview" style="margin:8px 0;<?= $curLogo ? '' : 'display:none;' ?>">
+                                <img src="<?= sanitize($curLogo) ?>" alt="" id="brLogoEl"
+                                     style="max-width:160px;max-height:90px;border:1px solid #dee2e6;border-radius:6px;background:#fff;padding:6px;">
+                                <button type="button" class="az-btn az-btn-danger az-btn-sm" onclick="brRemoveLogo()"
+                                        style="vertical-align:top;margin-left:8px;"><i class="fa fa-trash-o"></i> Удалить</button>
+                            </div>
+                            <input type="file" id="brLogoFile" accept="image/*" onchange="brUploadLogo(this)">
+                            <div style="margin-top:8px;padding:10px 12px;background:#eef6ff;border:1px solid #cfe4fb;border-radius:6px;font-size:0.78rem;color:#1c5a99;line-height:1.55;">
+                                <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> 320&times;180&nbsp;px (соотношение&nbsp;16:9)<br>
+                                Лучший формат — <strong>PNG с прозрачным фоном</strong>, также подойдут JPG&nbsp;/&nbsp;WEBP &middot; до&nbsp;5&nbsp;МБ<br>
+                                <span style="color:#5a87b3;">Если логотип не задан — показывается стандартная картинка.</span>
+                            </div>
+                            <span id="brLogoStatus" style="font-size:0.8rem;color:#0a7;"></span>
+                        </div>
+
+                        <div class="az-form-group">
+                            <label>Порядок сортировки</label>
+                            <input type="number" name="sort_order"
+                                   value="<?= (int)($editBrand['sort_order'] ?? 0) ?>"
+                                   class="az-form-control" min="0" max="9999" style="max-width:200px;">
+                            <small style="color:#888;display:block;margin-top:4px;">
+                                Меньшие значения показываются первыми. 0 = по алфавиту.
+                            </small>
+                        </div>
+
                         <div class="az-form-group">
                             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin:0;">
                                 <input type="checkbox" name="is_active" value="1"
@@ -225,6 +263,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <thead>
                             <tr>
                                 <th>#</th>
+                                <th style="text-align:center;">Порядок</th>
                                 <th>Название</th>
                                 <th>Слаг</th>
                                 <th>Страна</th>
@@ -236,12 +275,13 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <tbody>
                             <?php if (empty($brands)): ?>
                                 <tr>
-                                    <td colspan="7" style="text-align:center;color:#aaa;padding:30px;">Брендов нет.</td>
+                                    <td colspan="8" style="text-align:center;color:#aaa;padding:30px;">Брендов нет.</td>
                                 </tr>
                             <?php else: ?>
-                                <?php foreach ($brands as $b): ?>
+                                <?php foreach ($brands as $i => $b): ?>
                                     <tr>
-                                        <td style="color:#888;font-size:0.8rem;"><?= (int)$b['id'] ?></td>
+                                        <td style="color:#888;font-size:0.85rem;"><?= $i + 1 ?></td>
+                                        <td style="text-align:center;color:#888;font-size:0.8rem;"><?= (int)($b['sort_order'] ?? 0) ?></td>
                                         <td style="font-weight:700;"><?= sanitize($b['name']) ?></td>
                                         <td><code style="font-size:0.75rem;color:#666;"><?= sanitize($b['slug']) ?></code></td>
                                         <td style="color:#888;font-size:0.85rem;"><?= sanitize($b['country'] ?? '—') ?></td>
@@ -281,4 +321,38 @@ require_once dirname(__DIR__) . '/includes/header.php';
     </main>
 </div><!-- /.az-panel -->
 
-<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
+<script>
+async function brUploadLogo(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const status = document.getElementById('brLogoStatus');
+    status.style.color = '#0a7';
+    status.textContent = 'Загрузка...';
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+        const res  = await fetch('<?= APP_URL ?>/api/upload.php?type=brands', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.url) {
+            document.getElementById('brLogoPath').value = data.url;
+            document.getElementById('brLogoEl').src = data.url;
+            document.getElementById('brLogoPreview').style.display = '';
+            status.textContent = 'Загружено';
+        } else {
+            status.style.color = '#c30f0f';
+            status.textContent = data.error || 'Ошибка загрузки';
+        }
+    } catch (e) {
+        status.style.color = '#c30f0f';
+        status.textContent = 'Ошибка сети: ' + e.message;
+    }
+    input.value = '';
+}
+function brRemoveLogo() {
+    document.getElementById('brLogoPath').value = '';
+    document.getElementById('brLogoPreview').style.display = 'none';
+    document.getElementById('brLogoStatus').textContent = '';
+}
+</script>
+
+<?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>

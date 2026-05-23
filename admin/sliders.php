@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
-requireRole(['admin', 'superadmin']);
+requireRole(['admin', 'manager', 'superadmin']);
+requirePermission('sliders');
 
 $db   = getDB();
 $csrf = generateCsrfToken();
@@ -141,6 +142,11 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             <input type="file" id="sliderImg" accept="image/*" style="display:none;" onchange="uploadSliderImg(this)">
                         </label>
                         <span id="uploadStatus" style="font-size:0.8rem;color:#888;margin-left:8px;"></span>
+                        <div style="margin-top:10px;padding:10px 12px;background:#eef6ff;border:1px solid #cfe4fb;border-radius:6px;font-size:0.78rem;color:#1c5a99;line-height:1.55;">
+                            <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> 1920&times;600&nbsp;px (широкий баннер, минимум&nbsp;1920&times;420&nbsp;px)<br>
+                            Формат: <strong>JPG</strong> или WEBP &middot; до&nbsp;5&nbsp;МБ<br>
+                            <span style="color:#5a87b3;">Изображение обрезается по центру под высоту слайдера — важный объект держите по центру.</span>
+                        </div>
                         <input type="hidden" name="image_url" id="imageUrl"
                                value="<?= sanitize($editSlide['image_url'] ?? '') ?>">
                     </div>

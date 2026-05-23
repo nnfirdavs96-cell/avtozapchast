@@ -120,31 +120,11 @@ try {
 }
 
 $pageTitle = 'Валюты — ' . getSetting('site_name');
-require_once dirname(__DIR__) . '/includes/header.php';
+require_once dirname(__DIR__) . '/includes/admin-header.php';
 ?>
 
 <div class="az-panel">
-  <aside class="az-sidebar" style="background:#1a0533;">
-    <div class="az-sidebar-brand" style="background:rgba(155,89,182,0.3);border-bottom-color:rgba(155,89,182,0.3);">
-      <span style="color:#ce93d8;">&#x2605;</span> Суперадмин
-    </div>
-    <nav class="az-sidebar-nav">
-      <a href="<?= APP_URL ?>/superadmin/index.php" class="az-sidebar-link"><i class="fa fa-star"></i> Панель</a>
-      <a href="<?= APP_URL ?>/superadmin/users.php" class="az-sidebar-link"><i class="fa fa-users"></i> Пользователи</a>
-      <a href="<?= APP_URL ?>/admin/orders.php" class="az-sidebar-link"><i class="fa fa-shopping-bag"></i> Заказы</a>
-      <a href="<?= APP_URL ?>/admin/products.php" class="az-sidebar-link"><i class="fa fa-cogs"></i> Товары</a>
-      <a href="<?= APP_URL ?>/admin/sliders.php" class="az-sidebar-link"><i class="fa fa-picture-o"></i> Слайдер</a>
-      <a href="<?= APP_URL ?>/superadmin/settings.php" class="az-sidebar-link"><i class="fa fa-cog"></i> Настройки</a>
-      <a href="<?= APP_URL ?>/superadmin/currencies.php" class="az-sidebar-link active" style="color:#ce93d8;"><i class="fa fa-money"></i> Валюты</a>
-      <a href="<?= APP_URL ?>/superadmin/languages.php" class="az-sidebar-link"><i class="fa fa-language"></i> Языки</a>
-      <a href="<?= APP_URL ?>/superadmin/warehouse.php" class="az-sidebar-link"><i class="fa fa-database"></i> Склад API</a>
-      <a href="<?= APP_URL ?>/superadmin/blog.php" class="az-sidebar-link"><i class="fa fa-newspaper-o"></i> Блог</a>
-      <a href="<?= APP_URL ?>/superadmin/backup.php" class="az-sidebar-link"><i class="fa fa-archive"></i> Бэкапы</a>
-      <hr style="border-color:rgba(255,255,255,0.1);margin:12px 0;">
-      <a href="<?= APP_URL ?>/index.php" class="az-sidebar-link"><i class="fa fa-home"></i> На сайт</a>
-      <a href="<?= APP_URL ?>/auth/logout.php" class="az-sidebar-link" style="color:rgba(255,100,100,0.85)!important;"><i class="fa fa-sign-out"></i> Выйти</a>
-    </nav>
-  </aside>
+  <?php renderRoleSidebar('currencies'); ?>
 
   <div class="az-main">
     <div class="az-topbar" style="border-bottom-color:#9b59b622;background:#f9f5ff;">
@@ -160,7 +140,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
       <!-- Bulk rate update -->
       <div class="az-card mb-24">
         <div class="az-card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-          <h4 class="az-card-title">Курсы валют <small style="font-weight:400;color:#888;font-size:0.8rem;">(база: RUB = 1.0)</small></h4>
+          <h4 class="az-card-title">Курсы валют <small style="font-weight:400;color:#888;font-size:0.8rem;">(СМН = 1.0 — прямые цены)</small></h4>
           <form method="post" style="display:inline;">
             <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
             <input type="hidden" name="action" value="fetch_cbr">
@@ -182,7 +162,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     <th>Название (TG)</th>
                     <th>Название (EN)</th>
                     <th>Символ</th>
-                    <th style="width:150px;">Курс к RUB</th>
+                    <th style="width:150px;">Курс (множитель цены)</th>
                     <th style="text-align:center;">По умолч.</th>
                     <th style="text-align:center;">Активна</th>
                     <th>Действия</th>
@@ -254,9 +234,13 @@ require_once dirname(__DIR__) . '/includes/header.php';
         <div class="az-card-body">
           <h5 style="color:#6a1b9a;margin-bottom:8px;">Справка по курсам</h5>
           <p style="font-size:0.85rem;color:#555;line-height:1.7;margin:0;">
-            Все цены в базе данных хранятся в <strong>рублях (RUB)</strong>.<br>
-            Курс — коэффициент перевода из RUB. Например: курс USD = 0.011 означает, что 1000 ₽ = 11 USD.<br>
-            Только одна валюта может быть «по умолчанию». Она используется для новых посетителей.
+            Сайт работает в <strong>сомони (СМН)</strong>. Цена, введённая в карточке товара,
+            умножается на курс валюты для показа на витрине.<br>
+            <strong>Для прямых цен 1:1 курс СМН (TJS) должен быть = 1.000000.</strong>
+            Тогда введённая цена = цена на витрине.<br>
+            Если задать курс ≠ 1 — это станет общим множителем для <em>всех</em> цен
+            (например 1.10 поднимет все цены на 10%). Меняйте осознанно.<br>
+            Только одна валюта может быть «по умолчанию».
           </p>
         </div>
       </div>
@@ -265,4 +249,4 @@ require_once dirname(__DIR__) . '/includes/header.php';
   </div><!-- /.az-main -->
 </div><!-- /.az-panel -->
 
-<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
+<?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>

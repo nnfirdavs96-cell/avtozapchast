@@ -13,9 +13,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $fields = [
         'site_name', 'site_email', 'site_phone', 'site_phone2', 'site_address',
-        'site_telegram', 'site_whatsapp', 'meta_description', 'meta_keywords',
+        'site_telegram', 'site_whatsapp', 'site_instagram', 'site_facebook',
+        'site_youtube', 'site_tiktok',
+        'meta_description', 'meta_keywords',
         'items_per_page', 'default_lang', 'default_currency',
         'warehouse_api_url', 'warehouse_api_key',
+        'map_lat', 'map_lng', 'map_zoom',
+        'global_markup',
     ];
     // Checkboxes
     $checkboxes = ['show_language_switcher', 'show_currency_switcher', 'warehouse_api_enabled'];
@@ -53,31 +57,11 @@ function sv(array $s, string $k, string $default = ''): string {
 }
 
 $pageTitle = 'Настройки сайта — ' . getSetting('site_name');
-require_once dirname(__DIR__) . '/includes/header.php';
+require_once dirname(__DIR__) . '/includes/admin-header.php';
 ?>
 
 <div class="az-panel">
-  <aside class="az-sidebar" style="background:#1a0533;">
-    <div class="az-sidebar-brand" style="background:rgba(155,89,182,0.3);border-bottom-color:rgba(155,89,182,0.3);">
-      <span style="color:#ce93d8;">&#x2605;</span> Суперадмин
-    </div>
-    <nav class="az-sidebar-nav">
-      <a href="<?= APP_URL ?>/superadmin/index.php" class="az-sidebar-link"><i class="fa fa-star"></i> Панель</a>
-      <a href="<?= APP_URL ?>/superadmin/users.php" class="az-sidebar-link"><i class="fa fa-users"></i> Пользователи</a>
-      <a href="<?= APP_URL ?>/admin/orders.php" class="az-sidebar-link"><i class="fa fa-shopping-bag"></i> Заказы</a>
-      <a href="<?= APP_URL ?>/admin/products.php" class="az-sidebar-link"><i class="fa fa-cogs"></i> Товары</a>
-      <a href="<?= APP_URL ?>/admin/sliders.php" class="az-sidebar-link"><i class="fa fa-picture-o"></i> Слайдер</a>
-      <a href="<?= APP_URL ?>/superadmin/settings.php" class="az-sidebar-link active" style="color:#ce93d8;"><i class="fa fa-cog"></i> Настройки</a>
-      <a href="<?= APP_URL ?>/superadmin/currencies.php" class="az-sidebar-link"><i class="fa fa-money"></i> Валюты</a>
-      <a href="<?= APP_URL ?>/superadmin/languages.php" class="az-sidebar-link"><i class="fa fa-language"></i> Языки</a>
-      <a href="<?= APP_URL ?>/superadmin/warehouse.php" class="az-sidebar-link"><i class="fa fa-database"></i> Склад API</a>
-      <a href="<?= APP_URL ?>/superadmin/blog.php" class="az-sidebar-link"><i class="fa fa-newspaper-o"></i> Блог</a>
-      <a href="<?= APP_URL ?>/superadmin/backup.php" class="az-sidebar-link"><i class="fa fa-archive"></i> Бэкапы</a>
-      <hr style="border-color:rgba(255,255,255,0.1);margin:12px 0;">
-      <a href="<?= APP_URL ?>/index.php" class="az-sidebar-link"><i class="fa fa-home"></i> На сайт</a>
-      <a href="<?= APP_URL ?>/auth/logout.php" class="az-sidebar-link" style="color:rgba(255,100,100,0.85)!important;"><i class="fa fa-sign-out"></i> Выйти</a>
-    </nav>
-  </aside>
+  <?php renderRoleSidebar('settings'); ?>
 
   <div class="az-main">
     <div class="az-topbar" style="border-bottom-color:#9b59b622;background:#f9f5ff;">
@@ -128,6 +112,29 @@ require_once dirname(__DIR__) . '/includes/header.php';
                   <input type="text" name="site_address" class="form-control" value="<?= sv($settings, 'site_address') ?>">
                 </div>
               </div>
+
+              <!-- Карта -->
+              <div class="col-12">
+                <div class="az-form-group">
+                  <label style="font-weight:700">📍 Метка на карте (страница Контакты)</label>
+                  <div class="row">
+                    <div class="col-md-4">
+                      <label style="font-size:0.85rem;color:#666">Широта (Latitude)</label>
+                      <input type="text" name="map_lat" class="form-control" value="<?= sv($settings, 'map_lat', '40.29864545672122') ?>" placeholder="40.29864545672122">
+                    </div>
+                    <div class="col-md-4">
+                      <label style="font-size:0.85rem;color:#666">Долгота (Longitude)</label>
+                      <input type="text" name="map_lng" class="form-control" value="<?= sv($settings, 'map_lng', '69.6142315387528') ?>" placeholder="69.6142315387528">
+                    </div>
+                    <div class="col-md-4">
+                      <label style="font-size:0.85rem;color:#666">Масштаб (15–18)</label>
+                      <input type="number" name="map_zoom" class="form-control" value="<?= sv($settings, 'map_zoom', '16') ?>" min="10" max="20" placeholder="16">
+                    </div>
+                  </div>
+                  <small class="text-muted">Откройте <a href="https://maps.google.com" target="_blank">Google Maps</a>, найдите нужное место, нажмите правой кнопкой → "Что здесь?" — скопируйте координаты.</small>
+                </div>
+              </div>
+
               <div class="col-md-6">
                 <div class="az-form-group">
                   <label>Telegram (@username)</label>
@@ -138,6 +145,30 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 <div class="az-form-group">
                   <label>WhatsApp (номер с кодом страны)</label>
                   <input type="text" name="site_whatsapp" class="form-control" value="<?= sv($settings, 'site_whatsapp') ?>" placeholder="79001234567">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="az-form-group">
+                  <label>Instagram (username или полная ссылка)</label>
+                  <input type="text" name="site_instagram" class="form-control" value="<?= sv($settings, 'site_instagram') ?>" placeholder="avtodoc или https://instagram.com/avtodoc">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="az-form-group">
+                  <label>Facebook (username или полная ссылка)</label>
+                  <input type="text" name="site_facebook" class="form-control" value="<?= sv($settings, 'site_facebook') ?>" placeholder="avtodoc или https://facebook.com/avtodoc">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="az-form-group">
+                  <label>YouTube (username или полная ссылка)</label>
+                  <input type="text" name="site_youtube" class="form-control" value="<?= sv($settings, 'site_youtube') ?>" placeholder="@avtodoc или https://youtube.com/@avtodoc">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="az-form-group">
+                  <label>TikTok (username или полная ссылка)</label>
+                  <input type="text" name="site_tiktok" class="form-control" value="<?= sv($settings, 'site_tiktok') ?>" placeholder="@avtodoc или https://tiktok.com/@avtodoc">
                 </div>
               </div>
             </div>
@@ -240,6 +271,26 @@ require_once dirname(__DIR__) . '/includes/header.php';
           </div>
         </div>
 
+        <!-- Наценка товаров -->
+        <div class="az-card mb-24">
+          <div class="az-card-header"><h4 class="az-card-title">Наценка товаров</h4></div>
+          <div class="az-card-body">
+            <div class="row">
+              <div class="col-md-4">
+                <div class="az-form-group">
+                  <label>Глобальная наценка (%)</label>
+                  <input type="number" name="global_markup" class="form-control" min="0" max="1000" step="0.01"
+                         value="<?= sv($settings, 'global_markup', '0') ?>" placeholder="0">
+                  <small class="text-muted">
+                    Применяется ко всем товарам, у которых не задана собственная или категорийная наценка.<br>
+                    <strong>Приоритет:</strong> наценка товара &gt; наценка категории &gt; глобальная наценка.
+                  </small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <button type="submit" class="az-btn az-btn-primary" style="min-width:200px;">Сохранить настройки</button>
       </form>
 
@@ -268,4 +319,4 @@ require_once dirname(__DIR__) . '/includes/header.php';
   </div><!-- /.az-main -->
 </div><!-- /.az-panel -->
 
-<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
+<?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>

@@ -16,6 +16,12 @@ $bestParts = $db->query("SELECT p.*, b.name AS brand_name FROM parts p
 $newParts = $db->query("SELECT p.*, b.name AS brand_name FROM parts p
     LEFT JOIN brands b ON b.id=p.brand_id WHERE p.is_active=1 ORDER BY p.id DESC LIMIT 10")->fetchAll();
 
+$ratings = getProductRatings(array_merge(
+    array_column($featParts, 'id'),
+    array_column($bestParts, 'id'),
+    array_column($newParts, 'id')
+));
+
 $blogPosts = $db->query("SELECT * FROM blog_posts WHERE is_published=1 ORDER BY created_at DESC LIMIT 5")->fetchAll();
 
 $sliders = $db->query("SELECT * FROM sliders WHERE is_active=1 ORDER BY sort_order ASC, id ASC")->fetchAll();
@@ -131,11 +137,14 @@ require_once __DIR__ . '/includes/header.php';
                     $catImages = ['category1.jpg','category2.jpg','category3.jpg','category4.jpg','category5.jpg','category6.jpg','category7.jpg'];
                     foreach ($categories as $i => $cat):
                         $img = $catImages[$i % count($catImages)];
+                        $catImgSrc = !empty($cat['image_path'])
+                            ? APP_URL . '/' . ltrim($cat['image_path'], '/')
+                            : APP_URL . '/assets/img/s-product/' . $img;
                     ?>
                     <div class="single_categories_product">
                         <div class="categories_product_thumb">
                             <a href="<?= APP_URL ?>/catalog/category.php?slug=<?= urlencode($cat['slug']) ?>">
-                                <img src="<?= APP_URL ?>/assets/img/s-product/<?= $img ?>" alt="<?= sanitize(tField($cat,'name')) ?>">
+                                <img src="<?= sanitize($catImgSrc) ?>" alt="<?= sanitize(tField($cat,'name')) ?>">
                             </a>
                         </div>
                         <div class="categories_product_content">
@@ -221,6 +230,7 @@ require_once __DIR__ . '/includes/header.php';
                                                 <div class="price_box">
                                                     <span class="current_price"><?= formatPrice($part['price']) ?></span>
                                                 </div>
+                                                <?= productStarsInline((int)$part['id'], $ratings) ?>
                                             </div>
                                             <div class="action_links">
                                                 <ul>
@@ -300,32 +310,33 @@ require_once __DIR__ . '/includes/header.php';
                 <?php
                 $brandImages = ['brand1.jpg','brand2.jpg','brand3.jpg','brand4.jpg','brand5.jpg','brand6.jpg','brand7.jpg','brand8.jpg'];
                 try {
-                    $brands = $db->query("SELECT * FROM brands WHERE is_active=1 ORDER BY name LIMIT 8")->fetchAll();
-                } catch (Exception $e) { $brands = []; }
+                    $brands = $db->query("SELECT * FROM brands WHERE is_active=1 ORDER BY sort_order ASC, name ASC")->fetchAll();
+                } catch (Exception $e) {
+                    try {
+                        $brands = $db->query("SELECT * FROM brands WHERE is_active=1 ORDER BY name")->fetchAll();
+                    } catch (Exception $e2) { $brands = []; }
+                }
                 if (!empty($brands)):
-                    $brandPairs = array_chunk($brands, 2);
-                    foreach ($brandPairs as $bpair):
+                    foreach ($brands as $bi => $brand):
+                        $bImg = $brandImages[$bi % count($brandImages)];
+                        $brandLogoSrc = !empty($brand['logo_path'])
+                            ? APP_URL . '/' . ltrim($brand['logo_path'], '/')
+                            : APP_URL . '/assets/img/brand/' . $bImg;
                 ?>
                 <div class="brand_list">
-                    <?php foreach ($bpair as $bi => $brand):
-                        $bImg = $brandImages[$bi % count($brandImages)];
-                    ?>
                     <div class="single_brand">
                         <a href="<?= APP_URL ?>/catalog/index.php?brand=<?= (int)$brand['id'] ?>">
-                            <img src="<?= APP_URL ?>/assets/img/brand/<?= $bImg ?>" alt="<?= sanitize($brand['name']) ?>" title="<?= sanitize($brand['name']) ?>">
+                            <img src="<?= sanitize($brandLogoSrc) ?>" alt="<?= sanitize($brand['name']) ?>" title="<?= sanitize($brand['name']) ?>">
                         </a>
                     </div>
-                    <?php endforeach; ?>
                 </div>
                 <?php endforeach;
                 else:
-                    foreach (array_chunk($brandImages, 2) as $bpair): ?>
+                    foreach ($brandImages as $bi => $bImg): ?>
                 <div class="brand_list">
-                    <?php foreach ($bpair as $bImg): ?>
                     <div class="single_brand">
                         <a href="<?= APP_URL ?>/catalog/index.php"><img src="<?= APP_URL ?>/assets/img/brand/<?= $bImg ?>" alt=""></a>
                     </div>
-                    <?php endforeach; ?>
                 </div>
                 <?php endforeach; endif; ?>
             </div>
@@ -345,11 +356,29 @@ require_once __DIR__ . '/includes/header.php';
                         <p><?= t('newsletter_text') ?></p>
                         <div class="footer_social">
                             <ul>
+                                <?php
+                                $socUrl = function (string $v, string $base): string {
+                                    $v = trim($v);
+                                    return preg_match('~^https?://~i', $v) ? $v : $base . ltrim($v, '@/');
+                                };
+                                ?>
                                 <?php if (getSetting('site_telegram')): ?>
-                                <li><a href="https://t.me/<?= sanitize(getSetting('site_telegram')) ?>" class="twitter" target="_blank" rel="noopener noreferrer"><i class="fa fa-telegram"></i></a></li>
+                                <li><a href="<?= sanitize($socUrl(getSetting('site_telegram'), 'https://t.me/')) ?>" class="twitter" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><i class="fa fa-telegram"></i></a></li>
                                 <?php endif; ?>
                                 <?php if (getSetting('site_whatsapp')): ?>
-                                <li><a href="https://wa.me/<?= sanitize(getSetting('site_whatsapp')) ?>" class="facebook" target="_blank" rel="noopener noreferrer"><i class="fa fa-whatsapp"></i></a></li>
+                                <li><a href="https://wa.me/<?= sanitize(preg_replace('/\D/', '', getSetting('site_whatsapp'))) ?>" class="facebook" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><i class="fa fa-whatsapp"></i></a></li>
+                                <?php endif; ?>
+                                <?php if (getSetting('site_instagram')): ?>
+                                <li><a href="<?= sanitize($socUrl(getSetting('site_instagram'), 'https://instagram.com/')) ?>" class="instagram" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fa fa-instagram"></i></a></li>
+                                <?php endif; ?>
+                                <?php if (getSetting('site_facebook')): ?>
+                                <li><a href="<?= sanitize($socUrl(getSetting('site_facebook'), 'https://facebook.com/')) ?>" class="facebook" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i class="fa fa-facebook"></i></a></li>
+                                <?php endif; ?>
+                                <?php if (getSetting('site_youtube')): ?>
+                                <li><a href="<?= sanitize($socUrl(getSetting('site_youtube'), 'https://youtube.com/')) ?>" class="youtube" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fa fa-youtube"></i></a></li>
+                                <?php endif; ?>
+                                <?php if (getSetting('site_tiktok')): ?>
+                                <li><a href="<?= sanitize($socUrl(getSetting('site_tiktok'), 'https://tiktok.com/@')) ?>" class="tiktok" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><i class="fa fa-music"></i></a></li>
                                 <?php endif; ?>
                             </ul>
                         </div>
@@ -373,7 +402,7 @@ require_once __DIR__ . '/includes/header.php';
                         <p><?= sanitize(getSetting('site_phone','+7 (495) 123-45-67')) ?></p>
                         <div class="app_img">
                             <ul>
-                                <li><a href="<?= APP_URL ?>/pages/contact.php" class="button" style="display:block;text-align:center;padding:10px 20px"><?= t('contact') ?></a></li>
+                                <li><a href="<?= APP_URL ?>/pages/contact.php" class="az-contact-btn"><?= t('contact') ?></a></li>
                             </ul>
                         </div>
                     </div>

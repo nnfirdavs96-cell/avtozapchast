@@ -7,6 +7,11 @@ $catId   = (int)$_getStr('cat', '0');
 $page    = max(1, (int)$_getStr('page', '1'));
 $perPage = 12;
 
+// VIN-автодетект: если ввели 17 символов VIN-формата — редирект на VIN-поиск
+if ($q !== '' && preg_match('/^[A-HJ-NPR-Z0-9]{17}$/i', $q)) {
+    redirect(APP_URL . '/pages/vin.php?vin=' . urlencode(strtoupper($q)));
+}
+
 $pageTitle = t('search') . ($q ? ': ' . $q : '') . ' — ' . getSetting('site_name');
 
 $db     = getDB();

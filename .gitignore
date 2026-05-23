@@ -2,13 +2,9 @@
 *.sql.gz
 autodoc_export_*.sql
 
-# Uploaded files (don't commit user uploads)
-assets/uploads/*
-!assets/uploads/.gitkeep
-
-# Storage
-storage/backups/*
-!storage/backups/.gitkeep
+# Uploaded media (keep .gitkeep placeholders)
+assets/uploads/*/*
+!assets/uploads/*/.gitkeep
 
 # OS
 .DS_Store
@@ -20,5 +16,6 @@ Thumbs.db
 
 # Archives
 *.zip
-site2.zip
-mazlay-template.zip
+
+# Legacy installer
+install_autoeuro.php

@@ -60,6 +60,7 @@ $siteWa      = getSetting('site_whatsapp', '');
                             <div class="footer_menu">
                                 <ul>
                                     <li><a href="<?= APP_URL ?>/pages/about.php"><?= t('about') ?></a></li>
+                                    <li><a href="<?= APP_URL ?>/pages/reviews.php"><?= t('shop_reviews') ?></a></li>
                                     <li><a href="<?= APP_URL ?>/pages/blog.php"><?= t('blog') ?></a></li>
                                     <li><a href="<?= APP_URL ?>/pages/faq.php"><?= t('faq') ?></a></li>
                                     <li><a href="<?= APP_URL ?>/pages/contact.php"><?= t('contact') ?></a></li>
@@ -125,7 +126,7 @@ $siteWa      = getSetting('site_whatsapp', '');
             <div class="row align-items-center">
                 <div class="col-lg-6 col-md-6">
                     <div class="copyright_area">
-                        <p>&copy; <?= date('Y') ?> <a href="<?= APP_URL ?>/index.php" class="text-uppercase"><?= sanitize(getSetting('site_name','АвтоЗапчасть')) ?></a>. Все права защищены.</p>
+                        <p>&copy; <?= date('Y') ?> <a href="<?= APP_URL ?>/index.php" class="text-uppercase"><?= sanitize(getSetting('site_name','AutoDoc')) ?></a>. Все права защищены.</p>
                     </div>
                 </div>
                 <div class="col-lg-6 col-md-6">
@@ -139,8 +140,13 @@ $siteWa      = getSetting('site_whatsapp', '');
 </footer>
 
 <!-- Mazlay JS (plugins.js bundles jQuery + Bootstrap + all plugins) -->
+<script>window.APP_URL = <?= json_encode(APP_URL) ?>;</script>
+<?php
+$mainJsV = @filemtime(APP_ROOT . '/assets/mazlay-js/main.js') ?: time();
+$appJsV  = @filemtime(APP_ROOT . '/assets/js/app.js') ?: time();
+?>
 <script src="<?= MAZLAY_JS ?>/plugins.js"></script>
-<script src="<?= MAZLAY_JS ?>/main.js"></script>
-<script src="<?= APP_URL ?>/assets/js/app.js"></script>
+<script src="<?= MAZLAY_JS ?>/main.js?v=<?= $mainJsV ?>"></script>
+<script src="<?= APP_URL ?>/assets/js/app.js?v=<?= $appJsV ?>"></script>
 </body>
 </html>

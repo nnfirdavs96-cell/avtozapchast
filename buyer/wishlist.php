@@ -28,6 +28,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
 <!--wishlist area start -->
 <div class="wishlist_page_bg">
     <div class="container">
+        <?= renderBuyerAccountNav('wishlist') ?>
         <div class="wishlist_area">
             <div class="wishlist_inner">
                 <?php if (empty($items)): ?>

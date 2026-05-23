@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
-requireRole(['admin', 'superadmin']);
+requireRole(['admin', 'manager', 'superadmin']);
+requirePermission('users');
 
 $db   = getDB();
 $csrf = generateCsrfToken();
@@ -116,7 +117,7 @@ $formErrors  = $formErrors ?? [];
 $formData    = $formData ?? [];
 
 $pageTitle = 'Пользователи — ' . getSetting('site_name');
-require_once dirname(__DIR__) . '/includes/header.php';
+require_once dirname(__DIR__) . '/includes/admin-header.php';
 ?>
 
 <div class="az-panel">
@@ -304,4 +305,4 @@ require_once dirname(__DIR__) . '/includes/header.php';
   </div><!-- /.az-main -->
 </div><!-- /.az-panel -->
 
-<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
+<?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>

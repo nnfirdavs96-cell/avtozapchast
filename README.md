@@ -158,16 +158,66 @@ mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/schema_v3.sql
 
 # Версия 4: sliders + image_path в блоге
 mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/schema_v4.sql
+
+# CMS: категории блога + разделы страницы «О нас» (site_sections)
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_cms.sql
+
+# Отзывы на товары (product_reviews) — применять ПОСЛЕ migrate_cms
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_reviews.sql
+
+# Отзывы о магазине + флаг витрины (shop_reviews, is_featured)
+# ВАЖНО: строго ПОСЛЕ migrate_reviews.sql
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_reviews_v2.sql
+
+# VIN-поиск (декодер + аналоги)
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_vin.sql
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_vin_v2.sql
+
+# Глобальная/категорийная наценка (site_settings global_markup, колонки markup_percent)
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_markup.sql
+
+# Таджикский рынок: язык/валюта/контакты по умолчанию
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_tajik_market.sql
+
+# Только сомони (TJS / СМН), отключить прочие валюты
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/only_tjs_currency.sql
+
+# Прямое ценообразование в СМН: курс TJS = 1.0 (цена в БД = цена на витрине 1:1)
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/tjs_direct_pricing.sql
+
+# Переименование сайта АвтоЗапчасть → AvtoDoc (обновляет site_settings)
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/rename_to_avtodoc.sql
+
+# Гранулярные права: таблица user_permissions (суперадмин раздаёт разделы)
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_permissions.sql
+
+# Изображение категории на главной (colonка categories.image_path)
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_category_image.sql
+
+# Логотип бренда/партнёра (колонка brands.logo_path)
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_brand_logo.sql
+
+# Аватар + сохранённый адрес доставки покупателя
+# (users.avatar_path, first_name, last_name, address, city, zip_code, country)
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_user_profile_fields.sql
+
+# AutoEuro API (склад, поиск/заказ) — опционально, если используете внешний склад
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/schema_autoeuro.sql
 ```
 
 > ⚠️ Если выводятся ошибки `Duplicate entry` — это нормально. Это значит, что данные уже есть в базе.
+>
+> ⚠️ Порядок миграций отзывов важен: `migrate_reviews.sql` создаёт
+> `product_reviews`, а `migrate_reviews_v2.sql` добавляет к ней колонку
+> `is_featured` и создаёт `shop_reviews`. Все миграции идемпотентны
+> (`IF NOT EXISTS` / `INSERT IGNORE`) — можно запускать повторно.
 
 Проверить, что таблицы созданы:
 ```bash
 mysql -u avtouser -p'Avto@2024!' avtozapchast -e "SHOW TABLES;"
 ```
 
-Должны появиться: `users`, `categories`, `brands`, `parts`, `orders`, `order_items`, `cart`, `wishlist`, `site_settings`, `currencies`, `languages`, `blog_posts`, `sliders`, `backups`, `warehouse_api_log`.
+Должны появиться: `users`, `categories`, `brands`, `parts`, `orders`, `order_items`, `cart`, `wishlist`, `site_settings`, `currencies`, `languages`, `blog_posts`, `sliders`, `backups`, `warehouse_api_log`, `site_sections`, `product_reviews`, `shop_reviews`.
 
 ### Шаг 4: Настройка config.php
 
@@ -187,6 +237,18 @@ define('APP_URL', 'https://yourdomain.com');
 // Для тестирования по IP:
 define('APP_URL', 'http://192.168.88.3');
 ```
+
+**Порт админ-панели (`ADMIN_PORT`):**
+```php
+// Разделы /admin, /superadmin, /manager доступны ТОЛЬКО на этом порту.
+// На любом другом порту они отдают 403 (защита от случайного входа).
+// Сайт для покупателей работает на всех портах как обычно.
+define('ADMIN_PORT', '8888');
+```
+> Чтобы порт 8888 реально заработал, нужно добавить второй
+> VirtualHost в Apache — см. раздел «Настройка веб-сервера → Apache →
+> Отдельный порт для админ-панели». Чтобы вообще отключить разделение
+> (админка снова на общем порту) — задайте `define('ADMIN_PORT', '');`.
 
 ### Шаг 5: Настройка database.php
 
@@ -232,6 +294,109 @@ php -r "require 'config/database.php'; \$db = getDB(); echo 'OK: ' . \$db->query
 ---
 
 ## Настройка веб-сервера
+
+### ⭐ Реальная конфигурация прод-сервера (10.230.13.107)
+
+> Это **фактическое состояние боевого сервера** — источник истины.
+> Разделы «Nginx (рекомендуется)» и «Apache» ниже — это общие примеры
+> для нового развёртывания. На текущем сервере работает то, что
+> описано здесь.
+
+**Веб-сервер:** `nginx` + `php-fpm 8.2` (сокет `/run/php/php8.2-fpm.sock`).
+Apache на сервере **установлен, но мёртв** (`apache2.service` failed) —
+его не трогаем, он ни на что не влияет.
+
+**Бинарники не в `PATH` рута** — вызывать по полному пути:
+`/usr/sbin/nginx -t`, `systemctl reload nginx`.
+
+#### Как было (до разбора, май 2026)
+
+На сервере оказались **две копии** проекта, обе — git-репозитории:
+
+| Папка | Что это | Состояние |
+|-------|---------|-----------|
+| `/var/www/html/` | старая копия с `.git` на ветке `claude/build-multilingual-currency-site-a12ui`, 178 несохранённых правок, **пустой** `assets/uploads/` | DocumentRoot **мёртвого** Apache |
+| `/var/www/html/avtozapchast/` | актуальная копия, ветка `main`, все правки, фото в `assets/uploads/` (`blog/ products/ sliders/`) | **отдаётся nginx** |
+
+Путаница была в том, что мёртвый Apache смотрел в `/var/www/html`, а
+живой nginx — уже правильно в `/var/www/html/avtozapchast`. Поэтому
+`git pull` в `avtozapchast` **всегда был корректным** и сразу попадал
+на сайт. Старую копию `/var/www/html` оставили нетронутой как бэкап,
+nginx её не отдаёт — на сайт не влияет.
+
+#### Как работает сейчас
+
+`/etc/nginx/sites-enabled/`:
+- `avtozapchast` → симлинк на `/etc/nginx/sites-available/avtozapchast`
+  — `server_name 10.230.13.107`, `root /var/www/html/avtozapchast`,
+  слушает **`listen 80;` и `listen 8888;`**
+- `avtosk.conf` — дефолтный `server_name _;`, тоже `root
+  /var/www/html/avtozapchast`, только `listen 80;`
+
+**Сайт и админка — один код + одна база `avtozapchast` (MySQL).**
+Порт 80 и порт 8888 — две «двери» в один и тот же сайт. Любое
+изменение в админке (товары, цены, слайдеры, фото, настройки)
+пишется в общую БД/папку и сразу видно на основном сайте.
+
+| Адрес | Что отдаётся |
+|-------|--------------|
+| `http://10.230.13.107/` | сайт для покупателей ✅ |
+| `http://10.230.13.107/admin` | **403** — PHP-гейт `requireAdminPort()` (порт ≠ 8888) |
+| `http://10.230.13.107:8888/admin` | админка (302 → форма входа) ✅ |
+| `http://10.230.13.107:8888/superadmin`, `/manager` | то же |
+
+Два уровня защиты: (1) нестандартный порт 8888 + (2) логин/пароль.
+
+#### Что именно меняли на сервере (порт 8888)
+
+PHP-защита (`ADMIN_PORT=8888` в `config/config.php` +
+`requireAdminPort()` в `includes/functions.php`) приехала через
+`git pull`. На стороне nginx — **одна строка** в активном конфиге:
+
+```bash
+# 1. Бэкап
+cp /etc/nginx/sites-available/avtozapchast /etc/nginx/sites-available/avtozapchast.bak
+
+# 2. Добавить listen 8888 сразу после первого listen 80
+sed -i '0,/listen 80;/s//listen 80;\n    listen 8888;/' /etc/nginx/sites-available/avtozapchast
+
+# 3. Проверить синтаксис (ОБЯЗАТЕЛЬНО до reload)
+/usr/sbin/nginx -t            # ждём: syntax is ok / test is successful
+
+# 4. Применить
+systemctl reload nginx
+
+# 5. Проверка
+curl -s -o /dev/null -w "корень 80:   %{http_code}\n" http://localhost/index.php   # 200
+curl -s -o /dev/null -w "/admin 80:   %{http_code}\n" http://localhost/admin/       # 403
+curl -s -o /dev/null -w "/admin 8888: %{http_code}\n" http://localhost:8888/admin/  # 302
+```
+
+> nginx передаёт реальный порт в PHP через `fastcgi_param SERVER_PORT
+> $server_port` (внутри `snippets/fastcgi-php.conf` / `fastcgi_params`),
+> поэтому `requireAdminPort()` корректно различает 80 и 8888.
+
+**Откат разделения:**
+```bash
+cp /etc/nginx/sites-available/avtozapchast.bak /etc/nginx/sites-available/avtozapchast
+/usr/sbin/nginx -t && systemctl reload nginx
+# при необходимости в коде: define('ADMIN_PORT', '') в config/config.php
+```
+
+> ⚠️ Многострочные heredoc (`cat > файл <<'EOF'`) при вставке в этот
+> терминал **склеивают строки** — конфиг ломается. Менять конфиги
+> только точечно (`sed`) или через файл в репозитории + `cp`.
+
+#### Обновление сайта на этом сервере
+
+```bash
+cd /var/www/html/avtozapchast        # ← ТОЛЬКО эта папка, не /var/www/html
+git pull origin main
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/rename_to_avtodoc.sql  # один раз
+systemctl reload php8.2-fpm          # если правился PHP
+```
+
+---
 
 ### Nginx (рекомендуется)
 
@@ -345,6 +510,67 @@ apache2ctl configtest
 systemctl reload apache2
 ```
 
+#### Отдельный порт для админ-панели (8888)
+
+Цель — два уровня защиты: `/admin`, `/superadmin`, `/manager`
+открываются только по `:8888`, а на обычном `:80` отдают 403 (даже
+зная логин/пароль). Сайт для покупателей на `:80` не меняется.
+
+> Защита по порту уже реализована в коде (`ADMIN_PORT` +
+> `requireAdminPort()` в `includes/functions.php`). Ниже — как
+> сделать так, чтобы порт 8888 физически слушался Apache.
+
+1. Добавить порт в `/etc/apache2/ports.conf`:
+```apache
+Listen 80
+Listen 8888
+```
+
+2. Добавить второй VirtualHost в `/etc/apache2/sites-available/avtozapchast.conf`
+(тот же DocumentRoot, что и `:80`):
+```apache
+<VirtualHost *:8888>
+    ServerName yourdomain.com
+    DocumentRoot /var/www/html/avtozapchast
+
+    <Directory /var/www/html/avtozapchast>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+    <Directory /var/www/html/avtozapchast/config>
+        Require all denied
+    </Directory>
+    <Directory /var/www/html/avtozapchast/sql>
+        Require all denied
+    </Directory>
+    <Directory /var/www/html/avtozapchast/storage>
+        Require all denied
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/avtozapchast_8888_error.log
+    CustomLog ${APACHE_LOG_DIR}/avtozapchast_8888_access.log combined
+</VirtualHost>
+```
+
+3. **Обязательно** проверить конфиг до перезапуска, иначе сайт ляжет:
+```bash
+apache2ctl configtest      # должно быть: Syntax OK
+systemctl reload apache2
+```
+
+4. Проверка:
+
+| Адрес | Ожидаемо |
+|-------|----------|
+| `http://СЕРВЕР/` | сайт покупателей ✅ |
+| `http://СЕРВЕР/admin` | 403 ❌ |
+| `http://СЕРВЕР:8888/admin` | вход в админку ✅ |
+
+> Откатить разделение: убрать `Listen 8888` и блок `<VirtualHost
+> *:8888>`, `apache2ctl configtest`, `systemctl reload apache2`. В коде
+> при необходимости — `define('ADMIN_PORT', '')` в `config/config.php`.
+
 ### .htaccess (для Apache)
 
 Создать `.htaccess` в корне:
@@ -415,15 +641,19 @@ avtozapchast/
 │   ├── parts.php           #   - CRUD запчастей + изображения
 │   ├── categories.php      #   - Иерархические категории
 │   ├── brands.php          #   - Бренды (Bosch, NGK и т.д.)
-│   └── blog.php            #   - CRUD блога (RU/TG/EN + обложка)
+│   ├── blog.php            #   - CRUD блога (RU/TG/EN + обложка + категория)
+│   ├── pages.php           #   - CMS: разделы страницы «О нас»
+│   └── reviews.php         #   - Модерация отзывов (товары/магазин)
 │
 ├── superadmin/             # 🔧 Панель суперадминистратора
 │   ├── index.php           #   - Главный дашборд (вся статистика)
-│   ├── users.php           #   - Полный CRUD пользователей + роли
+│   ├── users.php           #   - Полный CRUD пользователей + роли + кнопка «Права доступа»
+│   ├── permissions.php     #   - Гранулярные права: разделы на сотрудника
 │   ├── settings.php        #   - Настройки сайта (название, контакты)
-│   ├── currencies.php      #   - Валюты + кнопка "обновить курсы ЦБ РФ"
+│   ├── currencies.php      #   - Валюты + курс (множитель цены) + ЦБ РФ
 │   ├── languages.php       #   - Управление языками
-│   ├── warehouse.php       #   - Настройки API склада + тест соединения
+│   ├── vin.php             #   - VIN-поиск (делегируется через права)
+│   ├── warehouse.php       #   - AutoEuro API склад (делегируется через права)
 │   ├── blog.php            #   - CRUD блога (расширенный)
 │   ├── backup.php          #   - Управление резервными копиями
 │   ├── backup_cron.php     #   - CLI-скрипт для cron (авто-бэкап)
@@ -442,14 +672,25 @@ avtozapchast/
 │   └── logout.php          #   - Выход
 │
 ├── api/                    # 🌐 API endpoints
-│   └── upload.php          #   - Загрузка изображений (manager/admin/superadmin)
+│   ├── upload.php          #   - Загрузка изображений (manager/admin/superadmin)
+│   ├── cart.php            #   - Корзина (add/remove/count)
+│   ├── wishlist.php        #   - Избранное
+│   ├── search.php          #   - Живой поиск
+│   ├── vin_analogs.php     #   - VIN: аналоги запчастей
+│   ├── review_submit.php   #   - Отправка отзыва на товар (после покупки)
+│   └── shop_review_submit.php #  - Отправка отзыва о магазине
 │
 ├── catalog/                # 🛒 Каталог
-│   ├── shop.php            #   - Список товаров с фильтрами
-│   └── product.php         #   - Карточка товара
+│   ├── index.php           #   - Список товаров с фильтрами (+ звёзды-рейтинг)
+│   ├── category.php        #   - Товары категории (+ звёзды-рейтинг)
+│   └── part.php            #   - Карточка товара + вкладка «Отзывы»
 │
 ├── pages/                  # 📄 Статичные страницы
-│   ├── about.php           #   - О компании
+│   ├── about.php           #   - О компании (CMS site_sections + витрина отзывов)
+│   ├── reviews.php         #   - Отзывы о магазине (публичная страница + форма)
+│   ├── blog.php            #   - Блог (фильтр по категориям)
+│   ├── blog-detail.php     #   - Статья блога
+│   ├── vin.php             #   - VIN-поиск запчастей
 │   ├── contact.php         #   - Контакты + карта
 │   ├── faq.php             #   - Часто задаваемые вопросы
 │   └── 404.php             #   - Страница не найдена
@@ -490,7 +731,18 @@ avtozapchast/
 │   ├── schema.sql          #   - v1: основные таблицы
 │   ├── schema_v2.sql       #   - v2: wishlist, currencies, blog
 │   ├── schema_v3.sql       #   - v3: backups, warehouse log
-│   └── schema_v4.sql       #   - v4: sliders, blog image
+│   ├── schema_v4.sql       #   - v4: sliders, blog image
+│   ├── migrate_cms.sql     #   - CMS: site_sections + категория блога
+│   ├── migrate_reviews.sql #   - Отзывы на товары (product_reviews)
+│   ├── migrate_reviews_v2.sql # - Отзывы о магазине + is_featured
+│   ├── migrate_markup.sql  #   - Глобальная/категорийная наценка
+│   ├── migrate_tajik_market.sql # - Язык/валюта/контакты TJ по умолчанию
+│   ├── only_tjs_currency.sql  # - Оставить только валюту TJS (СМН)
+│   ├── tjs_direct_pricing.sql # - Курс TJS=1: цена в БД = цена 1:1 на витрине
+│   ├── rename_to_avtodoc.sql # -  Переименование сайта → AvtoDoc (site_settings)
+│   ├── migrate_permissions.sql # - Гранулярные права (user_permissions)
+│   ├── schema_autoeuro.sql #   - AutoEuro API (склад, поиск/заказ)
+│   └── migrate_vin*.sql    #   - VIN-поиск (декодер, аналоги)
 │
 └── storage/                # 💼 Хранилище
     └── backups/            #   - SQL-дампы резервных копий
@@ -529,6 +781,29 @@ avtozapchast/
 | Менеджер | Панель менеджера | `/manager/index.php` |
 | Администратор | Панель админа | `/admin/index.php` |
 | Суперадмин | Панель суперадмина | `/superadmin/index.php` |
+
+### Гранулярные права (per-user) — `superadmin/permissions.php`
+
+Таблица выше — это **поведение по умолчанию** (`roleDefaultSections()`).
+Суперадмин может переопределить доступ **для конкретного сотрудника**
+(admin/manager), отметив галочками разделы на странице
+`/superadmin/permissions.php` (ссылка в меню суперадмина + кнопка на
+форме редактирования пользователя).
+
+- Разделы каталога: Товары, **Наценки** (поля себестоимость/наценка),
+  Слайдер, Заказы, Пользователи, Категории, Бренды, Блог, Страницы,
+  Отзывы, Склад API, VIN.
+- **Нет настройки** → действуют умолчания роли (всё как в таблице выше) —
+  деплой ничего не меняет, пока суперадмин явно не настроит.
+- **Есть настройка** → доступ строго по галочкам (можно дать менеджеру
+  «Заказы» или забрать у админа «Слайдер»).
+- **Суперадмин** не ограничивается никогда. «Сбросить к умолчанию»
+  удаляет запись → возврат к стандартному доступу роли.
+
+Технически: страницы вызывают `requireRole(...)` (роль/авторизация),
+затем `requirePermission('section')` (грант суперадмина). Меню
+фильтруется `userCan()`. Хранилище — `user_permissions` (JSON на
+пользователя); код работает и без миграции (`try/catch`).
 
 ---
 
@@ -609,13 +884,34 @@ avtozapchast/
 - CRUD статей на 3 языках (RU/TG/EN)
 - Загрузка обложки статьи
 - Slug (URL-friendly идентификатор) с авто-генерацией из заголовка
+- Категория статьи (Новости / Советы по ТО / Обзоры / Другое)
 - Черновик / Опубликовано
+
+**Страницы — CMS «О нас»** (`/manager/pages.php`):
+- Редактирование разделов страницы «О нас» из `site_sections`
+- 4 группы: основные разделы, преимущества (3 иконки), FAQ (4 пункта), отзывы (3 шт.)
+- Многоязычно (RU/TG/EN), загрузка изображений, сортировка, скрыть/показать
+
+**Отзывы — модерация** (`/manager/reviews.php`):
+- Переключатель **Товары / Магазин**
+- Фильтры по статусу (ожидают / одобрены / отклонены / все) со счётчиками
+- Одобрить / отклонить / удалить
+- Тумблер «в витрину О нас» (`is_featured`) — одобренный отзыв
+  попадает в блок «Что говорят клиенты» на странице «О нас»
+- Бейдж количества ожидающих модерации во всех сайдбарах менеджера
 
 ### 👤 Покупатель
 
 **Витрина** (`/index.php`):
 - Просмотр товаров, поиск, фильтры
+- Средний рейтинг (звёзды) в карточках товаров
 - Добавление в корзину/избранное
+
+**Отзывы:**
+- Отзыв на товар (`/catalog/part.php`) — только после получения заказа,
+  с премодерацией; на вкладке «Отзывы» виден статус своего отзыва
+- Отзыв о магазине (`/pages/reviews.php`) — для любого авторизованного,
+  с премодерацией
 
 **Личный кабинет** (`/buyer/`):
 - История заказов
@@ -1126,14 +1422,383 @@ if ($flash = getFlashMessage()) {
 | `getStockStatus($qty)` | Статус остатка (in / low / out) |
 | `getOrderStatusLabel($status)` | Человеческое название статуса |
 | `getOrderStatusClass($status)` | CSS-класс для бейджа |
+| `starsHtml($rating)` | HTML звёзд по оценке 0–5 (FontAwesome) |
+| `getProductRatings($partIds)` | `[part_id => [avg, count]]` по одобренным отзывам |
+| `productStarsInline($partId, $ratings)` | Компактная строка звёзд для карточки товара |
+| `userPurchasedPart($userId, $partId)` | Купил ли пользователь товар (доставленный заказ) |
+| `getShopRatingSummary()` | `[avg, count]` по одобренным отзывам о магазине |
+| `requireRole($roles)` | Гейт страницы по роли (superadmin — везде) |
+| `hasRole($roles)` | Текущий пользователь в одной из ролей? |
+| `permissionSections()` | Каталог управляемых разделов `ключ→название` |
+| `roleDefaultSections($role)` | Разделы роли по умолчанию (текущее поведение) |
+| `getUserConfiguredSections($uid)` | Явный список разделов или `null` |
+| `effectiveAllowedSections($uid,$role)` | Конфиг, иначе умолчание роли |
+| `userCan($section)` | Доступен ли раздел текущему пользователю |
+| `requirePermission($section)` | Гейт по гранту суперадмина (после `requireRole`) |
+| `requireAdminPort()` | 403, если админ-раздел открыт не на `ADMIN_PORT` |
+| `renderRoleSidebar($active)` | Сайдбар по роли, отфильтрован `userCan` |
+
+> Хелперы отзывов (`getProductRatings`, `getShopRatingSummary`) и прав
+> (`getUserConfiguredSections`) обёрнуты в `try/catch (PDOException)` —
+> возвращают пусто/`null`, если миграции ещё не применены, чтобы
+> страницы не падали.
 
 ---
 
 ## CHANGELOG / История изменений
 
-История последних правок на ветке `claude/review-repository-CglIw` (PR #16).
 Описано в формате «что → где → зачем», чтобы любой разработчик мог
-сориентироваться в коде.
+сориентироваться в коде. Новые записи — сверху.
+
+### Карусель брендов: размер логотипов и полупрозрачные стрелки (PR #103)
+
+**Цель:** на мобильных логотипы превращались в крошечные «чёрточки» — не было
+явного размера у `.single_brand` / `img`. Кнопки навигации тоже выглядели
+плотно — нужны полупрозрачные, чтобы не перекрывали логотипы.
+
+| Файл | Что изменено |
+|------|--------------|
+| `assets/css/custom.css` | `.single_brand` стал flex-контейнером с `min-height: 110px` (90px на планшетах, 80px на телефонах); `img` получил явные `max-height: 80px / 60px / 48px` и `object-fit: contain`; стрелки `rgba(199,9,9,.78)` + `backdrop-filter: blur(2px)` + полупрозрачная белая обводка |
+
+### Карусель брендов: стрелки, автопрокрутка, мобильная адаптация (PR #97–#101)
+
+**Цель:** карусель партнёров/брендов на главной была статичной — без
+стрелок и автоскролла. Также бренды дублировались (логотипы клонировались
+OWL'ом из-за группировки по 2 в слайд) и плохо смотрелись на мобильных.
+
+| Файл | Что изменено |
+|------|--------------|
+| `index.php` | Бренды теперь по одному на слайд (а не парами) — нет клонирования; query: `ORDER BY sort_order ASC, name ASC` |
+| `manager/brands.php` | В таблице колонка `#` показывает порядковый номер (1,2,3…), не raw `id`; новая колонка **Порядок**, поле `sort_order` в форме |
+| `assets/mazlay-js/main.js` | `nav: true`, навигация FA-иконками, `autoplay: true` 3 сек с паузой при ховере; responsive: на мобильных 2 → 3 → 4 → 5 → 6 брендов |
+| `assets/css/custom.css` | Стрелки 60×60 (42×42 на мобильных), красные круги с белой обводкой, padding контейнера 60px (стрелки внутри), `body` в селекторах для максимальной специфичности |
+| `sql/add_brand_sort_order.sql` | Идемпотентная миграция: `ALTER TABLE brands ADD sort_order INT NOT NULL DEFAULT 0` |
+
+**Миграция:**
+```bash
+mysql -u root -p avtozapchast < sql/add_brand_sort_order.sql
+```
+
+### Единый сайдбар для всех админ-панелей (PR #96)
+
+**Цель:** на разных страницах админ-разделов был свой захардкоженный
+HTML-сайдбар (16 файлов), пункты различались. При переходе между страницами
+пункт «Партнёры» то появлялся, то пропадал.
+
+| Файл | Что изменено |
+|------|--------------|
+| `includes/functions.php` | В `renderRoleSidebar()` для суперадмина добавлены пункты **Партнёры, Страницы, Отзывы, Категории** |
+| 16 файлов (`admin/`, `manager/`, `superadmin/`) | Захардкоженные `<aside class="az-sidebar">…</aside>` заменены на вызов `<?php renderRoleSidebar('key'); ?>` |
+| Результат | `–364 / +19 строк`, единая точка истины для меню |
+
+Затронутые страницы: `superadmin/{index,users,permissions,settings,currencies,languages,blog,backup}.php`,
+`manager/{index,parts,categories,brands,blog,pages,reviews}.php`,
+`admin/products.php`.
+
+### Переименование AvtoDoc → AutoDoc (PR #95)
+
+**Цель:** обновление бренда до «AutoDoc».
+
+| Файл | Что изменено |
+|------|--------------|
+| `config/config.php` | `APP_NAME = 'AutoDoc'` |
+| `lang/ru.php`, `en.php`, `tg.php` | `site_name = 'AutoDoc'` |
+| `includes/footer.php` | Fallback для копирайта |
+| `assets/css/custom.css` | Комментарий обновлён |
+| `sql/rename_to_autodoc.sql` | `UPDATE settings SET value = REPLACE(value, 'AvtoDoc', 'AutoDoc')` |
+
+**Миграция (обязательна, иначе в БД останется старое значение):**
+```bash
+mysql -u root -p avtozapchast < sql/rename_to_autodoc.sql
+```
+
+Также можно через **Суперадмин → Настройки → Основные → Название сайта**.
+
+### Новый логотип AutoDoc с прозрачным фоном (PR #91, #92, #93, #94)
+
+**Цель:** заменить старый логотип на новый «AutoDoc».
+
+| Файл | Что изменено |
+|------|--------------|
+| `assets/img/logo/avtodoc-logo.png` | Новый логотип (600×180, RGBA, прозрачный фон) |
+| `includes/header.php` | Путь обновлён, `alt="AutoDoc"` |
+| `assets/img/logo/avtodoc-logo.jpg` | Удалён (был старый формат) |
+
+Алгоритм очистки фона: flood-fill от пограничных пикселей с проверкой по
+яркости и насыщенности (тёмный десатурированный фон → α=0, цветной/яркий
+контент → α=255), затем обрезка по контенту и масштабирование под веб.
+
+### Кабинет покупателя: единый магазинный макет + навигация (PR #88, #89)
+
+**Цель:** страницы покупателя были в двух разных макетах — Профиль /
+Панель / Заказы использовали тёмную админ-панель с сайдбаром, а
+Корзина / Избранное — обычный магазинный вид. Покупатель не админ;
+всё приведено к магазинному виду.
+
+| Файл | Что изменено |
+|------|--------------|
+| `buyer/profile.php`, `buyer/index.php`, `buyer/orders.php` | `admin-header/footer` → `header/footer`; убраны `az-panel` / `az-sidebar` / `az-topbar`; добавлены хлебные крошки (`breadcrumb()`) и обёртка `.az-account` |
+| `buyer/cart.php`, `buyer/wishlist.php` | Добавлен вызов `renderBuyerAccountNav()` — навигация теперь одинакова на всех 5 страницах кабинета |
+| `includes/functions.php` | Новый помощник `renderBuyerAccountNav(string $active)` — горизонтальные вкладки Панель / Заказы / Профиль / Корзина / Избранное / Выход |
+| `assets/css/custom.css` | Стили `.az-account`, `.az-account-nav` (вкладки в фирменном тёмно-красном, адаптив) |
+
+> Контент-карточки (`.az-card`, `.az-table`, `.az-form-group`) —
+> глобальные, не тронуты, корректно рендерятся в магазинном макете.
+> Только CSS/PHP, миграций не требует.
+
+### Редизайн админ/профиль панелей под фирменный стиль (PR #87)
+
+**Цель:** админка выглядела как generic Bootstrap (Material-красный
+`#d32f2f`, серо-синий сайдбар) и не совпадала с витриной.
+
+| Файл | Что изменено |
+|------|--------------|
+| `assets/css/custom.css` | Единая система через CSS-переменные (`--az-red:#C70909` и др.). Все панели (покупатель/менеджер/админ/суперадмин) в фирменном красном `#C70909`. Тёмный графитовый сайдбар с красной активной полосой. Заголовки карточек — КАПС с красной меткой. Кнопки как в магазине (КАПС, радиус 3px, hover-подъём). Единые токены для таблиц/форм/бейджей/пагинации |
+| `includes/functions.php` | `renderRoleSidebar()`: убран чужеродный фиолетовый градиент суперадмина, золотая ★ для различения роли |
+| `buyer/profile.php`, `buyer/index.php` | Инлайн-цвета `#d32f2f` → `#C70909` |
+
+> **Высокоточечный файл:** весь стиль `.az-*` сосредоточен в
+> `assets/css/custom.css`. Публичная витрина не затронута — правки
+> только в админ-блоке. Требует Ctrl+F5 (сброс кэша CSS).
+
+### Профиль покупателя: аватар + адрес доставки (PR #86)
+
+**Цель:** покупатель не мог загрузить аватар; адрес приходилось
+вводить заново при каждом заказе.
+
+| Файл | Что изменено |
+|------|--------------|
+| `sql/add_user_profile_fields.sql` | **Новая идемпотентная миграция:** колонки `users.avatar_path, first_name, last_name, address, city, zip_code, country` (через `information_schema` + `PREPARE/EXECUTE`) |
+| `buyer/profile.php` | Загрузка/удаление аватара (предпросмотр), карточка «Адрес доставки». UPDATE-запросы в `try/catch` — сайт не падает, если миграция ещё не применена |
+| `buyer/checkout.php` | Автоподстановка сохранённого адреса в форму заказа (тоже в `try/catch`) |
+| `includes/functions.php` | `getCurrentUser()` читает `avatar_path` (с fallback-запросом без колонки) |
+| `includes/header.php`, `buyer/index.php` | Аватар вместо буквенного кружка |
+| `api/upload.php` | Добавлен тип загрузки `avatars` |
+
+> ⚠️ После `git pull` обязательно выполнить
+> `mysql ... < sql/add_user_profile_fields.sql` и
+> `chown -R www-data:www-data assets/uploads`. До миграции функции
+> аватара/адреса работают в режиме no-op (не ломают сайт).
+
+### Управляемый контент: изображения, бренды, соцсети (PR #81–#85)
+
+**Цель:** убрать хардкод картинок категорий и логотипов «партнёров»
+на главной; дать управление соцсетями; подсказать размеры загрузок.
+
+| Файл | Что изменено |
+|------|--------------|
+| `sql/add_category_image.sql`, `sql/add_brand_logo.sql` | Идемпотентные миграции: `categories.image_path`, `brands.logo_path` |
+| `manager/categories.php`, `manager/brands.php` | Загрузка изображения категории / логотипа бренда (предпросмотр, удаление) |
+| `index.php` | Картинки категорий и логотипы партнёров берутся из БД (fallback на стандартную) |
+| `superadmin/settings.php` | Соцсети Telegram, WhatsApp, Instagram, Facebook, **YouTube, TikTok**; ссылка «Партнёры» в сайдбаре |
+| `index.php` (футер) | Рендер всех соцсетей; умный хелпер `$socUrl` (username или полная ссылка) |
+| `lang/ru.php`, `lang/tg.php`, `lang/en.php` | Ключ `follow_us` (был сырой `FOLLOW_US`) |
+| `api/upload.php` | Типы загрузки `categories`, `brands` |
+| Все формы загрузки изображений (бренды, категории, слайдер, товары, блог, разделы) | Информационные подсказки с рекомендуемым размером / соотношением / форматом |
+
+### Брендинг: оригинальный логотип AvtoDoc (PR #80)
+
+| Файл | Что изменено |
+|------|--------------|
+| `assets/img/logo/avtodoc-logo.png` | Прозрачный вырез из оригинального PNG (фон удалён) |
+| `assets/img/logo/avtodoc-favicon.png` | Эмблема-щит 256×256 как favicon |
+| `includes/header.php`, `includes/admin-header.php` | Подключение PNG-логотипа и favicon |
+
+### Защита админ-панели отдельным портом 8888 (PR #75)
+
+**Цель:** чтобы случайный посетитель не попал в админку с основного
+адреса — даже зная логин и пароль. Разделы `/admin`, `/superadmin`,
+`/manager` открываются только по `:8888`.
+
+| Файл | Что изменено / добавлено |
+|------|--------------------------|
+| `config/config.php` | Константа `ADMIN_PORT` (по умолчанию `8888`). Пусто = разделение отключено. |
+| `includes/functions.php` | `requireAdminPort()` — отдаёт 403, если запрос пришёл не на `ADMIN_PORT`. Вызывается в `requireRole()` только когда требуется роль `admin/manager/superadmin` — публичный сайт не затронут. |
+| README | Раздел «Реальная конфигурация прод-сервера»: фактический сервер — **nginx + php-fpm 8.2** (не Apache, он мёртв). Реализация — `listen 8888;` в `/etc/nginx/sites-available/avtozapchast` через `sed`, `nginx -t` перед reload. История двух копий и обновление сайта. |
+
+> Двухуровневая защита: (1) неизвестный порт 8888 + (2) логин/пароль.
+> Уровень 1 (код) — через `git pull`. Уровень 2 — `listen 8888;` в
+> nginx-конфиге. Развёрнуто на проде 10.230.13.107: `/admin` на :80 →
+> 403, на :8888 → форма входа. Откат безопасен и описан в README.
+> Apache на сервере failed и игнорируется.
+
+### Favicon AvtoDoc (PR #74)
+
+**Цель:** убрать авто-иконку браузера «AD», поставить брендовую.
+
+| Файл | Что изменено / добавлено |
+|------|--------------------------|
+| `assets/img/favicon.svg` | **Новый.** Тёмный фон, белая «A» + красная «D» (в стиле логотипа). |
+| `includes/header.php` | `<link rel="icon" type="image/svg+xml">` перед `.ico` (SVG приоритетнее, `.ico` — запасной). |
+
+> Только статика. После `git pull` иконка обновляется жёстким
+> обновлением вкладки (Ctrl+Shift+R).
+
+### Логотип AvtoDoc: крупнее + анимация (PR #73)
+
+| Файл | Что изменено |
+|------|--------------|
+| `assets/css/custom.css` | `.logo .logo-text` `1.5rem` → `2.1rem` (мобайл `1.05`→`1.5rem`, ≤390px `1`→`1.3rem`). Hover: `scale(1.06)` с упругим cubic-bezier + свечение красной части «Doc» (`text-shadow`), `active` `scale(1.02)`. |
+
+### Переименование сайта АвтоЗапчасть → AvtoDoc (PR #72)
+
+| Файл | Что изменено |
+|------|--------------|
+| `includes/header.php` | Логотип `Avto<span>Doc</span>` (Avto белым, Doc красным). |
+| `assets/css/custom.css` | `.logo-text` белый, `.logo-text span` красный `#d32f2f`. |
+| `lang/ru.php`, `tg.php`, `en.php` | `site_name` = `AvtoDoc`. |
+| `config/config.php` | `APP_NAME` = `AvtoDoc`. |
+| `includes/footer.php` | Дефолт `getSetting('site_name','AvtoDoc')`. |
+| `sql/schema.sql`, `sql/migrate_tajik_market.sql` | Сид `site_name` = `AvtoDoc`. |
+| `sql/rename_to_avtodoc.sql` | **Новый.** `UPDATE site_settings ... 'AvtoDoc'` для уже работающей БД. |
+
+> ⚠️ На рабочем сервере **обязательна миграция**
+> `sql/rename_to_avtodoc.sql` — сохранённое в `site_settings` имя
+> перекрывает дефолт из `lang/*`.
+
+### Формат цены, баннер, цвет полосы категорий (PR #71)
+
+| Файл | Что изменено |
+|------|--------------|
+| `includes/currency.php` | `formatPrice()` — сумма впереди, затем валюта строчными в `<span class="cur-sym">смн</span>` (было `СМН650.00` → стало `650.00 смн`). |
+| `assets/css/custom.css` | `.cur-sym` (0.72em, приглушённая, lowercase). `.slider_area .single_slider` — `cover/center/no-repeat !important` (Mazlay `background:#000` шорткатом сбрасывал size/position → чёрная полоса слева). `.categories_title` на мобиле `#d32f2f` (был двухцветный красный с `#C70909` Mazlay). |
+| `assets/js/main.js` | Формат цены в выпадающем поиске выровнен под `1,180.00 смн`. |
+
+### Мобильная вёрстка: единый отступ 16px (PR #70)
+
+**Цель:** убрать рассинхрон краёв на мобильной — шапка была ýже контента.
+
+| Файл | Что изменено |
+|------|--------------|
+| `assets/css/custom.css` | `@media (max-width:767px)`: `.header_middle .container`, `.header_bottom .container` (красная полоса «ВСЕ КАТЕГОРИИ»), `.top_tags_area .container` — горизонтальный паддинг `0 12px` → `0 16px`, чтобы совпадал с контентным `.container` и футером (везде 16px). |
+
+> Десктоп не затронут (правки только в `@media max-width:767px`).
+> Только CSS, миграции не нужны; cache-busting подтянет файл после
+> `git pull`. Полная визуальная полировка ведётся по скриншотам
+> конкретных экранов.
+
+### Гранулярные права доступа суперадмина (PR #66, #67, #68)
+
+**Цель:** суперадмин раздаёт каждому сотруднику (admin/manager)
+индивидуально, какие разделы он может открывать и редактировать
+(Товары, Наценки, Слайдер, Заказы, Пользователи, Категории, Бренды,
+Блог, Страницы, Отзывы, Склад API, VIN).
+
+| Файл | Что изменено / добавлено |
+|------|--------------------------|
+| `sql/migrate_permissions.sql` | **Новый.** Таблица `user_permissions(user_id PK, sections JSON, updated_at)`, FK→users cascade. Нет строки = действуют умолчания роли. |
+| `superadmin/permissions.php` | **Новый.** Выбор сотрудника → чекбоксы всех 12 разделов → «Сохранить» / «Сбросить к умолчанию». |
+| `includes/functions.php` | Хелперы: `permissionSections()` (каталог ключ→название), `permissionAlias()`, `roleDefaultSections($role)` (текущий доступ роли по умолчанию), `getUserConfiguredSections()`, `effectiveAllowedSections()`, `userCan($section)`, `requirePermission($section)`. `renderRoleSidebar()` фильтрует пункты по `userCan`. |
+| Контролируемые страницы | `requirePermission('...')` сразу после `requireRole(...)`: `admin/products,sliders,orders,users`; `manager/parts,categories,brands,blog,pages,reviews`; `superadmin/warehouse,vin`. У `admin/sliders,orders,users` и `superadmin/vin,warehouse` расширен `requireRole` (добавлены admin/manager) — выданное право реально открывает страницу, без выдачи `requirePermission` блокирует (default-deny). |
+| `admin/products.php`, `manager/parts.php` | Поля «Себестоимость/Наценка» скрыты без права `markup`; JS авторасчёта защищён от отсутствующих полей. |
+| Сайдбары суперадмина | Пункт «Права доступа» во всех (renderRoleSidebar + захардкоженные), кнопка «Права доступа» на форме редактирования пользователя. |
+
+> **Безопасный дефолт:** пока суперадмин не настроил пользователя —
+> доступ ровно как раньше (`roleDefaultSections`). Суперадмин не
+> ограничивается никогда. Код работает и до миграции (try/catch).
+
+### Прямое ценообразование в СМН + контроль курса (PR #65)
+
+**Цель:** сайт только для таджикского рынка — цена, введённая в
+админке, = цена на витрине 1:1, без пересчёта из рублей.
+
+| Файл | Что изменено / добавлено |
+|------|--------------------------|
+| `sql/tjs_direct_pricing.sql` | **Новый.** Курс `TJS = 1.0` (раньше 0.115 в `migrate_tajik_market.sql` занижал все цены ~×8.7). Цена в БД = цена на витрине. |
+| `sql/migrate_tajik_market.sql` | Убрана устаревшая строка `rate = 0.115` (повторный запуск не возвращает баг). |
+| `admin/products.php`, `manager/parts.php` | Подписи полей цены `(₽)` → `(СМН)`. |
+| `superadmin/currencies.php` | Тексты/подписи под модель прямых цен: курс = множитель цены; для 1:1 держать TJS = 1.0. Курс уже управляется суперадмином (поле, «Сохранить все курсы», ЦБ РФ). |
+
+### Фиксы мобильной версии и слайдера (PR #61–#64)
+
+| Файл | Что изменено |
+|------|--------------|
+| `assets/mazlay-js/main.js` | Меню «ВСЕ КАТЕГОРИИ»: jQuery `.categories_title` slideToggle не запускается при ширине < 992px — мобильным владеет class-based `.is-open` из `app.js` (конфликт давал пустой блок). |
+| `assets/css/custom.css` | Шапка убрана из списка `overflow-x:clip` (clip по X режет и Y → меню категорий «уходило за баннер»); шапке задан `overflow:visible`. ☰-иконка `.categories_title::before` показана слева на мобиле (как на десктопе), отступ у h2. |
+| `assets/mazlay-js/main.js` | Баннер-слайдер: встроенный `autoplay` Owl (loop+animateOut) зависал после свайпа/ховера/смены вкладки — заменён на свой `setInterval(15s)`, пересобирается на `changed.owl.carousel`, синхронен с прогресс-точкой; пауза на ховере (десктоп). |
+
+### UX отзывов и редактируемые тексты (PR #58, #59)
+
+| Файл | Что изменено |
+|------|--------------|
+| `pages/reviews.php`, `catalog/part.php` | После отправки отзыва (`pending`) форма скрывается, показывается карточка «✅ Ваш отзыв отправлен». `rejected` → форма для повторной отправки; `approved` → форма редактирования. |
+| `manager/reviews.php` | Сворачиваемая панель «Тексты сообщений» — суперадмин/менеджер редактирует тексты подтверждения / «на проверке» / «только после покупки». Хранится в `site_settings`, пустое поле → дефолт из lang. |
+| `pages/reviews.php`, `catalog/part.php` | Тексты через `getSetting(... , t(...))` (фолбэк на lang-ключи). |
+| `lang/ru|tg|en.php` | `review_purchase_only` поясняет: защита от накрутки, модерация через админку. |
+
+### Фикс 500 при установке языка по умолчанию (PR #60)
+
+| Файл | Что изменено |
+|------|--------------|
+| `superadmin/languages.php` | Убран `updated_at = NOW()` из `UPDATE languages` (в таблице `languages` нет такой колонки → `PDOException` → HTTP 500). Запрос к `site_settings` не тронут (там колонка есть). |
+
+### Система отзывов: товары + магазин (PR #57)
+
+**Цель:** реальные отзывы от покупателей вместо пустой заглушки, с
+премодерацией и защитой от накруток.
+
+**Правила:** отзыв оставляет только авторизованный пользователь; каждый
+отзыв проходит модерацию; на товар можно оставить отзыв **только после
+получения** (доставленный заказ); один отзыв на товар/магазин от
+пользователя (повторная отправка перезаписывает и снова уходит на проверку).
+
+| Файл | Что изменено / добавлено |
+|------|--------------------------|
+| `sql/migrate_reviews.sql` | **Новый.** Таблица `product_reviews` (part_id, user_id, rating 1-5, comment, status pending/approved/rejected, uk part+user, FK cascade). |
+| `sql/migrate_reviews_v2.sql` | **Новый.** Таблица `shop_reviews` (отзывы о магазине) + колонка `is_featured` в `product_reviews`. Применять строго после `migrate_reviews.sql`. |
+| `api/review_submit.php` | **Новый.** Приём отзыва на товар: CSRF, проверка авторизации, проверка покупки (`userPurchasedPart`), валидация, `INSERT … ON DUPLICATE KEY UPDATE` со сбросом в `pending`. |
+| `api/shop_review_submit.php` | **Новый.** Приём отзыва о магазине (без проверки покупки, только авторизация). |
+| `pages/reviews.php` | **Новый.** Публичная страница «Отзывы о магазине»: рейтинг компании, список одобренных, форма со звёздами. |
+| `manager/reviews.php` | **Новый.** Модерация: переключатель Товары/Магазин, фильтры по статусу со счётчиками, одобрить / отклонить / удалить, тумблер «в витрину О нас» (is_featured). |
+| `catalog/part.php` | Вкладка «Отзывы»: средний рейтинг, список, форма; гейтинг по покупке; статус своего отзыва. |
+| `catalog/index.php`, `catalog/category.php`, `index.php` | Звёзды-рейтинг в карточках товаров (`getProductRatings` + `productStarsInline`). |
+| `pages/about.php` | Блок «Что говорят клиенты» подтягивает реальные отзывы с `is_featured=1`; фолбэк на ручные `site_sections`, если ничего не помечено. |
+| `includes/functions.php` | Новые хелперы: `starsHtml`, `getProductRatings`, `productStarsInline`, `userPurchasedPart`, `getShopRatingSummary`. Все запросы к таблицам отзывов обёрнуты в `try/catch (PDOException)` — страницы работают без миграции. |
+| `includes/header.php`, `footer.php` | Ссылка «Отзывы о магазине» в шапке, мегаменю и футере. |
+| Сайдбары менеджера | Пункт «Отзывы» с бейджем числа ожидающих модерации. |
+| `lang/ru|tg|en.php` | Строки интерфейса отзывов (RU/TG/EN). |
+
+> **Деградация без миграции:** если таблицы `product_reviews` /
+> `shop_reviews` ещё не созданы, главная, каталог, категория, страница
+> товара и «О нас» работают как раньше (запросы в `try/catch` →
+> пустой результат). Сайт не упадёт при любом порядке деплоя.
+
+### CMS страницы «О нас» и категории блога (PR #55, #56)
+
+**Цель:** контент статичных блоков редактируется из админки, без правки кода.
+
+| Файл | Что изменено / добавлено |
+|------|--------------------------|
+| `sql/migrate_cms.sql` | **Новый.** Колонка `category` в `blog_posts`; таблица `site_sections` (slug-keyed, многоязычные `title/subtitle/content_ru|tg|en`, image, sort_order, is_active). Дефолтные строки: hero, team, reviews, stores, signature, 3 benefit, 4 faq, 3 testimonial. |
+| `manager/pages.php` | **Новый.** Редактор разделов «О нас»: 4 группы (основные / преимущества / FAQ / отзывы), поле «Роль/Должность» для отзывов, загрузка изображений. |
+| `manager/blog.php` | Поле «Категория» (news / tips / review / other) в форме и списке статей. |
+| `pages/about.php` | Все блоки (hero, подпись, 3 иконки преимуществ, FAQ-аккордеон, витрина) читаются из `site_sections` с фолбэком на `t()`-ключи. |
+| `pages/blog.php` | Фильтр-табы по категориям (`?cat=`). |
+| Сайдбары менеджера | Пункт «Страницы». |
+
+### Только сомони (TJS / СМН) (PR #51, #53)
+
+| Файл | Что изменено |
+|------|--------------|
+| `sql/only_tjs_currency.sql` | **Новый.** Отключает все валюты кроме TJS, символ `СМН`, `is_default=1`. |
+| `includes/currency.php` | Фолбэк-валюта — TJS со символом `СМН`; `getCurrencySymbol()` → `СМН`. |
+| `includes/header.php` | Удалён переключатель валют (десктоп + оффканвас). |
+
+### Мега-меню навигации (PR #50)
+
+| Файл | Что изменено |
+|------|--------------|
+| `includes/header.php` | Классы `az-has-megamenu` / `az-megamenu--sm` / `az-megamenu--wide`. |
+| `assets/css/custom.css` | Стили мега-меню; `li.az-has-megamenu{position:relative}`, `--wide{position:static}`; `.sticky-header,.header_bottom{overflow:visible}`. |
+
+### Cache-busting и фиксы вёрстки (PR #52, #53, #54)
+
+| Файл | Что изменено |
+|------|--------------|
+| `includes/header.php`, `footer.php` | `?v=<filemtime>` к `custom.css`, `main.js`, `app.js` — браузер всегда тянет свежую статику. |
+| `includes/functions.php` | `productImageUrl()` различает абсолютный URL и относительный путь — фикс «двойного URL» (фото товаров не отображались). |
+| `assets/css/custom.css` | Subscribe-форма на `flexbox`; кнопка ТАМОС `inline-flex` height 50px. |
+| `assets/mazlay-js/main.js`, `assets/js/app.js` | Кнопка «наверх» через `window.scrollTo({top:0,behavior:'smooth'})`. |
 
 ### Mobile P0 — адаптация под iPhone 15 Pro Max и SE (PR #16)
 
@@ -1278,9 +1943,33 @@ function sanitize($input): string {
 На сервере (`/var/www/html/avtozapchast`):
 ```bash
 sudo git pull origin main
+
+# Применить новые миграции, если они появились в этом обновлении
+# (идемпотентны — повторный запуск безопасен; порядок важен)
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_cms.sql
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_reviews.sql
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_reviews_v2.sql
+
+# Контент/профиль (этот цикл правок) — тоже идемпотентны:
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_category_image.sql
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_brand_logo.sql
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_user_profile_fields.sql
+
+# Ребрендинг + сортировка брендов (PR #95, #97):
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/rename_to_autodoc.sql
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_brand_sort_order.sql
+
+# Папки загрузок должны быть доступны веб-серверу на запись
+sudo chown -R www-data:www-data assets/uploads && sudo chmod -R 775 assets/uploads
+
 sudo systemctl reload php8.2-fpm
 sudo systemctl reload nginx
 ```
+
+> Код устойчив к отсутствию новых таблиц/колонок (запросы в
+> `try/catch`), но миграции всё равно нужно применить, чтобы
+> функционал (отзывы, изображения, аватар, адрес) заработал.
+> Если правился CSS/JS — сбросьте кэш браузера (Ctrl+F5 / инкогнито).
 
 Если `git status` показывает 199 «изменённых» файлов — это разница
 прав доступа. Лечится один раз:
@@ -1322,6 +2011,169 @@ php -S localhost:8000
       ничего не сломалось у всех ролей (buyer/manager/admin/superadmin).
 - [ ] Если правили CSS — проверить на 320px / 430px / 768px / 1280px.
 - [ ] Если правили админку — проверить, что сайдбар не пропал.
+
+---
+
+## Мобильная адаптация (важно для разработчиков)
+
+В проекте реализована подробная мобильная адаптация поверх Mazlay HTML-шаблона.
+Все мобильные правки сосредоточены в **двух местах**, чтобы не задевать десктоп.
+
+### Где живут мобильные правки
+
+| Файл | Назначение |
+|------|-----------|
+| `assets/css/custom.css` | Все CSS-правки. Только внутри `@media (max-width: 991px)`, `@media (max-width: 767px)`, `@media (max-width: 390px)` |
+| `assets/js/app.js` | JS-помощники: бургер, выпадающее меню категорий, accordion в сайдбаре фильтров |
+
+**ВАЖНО:** не редактируйте `mazlay-template/css/style.css` и `mazlay-template/js/main.js`
+— это поставляемый шаблон. Все override-ы делаем в `custom.css` / `app.js`.
+
+### Ключевые исправления
+
+#### 1. Горизонтальный скролл (root cause)
+Mazlay `.mini_cart` использует `position: fixed; min-width: 355px`. iOS Safari
+учитывает фиксированные элементы в ширине документа → горизонтальный скролл.
+**Решение:** `.mini_cart { display: none !important }` на мобиле (≤991px).
+
+#### 2. Иконка корзины на мобиле
+Mazlay-овая мини-корзина отключена. Клик по иконке корзины на мобиле
+ведёт сразу на `/buyer/cart.php`. См. `assets/js/app.js`:
+```javascript
+document.querySelectorAll('.mini_cart_wrapper > a').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+        if (isMobile()) {
+            e.preventDefault();
+            window.location.href = (window.APP_URL || '') + '/buyer/cart.php';
+        }
+    }, true);
+});
+```
+
+#### 3. Бургер-меню (offcanvas)
+Используется Mazlay-овский `.offcanvas_menu_wrapper`. При открытии
+панели тело страницы блокируется через `body.no-scroll` — следит
+`MutationObserver` в `app.js`.
+
+#### 4. Кнопка "ВСЕ КАТЕГОРИИ" на мобиле
+Mazlay по умолчанию показывает дропдаун по hover (не работает на тач).
+Кроме того, `.sticky-header` имеет `overflow: hidden`, который обрезает
+абсолютно позиционированный дропдаун.
+
+**Решение:**
+- В CSS: `.sticky-header, .header_bottom { overflow: visible !important }` на мобиле
+- Дропдаун скрыт по умолчанию (`display: none`), показывается через
+  класс `.is-open` (z-index: 9999)
+- В JS: клик по `.categori_toggle` тогглит класс `.is-open`;
+  клик вне `.categories_menu` — закрывает
+
+#### 5. Карусели Owl на мобиле → CSS Grid
+Owl Carousel инициализируется в Mazlay `main.js` и оборачивает items
+в `.owl-stage-outer > .owl-stage > .owl-item`. На мобиле это даёт
+неудобную карусель с одним товаром в ряд.
+
+**Решение:** не уничтожаем Owl через JS (это оставляет в DOM
+обёртки с `overflow:hidden` и `transform:translate3d`), а
+переопределяем его CSS напрямую:
+```css
+.product_carousel.owl-loaded .owl-stage-outer { overflow: visible !important; }
+.product_carousel.owl-loaded .owl-stage {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    transform: none !important;
+    width: 100% !important;
+}
+.product_carousel.owl-loaded .owl-item,
+.product_carousel.owl-loaded .col-lg-3,
+.product_carousel.owl-loaded .product_items { display: contents !important; }
+.product_carousel.owl-loaded .owl-nav,
+.product_carousel.owl-loaded .owl-dots { display: none !important; }
+```
+
+`display: contents` делает обёртки прозрачными → `single_product`
+становится прямым children для grid. Тот же приём — для
+`.categories_product_inner.owl-loaded`.
+
+#### 6. Подписи карточек товаров
+Поле `product_thumb img` фиксируем:
+```css
+.single_product .product_thumb a img,
+.single_product .product_thumb img {
+    width: 100% !important;
+    height: 140px !important;
+    object-fit: contain !important;
+    background: #f7f7f7;
+}
+```
+
+#### 7. Newsletter form (подписка) и КОНТАКТЫ
+Mazlay использует `position: absolute; right: 0` для кнопки внутри
+поля ввода → на мобиле вылезает за экран. **Решение:**
+```css
+.subscribe_form form { display: flex; flex-direction: column; }
+.subscribe_form form input, .subscribe_form form button {
+    position: static !important; width: 100% !important;
+}
+```
+
+#### 8. Sidebar фильтров на странице каталога
+На мобиле каждый `.sidebar_widget .widget_list` превращается в
+аккордеон с заголовком-toggle и сворачивающимся body — см. `app.js`.
+
+#### 9. Глобальные правила
+```css
+@media (max-width: 767px) {
+    html, body { overflow-x: hidden !important; max-width: 100vw; }
+    img { max-width: 100% !important; height: auto; }
+}
+```
+
+### Чек-лист при правке CSS / JS
+
+- [ ] Десктоп-вёрстка (≥992px) не пострадала
+- [ ] Тестировать на 320px, 390px (iPhone 14/15), 768px (планшет)
+- [ ] Нет горизонтальной прокрутки на всех страницах
+- [ ] Tap-target ≥ 44×44px (кнопки, ссылки)
+- [ ] Шрифт ≥ 16px на input — иначе iOS Safari зумит при фокусе
+- [ ] Проверить главную, каталог, страницу товара, корзину, профиль,
+      auth/login, admin
+
+### Обновления на сервере
+
+```bash
+cd /var/www/html/avtozapchast
+git pull origin main
+
+# Применить НОВЫЕ миграции (идемпотентны, повторный запуск безопасен):
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_permissions.sql   # права (один раз)
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/tjs_direct_pricing.sql    # цены 1:1 в СМН
+mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/rename_to_avtodoc.sql     # имя сайта → AvtoDoc
+# (schema_autoeuro.sql — только если используете внешний склад AutoEuro)
+
+# Разделение админки на порт 8888 (один раз, см. «Apache → Отдельный
+# порт для админ-панели»): добавить Listen 8888 + VirtualHost, затем
+apache2ctl configtest && systemctl reload apache2   # ОБЯЗАТЕЛЬНО configtest до reload
+
+# Если правился JS/CSS — почистить кэш браузера / открыть в инкогнито.
+#   На iOS Safari — закрыть вкладку полностью или очистить данные сайта.
+# Если правился PHP — рестарт PHP-FPM:
+sudo systemctl reload php8.1-fpm
+```
+
+> Cache-busting (`?v=<filemtime>`) обновляет CSS/JS автоматически
+> **после `git pull`** (меняется дата файла). Без pull браузер тянет
+> старую статику.
+
+### История мобильных исправлений (PRs)
+
+| PR | Что исправлено |
+|----|---------------|
+| #18 | Базовая мобильная вёрстка: бургер, корзина-иконка, sticky header |
+| #19 | "Второй гамбургер" (categories_title::before icon) |
+| #20 | Карточки товаров: фикс. высота картинок, 2 колонки grid |
+| #21 | Newsletter / КОНТАКТЫ кнопки full-width, categories dropdown |
+| #22 | Class-based categories toggle, Owl destroy approach |
+| #23 | Owl CSS override (вместо destroy), `.sticky-header { overflow: visible }` |
 
 ---
 

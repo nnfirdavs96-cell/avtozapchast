@@ -15,8 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$type    = $_GET['type'] ?? 'products'; // products | sliders | blog
-$allowed = ['products', 'sliders', 'blog'];
+$type    = $_GET['type'] ?? 'products'; // products | sliders | blog | categories | brands | avatars
+$allowed = ['products', 'sliders', 'blog', 'categories', 'brands', 'avatars'];
 if (!in_array($type, $allowed)) {
     echo json_encode(['error' => 'Недопустимый тип']);
     exit;

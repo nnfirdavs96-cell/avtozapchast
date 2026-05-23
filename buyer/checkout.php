@@ -33,22 +33,26 @@ foreach ($cartItems as $item) {
 }
 
 // Load user profile for prefilling
-$profileStmt = $db->prepare(
-    "SELECT first_name, last_name, phone, email, address, city, zip_code, country
-     FROM users WHERE id = ? LIMIT 1"
-);
-$profileStmt->execute([$user['id']]);
-$profile = $profileStmt->fetch() ?: [];
+try {
+    $profileStmt = $db->prepare("SELECT email, phone, first_name, last_name, address, city, zip_code, country FROM users WHERE id = ? LIMIT 1");
+    $profileStmt->execute([$user['id']]);
+    $profile = $profileStmt->fetch() ?: [];
+} catch (PDOException $e) {
+    // Profile address columns may not exist yet (migration not run)
+    $profileStmt = $db->prepare("SELECT email, phone FROM users WHERE id = ? LIMIT 1");
+    $profileStmt->execute([$user['id']]);
+    $profile = $profileStmt->fetch() ?: [];
+}
 
-// Fallback to session user data for email
-$prefillEmail   = $profile['email']      ?? ($user['email'] ?? '');
-$prefillPhone   = $profile['phone']      ?? ($user['phone'] ?? '');
+// Prefill from saved profile, fallback to session user data
+$prefillEmail   = $profile['email'] ?? ($user['email'] ?? '');
+$prefillPhone   = $profile['phone'] ?? ($user['phone'] ?? '');
 $prefillFname   = $profile['first_name'] ?? '';
-$prefillLname   = $profile['last_name']  ?? '';
-$prefillAddr    = $profile['address']    ?? '';
-$prefillCity    = $profile['city']       ?? '';
-$prefillZip     = $profile['zip_code']   ?? '';
-$prefillCountry = $profile['country']    ?? '';
+$prefillLname   = $profile['last_name'] ?? '';
+$prefillAddr    = $profile['address'] ?? '';
+$prefillCity    = $profile['city'] ?? '';
+$prefillZip     = $profile['zip_code'] ?? '';
+$prefillCountry = $profile['country'] ?? '';
 
 $errors = [];
 

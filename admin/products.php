@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 requireRole(['admin', 'superadmin']);
+requirePermission('products');
 
 $db     = getDB();
 $csrf   = generateCsrfToken();
@@ -39,16 +40,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Save product
-    $pnum   = trim($_POST['part_number'] ?? '');
-    $name   = trim($_POST['name'] ?? '');
-    $desc   = trim($_POST['description'] ?? '');
-    $brand  = (int)($_POST['brand_id'] ?? 0);
-    $cat    = (int)($_POST['category_id'] ?? 0);
-    $price  = (float)str_replace(',', '.', $_POST['price'] ?? 0);
-    $stock  = (int)($_POST['stock'] ?? 0);
-    $weight = ($_POST['weight'] ?? '') !== '' ? (float)str_replace(',', '.', $_POST['weight']) : null;
-    $dims   = trim($_POST['dimensions'] ?? '') ?: null;
-    $pid    = (int)($_POST['id'] ?? 0);
+    $pnum      = trim($_POST['part_number'] ?? '');
+    $name      = trim($_POST['name'] ?? '');
+    $desc      = trim($_POST['description'] ?? '');
+    $brand     = (int)($_POST['brand_id'] ?? 0);
+    $cat       = (int)($_POST['category_id'] ?? 0);
+    $price     = (float)str_replace(',', '.', $_POST['price'] ?? 0);
+    $costPrice = ($_POST['cost_price'] ?? '') !== '' ? (float)str_replace(',', '.', $_POST['cost_price']) : null;
+    $markupPct = ($_POST['markup_percent'] ?? '') !== '' ? (float)str_replace(',', '.', $_POST['markup_percent']) : null;
+    $stock     = (int)($_POST['stock'] ?? 0);
+    $weight    = ($_POST['weight'] ?? '') !== '' ? (float)str_replace(',', '.', $_POST['weight']) : null;
+    $dims      = trim($_POST['dimensions'] ?? '') ?: null;
+    $pid       = (int)($_POST['id'] ?? 0);
 
     // Images: existing JSON + new uploads
     $existingImgs = json_decode($_POST['existing_images'] ?? '[]', true) ?: [];
@@ -72,15 +75,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($pid) {
             $db->prepare(
                 "UPDATE parts SET part_number=?, name=?, description=?, brand_id=?, category_id=?,
-                 price=?, stock=?, weight=?, dimensions=?, images=?, updated_at=NOW() WHERE id=?"
-            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $stock, $weight, $dims, $imagesJson, $pid]);
+                 price=?, cost_price=?, markup_percent=?, stock=?, weight=?, dimensions=?, images=?, updated_at=NOW() WHERE id=?"
+            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $costPrice, $markupPct, $stock, $weight, $dims, $imagesJson, $pid]);
             flashMessage('success', 'Товар обновлён.');
         } else {
             $db->prepare(
                 "INSERT INTO parts (part_number, name, description, brand_id, category_id,
-                 price, stock, weight, dimensions, images, is_active, created_at)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,1,NOW())"
-            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $stock, $weight, $dims, $imagesJson]);
+                 price, cost_price, markup_percent, stock, weight, dimensions, images, is_active, created_at)
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1,NOW())"
+            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $costPrice, $markupPct, $stock, $weight, $dims, $imagesJson]);
             flashMessage('success', 'Товар добавлен.');
         }
         redirect(APP_URL . '/admin/products.php');
@@ -133,25 +136,6 @@ $parts = $partsStmt->fetchAll();
 $pageTitle = 'Товары — Администратор';
 require_once dirname(__DIR__) . '/includes/header.php';
 
-function adminSidebar(string $active = ''): void {
-    $url = APP_URL;
-    $links = [
-        ['href' => '/admin/index.php',    'icon' => 'tachometer', 'label' => 'Панель'],
-        ['href' => '/admin/products.php', 'icon' => 'cogs',       'label' => 'Товары'],
-        ['href' => '/admin/sliders.php',  'icon' => 'picture-o',  'label' => 'Слайдер'],
-        ['href' => '/admin/orders.php',   'icon' => 'shopping-bag','label' => 'Заказы'],
-        ['href' => '/admin/users.php',    'icon' => 'users',       'label' => 'Пользователи'],
-    ];
-    echo '<aside class="az-sidebar"><div class="az-sidebar-logo">ADMIN<span>PANEL</span></div><nav><ul>';
-    foreach ($links as $l) {
-        $cls = strpos($_SERVER['REQUEST_URI'], $l['href']) !== false ? ' class="active"' : '';
-        echo "<li><a href=\"{$url}{$l['href']}\"{$cls}><i class=\"fa fa-{$l['icon']}\"></i> {$l['label']}</a></li>";
-    }
-    echo '<li style="border-top:1px solid rgba(255,255,255,0.1);margin-top:12px;">';
-    echo "<li><a href=\"{$url}/index.php\"><i class=\"fa fa-home\"></i> На сайт</a></li>";
-    echo "<li><a href=\"{$url}/auth/logout.php\" style=\"color:rgba(255,100,100,0.85)!important;\"><i class=\"fa fa-sign-out\"></i> Выйти</a></li>";
-    echo '</ul></nav></aside>';
-}
 ?>
 
 <div class="az-panel">
@@ -210,12 +194,30 @@ function adminSidebar(string $active = ''): void {
                                            placeholder="BKR6EK" required>
                                 </div>
                                 <div class="az-form-group">
-                                    <label>Цена (₽) *</label>
-                                    <input type="number" name="price" step="0.01" min="0.01"
+                                    <label>Цена продажи (СМН) *</label>
+                                    <input type="number" id="fieldPrice" name="price" step="0.01" min="0.01"
                                            value="<?= sanitize((string)($editPart['price'] ?? ($_POST['price'] ?? ''))) ?>"
                                            placeholder="1500.00" required>
                                 </div>
                             </div>
+
+                            <?php if (userCan('markup')): ?>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;background:#fafafa;border:1px solid #e9ecef;border-radius:8px;padding:14px;margin-bottom:8px;">
+                                <div class="az-form-group" style="margin:0;">
+                                    <label>Себестоимость / закупка (СМН)</label>
+                                    <input type="number" id="fieldCostPrice" name="cost_price" step="0.01" min="0"
+                                           value="<?= sanitize((string)($editPart['cost_price'] ?? ($_POST['cost_price'] ?? ''))) ?>"
+                                           placeholder="1000.00">
+                                </div>
+                                <div class="az-form-group" style="margin:0;">
+                                    <label>Наценка (%)</label>
+                                    <input type="number" id="fieldMarkup" name="markup_percent" step="0.01" min="0" max="1000"
+                                           value="<?= sanitize((string)($editPart['markup_percent'] ?? ($_POST['markup_percent'] ?? ''))) ?>"
+                                           placeholder="Оставьте пустым — категорийная/глобальная">
+                                    <small style="color:#888;font-size:0.78rem;">Заполните для автоматического расчёта цены</small>
+                                </div>
+                            </div>
+                            <?php endif; ?>
 
                             <div class="az-form-group">
                                 <label>Название *</label>
@@ -233,9 +235,11 @@ function adminSidebar(string $active = ''): void {
 
                         <div class="az-card">
                             <h3>Изображения товара</h3>
-                            <p style="font-size:0.825rem;color:#888;margin-bottom:14px;">
-                                Загрузите до 6 изображений. Первое будет главным.
-                            </p>
+                            <div style="margin-bottom:14px;padding:10px 12px;background:#eef6ff;border:1px solid #cfe4fb;border-radius:6px;font-size:0.78rem;color:#1c5a99;line-height:1.55;">
+                                <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> 800&times;800&nbsp;px (квадрат, соотношение&nbsp;1:1)<br>
+                                Формат: <strong>JPG</strong>, PNG или WEBP &middot; до&nbsp;5&nbsp;МБ за файл<br>
+                                <span style="color:#5a87b3;">До 6 изображений. Первое будет главным.</span>
+                            </div>
 
                             <div id="imgGrid" class="img-grid">
                                 <?php foreach ($imgs as $imgUrl): ?>
@@ -319,6 +323,23 @@ function adminSidebar(string $active = ''): void {
             </form>
 
             <script>
+            // Markup auto-calculation: price = cost_price * (1 + markup/100)
+            (function() {
+                const cost   = document.getElementById('fieldCostPrice');
+                const markup = document.getElementById('fieldMarkup');
+                const price  = document.getElementById('fieldPrice');
+                if (!cost || !markup || !price) return; // markup fields hidden by permission
+                function recalc() {
+                    const c = parseFloat(cost.value);
+                    const m = parseFloat(markup.value);
+                    if (!isNaN(c) && c > 0 && !isNaN(m) && m >= 0) {
+                        price.value = (c * (1 + m / 100)).toFixed(2);
+                    }
+                }
+                cost.addEventListener('input', recalc);
+                markup.addEventListener('input', recalc);
+            })();
+
             const uploadUrl = '<?= APP_URL ?>/api/upload.php?type=products';
             const newImageUrls = [];
 

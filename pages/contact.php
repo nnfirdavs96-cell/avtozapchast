@@ -30,7 +30,13 @@ require_once dirname(__DIR__) . '/includes/header.php';
     <!--contact map start-->
     <div class="contact_map">
         <div class="map-area">
-            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2243.197079447539!2d37.6173!3d55.7558!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNTXCsDQ1JzIxLjAiTiAzN8KwMzcnMDIuMyJF!5e0!3m2!1sru!2sru!4v1700000000000" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+        <?php
+            $mapLat  = getSetting('map_lat',  '40.29864545672122');
+            $mapLng  = getSetting('map_lng',  '69.6142315387528');
+            $mapZoom = (int) getSetting('map_zoom', '16');
+            $mapSrc  = "https://maps.google.com/maps?q=" . urlencode($mapLat . ',' . $mapLng) . "&z={$mapZoom}&output=embed&hl=ru";
+        ?>
+        <iframe src="<?= sanitize($mapSrc) ?>" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
         </div>
     </div>
     <!--contact map end-->

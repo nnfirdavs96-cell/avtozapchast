@@ -22,12 +22,12 @@ function initCurrency(): string {
         $row = $db->query("SELECT code FROM currencies WHERE is_default=1 AND is_active=1 LIMIT 1")->fetch();
         if ($row) { $_SESSION['currency'] = $row['code']; return $row['code']; }
     } catch (Exception $e) {}
-    $_SESSION['currency'] = 'RUB';
-    return 'RUB';
+    $_SESSION['currency'] = 'TJS';
+    return 'TJS';
 }
 
 function getActiveCurrency(): string {
-    return $_SESSION['currency'] ?? 'RUB';
+    return $_SESSION['currency'] ?? 'TJS';
 }
 
 function getCurrencies(): array {
@@ -42,7 +42,7 @@ function getCurrencies(): array {
         $_CURRENCIES_CACHE = $currencies;
         return $currencies;
     } catch (Exception $e) {
-        return [['code'=>'RUB','name_ru'=>'Рубль','name_tg'=>'Рубл','name_en'=>'Ruble','symbol'=>'₽','rate'=>1]];
+        return [['code'=>'TJS','name_ru'=>'Таджикский сомони','name_tg'=>'Сомони','name_en'=>'Tajik Somoni','symbol'=>'СМН','rate'=>1]];
     }
 }
 
@@ -62,7 +62,7 @@ function getCurrencySymbol(?string $code = null): string {
     foreach (getCurrencies() as $c) {
         if ($c['code'] === $code) return $c['symbol'];
     }
-    return '₽';
+    return 'СМН';
 }
 
 /**
@@ -73,10 +73,12 @@ function formatPrice($priceRub, ?string $currency = null): string {
     $rate     = getCurrencyRate($currency);
     $converted = (float)$priceRub * $rate;
     $symbol    = getCurrencySymbol($currency);
+    $symLower  = function_exists('mb_strtolower') ? mb_strtolower($symbol, 'UTF-8') : strtolower($symbol);
+    $symHtml   = '<span class="cur-sym">' . $symLower . '</span>';
     if ($currency === 'RUB') {
-        return number_format($converted, 0, ',', ' ') . ' ' . $symbol;
+        return number_format($converted, 0, ',', ' ') . ' ' . $symHtml;
     }
-    return $symbol . number_format($converted, 2, '.', ',');
+    return number_format($converted, 2, '.', ',') . ' ' . $symHtml;
 }
 
 /**

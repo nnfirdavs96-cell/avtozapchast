@@ -29,15 +29,60 @@
     
 
     /*---slider activation---*/
-    $('.slider_carousel').owlCarousel({
+    var $sliderCarousel = $('.slider_carousel');
+    var sliderTimer = null;
+
+    /* Прогресс-таймер: вставляем новый span в активную точку — анимация стартует с нуля */
+    function resetSliderDotProgress() {
+        $sliderCarousel.find('.owl-dots .owl-dot .dot-progress').remove();
+        $sliderCarousel.find('.owl-dots .owl-dot.active')
+            .append('<span class="dot-progress"></span>');
+    }
+
+    /* Свой таймер вместо встроенного owl autoplay.
+       Встроенный autoplay с loop+animateOut зависает после свайпа/ховера/
+       смены вкладки: прогресс-точка докручивается (серая), а слайд стоит.
+       setInterval надёжен и всегда синхронен с CSS-анимацией точки
+       (оба = 15s, сбрасываются вместе на каждой смене слайда). */
+    function startSliderTimer() {
+        clearInterval(sliderTimer);
+        sliderTimer = setInterval(function () {
+            $sliderCarousel.trigger('next.owl.carousel');
+        }, 15000);
+    }
+
+    /* ВАЖНО: события owl стреляют синхронно при .owlCarousel(...),
+       поэтому биндим обработчики ДО инициализации */
+    $sliderCarousel.on('changed.owl.carousel', function() {
+        setTimeout(resetSliderDotProgress, 30);
+        startSliderTimer();
+    });
+    $sliderCarousel.on('initialized.owl.carousel', function() {
+        setTimeout(resetSliderDotProgress, 100);
+        startSliderTimer();
+    });
+
+    $sliderCarousel.owlCarousel({
         animateOut: 'fadeOut',
 		loop: true,
         nav: false,
         autoplay: false,
-        autoplayTimeout: 8000,
         items: 1,
         dots: true,
     });
+
+    /* Пауза при наведении (десктоп) — как было с autoplayHoverPause.
+       На мобиле ховера нет, свайп вызовет changed → таймер пересоберётся. */
+    $sliderCarousel.on('mouseenter', function () {
+        clearInterval(sliderTimer);
+        $sliderCarousel.find('.dot-progress').css('animation-play-state', 'paused');
+    }).on('mouseleave', function () {
+        resetSliderDotProgress();
+        startSliderTimer();
+    });
+
+    /* Подстраховка: если событие initialized всё же было пропущено — запустим вручную */
+    setTimeout(function () { resetSliderDotProgress(); startSliderTimer(); }, 500);
     
 
      /*---categories column7 activation---*/
@@ -443,18 +488,21 @@
      $('.brand_container').on('changed.owl.carousel initialized.owl.carousel', function (event) {
         $(event.target).find('.owl-item').removeClass('last').eq(event.item.index + event.page.size - 1).addClass('last')}).owlCarousel({
 		loop: true,
-        nav: false,
-        autoplay: false,
-        autoplayTimeout: 8000,
+        nav: true,
+        navText: ['<i class="fa fa-angle-left"></i>','<i class="fa fa-angle-right"></i>'],
+        autoplay: true,
+        autoplayTimeout: 3000,
+        autoplayHoverPause: true,
         items: 6,
-        dots:false,
-        responsiveClass:true,
+        margin: 10,
+        dots: false,
+        responsiveClass: true,
 		responsive:{
 				0:{
-				items:1,
-			},
-            320:{
 				items:2,
+			},
+            480:{
+				items:3,
 			},
             576:{
 				items:3,
@@ -624,7 +672,14 @@
         easingType: 'linear',
         scrollSpeed: 900,
         animation: 'fade'
-    });   
+    });
+    // Перехватываем клик — заменяем jQuery animate на нативный scroll
+    setTimeout(function() {
+        $('#scrollUp').off('click').on('click', function(e) {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }, 300);
     
     /*---countdown activation---*/
 		
@@ -692,9 +747,13 @@
     
     /*---categories slideToggle---*/
     $(".categories_title").on("click", function() {
+        // On mobile the class-based toggle in app.js (.is-open) owns this menu.
+        // Running jQuery slideToggle here too leaves inline height:0/overflow:hidden
+        // that clips the category list -> empty dropdown box.
+        if ($(window).width() < 992) return;
         $(this).toggleClass('active');
         $('.categories_menu_toggle').slideToggle('medium');
-    }); 
+    });
 
     /*---widget sub categories---*/
     $(".sub_categories1 > a").on("click", function() {

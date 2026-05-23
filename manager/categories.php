@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 requireRole(['manager', 'admin', 'superadmin']);
+requirePermission('categories');
 
 $db     = getDB();
 $csrf   = generateCsrfToken();
@@ -34,13 +35,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Save
-    $name     = trim($_POST['name'] ?? '');
-    $slug     = trim($_POST['slug'] ?? '');
-    $parentId = (int)($_POST['parent_id'] ?? 0) ?: null;
-    $desc     = trim($_POST['description'] ?? '') ?: null;
-    $isActive = (int)(!empty($_POST['is_active']));
-    $sort     = (int)($_POST['sort_order'] ?? 0);
-    $cid      = (int)($_POST['id'] ?? 0);
+    $name         = trim($_POST['name'] ?? '');
+    $slug         = trim($_POST['slug'] ?? '');
+    $parentId     = (int)($_POST['parent_id'] ?? 0) ?: null;
+    $desc         = trim($_POST['description'] ?? '') ?: null;
+    $isActive     = (int)(!empty($_POST['is_active']));
+    $sort         = (int)($_POST['sort_order'] ?? 0);
+    $markupPct    = ($_POST['markup_percent'] ?? '') !== '' ? (float)str_replace(',', '.', $_POST['markup_percent']) : null;
+    $imagePath    = trim($_POST['image_path'] ?? '') ?: null;
+    $cid          = (int)($_POST['id'] ?? 0);
 
     if (empty($name)) {
         $errors[] = 'Введите название категории.';
@@ -62,14 +65,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         if ($cid) {
             $db->prepare(
-                "UPDATE categories SET name=?, slug=?, parent_id=?, description=?, sort_order=?, is_active=? WHERE id=?"
-            )->execute([$name, $slug, $parentId, $desc, $sort, $isActive, $cid]);
+                "UPDATE categories SET name=?, slug=?, parent_id=?, description=?, image_path=?, sort_order=?, is_active=?, markup_percent=? WHERE id=?"
+            )->execute([$name, $slug, $parentId, $desc, $imagePath, $sort, $isActive, $markupPct, $cid]);
             flashMessage('success', 'Категория обновлена.');
         } else {
             $db->prepare(
-                "INSERT INTO categories (name, slug, parent_id, description, sort_order, is_active)
-                 VALUES (?, ?, ?, ?, ?, ?)"
-            )->execute([$name, $slug, $parentId, $desc, $sort, 1]);
+                "INSERT INTO categories (name, slug, parent_id, description, image_path, sort_order, is_active, markup_percent)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            )->execute([$name, $slug, $parentId, $desc, $imagePath, $sort, 1, $markupPct]);
             flashMessage('success', 'Категория добавлена.');
         }
         redirect(APP_URL . '/manager/categories.php');
@@ -99,7 +102,7 @@ $allCats = $db->query(
 $tree = getCategoryTree($allCats);
 
 $pageTitle = 'Управление категориями';
-require_once dirname(__DIR__) . '/includes/header.php';
+require_once dirname(__DIR__) . '/includes/admin-header.php';
 
 // Recursive tree renderer
 function renderCatRows(array $cats, string $csrf, int $depth = 0): void {
@@ -110,6 +113,8 @@ function renderCatRows(array $cats, string $csrf, int $depth = 0): void {
         echo '<td>' . $pad . $prefix . '<strong style="font-size:0.875rem;">' . htmlspecialchars((string)$cat['name']) . '</strong></td>';
         echo '<td><code style="font-size:0.75rem;color:#666;">' . htmlspecialchars((string)$cat['slug']) . '</code></td>';
         echo '<td style="text-align:center;">' . (int)$cat['part_count'] . '</td>';
+        $mp = $cat['markup_percent'] !== null ? htmlspecialchars((string)$cat['markup_percent']) . '%' : '<span style="color:#bbb">—</span>';
+        echo '<td style="text-align:center;">' . $mp . '</td>';
         echo '<td style="text-align:center;">' . (int)$cat['sort_order'] . '</td>';
         echo '<td style="text-align:center;white-space:nowrap;">';
         echo '<a href="?action=edit&id=' . (int)$cat['id'] . '" class="az-btn az-btn-secondary az-btn-sm">'
@@ -132,26 +137,7 @@ function renderCatRows(array $cats, string $csrf, int $depth = 0): void {
 <div class="az-panel">
 
     <!-- ── Sidebar ─────────────────────────────────────────────────── -->
-    <aside class="az-sidebar">
-        <div class="az-sidebar-logo">AUTO<span>PARTS</span></div>
-        <nav>
-            <ul>
-                <li><a href="<?= APP_URL ?>/manager/index.php"><i class="fa fa-dashboard"></i> <?= t('dashboard') ?></a></li>
-                <li><a href="<?= APP_URL ?>/manager/parts.php"><i class="fa fa-cogs"></i> <?= t('parts_mgmt') ?></a></li>
-                <li><a href="<?= APP_URL ?>/manager/categories.php" class="active"><i class="fa fa-sitemap"></i> <?= t('categories_mgmt') ?></a></li>
-                <li><a href="<?= APP_URL ?>/manager/brands.php"><i class="fa fa-tag"></i> <?= t('brands_mgmt') ?></a></li>
-                <li><a href="<?= APP_URL ?>/manager/blog.php"><i class="fa fa-newspaper-o"></i> Блог</a></li>
-                <li style="border-top:1px solid rgba(255,255,255,0.1);margin-top:20px;">
-                    <a href="<?= APP_URL ?>/index.php"><i class="fa fa-home"></i> На сайт</a>
-                </li>
-                <li>
-                    <a href="<?= APP_URL ?>/auth/logout.php" style="color:rgba(255,100,100,0.85)!important;">
-                        <i class="fa fa-sign-out"></i> <?= t('logout') ?>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-    </aside>
+    <?php renderRoleSidebar('categories'); ?>
 
     <!-- ── Main ───────────────────────────────────────────────────── -->
     <main class="az-main">
@@ -247,6 +233,35 @@ function renderCatRows(array $cats, string $csrf, int $depth = 0): void {
                                       placeholder="Краткое описание категории"><?= sanitize($editCat['description'] ?? ($_POST['description'] ?? '')) ?></textarea>
                         </div>
 
+                        <?php $curImg = $editCat['image_path'] ?? ''; ?>
+                        <div class="az-form-group">
+                            <label>Изображение категории (для главной страницы)</label>
+                            <input type="hidden" name="image_path" id="catImagePath" value="<?= sanitize($curImg) ?>">
+                            <div id="catImgPreview" style="margin:8px 0;<?= $curImg ? '' : 'display:none;' ?>">
+                                <img src="<?= sanitize($curImg) ?>" alt="" id="catImgEl"
+                                     style="max-width:160px;max-height:120px;border:1px solid #dee2e6;border-radius:6px;background:#f5f5f5;">
+                                <button type="button" class="az-btn az-btn-danger az-btn-sm" onclick="catRemoveImg()"
+                                        style="vertical-align:top;margin-left:8px;"><i class="fa fa-trash-o"></i> Удалить</button>
+                            </div>
+                            <input type="file" id="catImgFile" accept="image/*" onchange="catUploadImg(this)">
+                            <div style="margin-top:8px;padding:10px 12px;background:#eef6ff;border:1px solid #cfe4fb;border-radius:6px;font-size:0.78rem;color:#1c5a99;line-height:1.55;">
+                                <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> 320&times;240&nbsp;px (соотношение&nbsp;4:3)<br>
+                                Формат: <strong>JPG</strong>, PNG или WEBP &middot; до&nbsp;5&nbsp;МБ<br>
+                                <span style="color:#5a87b3;">Если не задано — на главной показывается стандартная картинка.</span>
+                            </div>
+                            <span id="catImgStatus" style="font-size:0.8rem;color:#0a7;"></span>
+                        </div>
+
+                        <div class="az-form-group">
+                            <label>Наценка для категории (%)</label>
+                            <input type="number" name="markup_percent" min="0" max="1000" step="0.01"
+                                   value="<?= sanitize((string)($editCat['markup_percent'] ?? ($_POST['markup_percent'] ?? ''))) ?>"
+                                   placeholder="Оставьте пустым — будет применена глобальная наценка">
+                            <small style="color:#888;font-size:0.78rem;">
+                                Применяется ко всем товарам этой категории, у которых не задана собственная наценка.
+                            </small>
+                        </div>
+
                         <div style="display:flex;gap:12px;">
                             <button type="submit" class="az-btn az-btn-primary">
                                 <i class="fa fa-save"></i> <?= $action === 'edit' ? 'Сохранить' : 'Добавить' ?>
@@ -273,6 +288,7 @@ function renderCatRows(array $cats, string $csrf, int $depth = 0): void {
                                 <th>Название</th>
                                 <th>Слаг</th>
                                 <th style="text-align:center;">Товаров</th>
+                                <th style="text-align:center;">Наценка</th>
                                 <th style="text-align:center;">Порядок</th>
                                 <th style="text-align:center;">Действия</th>
                             </tr>
@@ -281,7 +297,7 @@ function renderCatRows(array $cats, string $csrf, int $depth = 0): void {
                             <?php renderCatRows($tree, $csrf); ?>
                             <?php if (empty($allCats)): ?>
                                 <tr>
-                                    <td colspan="5" style="text-align:center;color:#aaa;padding:30px;">Категорий нет.</td>
+                                    <td colspan="6" style="text-align:center;color:#aaa;padding:30px;">Категорий нет.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -294,4 +310,37 @@ function renderCatRows(array $cats, string $csrf, int $depth = 0): void {
     </main>
 </div><!-- /.az-panel -->
 
-<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
+<script>
+async function catUploadImg(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const status = document.getElementById('catImgStatus');
+    status.textContent = 'Загрузка...';
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+        const res  = await fetch('<?= APP_URL ?>/api/upload.php?type=categories', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.url) {
+            document.getElementById('catImagePath').value = data.url;
+            document.getElementById('catImgEl').src = data.url;
+            document.getElementById('catImgPreview').style.display = '';
+            status.textContent = 'Загружено';
+        } else {
+            status.style.color = '#c30f0f';
+            status.textContent = data.error || 'Ошибка загрузки';
+        }
+    } catch (e) {
+        status.style.color = '#c30f0f';
+        status.textContent = 'Ошибка сети: ' + e.message;
+    }
+    input.value = '';
+}
+function catRemoveImg() {
+    document.getElementById('catImagePath').value = '';
+    document.getElementById('catImgPreview').style.display = 'none';
+    document.getElementById('catImgStatus').textContent = '';
+}
+</script>
+
+<?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>
