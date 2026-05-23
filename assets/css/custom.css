@@ -394,11 +394,9 @@ body .brand_area .brand_container .single_brand {
     box-sizing: border-box !important;
 }
 body .brand_area .brand_container .single_brand a {
-    display: flex !important;
+    display: block !important;
     width: 100% !important;
-    height: 100% !important;
-    align-items: center !important;
-    justify-content: center !important;
+    line-height: 0 !important;
     text-align: center !important;
 }
 body .brand_area .brand_container .single_brand img {
