@@ -59,16 +59,23 @@ require_once __DIR__ . '/includes/header.php';
 <!--slider area start-->
 <?php if (!empty($sliders)): ?>
 <?php
-    // Decode per-slide text blocks once; flag whether any block needs a custom font.
+    // Decode desktop & mobile text blocks once; flag whether any block needs a custom font.
     $sliderNeedsFonts = false;
     foreach ($sliders as &$_sl) {
-        $blocks = [];
+        $blocksD = [];
         if (!empty($_sl['text_blocks'])) {
             $decoded = json_decode($_sl['text_blocks'], true);
-            if (is_array($decoded)) $blocks = normalizeSliderBlocks($decoded);
+            if (is_array($decoded)) $blocksD = normalizeSliderBlocks($decoded);
         }
-        $_sl['_blocks'] = $blocks;
-        foreach ($blocks as $b) { if (!empty($b['font'])) { $sliderNeedsFonts = true; } }
+        $blocksM = [];
+        if (!empty($_sl['text_blocks_mobile'])) {
+            $decodedM = json_decode($_sl['text_blocks_mobile'], true);
+            if (is_array($decodedM)) $blocksM = normalizeSliderBlocks($decodedM);
+        }
+        if (!$blocksM) $blocksM = $blocksD;   // fall back to desktop blocks on phones
+        $_sl['_blocks']        = $blocksD;
+        $_sl['_blocks_mobile'] = $blocksM;
+        foreach (array_merge($blocksD, $blocksM) as $b) { if (!empty($b['font'])) { $sliderNeedsFonts = true; } }
     }
     unset($_sl);
 ?>
@@ -83,62 +90,57 @@ require_once __DIR__ . '/includes/header.php';
             if (!preg_match('~^https?://~i', $u)) return APP_URL . '/' . ltrim($u, '/');
             return $u;
         };
+        // Render one positioned text layer (desktop or mobile) for a slide.
+        $renderVariant = function (array $blocks, string $rawPos, string $variantCls, string $linkUrl, bool $isMobile): string {
+            $pos      = preg_match('/^(left|center|right)-(top|center|bottom)$/', $rawPos) ? $rawPos : 'left-center';
+            [$hAlign, $vAlign] = explode('-', $pos, 2);
+            $justify = $vAlign === 'top' ? 'flex-start' : ($vAlign === 'bottom' ? 'flex-end' : 'center');
+            $items   = $hAlign === 'center' ? 'center' : ($hAlign === 'right' ? 'flex-end' : 'flex-start');
+            $textAl  = $hAlign === 'center' ? 'center' : ($hAlign === 'right' ? 'right' : 'left');
+            $vPad    = $vAlign === 'top' ? 'padding-top:60px;' : ($vAlign === 'bottom' ? 'padding-bottom:60px;' : '');
+            // Only vertical alignment here; horizontal is done inside .slider_content
+            // because Bootstrap's .container has auto side-margins that would otherwise
+            // re-center it and defeat left/right alignment.
+            $varStyle = "justify-content:$justify;$vPad";
+
+            ob_start(); ?>
+            <div class="sl-variant <?= $variantCls ?>" style="<?= sanitize($varStyle) ?>">
+                <div class="container">
+                    <div class="slider_content" style="text-align:<?= $textAl ?>;display:flex;flex-direction:column;align-items:<?= $items ?>;">
+                        <?php foreach ($blocks as $b):
+                            $stack = sliderFontStack($b['font']);
+                            // Desktop variant uses --fs so existing media queries scale it on
+                            // tablets. Mobile variant pins --fsm to its own size (no auto-scale).
+                            $sz    = (int)$b['size'];
+                            $style = '--fs:' . $sz . 'px;'
+                                   . ($isMobile ? '--fsm:' . $sz . 'px;' : '')
+                                   . 'font-weight:' . (int)$b['weight'] . ';'
+                                   . 'color:' . $b['color'] . ';'
+                                   . 'margin-bottom:' . (int)$b['mb'] . 'px;'
+                                   . ($stack ? 'font-family:' . $stack . ';' : '');
+                        ?>
+                        <div class="slider_block" style="<?= sanitize($style) ?>"><?= sanitize($b['text']) ?></div>
+                        <?php endforeach; ?>
+                        <a class="button" href="<?= sanitize($linkUrl) ?>"><?= t('shop') ?> <i class="fa fa-angle-double-right"></i></a>
+                    </div>
+                </div>
+            </div>
+            <?php return ob_get_clean();
+        };
         foreach ($sliders as $sl):
             $imgDesktop = $normSlide($sl['image_url'] ?? '');
             $imgMobile  = $normSlide($sl['image_url_mobile'] ?? '');
             $imgUrl     = $imgDesktop ?: $imgMobile;       // base background
             $imgMobile  = $imgMobile ?: $imgDesktop;       // fall back to desktop on mobile
-            $linkUrl = $sl['link_url'] ?: (APP_URL . '/catalog/index.php');
-            $blocks  = $sl['_blocks'] ?? [];
-
-            // Text position: "h-v" e.g. "left-center", "center-top", "right-bottom"
-            $rawPos   = $sl['text_pos'] ?? 'left-center';
-            $posParts = explode('-', preg_match('/^(left|center|right)-(top|center|bottom)$/', $rawPos) ? $rawPos : 'left-center', 2);
-            $hAlign   = $posParts[0];
-            $vAlign   = $posParts[1];
-            // Bootstrap flex class for vertical alignment (overrides align-items-center)
-            $vClass   = $vAlign === 'top' ? 'align-items-start' : ($vAlign === 'bottom' ? 'align-items-end' : 'align-items-center');
-            $vPadding = $vAlign === 'top'    ? 'padding-top:60px;'    : ($vAlign === 'bottom' ? 'padding-bottom:60px;' : '');
-            // Inline style for the slider_content horizontal alignment
-            $contentStyle = $hAlign === 'center'
-                ? 'text-align:center;display:flex;flex-direction:column;align-items:center;'
-                : ($hAlign === 'right' ? 'text-align:right;display:flex;flex-direction:column;align-items:flex-end;' : '');
+            $linkUrl    = $sl['link_url'] ?: (APP_URL . '/catalog/index.php');
+            $blocksD    = $sl['_blocks'] ?? [];
+            $blocksM    = $sl['_blocks_mobile'] ?? [];
+            $posD       = $sl['text_pos'] ?? 'left-center';
+            $posM       = $sl['text_pos_mobile'] ?? $posD;
         ?>
-        <div class="single_slider d-flex <?= $vClass ?>" style="<?= sanitize($vPadding) ?>" data-bgimg="<?= sanitize($imgUrl) ?>" data-bgimg-mobile="<?= sanitize($imgMobile) ?>">
-            <div class="container">
-                <div class="row">
-                    <div class="col-12">
-                        <div class="slider_content"<?= $contentStyle ? ' style="' . sanitize($contentStyle) . '"' : '' ?>>
-                            <?php if ($blocks): ?>
-                                <?php foreach ($blocks as $b): ?>
-                                    <?php
-                                        $stack = sliderFontStack($b['font']);
-                                        // Only set --fs here; font-size itself is applied by CSS
-                                        // (.slider_block) so media-query scaling isn't overridden
-                                        // by the higher-specificity inline style.
-                                        $mobileSz = (int)($b['size_mobile'] ?? 0);
-                                        $style = '--fs:' . (int)$b['size'] . 'px;'
-                                               . ($mobileSz > 0 ? '--fsm:' . $mobileSz . 'px;' : '')
-                                               . 'font-weight:' . (int)$b['weight'] . ';'
-                                               . 'color:' . $b['color'] . ';'
-                                               . 'margin-bottom:' . (int)$b['mb'] . 'px;'
-                                               . ($stack ? 'font-family:' . $stack . ';' : '');
-                                    ?>
-                                    <div class="slider_block" style="<?= sanitize($style) ?>"><?= sanitize($b['text']) ?></div>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <?php if (!empty($sl['title']) || !empty($sl['title_highlight'])): ?>
-                                    <h1><?= sanitize($sl['title']) ?><?php if (!empty($sl['title_highlight'])): ?> <span><?= sanitize($sl['title_highlight']) ?></span><?php endif; ?></h1>
-                                <?php endif; ?>
-                                <?php if (!empty($sl['subtitle'])): ?>
-                                    <p><?= sanitize($sl['subtitle']) ?></p>
-                                <?php endif; ?>
-                            <?php endif; ?>
-                            <a class="button" href="<?= sanitize($linkUrl) ?>"><?= t('shop') ?> <i class="fa fa-angle-double-right"></i></a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="single_slider sl-has-variants" data-bgimg="<?= sanitize($imgUrl) ?>" data-bgimg-mobile="<?= sanitize($imgMobile) ?>">
+            <?= $renderVariant($blocksD, $posD, 'sl-variant--desktop', $linkUrl, false) ?>
+            <?= $renderVariant($blocksM, $posM, 'sl-variant--mobile', $linkUrl, true) ?>
         </div>
         <?php endforeach; ?>
     </div>

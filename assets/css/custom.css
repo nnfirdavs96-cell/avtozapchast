@@ -342,6 +342,22 @@
 @media (max-width: 991px) { .logo .logo-img { height: 52px; } }
 @media (max-width: 767px) { .logo .logo-img { height: 44px; } }
 
+/* Независимые слои текста для десктопа и мобильного.
+   Каждый .sl-variant — абсолютный оверлей со своим выравниванием,
+   так позиция/блоки настраиваются отдельно для каждой версии. */
+.slider_area .single_slider.sl-has-variants { position: relative; }
+.sl-variant {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+}
+.sl-variant--mobile  { display: none; }
+@media (max-width: 767px) {
+    .sl-variant--desktop { display: none; }
+    .sl-variant--mobile  { display: flex; }
+}
+
 /* Слайдер: гарантированный min-height и фон из data-bgimg */
 .slider_area .single_slider {
     min-height: 420px;
