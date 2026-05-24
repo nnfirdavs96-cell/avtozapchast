@@ -553,12 +553,29 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     renumber();
                 }
 
+                var mobileRatioCache = {};   // url -> naturalHeight/naturalWidth
                 function renderPreview() {
-                    var dim = SL_DIM[slMode];
+                    var dim = { w: SL_DIM[slMode].w, h: SL_DIM[slMode].h };
                     var url = (document.getElementById('imageUrl') || {}).value || '';
                     if (slMode === 'mobile') {
                         var mobileUrl = (document.getElementById('imageUrlMobile') || {}).value || '';
                         if (mobileUrl) url = mobileUrl;
+                        // Size the mobile frame to the image's real aspect ratio (matches the
+                        // adaptive height used on the live site) so nothing is cropped.
+                        if (url) {
+                            if (mobileRatioCache[url] > 0) {
+                                dim.h = Math.round(dim.w * mobileRatioCache[url]);
+                            } else {
+                                var probe = new Image();
+                                probe.onload = function () {
+                                    if (this.naturalWidth > 0) {
+                                        mobileRatioCache[url] = this.naturalHeight / this.naturalWidth;
+                                        renderPreview();
+                                    }
+                                };
+                                probe.src = url;
+                            }
+                        }
                     }
 
                     frame.style.setProperty('--bg', url ? 'url("' + url + '")' : '#14171c');

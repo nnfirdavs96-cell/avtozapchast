@@ -55,7 +55,9 @@ function showToast(msg, type) {
 // CSRF token from meta tag
 window._csrf = document.querySelector('meta[name=csrf]') ? document.querySelector('meta[name=csrf]').content : '';
 
-// Apply data-bgimg as background-image, picking the mobile variant on small screens
+// Apply data-bgimg as background-image, picking the mobile variant on small screens.
+// On mobile, size each slide to the mobile image's real aspect ratio so a tall
+// (recommended ~768×900) image shows fully instead of being cropped by a fixed height.
 function applyResponsiveBg() {
     var isMobile = window.matchMedia('(max-width: 767px)').matches;
     document.querySelectorAll('[data-bgimg]').forEach(function (el) {
@@ -63,6 +65,28 @@ function applyResponsiveBg() {
         var mobile  = el.getAttribute('data-bgimg-mobile');
         var url = (isMobile && mobile) ? mobile : desktop;
         if (url) el.style.backgroundImage = 'url(' + url + ')';
+
+        if (isMobile && url) {
+            var applyRatio = function (ratio) {
+                if (ratio > 0) el.style.height = Math.round(el.clientWidth * ratio) + 'px';
+            };
+            var cached = parseFloat(el.getAttribute('data-bg-ratio'));
+            if (cached > 0) {
+                applyRatio(cached);
+            } else {
+                var probe = new Image();
+                probe.onload = function () {
+                    if (this.naturalWidth > 0) {
+                        var r = this.naturalHeight / this.naturalWidth;
+                        el.setAttribute('data-bg-ratio', r);
+                        applyRatio(r);
+                    }
+                };
+                probe.src = url;
+            }
+        } else {
+            el.style.height = '';   // reset to CSS-driven height on desktop
+        }
     });
 }
 // Mazlay main.js re-applies data-bgimg on window 'load'; run after it so the mobile variant wins.
