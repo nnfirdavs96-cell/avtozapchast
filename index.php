@@ -91,7 +91,7 @@ require_once __DIR__ . '/includes/header.php';
             return $u;
         };
         // Render one positioned text layer (desktop or mobile) for a slide.
-        $renderVariant = function (array $blocks, string $rawPos, string $variantCls, string $linkUrl, bool $isMobile): string {
+        $renderVariant = function (array $blocks, string $rawPos, string $variantCls, string $linkUrl, bool $isMobile, string $btnLabel): string {
             $pos      = preg_match('/^(left|center|right)-(top|center|bottom)$/', $rawPos) ? $rawPos : 'left-center';
             [$hAlign, $vAlign] = explode('-', $pos, 2);
             $justify = $vAlign === 'top' ? 'flex-start' : ($vAlign === 'bottom' ? 'flex-end' : 'center');
@@ -121,7 +121,7 @@ require_once __DIR__ . '/includes/header.php';
                         ?>
                         <div class="slider_block" style="<?= sanitize($style) ?>"><?= sanitize($b['text']) ?></div>
                         <?php endforeach; ?>
-                        <a class="button" href="<?= sanitize($linkUrl) ?>"><?= t('shop') ?> <i class="fa fa-angle-double-right"></i></a>
+                        <a class="button" href="<?= sanitize($linkUrl) ?>"><?= sanitize($btnLabel) ?> <i class="fa fa-angle-double-right"></i></a>
                     </div>
                 </div>
             </div>
@@ -132,15 +132,19 @@ require_once __DIR__ . '/includes/header.php';
             $imgMobile  = $normSlide($sl['image_url_mobile'] ?? '');
             $imgUrl     = $imgDesktop ?: $imgMobile;       // base background
             $imgMobile  = $imgMobile ?: $imgDesktop;       // fall back to desktop on mobile
-            $linkUrl    = $sl['link_url'] ?: (APP_URL . '/catalog/index.php');
+            // Normalize link_url: strip private IP prefixes (if any legacy records remain)
+            $rawLink    = $sl['link_url'] ?? '';
+            $rawLink    = preg_replace('~^https?://(?:10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+)~i', '', $rawLink);
+            $linkUrl    = $rawLink ? $normSlide($rawLink) : (APP_URL . '/catalog/index.php');
+            $btnLabel   = !empty($sl['button_text']) ? $sl['button_text'] : t('shop');
             $blocksD    = $sl['_blocks'] ?? [];
             $blocksM    = $sl['_blocks_mobile'] ?? [];
             $posD       = $sl['text_pos'] ?? 'left-center';
             $posM       = $sl['text_pos_mobile'] ?? $posD;
         ?>
         <div class="single_slider sl-has-variants" data-bgimg="<?= sanitize($imgUrl) ?>" data-bgimg-mobile="<?= sanitize($imgMobile) ?>">
-            <?= $renderVariant($blocksD, $posD, 'sl-variant--desktop', $linkUrl, false) ?>
-            <?= $renderVariant($blocksM, $posM, 'sl-variant--mobile', $linkUrl, true) ?>
+            <?= $renderVariant($blocksD, $posD, 'sl-variant--desktop', $linkUrl, false, $btnLabel) ?>
+            <?= $renderVariant($blocksM, $posM, 'sl-variant--mobile', $linkUrl, true, $btnLabel) ?>
         </div>
         <?php endforeach; ?>
     </div>

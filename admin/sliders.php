@@ -28,6 +28,23 @@ dbAddColumnIfMissing($db, 'sliders', 'text_blocks',        "`text_blocks` TEXT N
 dbAddColumnIfMissing($db, 'sliders', 'text_blocks_mobile', "`text_blocks_mobile` TEXT NULL AFTER `text_blocks`");
 dbAddColumnIfMissing($db, 'sliders', 'text_pos',          "`text_pos` VARCHAR(20) NOT NULL DEFAULT 'left-center' AFTER `text_blocks_mobile`");
 dbAddColumnIfMissing($db, 'sliders', 'text_pos_mobile',   "`text_pos_mobile` VARCHAR(20) NOT NULL DEFAULT 'left-center' AFTER `text_pos`");
+dbAddColumnIfMissing($db, 'sliders', 'button_text',       "`button_text` VARCHAR(100) NOT NULL DEFAULT '' AFTER `text_pos_mobile`");
+
+// ── One-time migration: fix link_url values pointing to private/internal IPs ──
+// (e.g. Timeweb reverse-proxy IP 10.x.x.x stored during development)
+(function() use ($db) {
+    $privatePattern = "link_url LIKE 'http://10.%' OR link_url LIKE 'https://10.%'"
+                    . " OR link_url LIKE 'http://192.168.%' OR link_url LIKE 'https://192.168.%'"
+                    . " OR link_url LIKE 'http://172.1%.%' OR link_url LIKE 'https://172.1%.%'";
+    $rows = $db->query("SELECT id, link_url FROM sliders WHERE $privatePattern")->fetchAll();
+    if ($rows) {
+        $upd = $db->prepare("UPDATE sliders SET link_url = ? WHERE id = ?");
+        foreach ($rows as $row) {
+            $fixed = preg_replace('~^https?://(?:10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+)~i', '', $row['link_url']);
+            $upd->execute([$fixed, $row['id']]);
+        }
+    }
+})();
 
 // ── POST handler ──────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -61,11 +78,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Save (add / edit)
-    $sid       = (int)($_POST['id'] ?? 0);
-    $imgUrl    = trim($_POST['image_url'] ?? '');
-    $imgMobile = trim($_POST['image_url_mobile'] ?? '');
-    $linkUrl   = trim($_POST['link_url'] ?? '');
-    $sort      = (int)($_POST['sort_order'] ?? 0);
+    $sid        = (int)($_POST['id'] ?? 0);
+    $imgUrl     = trim($_POST['image_url'] ?? '');
+    $imgMobile  = trim($_POST['image_url_mobile'] ?? '');
+    $linkUrl    = trim($_POST['link_url'] ?? '');
+    $buttonText = trim($_POST['button_text'] ?? '');
+    $sort       = (int)($_POST['sort_order'] ?? 0);
+
+    // Strip private/internal IP prefixes so stored URLs stay portable across environments.
+    $linkUrl = preg_replace('~^https?://(?:10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+)~i', '', $linkUrl);
 
     // Desktop & mobile text blocks arrive as JSON (serialised by the editor JS),
     // so each device keeps its own independent set of blocks.
@@ -93,13 +114,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($sid) {
         $db->prepare(
-            "UPDATE sliders SET title=?, title_highlight='', subtitle='', text_blocks=?, text_blocks_mobile=?, text_pos=?, text_pos_mobile=?, image_url=?, image_url_mobile=?, link_url=?, sort_order=? WHERE id=?"
-        )->execute([$title, $textBlocks, $textBlocksMobile, $textPos, $textPosMobile, $imgUrl, $imgMobile, $linkUrl, $sort, $sid]);
+            "UPDATE sliders SET title=?, title_highlight='', subtitle='', text_blocks=?, text_blocks_mobile=?, text_pos=?, text_pos_mobile=?, image_url=?, image_url_mobile=?, link_url=?, button_text=?, sort_order=? WHERE id=?"
+        )->execute([$title, $textBlocks, $textBlocksMobile, $textPos, $textPosMobile, $imgUrl, $imgMobile, $linkUrl, $buttonText, $sort, $sid]);
         flashMessage('success', 'Слайд обновлён.');
     } else {
         $db->prepare(
-            "INSERT INTO sliders (title, text_blocks, text_blocks_mobile, text_pos, text_pos_mobile, image_url, image_url_mobile, link_url, sort_order, is_active) VALUES (?,?,?,?,?,?,?,?,?,1)"
-        )->execute([$title, $textBlocks, $textBlocksMobile, $textPos, $textPosMobile, $imgUrl, $imgMobile, $linkUrl, $sort]);
+            "INSERT INTO sliders (title, text_blocks, text_blocks_mobile, text_pos, text_pos_mobile, image_url, image_url_mobile, link_url, button_text, sort_order, is_active) VALUES (?,?,?,?,?,?,?,?,?,?,1)"
+        )->execute([$title, $textBlocks, $textBlocksMobile, $textPos, $textPosMobile, $imgUrl, $imgMobile, $linkUrl, $buttonText, $sort]);
         flashMessage('success', 'Слайд добавлен.');
     }
     redirect(APP_URL . '/admin/sliders.php');
@@ -258,7 +279,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <div id="slPreview" class="sl-preview">
                             <div id="slPreviewFrame">
                                 <div id="slPreviewContent"></div>
-                                <span class="sl-preview-btn"><?= t('shop') ?> &raquo;</span>
+                                <span class="sl-preview-btn" id="slPreviewBtn"><?= sanitize($editSlide['button_text'] ?? '') ?: t('shop') ?> &raquo;</span>
                             </div>
                         </div>
                         <small style="color:#888;">Пиксель-в-пиксель: рендерится в реальных размерах и масштабируется.</small>
@@ -320,10 +341,18 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     <div class="az-card">
                         <h3>Кнопка и порядок</h3>
                         <div class="az-form-group">
+                            <label>Текст кнопки <small style="color:#888;font-weight:400;">(если пусто — будет «<?= t('shop') ?>»)</small></label>
+                            <input type="text" name="button_text" id="buttonTextInput"
+                                   value="<?= sanitize($editSlide['button_text'] ?? '') ?>"
+                                   placeholder="<?= sanitize(t('shop')) ?>"
+                                   style="max-width:260px;">
+                        </div>
+                        <div class="az-form-group">
                             <label>Ссылка кнопки (URL)</label>
                             <input type="text" name="link_url"
                                    value="<?= sanitize($editSlide['link_url'] ?? '') ?>"
-                                   placeholder="/shop.php">
+                                   placeholder="/catalog/index.php">
+                            <small style="color:#888;">Используйте относительный путь (/catalog/index.php) — не вводите IP-адрес.</small>
                         </div>
                         <div class="az-form-group">
                             <label>Порядок сортировки</label>
@@ -641,6 +670,16 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     renderPreview();
                 });
                 window.addEventListener('resize', renderPreview);
+
+                // Live-update preview button text.
+                var btnTxtInput = document.getElementById('buttonTextInput');
+                var pvBtn       = document.getElementById('slPreviewBtn');
+                var defaultBtnLabel = <?= json_encode(t('shop')) ?>;
+                if (btnTxtInput && pvBtn) {
+                    btnTxtInput.addEventListener('input', function () {
+                        pvBtn.textContent = (this.value.trim() || defaultBtnLabel) + ' »';
+                    });
+                }
 
                 // ── On submit: serialise both states into hidden inputs ──
                 form.addEventListener('submit', function () {
