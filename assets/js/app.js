@@ -56,8 +56,7 @@ function showToast(msg, type) {
 window._csrf = document.querySelector('meta[name=csrf]') ? document.querySelector('meta[name=csrf]').content : '';
 
 // Apply data-bgimg as background-image, picking the mobile variant on small screens.
-// On mobile, size each slide to the mobile image's real aspect ratio so a tall
-// (recommended ~768×900) image shows fully instead of being cropped by a fixed height.
+// Height is fully controlled by CSS (380px on mobile, 420px on desktop).
 function applyResponsiveBg() {
     var isMobile = window.matchMedia('(max-width: 767px)').matches;
     document.querySelectorAll('[data-bgimg]').forEach(function (el) {
@@ -65,36 +64,6 @@ function applyResponsiveBg() {
         var mobile  = el.getAttribute('data-bgimg-mobile');
         var url = (isMobile && mobile) ? mobile : desktop;
         if (url) el.style.backgroundImage = 'url(' + url + ')';
-
-        // Only adapt height when a DEDICATED mobile image was uploaded. Slides that
-        // fall back to the wide desktop image keep the cropping hero behaviour
-        // (otherwise they'd collapse to a very short strip on phones).
-        if (isMobile && mobile) {
-            // Override the CSS min-height floor (set with !important) so the slide
-            // height exactly equals width × image-ratio → the whole image shows,
-            // regardless of portrait/landscape, with no crop and no overflow.
-            el.style.setProperty('min-height', '0', 'important');
-            var applyRatio = function (ratio) {
-                if (ratio > 0) el.style.height = Math.round(el.clientWidth * ratio) + 'px';
-            };
-            var cached = parseFloat(el.getAttribute('data-bg-ratio'));
-            if (cached > 0) {
-                applyRatio(cached);
-            } else {
-                var probe = new Image();
-                probe.onload = function () {
-                    if (this.naturalWidth > 0) {
-                        var r = this.naturalHeight / this.naturalWidth;
-                        el.setAttribute('data-bg-ratio', r);
-                        applyRatio(r);
-                    }
-                };
-                probe.src = url;
-            }
-        } else {
-            el.style.height = '';            // reset to CSS-driven height on desktop
-            el.style.removeProperty('min-height');
-        }
     });
 }
 // Mazlay main.js re-applies data-bgimg on window 'load'; run after it so the mobile variant wins.
