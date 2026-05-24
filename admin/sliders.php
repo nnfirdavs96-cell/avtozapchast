@@ -559,10 +559,11 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     var url = (document.getElementById('imageUrl') || {}).value || '';
                     if (slMode === 'mobile') {
                         var mobileUrl = (document.getElementById('imageUrlMobile') || {}).value || '';
-                        if (mobileUrl) url = mobileUrl;
-                        // Size the mobile frame to the image's real aspect ratio (matches the
-                        // adaptive height used on the live site) so nothing is cropped.
-                        if (url) {
+                        // Only a DEDICATED mobile image gets aspect-ratio sizing (matches the
+                        // live site). Without one, the desktop image is shown cropped at the
+                        // fixed mobile height — same as the real fallback behaviour.
+                        if (mobileUrl) {
+                            url = mobileUrl;
                             if (mobileRatioCache[url] > 0) {
                                 dim.h = Math.round(dim.w * mobileRatioCache[url]);
                             } else {

@@ -66,7 +66,14 @@ function applyResponsiveBg() {
         var url = (isMobile && mobile) ? mobile : desktop;
         if (url) el.style.backgroundImage = 'url(' + url + ')';
 
-        if (isMobile && url) {
+        // Only adapt height when a DEDICATED mobile image was uploaded. Slides that
+        // fall back to the wide desktop image keep the cropping hero behaviour
+        // (otherwise they'd collapse to a very short strip on phones).
+        if (isMobile && mobile) {
+            // Override the CSS min-height floor (set with !important) so the slide
+            // height exactly equals width × image-ratio → the whole image shows,
+            // regardless of portrait/landscape, with no crop and no overflow.
+            el.style.setProperty('min-height', '0', 'important');
             var applyRatio = function (ratio) {
                 if (ratio > 0) el.style.height = Math.round(el.clientWidth * ratio) + 'px';
             };
@@ -85,7 +92,8 @@ function applyResponsiveBg() {
                 probe.src = url;
             }
         } else {
-            el.style.height = '';   // reset to CSS-driven height on desktop
+            el.style.height = '';            // reset to CSS-driven height on desktop
+            el.style.removeProperty('min-height');
         }
     });
 }
