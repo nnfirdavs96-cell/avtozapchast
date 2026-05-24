@@ -386,8 +386,8 @@
     .slider_content .slider_block { font-size: calc(var(--fs, 24px) * 0.6); }
 }
 @media only screen and (max-width: 767px) {
-    /* 0.32 keeps a 60 px heading at ~19 px on a 390 px screen — one line */
-    .slider_content .slider_block { font-size: calc(var(--fs, 24px) * 0.32); }
+    /* --fsm is set per-block when admin specified a mobile size; fallback auto-scales */
+    .slider_content .slider_block { font-size: var(--fsm, calc(var(--fs, 24px) * 0.32)); }
 }
 .active .slider_content .slider_block {
     animation: fadeInLeft 1s both;

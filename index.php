@@ -116,7 +116,9 @@ require_once __DIR__ . '/includes/header.php';
                                         // Only set --fs here; font-size itself is applied by CSS
                                         // (.slider_block) so media-query scaling isn't overridden
                                         // by the higher-specificity inline style.
+                                        $mobileSz = (int)($b['size_mobile'] ?? 0);
                                         $style = '--fs:' . (int)$b['size'] . 'px;'
+                                               . ($mobileSz > 0 ? '--fsm:' . $mobileSz . 'px;' : '')
                                                . 'font-weight:' . (int)$b['weight'] . ';'
                                                . 'color:' . $b['color'] . ';'
                                                . 'margin-bottom:' . (int)$b['mb'] . 'px;'
