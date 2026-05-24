@@ -229,12 +229,12 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     <div class="az-card">
                         <h3><i class="fa fa-eye"></i> Предпросмотр (как будет на сайте)</h3>
                         <div id="slPreview" class="sl-preview">
-                            <div class="sl-preview-inner">
+                            <div id="slPreviewFrame">
                                 <div id="slPreviewContent"></div>
                                 <span class="sl-preview-btn"><?= t('shop') ?> &raquo;</span>
                             </div>
                         </div>
-                        <small style="color:#888;">Меняется в реальном времени. Размеры пропорциональны итоговому слайдеру.</small>
+                        <small style="color:#888;">Пиксель-в-пиксель: фрейм рендерится в реальных 1140 px и масштабируется — перенос слов идентичен сайту.</small>
                     </div>
 
                     <div class="az-card">
@@ -310,25 +310,22 @@ require_once dirname(__DIR__) . '/includes/header.php';
             </script>
 
             <style>
-            .sl-preview {
-                position: relative; width: 100%; aspect-ratio: 1140 / 420;
-                min-height: 220px; border-radius: 8px; overflow: hidden;
-                background: #14171c center/cover no-repeat;
-                border: 1px solid #dee2e6; margin-bottom: 10px;
-            }
-            .sl-preview::after { /* subtle dark scrim so light text stays readable */
-                content: ""; position: absolute; inset: 0;
-                background: linear-gradient(90deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.15) 45%, rgba(0,0,0,0) 75%);
-            }
-            .sl-preview-inner {
-                position: absolute; inset: 0; z-index: 2;
+            /* Preview outer: just a clipping viewport — height set by JS */
+            .sl-preview { width: 100%; overflow: hidden; border-radius: 8px; border: 1px solid #dee2e6; margin-bottom: 10px; }
+            /* Real 1140 × 420 frame, scaled down via transform: scale() in JS so
+               text wraps exactly like on the site (pixel-accurate preview). */
+            #slPreviewFrame {
+                width: 1140px; height: 420px; transform-origin: top left;
+                /* --bg is updated by JS when a desktop image is uploaded */
+                background: linear-gradient(90deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,.12) 45%,rgba(0,0,0,0) 75%),
+                            var(--bg, #14171c) center / cover no-repeat;
                 display: flex; flex-direction: column; align-items: flex-start;
-                justify-content: center; padding: 0 6%;
+                justify-content: center; padding-left: 80px;
             }
-            .sl-preview-block { line-height: 1.05; text-shadow: 0 2px 14px rgba(0,0,0,.45); word-break: break-word; max-width: 92%; }
+            .sl-preview-block { line-height: 1.05; text-shadow: 0 2px 14px rgba(0,0,0,.5); word-break: break-word; max-width: 660px; }
             .sl-preview-btn {
-                display: inline-block; margin-top: 4px; background: #C70909; color: #fff;
-                font-weight: 500; border-radius: 4px; padding: 6px 14px; font-size: 12px;
+                display: inline-block; margin-top: 10px; background: #C70909; color: #fff;
+                font-weight: 500; border-radius: 4px; padding: 10px 22px; font-size: 14px;
             }
             .blk-row { border: 1px solid #e3e6ea; border-radius: 8px; padding: 12px; margin-bottom: 12px; background: #fafbfc; }
             .blk-row-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
@@ -352,6 +349,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
             (function () {
                 const container = document.getElementById('blocksContainer');
                 const preview   = document.getElementById('slPreview');
+                const frame     = document.getElementById('slPreviewFrame');
                 const pvContent = document.getElementById('slPreviewContent');
 
                 function optionsHtml(map, selected) {
@@ -405,12 +403,17 @@ require_once dirname(__DIR__) . '/includes/header.php';
 
                 function renderPreview() {
                     const url = (document.getElementById('imageUrl') || {}).value || '';
-                    preview.style.backgroundImage = url ? "url('" + url + "')" : 'none';
-                    const scale = Math.max(0.1, preview.clientWidth / 1140);
+                    // background image via CSS custom property so it layers on top of the gradient
+                    frame.style.setProperty('--bg', url ? 'url("' + url + '")' : '#14171c');
+                    // scale the whole 1140×420 frame down to the container width (pixel-perfect)
+                    const scale = Math.max(0.05, preview.clientWidth / 1140);
+                    frame.style.transform = 'scale(' + scale + ')';
+                    preview.style.height  = (420 * scale) + 'px';
                     pvContent.innerHTML = '';
                     container.querySelectorAll('.blk-row').forEach(function (row) {
                         const text = row.querySelector('.blk-text').value;
                         if (!text.trim()) return;
+                        // Use REAL pixel sizes — frame is already scaled, so proportions match the site exactly
                         const size   = parseInt(row.querySelector('[name="blk_size[]"]').value, 10)  || 24;
                         const mb     = parseInt(row.querySelector('[name="blk_mb[]"]').value, 10)    || 0;
                         const weight = row.querySelector('[name="blk_weight[]"]').value;
@@ -419,8 +422,8 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         const div = document.createElement('div');
                         div.className = 'sl-preview-block';
                         div.textContent = text;
-                        div.style.fontSize     = (size * scale) + 'px';
-                        div.style.marginBottom = (mb * scale) + 'px';
+                        div.style.fontSize     = size + 'px';
+                        div.style.marginBottom = mb + 'px';
                         div.style.fontWeight   = weight;
                         div.style.color        = color;
                         const stack = window.SL_FONT_STACK[font];
