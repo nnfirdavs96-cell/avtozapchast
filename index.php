@@ -90,12 +90,25 @@ require_once __DIR__ . '/includes/header.php';
             $imgMobile  = $imgMobile ?: $imgDesktop;       // fall back to desktop on mobile
             $linkUrl = $sl['link_url'] ?: (APP_URL . '/catalog/index.php');
             $blocks  = $sl['_blocks'] ?? [];
+
+            // Text position: "h-v" e.g. "left-center", "center-top", "right-bottom"
+            $rawPos   = $sl['text_pos'] ?? 'left-center';
+            $posParts = explode('-', preg_match('/^(left|center|right)-(top|center|bottom)$/', $rawPos) ? $rawPos : 'left-center', 2);
+            $hAlign   = $posParts[0];
+            $vAlign   = $posParts[1];
+            // Bootstrap flex class for vertical alignment (overrides align-items-center)
+            $vClass   = $vAlign === 'top' ? 'align-items-start' : ($vAlign === 'bottom' ? 'align-items-end' : 'align-items-center');
+            $vPadding = $vAlign === 'top'    ? 'padding-top:60px;'    : ($vAlign === 'bottom' ? 'padding-bottom:60px;' : '');
+            // Inline style for the slider_content horizontal alignment
+            $contentStyle = $hAlign === 'center'
+                ? 'text-align:center;display:flex;flex-direction:column;align-items:center;'
+                : ($hAlign === 'right' ? 'text-align:right;display:flex;flex-direction:column;align-items:flex-end;' : '');
         ?>
-        <div class="single_slider d-flex align-items-center" data-bgimg="<?= sanitize($imgUrl) ?>" data-bgimg-mobile="<?= sanitize($imgMobile) ?>">
+        <div class="single_slider d-flex <?= $vClass ?>" style="<?= sanitize($vPadding) ?>" data-bgimg="<?= sanitize($imgUrl) ?>" data-bgimg-mobile="<?= sanitize($imgMobile) ?>">
             <div class="container">
                 <div class="row">
                     <div class="col-12">
-                        <div class="slider_content">
+                        <div class="slider_content"<?= $contentStyle ? ' style="' . sanitize($contentStyle) . '"' : '' ?>>
                             <?php if ($blocks): ?>
                                 <?php foreach ($blocks as $b): ?>
                                     <?php
