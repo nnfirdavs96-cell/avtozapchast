@@ -12,17 +12,18 @@
 2. [Быстрый старт](#быстрый-старт)
 3. [Подробная установка](#подробная-установка)
 4. [Настройка веб-сервера](#настройка-веб-сервера)
-5. [Аккаунты по умолчанию](#аккаунты-по-умолчанию)
-6. [Структура проекта](#структура-проекта)
-7. [Роли и права доступа](#роли-и-права-доступа)
-8. [Функционал по ролям](#функционал-по-ролям)
-9. [API загрузки изображений](#api-загрузки-изображений)
-10. [Многоязычность](#многоязычность)
-11. [Валюты](#валюты)
-12. [Резервное копирование](#резервное-копирование)
-13. [Решение проблем](#решение-проблем)
-14. [Разработка](#разработка)
-15. [Архитектура](#архитектура)
+5. [Перенос на хостинг (Timeweb) и тест-сервер](#перенос-на-хостинг-timeweb-и-тест-сервер)
+6. [Аккаунты по умолчанию](#аккаунты-по-умолчанию)
+7. [Структура проекта](#структура-проекта)
+8. [Роли и права доступа](#роли-и-права-доступа)
+9. [Функционал по ролям](#функционал-по-ролям)
+10. [API загрузки изображений](#api-загрузки-изображений)
+11. [Многоязычность](#многоязычность)
+12. [Валюты](#валюты)
+13. [Резервное копирование](#резервное-копирование)
+14. [Решение проблем](#решение-проблем)
+15. [Разработка](#разработка)
+16. [Архитектура](#архитектура)
 
 ---
 
@@ -78,12 +79,12 @@ cd /var/www/html/avtozapchast
 
 # 2. Создать БД
 mysql -u root -p -e "CREATE DATABASE avtozapchast CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'avtouser'@'localhost' IDENTIFIED BY 'Avto@2024!';
+CREATE USER 'avtouser'@'localhost' IDENTIFIED BY 'ВАШ_ПАРОЛЬ';  -- задайте свой; в репозиторий не коммитить
 GRANT ALL ON avtozapchast.* TO 'avtouser'@'localhost'; FLUSH PRIVILEGES;"
 
 # 3. Применить схемы
 for f in schema.sql schema_v2.sql schema_v3.sql schema_v4.sql; do
-    mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/$f
+    mysql -u avtouser -p avtozapchast < sql/$f
 done
 
 # 4. Настроить права
@@ -128,7 +129,7 @@ CREATE DATABASE avtozapchast
     COLLATE utf8mb4_unicode_ci;
 
 -- Создать пользователя (замените пароль на свой!)
-CREATE USER 'avtouser'@'localhost' IDENTIFIED BY 'Avto@2024!';
+CREATE USER 'avtouser'@'localhost' IDENTIFIED BY 'ВАШ_ПАРОЛЬ';  -- задайте свой; в репозиторий не коммитить
 
 -- Дать права
 GRANT ALL PRIVILEGES ON avtozapchast.* TO 'avtouser'@'localhost';
@@ -148,61 +149,61 @@ EXIT;
 cd /var/www/html/avtozapchast
 
 # Версия 1: основные таблицы
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/schema.sql
+mysql -u avtouser -p avtozapchast < sql/schema.sql
 
 # Версия 2: wishlist, currencies, languages, blog_posts
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/schema_v2.sql
+mysql -u avtouser -p avtozapchast < sql/schema_v2.sql
 
 # Версия 3: backups, warehouse_api_log
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/schema_v3.sql
+mysql -u avtouser -p avtozapchast < sql/schema_v3.sql
 
 # Версия 4: sliders + image_path в блоге
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/schema_v4.sql
+mysql -u avtouser -p avtozapchast < sql/schema_v4.sql
 
 # CMS: категории блога + разделы страницы «О нас» (site_sections)
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_cms.sql
+mysql -u avtouser -p avtozapchast < sql/migrate_cms.sql
 
 # Отзывы на товары (product_reviews) — применять ПОСЛЕ migrate_cms
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_reviews.sql
+mysql -u avtouser -p avtozapchast < sql/migrate_reviews.sql
 
 # Отзывы о магазине + флаг витрины (shop_reviews, is_featured)
 # ВАЖНО: строго ПОСЛЕ migrate_reviews.sql
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_reviews_v2.sql
+mysql -u avtouser -p avtozapchast < sql/migrate_reviews_v2.sql
 
 # VIN-поиск (декодер + аналоги)
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_vin.sql
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_vin_v2.sql
+mysql -u avtouser -p avtozapchast < sql/migrate_vin.sql
+mysql -u avtouser -p avtozapchast < sql/migrate_vin_v2.sql
 
 # Глобальная/категорийная наценка (site_settings global_markup, колонки markup_percent)
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_markup.sql
+mysql -u avtouser -p avtozapchast < sql/migrate_markup.sql
 
 # Таджикский рынок: язык/валюта/контакты по умолчанию
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_tajik_market.sql
+mysql -u avtouser -p avtozapchast < sql/migrate_tajik_market.sql
 
 # Только сомони (TJS / СМН), отключить прочие валюты
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/only_tjs_currency.sql
+mysql -u avtouser -p avtozapchast < sql/only_tjs_currency.sql
 
 # Прямое ценообразование в СМН: курс TJS = 1.0 (цена в БД = цена на витрине 1:1)
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/tjs_direct_pricing.sql
+mysql -u avtouser -p avtozapchast < sql/tjs_direct_pricing.sql
 
 # Переименование сайта АвтоЗапчасть → AvtoDoc (обновляет site_settings)
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/rename_to_avtodoc.sql
+mysql -u avtouser -p avtozapchast < sql/rename_to_avtodoc.sql
 
 # Гранулярные права: таблица user_permissions (суперадмин раздаёт разделы)
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_permissions.sql
+mysql -u avtouser -p avtozapchast < sql/migrate_permissions.sql
 
 # Изображение категории на главной (colonка categories.image_path)
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_category_image.sql
+mysql -u avtouser -p avtozapchast < sql/add_category_image.sql
 
 # Логотип бренда/партнёра (колонка brands.logo_path)
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_brand_logo.sql
+mysql -u avtouser -p avtozapchast < sql/add_brand_logo.sql
 
 # Аватар + сохранённый адрес доставки покупателя
 # (users.avatar_path, first_name, last_name, address, city, zip_code, country)
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_user_profile_fields.sql
+mysql -u avtouser -p avtozapchast < sql/add_user_profile_fields.sql
 
 # AutoEuro API (склад, поиск/заказ) — опционально, если используете внешний склад
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/schema_autoeuro.sql
+mysql -u avtouser -p avtozapchast < sql/schema_autoeuro.sql
 ```
 
 > ⚠️ Если выводятся ошибки `Duplicate entry` — это нормально. Это значит, что данные уже есть в базе.
@@ -214,7 +215,7 @@ mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/schema_autoeuro.sql
 
 Проверить, что таблицы созданы:
 ```bash
-mysql -u avtouser -p'Avto@2024!' avtozapchast -e "SHOW TABLES;"
+mysql -u avtouser -p avtozapchast -e "SHOW TABLES;"
 ```
 
 Должны появиться: `users`, `categories`, `brands`, `parts`, `orders`, `order_items`, `cart`, `wishlist`, `site_settings`, `currencies`, `languages`, `blog_posts`, `sliders`, `backups`, `warehouse_api_log`, `site_sections`, `product_reviews`, `shop_reviews`.
@@ -226,17 +227,25 @@ mysql -u avtouser -p'Avto@2024!' avtozapchast -e "SHOW TABLES;"
 nano config/config.php
 ```
 
-Изменить `APP_URL`:
+**`APP_URL` определяется автоматически** (с мая 2026) — править вручную не нужно:
+
 ```php
-// Для локальной разработки (относительные URL):
-define('APP_URL', '');
-
-// Для продакшена:
-define('APP_URL', 'https://yourdomain.com');
-
-// Для тестирования по IP:
-define('APP_URL', 'http://192.168.88.3');
+// config/config.php — логика уже встроена:
+//   • localhost / 127.0.0.1 / ::1  → APP_URL = ''            (относительные URL, локальная разработка)
+//   • любой другой хост            → APP_URL = 'https://autodoc.tj' (канонический домен в продакшене)
 ```
+
+> **Зачем так:** раньше `APP_URL` был пустым и в коммите, поэтому все ссылки и
+> редиректы были относительными и «прилипали» к хосту, через который зашли. На
+> Timeweb обратный прокси передаёт бэкенду внутренний IP (`10.230.13.107`) в
+> заголовке `Host` — и весь сайт открывался по этому IP вместо домена. Авто-логика
+> переживает `git pull` (ничего копировать вручную не нужно) и держит продакшен
+> строго на `https://autodoc.tj`. Хелпер `redirect()` дополнительно достраивает
+> относительные пути до абсолютных через `APP_URL`, чтобы прокси не мог подменить
+> `Location` на внутренний IP.
+
+Если домен сменится — поправьте единственное место в `config/config.php`
+(строка с `define('APP_URL', 'https://autodoc.tj')`).
 
 **Порт админ-панели (`ADMIN_PORT`):**
 ```php
@@ -250,15 +259,27 @@ define('ADMIN_PORT', '8888');
 > Отдельный порт для админ-панели». Чтобы вообще отключить разделение
 > (админка снова на общем порту) — задайте `define('ADMIN_PORT', '');`.
 
-### Шаг 5: Настройка database.php
+### Шаг 5: Настройка подключения к БД (db_credentials.php)
 
-Открыть `config/database.php` и убедиться, что данные подключения совпадают:
+**Не редактируйте `config/database.php`** — реквизиты подключения каждого сервера
+живут в отдельном файле `config/db_credentials.php`, который **исключён из git**
+(`.gitignore`). Так у dev-машины и хостинга свои настройки, и `git pull` никогда
+не перетирает чужие.
+
+Создайте `config/db_credentials.php` на каждом сервере (пароль — из панели
+хостинга / своей локальной установки, **в репозиторий не коммитить**):
+
 ```php
+<?php
 define('DB_HOST', 'localhost');
-define('DB_USER', 'avtouser');
-define('DB_PASS', 'Avto@2024!');  // ваш пароль
-define('DB_NAME', 'avtozapchast');
+define('DB_USER', 'ВАШ_ПОЛЬЗОВАТЕЛЬ');
+define('DB_PASS', 'ВАШ_ПАРОЛЬ');      // НЕ коммитить в git
+define('DB_NAME', 'ВАША_БАЗА');
 ```
+
+`config/database.php` сам подключит этот файл, если он есть; иначе использует
+безопасные dev-значения по умолчанию. Никаких реальных паролей в репозитории нет
+и быть не должно.
 
 ### Шаг 6: Настройка прав доступа
 
@@ -392,7 +413,7 @@ cp /etc/nginx/sites-available/avtozapchast.bak /etc/nginx/sites-available/avtoza
 ```bash
 cd /var/www/html/avtozapchast        # ← ТОЛЬКО эта папка, не /var/www/html
 git pull origin main
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/rename_to_avtodoc.sql  # один раз
+mysql -u avtouser -p avtozapchast < sql/rename_to_avtodoc.sql  # один раз; -p запросит пароль
 systemctl reload php8.2-fpm          # если правился PHP
 ```
 
@@ -586,6 +607,75 @@ RewriteRule ^(.*)$ index.php?$1 [L,QSA]
     Deny from all
 </FilesMatch>
 ```
+
+---
+
+## Перенос на хостинг (Timeweb) и тест-сервер
+
+Проект работает на двух площадках с **одинаковым кодом из одной ветки `main`**,
+но с независимыми настройками подключения к БД:
+
+| Площадка | Что это | Веб-сервер | Особенности |
+|----------|---------|-----------|-------------|
+| **Тест-сервер `10.230.13.107`** | боевой VPS, на котором ведётся отладка | `nginx` + `php-fpm 8.2` | домен `autodoc.tj`; обратный прокси передаёт бэкенду внутренний IP в `Host` |
+| **Timeweb (хостинг)** | продакшн-хостинг | `Apache` (`.htaccess`) | СУБД **MySQL 8.0**; реквизиты БД — из панели Timeweb |
+
+Главные принципы:
+
+1. **Один источник истины — ветка `main`.** Оба сервера обновляются через
+   `git pull origin main`. Никаких ручных правок кода прямо на серверах.
+2. **Реквизиты БД — вне git.** Каждый сервер держит свой
+   `config/db_credentials.php` (см. «Шаг 5»). `git pull` их не трогает.
+3. **`APP_URL` — авто.** Определяется в `config/config.php` (localhost →
+   относительные URL, иначе → `https://autodoc.tj`). Ничего копировать не нужно.
+4. **Совместимость MariaDB ↔ MySQL 8.0.** Все добавления колонок идут через
+   `dbAddColumnIfMissing()`, а не через MariaDB-only `ADD COLUMN IF NOT EXISTS`.
+
+### Файлы для деплоя (`deploy/`)
+
+| Файл | Назначение |
+|------|------------|
+| `.htaccess` (в корне) | Маршрутизация как nginx `try_files`, запрет доступа к `config/`, `sql/`, `deploy/`, `storage/backups/`, `.git/`; security-заголовки; PHP-лимиты загрузки (32M). Нужен для Apache на Timeweb. |
+| `deploy/timeweb/config.php` | Пример прод-конфига (`APP_URL = https://autodoc.tj`). Справочный — в самом `config/config.php` уже встроена авто-логика. |
+| `deploy/timeweb/database.php` | Шаблон с плейсхолдерами под реквизиты Timeweb. Реальные значения кладутся в `config/db_credentials.php`. |
+| `deploy/timeweb/export-db.sh` | Снимает дамп БД (`mysqldump`, пароль запрашивается интерактивно) для импорта через phpMyAdmin Timeweb. |
+| `deploy/nginx-avtozapchast.conf`, `deploy/nginx-avtozapchast-domain.conf` | Примеры конфигов nginx (по IP и по домену). |
+
+### Первичный перенос на Timeweb
+
+```bash
+# 1. На тест-сервере снять дамп БД (пароль спросит интерактивно)
+bash deploy/timeweb/export-db.sh
+#    → получится autodoc_export_ГГГГММДД_ЧЧММСС.sql
+
+# 2. Импортировать дамп в Timeweb:
+#    Панель Timeweb → Базы данных → phpMyAdmin → Import → выбрать .sql
+
+# 3. Развернуть код на Timeweb (git clone ветки main в каталог сайта)
+git clone <repo-url> .
+git checkout main
+
+# 4. Создать config/db_credentials.php с реквизитами БД из панели Timeweb
+#    (DB_USER / DB_PASS / DB_NAME — см. «Шаг 5»). В git НЕ коммитить.
+
+# 5. Проверить права на запись
+chmod -R 775 assets/uploads storage
+```
+
+> `.sql`-дампы и `config/db_credentials.php` исключены из git (`.gitignore`),
+> поэтому пароли и выгрузки БД никогда не попадают в репозиторий.
+
+### Обновление обоих серверов после мержа в `main`
+
+```bash
+cd <каталог-сайта>      # на Timeweb — корень сайта; на тест-сервере — /var/www/html/avtozapchast
+git pull origin main
+# применить новые миграции из sql/ при необходимости (mysql ... < sql/<файл>.sql; -p спросит пароль)
+```
+
+> Колонки слайдера/баннеров/категорий создаются автоматически при первом
+> открытии соответствующей страницы админки (`dbAddColumnIfMissing`), отдельная
+> миграция для них не нужна.
 
 ---
 
@@ -1146,7 +1236,7 @@ crontab -e
 
 Через CLI:
 ```bash
-gunzip -c storage/backups/backup_2026-05-11.sql.gz | mysql -u avtouser -p'Avto@2024!' avtozapchast
+gunzip -c storage/backups/backup_2026-05-11.sql.gz | mysql -u avtouser -p avtozapchast
 ```
 
 ### Удаление старых бэкапов
@@ -1182,7 +1272,7 @@ error_reporting(E_ALL);
 Проверить:
 - Запущен ли MySQL: `systemctl status mysql`
 - Правильный ли пароль в `config/database.php`
-- Существует ли пользователь: `mysql -u avtouser -p'Avto@2024!' -e "SELECT 1;"`
+- Существует ли пользователь: `mysql -u avtouser -p -e "SELECT 1;"`
 
 ### "Неверный email или пароль" при правильных данных
 
@@ -1449,6 +1539,43 @@ if ($flash = getFlashMessage()) {
 
 Описано в формате «что → где → зачем», чтобы любой разработчик мог
 сориентироваться в коде. Новые записи — сверху.
+
+### Фикс: весь сайт открывался по внутреннему IP `10.230.13.107` (PR #124)
+
+**Проблема:** на проде все страницы (вход, магазин, блог…) и редиректы оставались
+на внутреннем IP `10.230.13.107` вместо `https://autodoc.tj`.
+
+**Причина:** `config/config.php` коммитился с пустым `APP_URL`, поэтому все ~486
+ссылок и 110 вызовов `redirect()` были относительными и резолвились относительно
+хоста, который обратный прокси Timeweb передавал бэкенду в заголовке `Host` — а это
+приватный IP. Относительный `Location` прокси переписывал на тот же IP. `git pull`
+каждый раз возвращал пустой `APP_URL`, поэтому ручное копирование прод-конфига не
+держалось.
+
+| Файл | Что изменено |
+|------|--------------|
+| `config/config.php` | `APP_URL` определяется автоматически: `''` на localhost (относительные URL для разработки), `https://autodoc.tj` на любом другом хосте. Переживает `git pull`. |
+| `includes/functions.php` | `redirect()` достраивает относительные пути (`/path`) до абсолютных через `APP_URL`, чтобы прокси не подменял `Location` на внутренний IP. Абсолютные и уже-префиксованные URL не трогаются. |
+
+### Слайдер: редактор текстовых блоков, мобильный размер шрифта, позиционирование и демо-превью (PR #118–#123)
+
+**Цель:** сотрудник должен сам управлять видом слайдов — без правки кода. Сколько
+строк, размер шрифта (отдельно десктоп/мобильный), жирность, цвет, шрифт, отступы,
+куда поместить текст (9 позиций), и видеть демонстрационный экран до сохранения.
+
+| Файл | Что изменено |
+|------|--------------|
+| `admin/sliders.php` | Полностью переписан редактор: карточки «Текстовые блоки» (добавить/удалить/переместить строку; на каждую — размер десктоп, **размер мобильный** (0 = авто), жирность, цвет, шрифт, отступ снизу), сетка-пикер 3×3 для позиции текста (`text_pos`), живое превью с переключателем **Десктоп / Мобильный** (точные размеры 1140×420 / 390×300 через `transform: scale`). |
+| `includes/functions.php` | `normalizeSliderBlocks()` валидирует массив блоков (текст, размеры, вес, цвет `#rrggbb`, шрифт, отступ); `sliderFonts()`/`sliderFontStack()`/`sliderWeights()` — белые списки Google-шрифтов и насыщенностей; `dbAddColumnIfMissing()` — портируемая миграция колонок (MariaDB dev / MySQL 8.0 прод). |
+| `index.php` | Слайды рендерят блоки `.slider_block` с инлайн-CSS-переменными `--fs` (десктоп) и `--fsm` (мобильный, только если задан); `text_pos` применяется через Bootstrap-классы выравнивания. |
+| `assets/css/custom.css` | `.slider_block { font-size: var(--fs) }`; медиа-запросы масштабируют для планшетов/телефонов: на ≤767px `font-size: var(--fsm, calc(var(--fs)*0.32))`. |
+| БД `sliders` | Новые колонки (через `dbAddColumnIfMissing`): `text_blocks TEXT` (JSON-массив блоков), `text_pos VARCHAR(20)`, `image_url_mobile`. |
+
+> **Важно (совместимость MySQL 8.0):** синтаксис `ALTER TABLE … ADD COLUMN IF NOT
+> EXISTS` — только для MariaDB. На Timeweb (MySQL 8.0) он давал ошибку, колонка не
+> создавалась, и сохранение слайда падало с 500. Все миграции колонок переведены на
+> `dbAddColumnIfMissing()` (проверка через `information_schema.COLUMNS`). Тот же фикс
+> применён в `admin/banners.php` и `manager/categories.php`.
 
 ### Баннеры в админке, PDF-руководство, фиксы витрины и адреса доставки
 
@@ -1990,18 +2117,18 @@ sudo git pull origin main
 
 # Применить новые миграции, если они появились в этом обновлении
 # (идемпотентны — повторный запуск безопасен; порядок важен)
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_cms.sql
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_reviews.sql
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_reviews_v2.sql
+mysql -u avtouser -p avtozapchast < sql/migrate_cms.sql
+mysql -u avtouser -p avtozapchast < sql/migrate_reviews.sql
+mysql -u avtouser -p avtozapchast < sql/migrate_reviews_v2.sql
 
 # Контент/профиль (этот цикл правок) — тоже идемпотентны:
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_category_image.sql
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_brand_logo.sql
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_user_profile_fields.sql
+mysql -u avtouser -p avtozapchast < sql/add_category_image.sql
+mysql -u avtouser -p avtozapchast < sql/add_brand_logo.sql
+mysql -u avtouser -p avtozapchast < sql/add_user_profile_fields.sql
 
 # Ребрендинг + сортировка брендов (PR #95, #97):
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/rename_to_autodoc.sql
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/add_brand_sort_order.sql
+mysql -u avtouser -p avtozapchast < sql/rename_to_autodoc.sql
+mysql -u avtouser -p avtozapchast < sql/add_brand_sort_order.sql
 
 # Папки загрузок должны быть доступны веб-серверу на запись
 sudo chown -R www-data:www-data assets/uploads && sudo chmod -R 775 assets/uploads
@@ -2189,9 +2316,9 @@ cd /var/www/html/avtozapchast
 git pull origin main
 
 # Применить НОВЫЕ миграции (идемпотентны, повторный запуск безопасен):
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/migrate_permissions.sql   # права (один раз)
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/tjs_direct_pricing.sql    # цены 1:1 в СМН
-mysql -u avtouser -p'Avto@2024!' avtozapchast < sql/rename_to_avtodoc.sql     # имя сайта → AvtoDoc
+mysql -u avtouser -p avtozapchast < sql/migrate_permissions.sql   # права (один раз)
+mysql -u avtouser -p avtozapchast < sql/tjs_direct_pricing.sql    # цены 1:1 в СМН
+mysql -u avtouser -p avtozapchast < sql/rename_to_avtodoc.sql     # имя сайта → AvtoDoc
 # (schema_autoeuro.sql — только если используете внешний склад AutoEuro)
 
 # Разделение админки на порт 8888 (один раз, см. «Apache → Отдельный

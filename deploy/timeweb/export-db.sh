@@ -6,14 +6,19 @@
 DATE=$(date +%Y%m%d_%H%M%S)
 DUMP_FILE="autodoc_export_${DATE}.sql"
 
-echo "Экспорт базы данных avtozapchast..."
+# Реквизиты БД берём из config/db_credentials.php (в git его нет).
+# Пароль не хранится в скрипте — mysqldump запросит его интерактивно (-p).
+DB_NAME="${DB_NAME:-avtozapchast}"
+DB_USER="${DB_USER:-avtouser}"
+
+echo "Экспорт базы данных ${DB_NAME}..."
 mysqldump \
-    -u avtouser \
-    -p'Avto@2024!' \
+    -u "$DB_USER" \
+    -p \
     --single-transaction \
     --routines \
     --triggers \
-    avtozapchast > "$DUMP_FILE"
+    "$DB_NAME" > "$DUMP_FILE"
 
 if [ $? -eq 0 ]; then
     SIZE=$(du -sh "$DUMP_FILE" | cut -f1)
