@@ -322,7 +322,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 display: flex; flex-direction: column; align-items: flex-start;
                 justify-content: center; padding-left: 80px;
             }
-            .sl-preview-block { line-height: 1.05; text-shadow: 0 2px 14px rgba(0,0,0,.5); word-break: break-word; max-width: 660px; }
+            .sl-preview-block { line-height: 1.05; text-shadow: 0 2px 14px rgba(0,0,0,.5); word-break: break-word; }
             .sl-preview-btn {
                 display: inline-block; margin-top: 10px; background: #C70909; color: #fff;
                 font-weight: 500; border-radius: 4px; padding: 10px 22px; font-size: 14px;
