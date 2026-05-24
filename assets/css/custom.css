@@ -354,6 +354,23 @@
     background-color: #000 !important;
 }
 
+/* Заголовок слайдера: 1-я строка тоньше, 2-я строка крупнее и жирнее
+   (как в оригинальном шаблоне Mazlay), плюс тень для читаемости. */
+.slider_content h1 {
+    font-weight: 500;
+    line-height: 1.05;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.45);
+}
+.slider_content h1 span {
+    display: block;
+    font-weight: 800;
+    font-size: 1.25em;
+    margin-top: 6px;
+}
+.slider_content p {
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.45);
+}
+
 /* Owl-carousel: показываем контейнер сразу (до инициализации плагина),
    но ограничиваем видимое количество слайдов */
 .owl-carousel { display: block !important; }

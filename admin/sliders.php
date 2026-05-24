@@ -10,6 +10,7 @@ $csrf = generateCsrfToken();
 $db->exec("CREATE TABLE IF NOT EXISTS `sliders` (
   `id`               INT UNSIGNED  NOT NULL AUTO_INCREMENT,
   `title`            VARCHAR(255)  NOT NULL DEFAULT '',
+  `title_highlight`  VARCHAR(255)  NOT NULL DEFAULT '',
   `subtitle`         VARCHAR(255)  NOT NULL DEFAULT '',
   `image_url`        VARCHAR(500)  NOT NULL DEFAULT '',
   `image_url_mobile` VARCHAR(500)  NOT NULL DEFAULT '',
@@ -22,6 +23,7 @@ $db->exec("CREATE TABLE IF NOT EXISTS `sliders` (
 
 // Add mobile column to pre-existing tables
 try { $db->exec("ALTER TABLE `sliders` ADD COLUMN IF NOT EXISTS `image_url_mobile` VARCHAR(500) NOT NULL DEFAULT '' AFTER `image_url`"); } catch (Throwable $e) {}
+try { $db->exec("ALTER TABLE `sliders` ADD COLUMN IF NOT EXISTS `title_highlight` VARCHAR(255) NOT NULL DEFAULT '' AFTER `title`"); } catch (Throwable $e) {}
 
 // ── POST handler ──────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -57,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Save (add / edit)
     $sid       = (int)($_POST['id'] ?? 0);
     $title     = trim($_POST['title'] ?? '');
+    $titleHl   = trim($_POST['title_highlight'] ?? '');
     $subtitle  = trim($_POST['subtitle'] ?? '');
     $imgUrl    = trim($_POST['image_url'] ?? '');
     $imgMobile = trim($_POST['image_url_mobile'] ?? '');
@@ -70,13 +73,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($sid) {
         $db->prepare(
-            "UPDATE sliders SET title=?, subtitle=?, image_url=?, image_url_mobile=?, link_url=?, sort_order=? WHERE id=?"
-        )->execute([$title, $subtitle, $imgUrl, $imgMobile, $linkUrl, $sort, $sid]);
+            "UPDATE sliders SET title=?, title_highlight=?, subtitle=?, image_url=?, image_url_mobile=?, link_url=?, sort_order=? WHERE id=?"
+        )->execute([$title, $titleHl, $subtitle, $imgUrl, $imgMobile, $linkUrl, $sort, $sid]);
         flashMessage('success', 'Слайд обновлён.');
     } else {
         $db->prepare(
-            "INSERT INTO sliders (title, subtitle, image_url, image_url_mobile, link_url, sort_order, is_active) VALUES (?,?,?,?,?,?,1)"
-        )->execute([$title, $subtitle, $imgUrl, $imgMobile, $linkUrl, $sort]);
+            "INSERT INTO sliders (title, title_highlight, subtitle, image_url, image_url_mobile, link_url, sort_order, is_active) VALUES (?,?,?,?,?,?,?,1)"
+        )->execute([$title, $titleHl, $subtitle, $imgUrl, $imgMobile, $linkUrl, $sort]);
         flashMessage('success', 'Слайд добавлен.');
     }
     redirect(APP_URL . '/admin/sliders.php');
@@ -189,16 +192,23 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     <div class="az-card">
                         <h3>Текст и ссылка</h3>
                         <div class="az-form-group">
-                            <label>Заголовок слайда</label>
+                            <label>Заголовок — 1-я строка (тонкая)</label>
                             <input type="text" name="title"
                                    value="<?= sanitize($editSlide['title'] ?? '') ?>"
-                                   placeholder="Авто запчасти по лучшим ценам">
+                                   placeholder="КРУПНАЯ РАСПРОДАЖА">
+                        </div>
+                        <div class="az-form-group">
+                            <label>Заголовок — 2-я строка (жирная, крупная)</label>
+                            <input type="text" name="title_highlight"
+                                   value="<?= sanitize($editSlide['title_highlight'] ?? '') ?>"
+                                   placeholder="АКСЕССУАРЫ FIDANZA">
+                            <small style="color:#888;">Выводится отдельной строкой более крупным и жирным шрифтом. Оставьте пустым, если не нужна.</small>
                         </div>
                         <div class="az-form-group">
                             <label>Подзаголовок</label>
                             <input type="text" name="subtitle"
                                    value="<?= sanitize($editSlide['subtitle'] ?? '') ?>"
-                                   placeholder="Более 10 000 позиций в наличии">
+                                   placeholder="Эксклюзивное предложение -30%">
                         </div>
                         <div class="az-form-group">
                             <label>Ссылка кнопки (URL)</label>
@@ -301,8 +311,13 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             </div>
                         </div>
                         <div style="padding:14px;">
-                            <?php if ($slide['title']): ?>
-                                <div style="font-weight:700;font-size:0.9rem;margin-bottom:4px;"><?= sanitize($slide['title']) ?></div>
+                            <?php if ($slide['title'] || !empty($slide['title_highlight'])): ?>
+                                <div style="font-weight:700;font-size:0.9rem;margin-bottom:4px;">
+                                    <?= sanitize($slide['title']) ?>
+                                    <?php if (!empty($slide['title_highlight'])): ?>
+                                        <span style="color:#C70909;"><?= sanitize($slide['title_highlight']) ?></span>
+                                    <?php endif; ?>
+                                </div>
                             <?php endif; ?>
                             <?php if ($slide['subtitle']): ?>
                                 <div style="font-size:0.8rem;color:#888;margin-bottom:8px;"><?= sanitize($slide['subtitle']) ?></div>
