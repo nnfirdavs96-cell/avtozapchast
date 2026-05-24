@@ -24,6 +24,7 @@ $db->exec("CREATE TABLE IF NOT EXISTS `sliders` (
 // Add columns to pre-existing tables (portable across MariaDB dev / MySQL 8.0 prod).
 dbAddColumnIfMissing($db, 'sliders', 'image_url_mobile', "`image_url_mobile` VARCHAR(500) NOT NULL DEFAULT '' AFTER `image_url`");
 dbAddColumnIfMissing($db, 'sliders', 'title_highlight',  "`title_highlight` VARCHAR(255) NOT NULL DEFAULT '' AFTER `title`");
+dbAddColumnIfMissing($db, 'sliders', 'text_blocks',      "`text_blocks` TEXT NULL AFTER `subtitle`");
 
 // ── POST handler ──────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -58,13 +59,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Save (add / edit)
     $sid       = (int)($_POST['id'] ?? 0);
-    $title     = trim($_POST['title'] ?? '');
-    $titleHl   = trim($_POST['title_highlight'] ?? '');
-    $subtitle  = trim($_POST['subtitle'] ?? '');
     $imgUrl    = trim($_POST['image_url'] ?? '');
     $imgMobile = trim($_POST['image_url_mobile'] ?? '');
     $linkUrl   = trim($_POST['link_url'] ?? '');
     $sort      = (int)($_POST['sort_order'] ?? 0);
+
+    // Build text blocks from the parallel form arrays.
+    $rawBlocks = [];
+    $blkText = $_POST['blk_text'] ?? [];
+    if (is_array($blkText)) {
+        foreach ($blkText as $i => $txt) {
+            $rawBlocks[] = [
+                'text'   => $txt,
+                'size'   => $_POST['blk_size'][$i]   ?? 24,
+                'weight' => $_POST['blk_weight'][$i] ?? '400',
+                'color'  => $_POST['blk_color'][$i]  ?? '#ffffff',
+                'font'   => $_POST['blk_font'][$i]   ?? '',
+                'mb'     => $_POST['blk_mb'][$i]      ?? 10,
+            ];
+        }
+    }
+    $blocks     = normalizeSliderBlocks($rawBlocks);
+    $textBlocks = $blocks ? json_encode($blocks, JSON_UNESCAPED_UNICODE) : '';
+    $title      = $blocks[0]['text'] ?? '';   // first block doubles as the list-preview title
 
     if ($imgUrl === '' && $imgMobile === '') {
         flashMessage('danger', 'Загрузите хотя бы одно изображение (десктоп или мобильное).');
@@ -73,13 +90,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($sid) {
         $db->prepare(
-            "UPDATE sliders SET title=?, title_highlight=?, subtitle=?, image_url=?, image_url_mobile=?, link_url=?, sort_order=? WHERE id=?"
-        )->execute([$title, $titleHl, $subtitle, $imgUrl, $imgMobile, $linkUrl, $sort, $sid]);
+            "UPDATE sliders SET title=?, title_highlight='', subtitle='', text_blocks=?, image_url=?, image_url_mobile=?, link_url=?, sort_order=? WHERE id=?"
+        )->execute([$title, $textBlocks, $imgUrl, $imgMobile, $linkUrl, $sort, $sid]);
         flashMessage('success', 'Слайд обновлён.');
     } else {
         $db->prepare(
-            "INSERT INTO sliders (title, title_highlight, subtitle, image_url, image_url_mobile, link_url, sort_order, is_active) VALUES (?,?,?,?,?,?,?,1)"
-        )->execute([$title, $titleHl, $subtitle, $imgUrl, $imgMobile, $linkUrl, $sort]);
+            "INSERT INTO sliders (title, text_blocks, image_url, image_url_mobile, link_url, sort_order, is_active) VALUES (?,?,?,?,?,?,1)"
+        )->execute([$title, $textBlocks, $imgUrl, $imgMobile, $linkUrl, $sort]);
         flashMessage('success', 'Слайд добавлен.');
     }
     redirect(APP_URL . '/admin/sliders.php');
@@ -98,6 +115,25 @@ if ($editId) {
 if ($_GET['action'] ?? '' === 'new') $action = 'new';
 
 $sliders = $db->query("SELECT * FROM sliders ORDER BY sort_order ASC, id ASC")->fetchAll();
+
+// ── Initial text blocks for the editor ────────────────────────────────
+// Prefer saved JSON; otherwise migrate legacy title/highlight/subtitle so
+// existing slides open with their text already populated. New slides get
+// one empty starter block.
+$initialBlocks = [];
+if ($editSlide && !empty($editSlide['text_blocks'])) {
+    $decoded = json_decode($editSlide['text_blocks'], true);
+    if (is_array($decoded)) $initialBlocks = normalizeSliderBlocks($decoded);
+}
+if (!$initialBlocks && $editSlide) {
+    if (!empty($editSlide['title']))           $initialBlocks[] = ['text'=>$editSlide['title'],           'size'=>30, 'weight'=>'400', 'color'=>'#ffffff', 'font'=>'', 'mb'=>6];
+    if (!empty($editSlide['title_highlight'])) $initialBlocks[] = ['text'=>$editSlide['title_highlight'], 'size'=>60, 'weight'=>'800', 'color'=>'#ffffff', 'font'=>'', 'mb'=>22];
+    if (!empty($editSlide['subtitle']))        $initialBlocks[] = ['text'=>$editSlide['subtitle'],        'size'=>22, 'weight'=>'400', 'color'=>'#ffffff', 'font'=>'', 'mb'=>30];
+}
+if (!$initialBlocks) {
+    $initialBlocks[] = ['text'=>'', 'size'=>30, 'weight'=>'400', 'color'=>'#ffffff', 'font'=>'', 'mb'=>6];
+    $initialBlocks[] = ['text'=>'', 'size'=>60, 'weight'=>'800', 'color'=>'#ffffff', 'font'=>'', 'mb'=>22];
+}
 
 $pageTitle = 'Слайдер — Администратор';
 require_once dirname(__DIR__) . '/includes/header.php';
@@ -119,13 +155,14 @@ require_once dirname(__DIR__) . '/includes/header.php';
             <?php endif; ?>
 
             <?php if (in_array($action, ['new', 'edit'])): ?>
+            <link rel="stylesheet" href="<?= sanitize(sliderFontsGoogleUrl()) ?>">
             <!-- ── Form ──────────────────────────────────────────── -->
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
                 <h2 style="margin:0;font-size:1.1rem;"><?= $action === 'edit' ? 'Редактировать слайд' : 'Новый слайд' ?></h2>
                 <a href="<?= APP_URL ?>/admin/sliders.php" class="az-btn az-btn-secondary az-btn-sm">← Список</a>
             </div>
 
-            <div style="max-width:640px;">
+            <div style="max-width:880px;">
                 <form method="POST" action="" id="sliderForm">
                     <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
                     <input type="hidden" name="action" value="<?= $action === 'edit' ? 'edit' : 'add' ?>">
@@ -190,26 +227,30 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     </div>
 
                     <div class="az-card">
-                        <h3>Текст и ссылка</h3>
-                        <div class="az-form-group">
-                            <label>Заголовок — 1-я строка (тонкая)</label>
-                            <input type="text" name="title"
-                                   value="<?= sanitize($editSlide['title'] ?? '') ?>"
-                                   placeholder="КРУПНАЯ РАСПРОДАЖА">
+                        <h3><i class="fa fa-eye"></i> Предпросмотр (как будет на сайте)</h3>
+                        <div id="slPreview" class="sl-preview">
+                            <div class="sl-preview-inner">
+                                <div id="slPreviewContent"></div>
+                                <span class="sl-preview-btn"><?= t('shop') ?> &raquo;</span>
+                            </div>
                         </div>
-                        <div class="az-form-group">
-                            <label>Заголовок — 2-я строка (жирная, крупная)</label>
-                            <input type="text" name="title_highlight"
-                                   value="<?= sanitize($editSlide['title_highlight'] ?? '') ?>"
-                                   placeholder="АКСЕССУАРЫ FIDANZA">
-                            <small style="color:#888;">Выводится отдельной строкой более крупным и жирным шрифтом. Оставьте пустым, если не нужна.</small>
-                        </div>
-                        <div class="az-form-group">
-                            <label>Подзаголовок</label>
-                            <input type="text" name="subtitle"
-                                   value="<?= sanitize($editSlide['subtitle'] ?? '') ?>"
-                                   placeholder="Эксклюзивное предложение -30%">
-                        </div>
+                        <small style="color:#888;">Меняется в реальном времени. Размеры пропорциональны итоговому слайдеру.</small>
+                    </div>
+
+                    <div class="az-card">
+                        <h3><i class="fa fa-font"></i> Текстовые блоки</h3>
+                        <p style="font-size:0.83rem;color:#666;margin-top:0;">
+                            Добавьте сколько угодно строк (заголовки и подзаголовки). Для каждой настройте
+                            размер, жирность, цвет, шрифт и отступ снизу. Порядок — стрелками.
+                        </p>
+                        <div id="blocksContainer"></div>
+                        <button type="button" class="az-btn az-btn-secondary az-btn-sm" id="addBlockBtn">
+                            <i class="fa fa-plus"></i> Добавить блок
+                        </button>
+                    </div>
+
+                    <div class="az-card">
+                        <h3>Кнопка и порядок</h3>
                         <div class="az-form-group">
                             <label>Ссылка кнопки (URL)</label>
                             <input type="text" name="link_url"
@@ -257,6 +298,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             document.getElementById(wrapId).appendChild(img);
                         }
                         status.textContent = 'Загружено';
+                        if (fieldId === 'imageUrl' && window.renderSlPreview) window.renderSlPreview();
                     } else {
                         status.textContent = data.error || 'Ошибка';
                     }
@@ -265,6 +307,142 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 }
                 input.value = '';
             }
+            </script>
+
+            <style>
+            .sl-preview {
+                position: relative; width: 100%; aspect-ratio: 1140 / 420;
+                min-height: 220px; border-radius: 8px; overflow: hidden;
+                background: #14171c center/cover no-repeat;
+                border: 1px solid #dee2e6; margin-bottom: 10px;
+            }
+            .sl-preview::after { /* subtle dark scrim so light text stays readable */
+                content: ""; position: absolute; inset: 0;
+                background: linear-gradient(90deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.15) 45%, rgba(0,0,0,0) 75%);
+            }
+            .sl-preview-inner {
+                position: absolute; inset: 0; z-index: 2;
+                display: flex; flex-direction: column; align-items: flex-start;
+                justify-content: center; padding: 0 6%;
+            }
+            .sl-preview-block { line-height: 1.05; text-shadow: 0 2px 14px rgba(0,0,0,.45); word-break: break-word; max-width: 92%; }
+            .sl-preview-btn {
+                display: inline-block; margin-top: 4px; background: #C70909; color: #fff;
+                font-weight: 500; border-radius: 4px; padding: 6px 14px; font-size: 12px;
+            }
+            .blk-row { border: 1px solid #e3e6ea; border-radius: 8px; padding: 12px; margin-bottom: 12px; background: #fafbfc; }
+            .blk-row-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+            .blk-row-head .blk-num { font-weight: 700; font-size: 0.8rem; color: #888; }
+            .blk-row-head .blk-acts button { border: none; background: #eef0f3; border-radius: 5px; width: 28px; height: 28px; cursor: pointer; margin-left: 4px; color: #555; }
+            .blk-row-head .blk-acts button:hover { background: #e0e3e8; }
+            .blk-row-head .blk-acts button.blk-del:hover { background: #f8d7da; color: #c0202f; }
+            .blk-row .blk-text { width: 100%; margin-bottom: 10px; }
+            .blk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+            .blk-grid label { display: block; font-size: 0.72rem; font-weight: 600; color: #666; margin-bottom: 3px; }
+            .blk-grid input, .blk-grid select { width: 100%; }
+            .blk-grid input[type=color] { height: 34px; padding: 2px; }
+            </style>
+
+            <script>
+            window.SL_FONTS      = <?= json_encode(sliderFonts(), JSON_UNESCAPED_UNICODE) ?>;
+            window.SL_WEIGHTS    = <?= json_encode(sliderWeights(), JSON_UNESCAPED_UNICODE) ?>;
+            window.SL_FONT_STACK = <?= json_encode((function(){ $m=[]; foreach(array_keys(sliderFonts()) as $f){ $m[$f]=sliderFontStack($f); } return $m; })(), JSON_UNESCAPED_UNICODE) ?>;
+            window.SL_INIT       = <?= json_encode($initialBlocks, JSON_UNESCAPED_UNICODE) ?>;
+
+            (function () {
+                const container = document.getElementById('blocksContainer');
+                const preview   = document.getElementById('slPreview');
+                const pvContent = document.getElementById('slPreviewContent');
+
+                function optionsHtml(map, selected) {
+                    return Object.keys(map).map(function (k) {
+                        const sel = (String(k) === String(selected)) ? ' selected' : '';
+                        return '<option value="' + k + '"' + sel + '>' + map[k] + '</option>';
+                    }).join('');
+                }
+
+                function makeRow(b) {
+                    b = b || { text: '', size: 30, weight: '400', color: '#ffffff', font: '', mb: 10 };
+                    const row = document.createElement('div');
+                    row.className = 'blk-row';
+                    row.innerHTML =
+                        '<div class="blk-row-head">' +
+                            '<span class="blk-num">Блок</span>' +
+                            '<span class="blk-acts">' +
+                                '<button type="button" class="blk-up"   title="Выше">&#9650;</button>' +
+                                '<button type="button" class="blk-down" title="Ниже">&#9660;</button>' +
+                                '<button type="button" class="blk-del"  title="Удалить">&times;</button>' +
+                            '</span>' +
+                        '</div>' +
+                        '<input type="text" class="blk-text" name="blk_text[]" placeholder="Текст строки" value="">' +
+                        '<div class="blk-grid">' +
+                            '<div><label>Размер, px</label><input type="number" min="8" max="200" name="blk_size[]"></div>' +
+                            '<div><label>Жирность</label><select name="blk_weight[]">' + optionsHtml(window.SL_WEIGHTS, b.weight) + '</select></div>' +
+                            '<div><label>Цвет</label><input type="color" name="blk_color[]"></div>' +
+                            '<div><label>Шрифт</label><select name="blk_font[]">' + optionsHtml(window.SL_FONTS, b.font) + '</select></div>' +
+                            '<div><label>Отступ снизу, px</label><input type="number" min="0" max="160" name="blk_mb[]"></div>' +
+                        '</div>';
+                    row.querySelector('.blk-text').value  = b.text || '';
+                    row.querySelector('[name="blk_size[]"]').value  = b.size;
+                    row.querySelector('[name="blk_color[]"]').value = b.color || '#ffffff';
+                    row.querySelector('[name="blk_mb[]"]').value    = b.mb;
+                    row.addEventListener('input', renderPreview);
+                    row.querySelector('.blk-del').addEventListener('click', function () { row.remove(); renumber(); renderPreview(); });
+                    row.querySelector('.blk-up').addEventListener('click', function () {
+                        if (row.previousElementSibling) container.insertBefore(row, row.previousElementSibling);
+                        renumber(); renderPreview();
+                    });
+                    row.querySelector('.blk-down').addEventListener('click', function () {
+                        if (row.nextElementSibling) container.insertBefore(row.nextElementSibling, row);
+                        renumber(); renderPreview();
+                    });
+                    return row;
+                }
+
+                function renumber() {
+                    container.querySelectorAll('.blk-row .blk-num').forEach(function (el, i) { el.textContent = 'Блок ' + (i + 1); });
+                }
+
+                function renderPreview() {
+                    const url = (document.getElementById('imageUrl') || {}).value || '';
+                    preview.style.backgroundImage = url ? "url('" + url + "')" : 'none';
+                    const scale = Math.max(0.1, preview.clientWidth / 1140);
+                    pvContent.innerHTML = '';
+                    container.querySelectorAll('.blk-row').forEach(function (row) {
+                        const text = row.querySelector('.blk-text').value;
+                        if (!text.trim()) return;
+                        const size   = parseInt(row.querySelector('[name="blk_size[]"]').value, 10)  || 24;
+                        const mb     = parseInt(row.querySelector('[name="blk_mb[]"]').value, 10)    || 0;
+                        const weight = row.querySelector('[name="blk_weight[]"]').value;
+                        const color  = row.querySelector('[name="blk_color[]"]').value;
+                        const font   = row.querySelector('[name="blk_font[]"]').value;
+                        const div = document.createElement('div');
+                        div.className = 'sl-preview-block';
+                        div.textContent = text;
+                        div.style.fontSize     = (size * scale) + 'px';
+                        div.style.marginBottom = (mb * scale) + 'px';
+                        div.style.fontWeight   = weight;
+                        div.style.color        = color;
+                        const stack = window.SL_FONT_STACK[font];
+                        if (stack) div.style.fontFamily = stack;
+                        pvContent.appendChild(div);
+                    });
+                }
+                window.renderSlPreview = renderPreview;
+
+                (window.SL_INIT && window.SL_INIT.length ? window.SL_INIT : [null]).forEach(function (b) {
+                    container.appendChild(makeRow(b));
+                });
+                renumber();
+                renderPreview();
+
+                document.getElementById('addBlockBtn').addEventListener('click', function () {
+                    container.appendChild(makeRow());
+                    renumber();
+                    renderPreview();
+                });
+                window.addEventListener('resize', renderPreview);
+            })();
             </script>
 
             <?php else: ?>

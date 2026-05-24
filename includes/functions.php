@@ -746,6 +746,92 @@ function productImageUrl($images, int $index = 0): string {
 }
 
 /**
+ * Slider text-block fonts available to admins. Key = font family stored in DB
+ * ('' = the site default Rubik); value = human label for the dropdown.
+ * All chosen families support Cyrillic.
+ */
+function sliderFonts(): array {
+    return [
+        ''                 => 'По умолчанию (Rubik)',
+        'Oswald'           => 'Oswald — узкий, для заголовков',
+        'Montserrat'       => 'Montserrat — геометрический',
+        'Roboto Condensed' => 'Roboto Condensed — узкий',
+        'Russo One'        => 'Russo One — жирный, техно',
+        'Play'             => 'Play — техно',
+        'Playfair Display' => 'Playfair Display — серифный',
+        'Pacifico'         => 'Pacifico — рукописный',
+    ];
+}
+
+/** CSS font-family value for a slider block font name ('' → site default). */
+function sliderFontStack(string $name): string {
+    $map = [
+        'Oswald'           => "'Oswald', sans-serif",
+        'Montserrat'       => "'Montserrat', sans-serif",
+        'Roboto Condensed' => "'Roboto Condensed', sans-serif",
+        'Russo One'        => "'Russo One', sans-serif",
+        'Play'             => "'Play', sans-serif",
+        'Playfair Display' => "'Playfair Display', serif",
+        'Pacifico'         => "'Pacifico', cursive",
+    ];
+    return $map[$name] ?? '';
+}
+
+/** Google Fonts <link> URL loading every slider block font in one request. */
+function sliderFontsGoogleUrl(): string {
+    return 'https://fonts.googleapis.com/css2'
+        . '?family=Oswald:wght@300;400;500;600;700'
+        . '&family=Montserrat:wght@300;400;500;600;700;800;900'
+        . '&family=Roboto+Condensed:wght@300;400;700'
+        . '&family=Russo+One'
+        . '&family=Play:wght@400;700'
+        . '&family=Playfair+Display:wght@400;500;600;700;800;900'
+        . '&family=Pacifico'
+        . '&display=swap';
+}
+
+/** Allowed font-weight values for slider blocks (string => label). */
+function sliderWeights(): array {
+    return [
+        '300' => 'Тонкий (300)',
+        '400' => 'Обычный (400)',
+        '500' => 'Средний (500)',
+        '600' => 'Полужирный (600)',
+        '700' => 'Жирный (700)',
+        '800' => 'Очень жирный (800)',
+        '900' => 'Чёрный (900)',
+    ];
+}
+
+/**
+ * Normalise raw slider text blocks (from POST or DB JSON) into a clean,
+ * validated array. Drops blocks with empty text.
+ */
+function normalizeSliderBlocks(array $raw): array {
+    // Cast to strings: numeric array keys (weights) become ints in array_keys(),
+    // which would break the strict in_array() comparison below.
+    $fonts   = array_map('strval', array_keys(sliderFonts()));
+    $weights = array_map('strval', array_keys(sliderWeights()));
+    $out = [];
+    foreach ($raw as $b) {
+        if (!is_array($b)) continue;
+        $text = trim((string)($b['text'] ?? ''));
+        if ($text === '') continue;
+        $color = (string)($b['color'] ?? '#ffffff');
+        if (!preg_match('/^#[0-9a-fA-F]{6}$/', $color)) $color = '#ffffff';
+        $out[] = [
+            'text'   => mb_substr($text, 0, 255),
+            'size'   => max(8, min(200, (int)($b['size'] ?? 24))),
+            'weight' => in_array((string)($b['weight'] ?? '400'), $weights, true) ? (string)$b['weight'] : '400',
+            'color'  => strtolower($color),
+            'font'   => in_array((string)($b['font'] ?? ''), $fonts, true) ? (string)$b['font'] : '',
+            'mb'     => max(0, min(160, (int)($b['mb'] ?? 10))),
+        ];
+    }
+    return $out;
+}
+
+/**
  * Add a column to an existing table only if it is missing.
  *
  * `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` is MariaDB-only (works on the

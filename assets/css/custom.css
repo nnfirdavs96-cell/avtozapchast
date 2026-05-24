@@ -371,6 +371,28 @@
     text-shadow: 0 1px 10px rgba(0, 0, 0, 0.45);
 }
 
+/* Настраиваемые текстовые блоки слайда. Размер задаётся инлайном через --fs
+   (px для десктопа); на меньших экранах пропорционально уменьшаем. */
+.slider_content .slider_block {
+    font-size: var(--fs, 24px);
+    line-height: 1.08;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.45);
+    word-break: break-word;
+}
+@media only screen and (max-width: 1199px) {
+    .slider_content .slider_block { font-size: calc(var(--fs, 24px) * 0.72); }
+}
+@media only screen and (max-width: 991px) {
+    .slider_content .slider_block { font-size: calc(var(--fs, 24px) * 0.6); }
+}
+@media only screen and (max-width: 767px) {
+    .slider_content .slider_block { font-size: calc(var(--fs, 24px) * 0.42); }
+}
+.active .slider_content .slider_block {
+    animation: fadeInLeft 1s both;
+    animation-delay: 0.3s;
+}
+
 /* Owl-carousel: показываем контейнер сразу (до инициализации плагина),
    но ограничиваем видимое количество слайдов */
 .owl-carousel { display: block !important; }

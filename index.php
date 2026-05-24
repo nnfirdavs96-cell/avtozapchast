@@ -58,6 +58,21 @@ require_once __DIR__ . '/includes/header.php';
 
 <!--slider area start-->
 <?php if (!empty($sliders)): ?>
+<?php
+    // Decode per-slide text blocks once; flag whether any block needs a custom font.
+    $sliderNeedsFonts = false;
+    foreach ($sliders as &$_sl) {
+        $blocks = [];
+        if (!empty($_sl['text_blocks'])) {
+            $decoded = json_decode($_sl['text_blocks'], true);
+            if (is_array($decoded)) $blocks = normalizeSliderBlocks($decoded);
+        }
+        $_sl['_blocks'] = $blocks;
+        foreach ($blocks as $b) { if (!empty($b['font'])) { $sliderNeedsFonts = true; } }
+    }
+    unset($_sl);
+?>
+<?php if ($sliderNeedsFonts): ?><link rel="stylesheet" href="<?= sanitize(sliderFontsGoogleUrl()) ?>"><?php endif; ?>
 <section class="slider_section mb-80">
     <div class="slider_area slider_carousel owl-carousel">
         <?php
@@ -74,17 +89,33 @@ require_once __DIR__ . '/includes/header.php';
             $imgUrl     = $imgDesktop ?: $imgMobile;       // base background
             $imgMobile  = $imgMobile ?: $imgDesktop;       // fall back to desktop on mobile
             $linkUrl = $sl['link_url'] ?: (APP_URL . '/catalog/index.php');
+            $blocks  = $sl['_blocks'] ?? [];
         ?>
         <div class="single_slider d-flex align-items-center" data-bgimg="<?= sanitize($imgUrl) ?>" data-bgimg-mobile="<?= sanitize($imgMobile) ?>">
             <div class="container">
                 <div class="row">
                     <div class="col-12">
                         <div class="slider_content">
-                            <?php if (!empty($sl['title']) || !empty($sl['title_highlight'])): ?>
-                                <h1><?= sanitize($sl['title']) ?><?php if (!empty($sl['title_highlight'])): ?> <span><?= sanitize($sl['title_highlight']) ?></span><?php endif; ?></h1>
-                            <?php endif; ?>
-                            <?php if (!empty($sl['subtitle'])): ?>
-                                <p><?= sanitize($sl['subtitle']) ?></p>
+                            <?php if ($blocks): ?>
+                                <?php foreach ($blocks as $b): ?>
+                                    <?php
+                                        $stack = sliderFontStack($b['font']);
+                                        $style = '--fs:' . (int)$b['size'] . 'px;'
+                                               . 'font-size:var(--fs);'
+                                               . 'font-weight:' . (int)$b['weight'] . ';'
+                                               . 'color:' . $b['color'] . ';'
+                                               . 'margin-bottom:' . (int)$b['mb'] . 'px;'
+                                               . ($stack ? 'font-family:' . $stack . ';' : '');
+                                    ?>
+                                    <div class="slider_block" style="<?= sanitize($style) ?>"><?= sanitize($b['text']) ?></div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <?php if (!empty($sl['title']) || !empty($sl['title_highlight'])): ?>
+                                    <h1><?= sanitize($sl['title']) ?><?php if (!empty($sl['title_highlight'])): ?> <span><?= sanitize($sl['title_highlight']) ?></span><?php endif; ?></h1>
+                                <?php endif; ?>
+                                <?php if (!empty($sl['subtitle'])): ?>
+                                    <p><?= sanitize($sl['subtitle']) ?></p>
+                                <?php endif; ?>
                             <?php endif; ?>
                             <a class="button" href="<?= sanitize($linkUrl) ?>"><?= t('shop') ?> <i class="fa fa-angle-double-right"></i></a>
                         </div>
