@@ -113,8 +113,10 @@ require_once __DIR__ . '/includes/header.php';
                                 <?php foreach ($blocks as $b): ?>
                                     <?php
                                         $stack = sliderFontStack($b['font']);
+                                        // Only set --fs here; font-size itself is applied by CSS
+                                        // (.slider_block) so media-query scaling isn't overridden
+                                        // by the higher-specificity inline style.
                                         $style = '--fs:' . (int)$b['size'] . 'px;'
-                                               . 'font-size:var(--fs);'
                                                . 'font-weight:' . (int)$b['weight'] . ';'
                                                . 'color:' . $b['color'] . ';'
                                                . 'margin-bottom:' . (int)$b['mb'] . 'px;'
