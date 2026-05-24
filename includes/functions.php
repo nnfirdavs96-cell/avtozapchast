@@ -194,8 +194,16 @@ function requirePermission(string $section): void {
 
 /**
  * Redirect helper
+ *
+ * Relative targets ("/path") are anchored to APP_URL when it is set, so the
+ * Location header is absolute and the reverse proxy cannot rewrite it to the
+ * internal server IP.
  */
 function redirect(string $url): void {
+    if (defined('APP_URL') && APP_URL !== '' && $url !== '' && $url[0] === '/'
+        && !preg_match('#^https?://#i', $url)) {
+        $url = rtrim(APP_URL, '/') . $url;
+    }
     header('Location: ' . $url);
     exit;
 }
