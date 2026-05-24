@@ -1252,10 +1252,10 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
 
     /* ── Слайдер ── */
     .slider_area .single_slider {
-        min-height: 280px !important;
+        height: 380px !important;
+        min-height: 0 !important;
         background-position: center center !important;
         padding: 16px 0;
-        align-items: flex-start !important;   /* контент к верху */
     }
     .slider_area .single_slider .container { width: 100%; }
     .slider_content {
@@ -1667,7 +1667,7 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
 ───────────────────────────────────────── */
 @media (max-width: 390px) {
     .logo .logo-text { font-size: 1.3rem; }
-    .slider_area .single_slider { min-height: 240px !important; }
+    .slider_area .single_slider { height: 320px !important; min-height: 0 !important; }
     .slider_content h1 { font-size: 1.15rem !important; }
 
     /* Товары 1 в ряд на маленьких */

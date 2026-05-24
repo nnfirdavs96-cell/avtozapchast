@@ -258,7 +258,8 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         </label>
                         <span id="mbStatus" style="font-size:0.8rem;color:#888;margin-left:8px;"></span>
                         <div style="margin-top:10px;padding:10px 12px;background:#eef6ff;border:1px solid #cfe4fb;border-radius:6px;font-size:0.78rem;color:#1c5a99;line-height:1.55;">
-                            <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> ~768&times;900&nbsp;px (вертикальный/квадратный).
+                            <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> ~768&times;768&nbsp;px (квадратное) или 768&times;500&nbsp;px (горизонтальное).<br>
+                            <span style="color:#5a87b3;">Слайдер показывает центр картинки (380&nbsp;px высота). Важный объект держите в центре.</span>
                         </div>
                         <input type="hidden" name="image_url_mobile" id="imageUrlMobile"
                                value="<?= sanitize($editSlide['image_url_mobile'] ?? '') ?>">
@@ -471,7 +472,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
 
                 var SL_DIM = {
                     desktop: { w: 1140, h: 420 },
-                    mobile:  { w: 390,  h: 300 }
+                    mobile:  { w: 390,  h: 380 }   // matches the CSS height:380px on mobile
                 };
                 var posLabels = {
                     'left-top':'Лево верх','center-top':'Центр верх','right-top':'Право верх',
@@ -553,30 +554,12 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     renumber();
                 }
 
-                var mobileRatioCache = {};   // url -> naturalHeight/naturalWidth
                 function renderPreview() {
-                    var dim = { w: SL_DIM[slMode].w, h: SL_DIM[slMode].h };
+                    var dim = SL_DIM[slMode];
                     var url = (document.getElementById('imageUrl') || {}).value || '';
                     if (slMode === 'mobile') {
                         var mobileUrl = (document.getElementById('imageUrlMobile') || {}).value || '';
-                        // Only a DEDICATED mobile image gets aspect-ratio sizing (matches the
-                        // live site). Without one, the desktop image is shown cropped at the
-                        // fixed mobile height — same as the real fallback behaviour.
-                        if (mobileUrl) {
-                            url = mobileUrl;
-                            if (mobileRatioCache[url] > 0) {
-                                dim.h = Math.round(dim.w * mobileRatioCache[url]);
-                            } else {
-                                var probe = new Image();
-                                probe.onload = function () {
-                                    if (this.naturalWidth > 0) {
-                                        mobileRatioCache[url] = this.naturalHeight / this.naturalWidth;
-                                        renderPreview();
-                                    }
-                                };
-                                probe.src = url;
-                            }
-                        }
+                        if (mobileUrl) url = mobileUrl;
                     }
 
                     frame.style.setProperty('--bg', url ? 'url("' + url + '")' : '#14171c');
