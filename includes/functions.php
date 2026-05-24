@@ -744,3 +744,23 @@ function productImageUrl($images, int $index = 0): string {
     }
     return APP_URL . '/assets/img/product/placeholder.jpg';
 }
+
+/**
+ * Add a column to an existing table only if it is missing.
+ *
+ * `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` is MariaDB-only (works on the
+ * Debian dev box) but is a syntax error on MySQL 8.0 (Timeweb prod). We check
+ * information_schema first, then run a plain ALTER — portable across both.
+ *
+ * @param string $colDdl Column definition, e.g. "`foo` VARCHAR(255) NOT NULL DEFAULT '' AFTER `bar`"
+ */
+function dbAddColumnIfMissing(PDO $db, string $table, string $column, string $colDdl): void {
+    $st = $db->prepare(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?"
+    );
+    $st->execute([$table, $column]);
+    if (!(int)$st->fetchColumn()) {
+        $db->exec("ALTER TABLE `$table` ADD COLUMN $colDdl");
+    }
+}

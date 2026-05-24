@@ -21,9 +21,9 @@ $db->exec("CREATE TABLE IF NOT EXISTS `sliders` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-// Add mobile column to pre-existing tables
-try { $db->exec("ALTER TABLE `sliders` ADD COLUMN IF NOT EXISTS `image_url_mobile` VARCHAR(500) NOT NULL DEFAULT '' AFTER `image_url`"); } catch (Throwable $e) {}
-try { $db->exec("ALTER TABLE `sliders` ADD COLUMN IF NOT EXISTS `title_highlight` VARCHAR(255) NOT NULL DEFAULT '' AFTER `title`"); } catch (Throwable $e) {}
+// Add columns to pre-existing tables (portable across MariaDB dev / MySQL 8.0 prod).
+dbAddColumnIfMissing($db, 'sliders', 'image_url_mobile', "`image_url_mobile` VARCHAR(500) NOT NULL DEFAULT '' AFTER `image_url`");
+dbAddColumnIfMissing($db, 'sliders', 'title_highlight',  "`title_highlight` VARCHAR(255) NOT NULL DEFAULT '' AFTER `title`");
 
 // ── POST handler ──────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
