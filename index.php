@@ -80,8 +80,8 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="row">
                     <div class="col-12">
                         <div class="slider_content">
-                            <?php if (!empty($sl['title'])): ?>
-                                <h1><?= sanitize($sl['title']) ?></h1>
+                            <?php if (!empty($sl['title']) || !empty($sl['title_highlight'])): ?>
+                                <h1><?= sanitize($sl['title']) ?><?php if (!empty($sl['title_highlight'])): ?> <span><?= sanitize($sl['title_highlight']) ?></span><?php endif; ?></h1>
                             <?php endif; ?>
                             <?php if (!empty($sl['subtitle'])): ?>
                                 <p><?= sanitize($sl['subtitle']) ?></p>
