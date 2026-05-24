@@ -71,12 +71,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (is_array($blkText)) {
         foreach ($blkText as $i => $txt) {
             $rawBlocks[] = [
-                'text'   => $txt,
-                'size'   => $_POST['blk_size'][$i]   ?? 24,
-                'weight' => $_POST['blk_weight'][$i] ?? '400',
-                'color'  => $_POST['blk_color'][$i]  ?? '#ffffff',
-                'font'   => $_POST['blk_font'][$i]   ?? '',
-                'mb'     => $_POST['blk_mb'][$i]      ?? 10,
+                'text'        => $txt,
+                'size'        => $_POST['blk_size'][$i]        ?? 24,
+                'size_mobile' => $_POST['blk_size_mobile'][$i] ?? 0,
+                'weight'      => $_POST['blk_weight'][$i]      ?? '400',
+                'color'       => $_POST['blk_color'][$i]       ?? '#ffffff',
+                'font'        => $_POST['blk_font'][$i]        ?? '',
+                'mb'          => $_POST['blk_mb'][$i]          ?? 10,
             ];
         }
     }
@@ -230,14 +231,54 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     </div>
 
                     <div class="az-card">
-                        <h3><i class="fa fa-eye"></i> Предпросмотр (как будет на сайте)</h3>
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                            <h3 style="margin:0;"><i class="fa fa-eye"></i> Предпросмотр</h3>
+                            <div class="sl-mode-toggle">
+                                <button type="button" class="sl-mode-btn active" data-mode="desktop">
+                                    <i class="fa fa-desktop"></i> Десктоп
+                                </button>
+                                <button type="button" class="sl-mode-btn" data-mode="mobile">
+                                    <i class="fa fa-mobile"></i> Мобильный
+                                </button>
+                            </div>
+                        </div>
                         <div id="slPreview" class="sl-preview">
                             <div id="slPreviewFrame">
                                 <div id="slPreviewContent"></div>
                                 <span class="sl-preview-btn"><?= t('shop') ?> &raquo;</span>
                             </div>
                         </div>
-                        <small style="color:#888;">Пиксель-в-пиксель: фрейм рендерится в реальных 1140 px и масштабируется — перенос слов идентичен сайту.</small>
+                        <small style="color:#888;">Пиксель-в-пиксель: рендерится в реальных размерах и масштабируется.</small>
+                    </div>
+
+                    <div class="az-card">
+                        <h3><i class="fa fa-arrows"></i> Расположение текста на слайде</h3>
+                        <p style="font-size:0.83rem;color:#666;margin-top:0;">Выберите куда разместить текст — нажмите нужную ячейку.</p>
+                        <?php
+                        $savedPos = $editSlide['text_pos'] ?? 'left-center';
+                        $posLabels = [
+                            'left-top'=>'Лево верх','center-top'=>'Центр верх','right-top'=>'Право верх',
+                            'left-center'=>'Лево середина','center-center'=>'Центр середина','right-center'=>'Право середина',
+                            'left-bottom'=>'Лево низ','center-bottom'=>'Центр низ','right-bottom'=>'Право низ',
+                        ];
+                        $posIcons = [
+                            'left-top'=>'↖','center-top'=>'↑','right-top'=>'↗',
+                            'left-center'=>'←','center-center'=>'⊙','right-center'=>'→',
+                            'left-bottom'=>'↙','center-bottom'=>'↓','right-bottom'=>'↘',
+                        ];
+                        ?>
+                        <div class="pos-picker">
+                            <?php foreach ($posIcons as $posKey => $icon): ?>
+                                <button type="button" class="pos-btn<?= $posKey === $savedPos ? ' active' : '' ?>"
+                                        data-pos="<?= $posKey ?>" title="<?= $posLabels[$posKey] ?>">
+                                    <?= $icon ?>
+                                </button>
+                            <?php endforeach; ?>
+                        </div>
+                        <input type="hidden" name="text_pos" id="textPosInput" value="<?= sanitize($savedPos) ?>">
+                        <div style="margin-top:8px;font-size:0.8rem;color:#555;">
+                            Выбрано: <strong id="posLabel"><?= sanitize($posLabels[$savedPos] ?? 'Лево середина') ?></strong>
+                        </div>
                     </div>
 
                     <div class="az-card">
@@ -360,6 +401,9 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 display: inline-block; margin-top: 10px; background: #C70909; color: #fff;
                 font-weight: 500; border-radius: 4px; padding: 10px 22px; font-size: 14px;
             }
+            .sl-mode-toggle { display:flex; gap:4px; }
+            .sl-mode-btn { border: 1px solid #dee2e6; background: #f8f9fa; border-radius: 6px; padding: 5px 12px; cursor: pointer; font-size: 0.8rem; color: #555; }
+            .sl-mode-btn.active { background: #1a1a2e; border-color: #1a1a2e; color: #fff; }
             .pos-picker { display: grid; grid-template-columns: repeat(3,48px); gap: 6px; }
             .pos-btn { width:48px; height:48px; border: 2px solid #dee2e6; border-radius: 8px; background: #f8f9fa; cursor: pointer; font-size: 1.25rem; color: #555; transition: all .15s; }
             .pos-btn:hover { border-color: #C70909; color: #C70909; background: #fff5f5; }
@@ -388,6 +432,13 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 const preview   = document.getElementById('slPreview');
                 const frame     = document.getElementById('slPreviewFrame');
                 const pvContent = document.getElementById('slPreviewContent');
+                var   slMode    = 'desktop'; // 'desktop' | 'mobile'
+
+                // Preview dimensions per mode
+                var SL_DIM = {
+                    desktop: { w: 1140, h: 420 },
+                    mobile:  { w: 390,  h: 300 }
+                };
 
                 function optionsHtml(map, selected) {
                     return Object.keys(map).map(function (k) {
@@ -411,16 +462,18 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         '</div>' +
                         '<input type="text" class="blk-text" name="blk_text[]" placeholder="Текст строки" value="">' +
                         '<div class="blk-grid">' +
-                            '<div><label>Размер, px</label><input type="number" min="8" max="200" name="blk_size[]"></div>' +
+                            '<div><label>Размер десктоп, px</label><input type="number" min="8" max="200" name="blk_size[]"></div>' +
+                            '<div><label>Размер мобильный, px</label><input type="number" min="0" max="120" name="blk_size_mobile[]" placeholder="авто"></div>' +
                             '<div><label>Жирность</label><select name="blk_weight[]">' + optionsHtml(window.SL_WEIGHTS, b.weight) + '</select></div>' +
                             '<div><label>Цвет</label><input type="color" name="blk_color[]"></div>' +
                             '<div><label>Шрифт</label><select name="blk_font[]">' + optionsHtml(window.SL_FONTS, b.font) + '</select></div>' +
                             '<div><label>Отступ снизу, px</label><input type="number" min="0" max="160" name="blk_mb[]"></div>' +
                         '</div>';
                     row.querySelector('.blk-text').value  = b.text || '';
-                    row.querySelector('[name="blk_size[]"]').value  = b.size;
-                    row.querySelector('[name="blk_color[]"]').value = b.color || '#ffffff';
-                    row.querySelector('[name="blk_mb[]"]').value    = b.mb;
+                    row.querySelector('[name="blk_size[]"]').value        = b.size;
+                    row.querySelector('[name="blk_size_mobile[]"]').value = b.size_mobile || '';
+                    row.querySelector('[name="blk_color[]"]').value       = b.color || '#ffffff';
+                    row.querySelector('[name="blk_mb[]"]').value          = b.mb;
                     row.addEventListener('input', renderPreview);
                     row.querySelector('.blk-del').addEventListener('click', function () { row.remove(); renumber(); renderPreview(); });
                     row.querySelector('.blk-up').addEventListener('click', function () {
@@ -439,47 +492,72 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 }
 
                 function renderPreview() {
-                    const url = (document.getElementById('imageUrl') || {}).value || '';
-                    frame.style.setProperty('--bg', url ? 'url("' + url + '")' : '#14171c');
-                    const scale = Math.max(0.05, preview.clientWidth / 1140);
-                    frame.style.transform = 'scale(' + scale + ')';
-                    preview.style.height  = (420 * scale) + 'px';
+                    var dim = SL_DIM[slMode];
+                    var url = (document.getElementById('imageUrl') || {}).value || '';
 
-                    // Apply text position to the preview frame
+                    // Desktop uses uploaded image; mobile uses mobile image if available
+                    if (slMode === 'mobile') {
+                        var mobileUrl = (document.getElementById('imageUrlMobile') || {}).value || '';
+                        if (mobileUrl) url = mobileUrl;
+                    }
+
+                    frame.style.setProperty('--bg', url ? 'url("' + url + '")' : '#14171c');
+                    var scale = Math.max(0.05, preview.clientWidth / dim.w);
+                    frame.style.width     = dim.w + 'px';
+                    frame.style.height    = dim.h + 'px';
+                    frame.style.transform = 'scale(' + scale + ')';
+                    preview.style.height  = (dim.h * scale) + 'px';
+
+                    // Text position
                     var pos    = (document.getElementById('textPosInput') || {}).value || 'left-center';
                     var parts  = pos.split('-');
                     var hAlign = parts[0] || 'left';
                     var vAlign = parts[1] || 'center';
                     frame.style.justifyContent = vAlign === 'top' ? 'flex-start' : (vAlign === 'bottom' ? 'flex-end' : 'center');
-                    frame.style.paddingTop    = vAlign === 'top'    ? '60px' : '0';
-                    frame.style.paddingBottom = vAlign === 'bottom' ? '60px' : '0';
+                    frame.style.paddingTop    = vAlign === 'top'    ? (slMode === 'mobile' ? '30px' : '60px') : '0';
+                    frame.style.paddingBottom = vAlign === 'bottom' ? (slMode === 'mobile' ? '30px' : '60px') : '0';
                     frame.style.alignItems    = hAlign === 'center' ? 'center' : (hAlign === 'right' ? 'flex-end' : 'flex-start');
-                    frame.style.paddingLeft   = hAlign === 'left'   ? '80px'  : (hAlign === 'right' ? '0' : '0');
-                    frame.style.paddingRight  = hAlign === 'right'  ? '80px'  : '0';
+                    frame.style.paddingLeft   = hAlign === 'left'  ? (slMode === 'mobile' ? '20px' : '80px') : '0';
+                    frame.style.paddingRight  = hAlign === 'right' ? (slMode === 'mobile' ? '20px' : '80px') : '0';
+
                     pvContent.innerHTML = '';
                     container.querySelectorAll('.blk-row').forEach(function (row) {
-                        const text = row.querySelector('.blk-text').value;
+                        var text = row.querySelector('.blk-text').value;
                         if (!text.trim()) return;
-                        // Use REAL pixel sizes — frame is already scaled, so proportions match the site exactly
-                        const size   = parseInt(row.querySelector('[name="blk_size[]"]').value, 10)  || 24;
-                        const mb     = parseInt(row.querySelector('[name="blk_mb[]"]').value, 10)    || 0;
-                        const weight = row.querySelector('[name="blk_weight[]"]').value;
-                        const color  = row.querySelector('[name="blk_color[]"]').value;
-                        const font   = row.querySelector('[name="blk_font[]"]').value;
-                        const div = document.createElement('div');
+                        var desktopSz = parseInt(row.querySelector('[name="blk_size[]"]').value, 10) || 24;
+                        var mobileSz  = parseInt(row.querySelector('[name="blk_size_mobile[]"]').value, 10) || 0;
+                        // Mobile preview: use explicit mobile size if set, else auto-scale 0.32
+                        var size = slMode === 'mobile'
+                            ? (mobileSz > 0 ? mobileSz : Math.round(desktopSz * 0.32))
+                            : desktopSz;
+                        var mb     = parseInt(row.querySelector('[name="blk_mb[]"]').value, 10) || 0;
+                        var weight = row.querySelector('[name="blk_weight[]"]').value;
+                        var color  = row.querySelector('[name="blk_color[]"]').value;
+                        var font   = row.querySelector('[name="blk_font[]"]').value;
+                        var div = document.createElement('div');
                         div.className = 'sl-preview-block';
                         div.textContent = text;
                         div.style.fontSize     = size + 'px';
                         div.style.marginBottom = mb + 'px';
                         div.style.fontWeight   = weight;
                         div.style.color        = color;
-                        const stack = window.SL_FONT_STACK[font];
+                        var stack = window.SL_FONT_STACK[font];
                         if (stack) div.style.fontFamily = stack;
                         div.style.textAlign = hAlign;
                         pvContent.appendChild(div);
                     });
                 }
                 window.renderSlPreview = renderPreview;
+
+                // Mode toggle buttons
+                document.querySelectorAll('.sl-mode-btn').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        document.querySelectorAll('.sl-mode-btn').forEach(function (b) { b.classList.remove('active'); });
+                        btn.classList.add('active');
+                        slMode = btn.dataset.mode;
+                        renderPreview();
+                    });
+                });
 
                 (window.SL_INIT && window.SL_INIT.length ? window.SL_INIT : [null]).forEach(function (b) {
                     container.appendChild(makeRow(b));

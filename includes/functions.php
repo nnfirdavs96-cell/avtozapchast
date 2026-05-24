@@ -820,12 +820,13 @@ function normalizeSliderBlocks(array $raw): array {
         $color = (string)($b['color'] ?? '#ffffff');
         if (!preg_match('/^#[0-9a-fA-F]{6}$/', $color)) $color = '#ffffff';
         $out[] = [
-            'text'   => mb_substr($text, 0, 255),
-            'size'   => max(8, min(200, (int)($b['size'] ?? 24))),
-            'weight' => in_array((string)($b['weight'] ?? '400'), $weights, true) ? (string)$b['weight'] : '400',
-            'color'  => strtolower($color),
-            'font'   => in_array((string)($b['font'] ?? ''), $fonts, true) ? (string)$b['font'] : '',
-            'mb'     => max(0, min(160, (int)($b['mb'] ?? 10))),
+            'text'        => mb_substr($text, 0, 255),
+            'size'        => max(8, min(200, (int)($b['size'] ?? 24))),
+            'size_mobile' => max(0, min(120, (int)($b['size_mobile'] ?? 0))), // 0 = auto-scale
+            'weight'      => in_array((string)($b['weight'] ?? '400'), $weights, true) ? (string)$b['weight'] : '400',
+            'color'       => strtolower($color),
+            'font'        => in_array((string)($b['font'] ?? ''), $fonts, true) ? (string)$b['font'] : '',
+            'mb'          => max(0, min(160, (int)($b['mb'] ?? 10))),
         ];
     }
     return $out;
