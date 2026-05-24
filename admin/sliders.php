@@ -25,6 +25,7 @@ $db->exec("CREATE TABLE IF NOT EXISTS `sliders` (
 dbAddColumnIfMissing($db, 'sliders', 'image_url_mobile', "`image_url_mobile` VARCHAR(500) NOT NULL DEFAULT '' AFTER `image_url`");
 dbAddColumnIfMissing($db, 'sliders', 'title_highlight',  "`title_highlight` VARCHAR(255) NOT NULL DEFAULT '' AFTER `title`");
 dbAddColumnIfMissing($db, 'sliders', 'text_blocks',      "`text_blocks` TEXT NULL AFTER `subtitle`");
+dbAddColumnIfMissing($db, 'sliders', 'text_pos',         "`text_pos` VARCHAR(20) NOT NULL DEFAULT 'left-center' AFTER `text_blocks`");
 
 // ── POST handler ──────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -82,6 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $blocks     = normalizeSliderBlocks($rawBlocks);
     $textBlocks = $blocks ? json_encode($blocks, JSON_UNESCAPED_UNICODE) : '';
     $title      = $blocks[0]['text'] ?? '';   // first block doubles as the list-preview title
+    $rawPos     = trim($_POST['text_pos'] ?? 'left-center');
+    $textPos    = preg_match('/^(left|center|right)-(top|center|bottom)$/', $rawPos) ? $rawPos : 'left-center';
 
     if ($imgUrl === '' && $imgMobile === '') {
         flashMessage('danger', 'Загрузите хотя бы одно изображение (десктоп или мобильное).');
@@ -90,13 +93,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($sid) {
         $db->prepare(
-            "UPDATE sliders SET title=?, title_highlight='', subtitle='', text_blocks=?, image_url=?, image_url_mobile=?, link_url=?, sort_order=? WHERE id=?"
-        )->execute([$title, $textBlocks, $imgUrl, $imgMobile, $linkUrl, $sort, $sid]);
+            "UPDATE sliders SET title=?, title_highlight='', subtitle='', text_blocks=?, text_pos=?, image_url=?, image_url_mobile=?, link_url=?, sort_order=? WHERE id=?"
+        )->execute([$title, $textBlocks, $textPos, $imgUrl, $imgMobile, $linkUrl, $sort, $sid]);
         flashMessage('success', 'Слайд обновлён.');
     } else {
         $db->prepare(
-            "INSERT INTO sliders (title, text_blocks, image_url, image_url_mobile, link_url, sort_order, is_active) VALUES (?,?,?,?,?,?,1)"
-        )->execute([$title, $textBlocks, $imgUrl, $imgMobile, $linkUrl, $sort]);
+            "INSERT INTO sliders (title, text_blocks, text_pos, image_url, image_url_mobile, link_url, sort_order, is_active) VALUES (?,?,?,?,?,?,?,1)"
+        )->execute([$title, $textBlocks, $textPos, $imgUrl, $imgMobile, $linkUrl, $sort]);
         flashMessage('success', 'Слайд добавлен.');
     }
     redirect(APP_URL . '/admin/sliders.php');
@@ -238,6 +241,36 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     </div>
 
                     <div class="az-card">
+                        <h3><i class="fa fa-arrows"></i> Расположение текста на слайде</h3>
+                        <p style="font-size:0.83rem;color:#666;margin-top:0;">Выберите куда разместить текст — нажмите нужную ячейку.</p>
+                        <?php
+                        $savedPos = $editSlide['text_pos'] ?? 'left-center';
+                        $posLabels = [
+                            'left-top'=>'Лево верх','center-top'=>'Центр верх','right-top'=>'Право верх',
+                            'left-center'=>'Лево середина','center-center'=>'Центр середина','right-center'=>'Право середина',
+                            'left-bottom'=>'Лево низ','center-bottom'=>'Центр низ','right-bottom'=>'Право низ',
+                        ];
+                        $posIcons = [
+                            'left-top'=>'↖','center-top'=>'↑','right-top'=>'↗',
+                            'left-center'=>'←','center-center'=>'⊙','right-center'=>'→',
+                            'left-bottom'=>'↙','center-bottom'=>'↓','right-bottom'=>'↘',
+                        ];
+                        ?>
+                        <div class="pos-picker">
+                            <?php foreach ($posIcons as $posKey => $icon): ?>
+                                <button type="button" class="pos-btn<?= $posKey === $savedPos ? ' active' : '' ?>"
+                                        data-pos="<?= $posKey ?>" title="<?= $posLabels[$posKey] ?>">
+                                    <?= $icon ?>
+                                </button>
+                            <?php endforeach; ?>
+                        </div>
+                        <input type="hidden" name="text_pos" id="textPosInput" value="<?= sanitize($savedPos) ?>">
+                        <div style="margin-top:8px;font-size:0.8rem;color:#555;">
+                            Выбрано: <strong id="posLabel"><?= sanitize($posLabels[$savedPos] ?? 'Лево середина') ?></strong>
+                        </div>
+                    </div>
+
+                    <div class="az-card">
                         <h3><i class="fa fa-font"></i> Текстовые блоки</h3>
                         <p style="font-size:0.83rem;color:#666;margin-top:0;">
                             Добавьте сколько угодно строк (заголовки и подзаголовки). Для каждой настройте
@@ -327,6 +360,10 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 display: inline-block; margin-top: 10px; background: #C70909; color: #fff;
                 font-weight: 500; border-radius: 4px; padding: 10px 22px; font-size: 14px;
             }
+            .pos-picker { display: grid; grid-template-columns: repeat(3,48px); gap: 6px; }
+            .pos-btn { width:48px; height:48px; border: 2px solid #dee2e6; border-radius: 8px; background: #f8f9fa; cursor: pointer; font-size: 1.25rem; color: #555; transition: all .15s; }
+            .pos-btn:hover { border-color: #C70909; color: #C70909; background: #fff5f5; }
+            .pos-btn.active { border-color: #C70909; background: #C70909; color: #fff; }
             .blk-row { border: 1px solid #e3e6ea; border-radius: 8px; padding: 12px; margin-bottom: 12px; background: #fafbfc; }
             .blk-row-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
             .blk-row-head .blk-num { font-weight: 700; font-size: 0.8rem; color: #888; }
@@ -403,12 +440,22 @@ require_once dirname(__DIR__) . '/includes/header.php';
 
                 function renderPreview() {
                     const url = (document.getElementById('imageUrl') || {}).value || '';
-                    // background image via CSS custom property so it layers on top of the gradient
                     frame.style.setProperty('--bg', url ? 'url("' + url + '")' : '#14171c');
-                    // scale the whole 1140×420 frame down to the container width (pixel-perfect)
                     const scale = Math.max(0.05, preview.clientWidth / 1140);
                     frame.style.transform = 'scale(' + scale + ')';
                     preview.style.height  = (420 * scale) + 'px';
+
+                    // Apply text position to the preview frame
+                    var pos    = (document.getElementById('textPosInput') || {}).value || 'left-center';
+                    var parts  = pos.split('-');
+                    var hAlign = parts[0] || 'left';
+                    var vAlign = parts[1] || 'center';
+                    frame.style.justifyContent = vAlign === 'top' ? 'flex-start' : (vAlign === 'bottom' ? 'flex-end' : 'center');
+                    frame.style.paddingTop    = vAlign === 'top'    ? '60px' : '0';
+                    frame.style.paddingBottom = vAlign === 'bottom' ? '60px' : '0';
+                    frame.style.alignItems    = hAlign === 'center' ? 'center' : (hAlign === 'right' ? 'flex-end' : 'flex-start');
+                    frame.style.paddingLeft   = hAlign === 'left'   ? '80px'  : (hAlign === 'right' ? '0' : '0');
+                    frame.style.paddingRight  = hAlign === 'right'  ? '80px'  : '0';
                     pvContent.innerHTML = '';
                     container.querySelectorAll('.blk-row').forEach(function (row) {
                         const text = row.querySelector('.blk-text').value;
@@ -428,6 +475,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         div.style.color        = color;
                         const stack = window.SL_FONT_STACK[font];
                         if (stack) div.style.fontFamily = stack;
+                        div.style.textAlign = hAlign;
                         pvContent.appendChild(div);
                     });
                 }
@@ -445,6 +493,24 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     renderPreview();
                 });
                 window.addEventListener('resize', renderPreview);
+
+                // ── Position picker ───────────────────────────────────
+                var posInput  = document.getElementById('textPosInput');
+                var posLbl    = document.getElementById('posLabel');
+                var posLabels = {
+                    'left-top':'Лево верх','center-top':'Центр верх','right-top':'Право верх',
+                    'left-center':'Лево середина','center-center':'Центр середина','right-center':'Право середина',
+                    'left-bottom':'Лево низ','center-bottom':'Центр низ','right-bottom':'Право низ'
+                };
+                document.querySelectorAll('.pos-btn').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        document.querySelectorAll('.pos-btn').forEach(function (b) { b.classList.remove('active'); });
+                        btn.classList.add('active');
+                        posInput.value = btn.dataset.pos;
+                        posLbl.textContent = posLabels[btn.dataset.pos] || btn.dataset.pos;
+                        renderPreview();
+                    });
+                });
             })();
             </script>
 
