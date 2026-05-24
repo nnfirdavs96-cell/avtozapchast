@@ -279,35 +279,8 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <div style="margin-top:8px;font-size:0.8rem;color:#555;">
                             Выбрано: <strong id="posLabel"><?= sanitize($posLabels[$savedPos] ?? 'Лево середина') ?></strong>
                         </div>
-                    </div>
-
-                    <div class="az-card">
-                        <h3><i class="fa fa-arrows"></i> Расположение текста на слайде</h3>
-                        <p style="font-size:0.83rem;color:#666;margin-top:0;">Выберите куда разместить текст — нажмите нужную ячейку.</p>
-                        <?php
-                        $savedPos = $editSlide['text_pos'] ?? 'left-center';
-                        $posLabels = [
-                            'left-top'=>'Лево верх','center-top'=>'Центр верх','right-top'=>'Право верх',
-                            'left-center'=>'Лево середина','center-center'=>'Центр середина','right-center'=>'Право середина',
-                            'left-bottom'=>'Лево низ','center-bottom'=>'Центр низ','right-bottom'=>'Право низ',
-                        ];
-                        $posIcons = [
-                            'left-top'=>'↖','center-top'=>'↑','right-top'=>'↗',
-                            'left-center'=>'←','center-center'=>'⊙','right-center'=>'→',
-                            'left-bottom'=>'↙','center-bottom'=>'↓','right-bottom'=>'↘',
-                        ];
-                        ?>
-                        <div class="pos-picker">
-                            <?php foreach ($posIcons as $posKey => $icon): ?>
-                                <button type="button" class="pos-btn<?= $posKey === $savedPos ? ' active' : '' ?>"
-                                        data-pos="<?= $posKey ?>" title="<?= $posLabels[$posKey] ?>">
-                                    <?= $icon ?>
-                                </button>
-                            <?php endforeach; ?>
-                        </div>
-                        <input type="hidden" name="text_pos" id="textPosInput" value="<?= sanitize($savedPos) ?>">
-                        <div style="margin-top:8px;font-size:0.8rem;color:#555;">
-                            Выбрано: <strong id="posLabel"><?= sanitize($posLabels[$savedPos] ?? 'Лево середина') ?></strong>
+                        <div style="margin-top:8px;font-size:0.78rem;color:#888;">
+                            <i class="fa fa-info-circle"></i> Эта позиция применяется и к десктопной, и к мобильной версии. Переключите предпросмотр выше, чтобы увидеть результат для каждой.
                         </div>
                     </div>
 
