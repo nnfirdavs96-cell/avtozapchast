@@ -19,8 +19,8 @@ $db->exec("CREATE TABLE IF NOT EXISTS `banners` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-// Add mobile column to pre-existing tables
-try { $db->exec("ALTER TABLE `banners` ADD COLUMN IF NOT EXISTS `image_url_mobile` VARCHAR(500) NOT NULL DEFAULT '' AFTER `image_url`"); } catch (Throwable $e) {}
+// Add mobile column to pre-existing tables (portable across MariaDB / MySQL 8.0).
+dbAddColumnIfMissing($db, 'banners', 'image_url_mobile', "`image_url_mobile` VARCHAR(500) NOT NULL DEFAULT '' AFTER `image_url`");
 
 // ── POST handler ──────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

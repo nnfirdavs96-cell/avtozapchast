@@ -9,8 +9,8 @@ $action = $_GET['action'] ?? 'list';
 $editId = (int)($_GET['id'] ?? 0);
 $errors = [];
 
-// Separate mobile image column (added on demand)
-try { $db->exec("ALTER TABLE `categories` ADD COLUMN IF NOT EXISTS `image_path_mobile` VARCHAR(500) NOT NULL DEFAULT '' AFTER `image_path`"); } catch (Throwable $e) {}
+// Separate mobile image column (added on demand, portable across MariaDB / MySQL 8.0).
+dbAddColumnIfMissing($db, 'categories', 'image_path_mobile', "`image_path_mobile` VARCHAR(500) NOT NULL DEFAULT '' AFTER `image_path`");
 
 // ── POST handler ──────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
