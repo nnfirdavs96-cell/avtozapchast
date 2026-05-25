@@ -258,8 +258,8 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         </label>
                         <span id="mbStatus" style="font-size:0.8rem;color:#888;margin-left:8px;"></span>
                         <div style="margin-top:10px;padding:10px 12px;background:#eef6ff;border:1px solid #cfe4fb;border-radius:6px;font-size:0.78rem;color:#1c5a99;line-height:1.55;">
-                            <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> ~768&times;768&nbsp;px (квадратное) или 768&times;500&nbsp;px (горизонтальное).<br>
-                            <span style="color:#5a87b3;">Слайдер показывает центр картинки (380&nbsp;px высота). Важный объект держите в центре.</span>
+                            <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> ~1080&times;1080&nbsp;px (квадратное).<br>
+                            <span style="color:#5a87b3;">Слайдер на телефоне — высота 380&nbsp;px, обрезается по центру. Важный объект держите в центре.</span>
                         </div>
                         <input type="hidden" name="image_url_mobile" id="imageUrlMobile"
                                value="<?= sanitize($editSlide['image_url_mobile'] ?? '') ?>">
