@@ -76,6 +76,24 @@ document.addEventListener('DOMContentLoaded', function () {
         _bgResizeT = setTimeout(applyResponsiveBg, 150);
     });
 
+    // Collapse/expand subcategories in catalog sidebar widget
+    document.querySelectorAll('.widget_categories .cat_toggle').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            var li = this.closest('.cat_parent');
+            if (li) li.classList.toggle('is_open');
+        });
+    });
+
+    // Availability toggle (checkbox) — navigate on change
+    var availBox = document.getElementById('avail_in_stock');
+    if (availBox) {
+        availBox.addEventListener('change', function () {
+            var url = this.checked ? this.getAttribute('data-on') : this.getAttribute('data-off');
+            if (url) window.location.href = url;
+        });
+    }
+
     // Toggle for the categories dropdown (class-based, works on mobile touch)
     document.querySelectorAll('.categori_toggle').forEach(function (toggle) {
         toggle.style.cursor = 'pointer';

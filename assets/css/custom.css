@@ -2058,22 +2058,55 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
     .footer_widgets, .shipping_area, .footer_top, .footer_bottom { overflow-x: hidden; }
 }
 
-/* ─── Боковой виджет категорий: прокрутка + подкатегории ─── */
-.widget_categories .cat_widget_scroll {
+/* ─── Боковой виджет категорий/брендов: прокрутка + подкатегории ─── */
+.widget_categories .cat_widget_scroll,
+.widget_categories .brand_widget_scroll {
     max-height: 360px;
     overflow-y: auto;
     padding-right: 6px;
 }
-.widget_categories .cat_widget_scroll::-webkit-scrollbar { width: 6px; }
-.widget_categories .cat_widget_scroll::-webkit-scrollbar-thumb {
+.widget_categories .cat_widget_scroll::-webkit-scrollbar,
+.widget_categories .brand_widget_scroll::-webkit-scrollbar { width: 6px; }
+.widget_categories .cat_widget_scroll::-webkit-scrollbar-thumb,
+.widget_categories .brand_widget_scroll::-webkit-scrollbar-thumb {
     background: #d9d9d9; border-radius: 3px;
 }
-.widget_categories .cat_widget_scroll::-webkit-scrollbar-thumb:hover { background: #bbb; }
+.widget_categories .cat_widget_scroll::-webkit-scrollbar-thumb:hover,
+.widget_categories .brand_widget_scroll::-webkit-scrollbar-thumb:hover { background: #bbb; }
+
+/* Родитель: строка с названием и кнопкой-стрелкой */
+.widget_categories .cat_parent_row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.widget_categories .cat_parent_row > a { flex: 1; }
+.widget_categories .cat_toggle {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 4px 6px;
+    font-size: 14px;
+    line-height: 1;
+    transition: transform 0.2s, color 0.15s;
+}
+.widget_categories .cat_toggle:hover { color: #d32f2f; }
+.widget_categories .cat_parent.is_open > .cat_parent_row .cat_toggle { transform: rotate(180deg); color: #d32f2f; }
+
+/* Подкатегории: скрыты по умолчанию, раскрываются у .is_open */
 .widget_categories .cat_children {
     list-style: none;
-    margin: 4px 0 8px;
+    margin: 0;
     padding: 0 0 0 14px;
     border-left: 2px solid #f0f0f0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+}
+.widget_categories .cat_parent.is_open > .cat_children {
+    max-height: 600px;
+    margin: 4px 0 8px;
 }
 .widget_categories .cat_children li a {
     font-size: 13px;
@@ -2084,3 +2117,35 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
 }
 .widget_categories .cat_children li a:hover { color: #d32f2f; padding-left: 4px; }
 .widget_categories .cat_children li.active_categorie a { color: #d32f2f; font-weight: 600; }
+
+/* ─── Переключатель "В наличии" ─── */
+.avail_toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    margin: 6px 0 0;
+    user-select: none;
+}
+.avail_toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.avail_switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    background: #d9d9d9;
+    border-radius: 22px;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+.avail_switch::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 18px; height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+}
+.avail_toggle input:checked + .avail_switch { background: #d32f2f; }
+.avail_toggle input:checked + .avail_switch::after { transform: translateX(18px); }
+.avail_text { font-size: 14px; color: #333; }
