@@ -92,6 +92,7 @@ $ratings = getProductRatings(array_column($parts, 'id'));
 
 // ── Sidebar data ────────────────────────────────────────────────────────────
 $allCategories = getCategories();
+$catTree       = getCategoryTree($allCategories);
 $allBrands     = getBrands();
 
 $currentCat = null;
@@ -132,20 +133,34 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     <!-- Categories widget -->
                     <div class="widget_list widget_categories">
                         <h3><?= t('categories') ?></h3>
-                        <ul>
+                        <ul class="cat_widget_scroll">
                             <li class="<?= !$catId ? 'active_categorie' : '' ?>">
                                 <a href="<?= APP_URL ?>/catalog/index.php<?= $q ? '?q=' . urlencode($q) : '' ?>">
                                     <?= t('all_categories') ?>
                                 </a>
                             </li>
-                            <?php foreach ($allCategories as $cat):
-                                if ($cat['parent_id'] !== null) continue;
+                            <?php foreach ($catTree as $cat):
                                 $qArr = array_merge(array_diff_key($_GET, ['page' => '']), ['cat' => $cat['id']]);
+                                $childActive = false;
+                                foreach ($cat['children'] as $ch) { if ($catId === (int)$ch['id']) { $childActive = true; break; } }
                             ?>
-                            <li class="<?= $catId === (int)$cat['id'] ? 'active_categorie' : '' ?>">
+                            <li class="cat_parent <?= ($catId === (int)$cat['id'] || $childActive) ? 'active_categorie' : '' ?>">
                                 <a href="?<?= http_build_query($qArr) ?>">
                                     <?= sanitize(tField($cat, 'name')) ?>
                                 </a>
+                                <?php if (!empty($cat['children'])): ?>
+                                <ul class="cat_children">
+                                    <?php foreach ($cat['children'] as $child):
+                                        $qChild = array_merge(array_diff_key($_GET, ['page' => '']), ['cat' => $child['id']]);
+                                    ?>
+                                    <li class="<?= $catId === (int)$child['id'] ? 'active_categorie' : '' ?>">
+                                        <a href="?<?= http_build_query($qChild) ?>">
+                                            <?= sanitize(tField($child, 'name')) ?>
+                                        </a>
+                                    </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                                <?php endif; ?>
                             </li>
                             <?php endforeach; ?>
                         </ul>
