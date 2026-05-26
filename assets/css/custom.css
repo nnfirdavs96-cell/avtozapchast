@@ -823,6 +823,35 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
     padding-left: 20px;
 }
 
+/* Группа: родитель + список подкатегорий */
+.az-megamenu__group { margin-bottom: 10px; }
+.az-megamenu__head {
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    color: #1a1a1a !important;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.az-megamenu__sub {
+    list-style: none;
+    margin: 2px 0 0;
+    padding: 0;
+}
+.az-megamenu__sub li a {
+    display: block;
+    padding: 5px 16px 5px 16px;
+    color: #555;
+    font-size: 12.5px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: normal;
+    transition: color 0.15s, padding-left 0.15s;
+}
+.az-megamenu__sub li a:hover {
+    color: #d32f2f;
+    padding-left: 22px;
+}
+
 /* Счётчик подкатегорий */
 .az-mega-count {
     display: inline-block;
