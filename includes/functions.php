@@ -819,6 +819,72 @@ function productImageUrl($images, int $index = 0): string {
 }
 
 /**
+ * Transliterate a (Cyrillic) name into a URL slug.
+ */
+function categorySlugify(string $name): string {
+    $map = [
+        'а'=>'a','б'=>'b','в'=>'v','г'=>'g','д'=>'d','е'=>'e','ё'=>'e','ж'=>'zh',
+        'з'=>'z','и'=>'i','й'=>'y','к'=>'k','л'=>'l','м'=>'m','н'=>'n','о'=>'o',
+        'п'=>'p','р'=>'r','с'=>'s','т'=>'t','у'=>'u','ф'=>'f','х'=>'h','ц'=>'ts',
+        'ч'=>'ch','ш'=>'sh','щ'=>'sch','ъ'=>'','ы'=>'y','ь'=>'','э'=>'e','ю'=>'yu','я'=>'ya',
+    ];
+    $s = mb_strtolower(trim($name), 'UTF-8');
+    $s = strtr($s, $map);
+    $s = preg_replace('/[^a-z0-9]+/', '-', $s);
+    $s = trim($s, '-');
+    return $s !== '' ? $s : 'cat';
+}
+
+/**
+ * Seed subcategories under the existing top-level categories so the
+ * "ВСЕ КАТЕГОРИИ" mega-menu and catalog look populated. Idempotent: matches
+ * parents by name, skips subcategories that already exist. Returns count added.
+ */
+function seedCategorySubcategories(): int {
+    $plan = [
+        'Двигатель'         => ['Поршни и кольца','Клапаны','Прокладки ГБЦ','Масляный насос','Ремни ГРМ','Масляные фильтры'],
+        'Тормозная система' => ['Тормозные колодки','Тормозные диски','Суппорты','Тормозные шланги','Тормозная жидкость'],
+        'Подвеска'          => ['Амортизаторы','Пружины','Рычаги','Шаровые опоры','Сайлентблоки','Стойки стабилизатора'],
+        'Электрика'         => ['Аккумуляторы','Стартеры','Генераторы','Свечи зажигания','Датчики','Реле и предохранители'],
+        'Кузов'             => ['Бамперы','Капоты','Крылья','Зеркала','Фары','Решётки радиатора'],
+        'Трансмиссия'       => ['Сцепление','Маховики','ШРУСы','Карданные валы','Подшипники ступицы'],
+    ];
+    try {
+        $db = getDB();
+        $n  = 0;
+        foreach ($plan as $parentName => $subs) {
+            $st = $db->prepare("SELECT id FROM categories WHERE name = ? AND parent_id IS NULL LIMIT 1");
+            $st->execute([$parentName]);
+            $parentId = $st->fetchColumn();
+            if (!$parentId) continue;
+            $sort = 0;
+            foreach ($subs as $subName) {
+                $sort++;
+                $chk = $db->prepare("SELECT id FROM categories WHERE name = ? AND parent_id = ? LIMIT 1");
+                $chk->execute([$subName, $parentId]);
+                if ($chk->fetchColumn()) continue;
+                $slug = categorySlugify($subName);
+                $base = $slug; $i = 1;
+                while (true) {
+                    $s = $db->prepare("SELECT id FROM categories WHERE slug = ? LIMIT 1");
+                    $s->execute([$slug]);
+                    if (!$s->fetchColumn()) break;
+                    $slug = $base . '-' . (++$i);
+                }
+                $db->prepare(
+                    "INSERT INTO categories (name, slug, parent_id, description, image_path, image_path_mobile, sort_order, is_active, markup_percent)
+                     VALUES (?,?,?,?,?,?,?,1,NULL)"
+                )->execute([$subName, $slug, (int)$parentId, null, null, null, $sort]);
+                $n++;
+            }
+        }
+        return $n;
+    } catch (Exception $e) {
+        return 0;
+    }
+}
+
+/**
  * Assign a real-looking catalog photo to any product that has no image yet.
  * Idempotent: only touches rows with empty images, cycles through the theme
  * photos product1..product13.jpg (stored as root-relative paths). Returns the
