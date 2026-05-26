@@ -9,9 +9,6 @@ $action = $_GET['action'] ?? 'list';
 $editId = (int)($_GET['id'] ?? 0);
 $errors = [];
 
-// Товары без картинок получают фото-заглушку из шаблона (однократно, идемпотентно).
-fillMissingProductImages();
-
 $brands     = getBrands();
 $categories = getCategories();
 
