@@ -342,6 +342,80 @@
 @media (max-width: 991px) { .logo .logo-img { height: 52px; } }
 @media (max-width: 767px) { .logo .logo-img { height: 44px; } }
 
+/* Независимые слои текста для десктопа и мобильного.
+   Каждый .sl-variant — абсолютный оверлей со своим выравниванием,
+   так позиция/блоки настраиваются отдельно для каждой версии. */
+.slider_area .single_slider.sl-has-variants { position: relative; }
+.sl-variant {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+}
+.sl-variant--mobile  { display: none; }
+@media (max-width: 767px) {
+    .sl-variant--desktop { display: none; }
+    .sl-variant--mobile  { display: flex; }
+}
+
+/* Телефон с выбором страны (кастомный дропдаун с флагами) */
+.phone-wrap { display: flex; align-items: stretch; gap: 6px; }
+.phone-wrap > input { flex: 1 1 auto; min-width: 0; }
+.phone-cc { position: relative; flex: 0 0 auto; }
+.phone-cc-btn {
+    display: flex; align-items: center; gap: 6px; height: 100%;
+    padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px;
+    background: #fff; cursor: pointer; font-size: 0.9rem; color: #333;
+}
+.phone-cc-btn:hover { border-color: #999; }
+.phone-cc-btn img { display: block; border-radius: 2px; object-fit: cover; }
+.phone-cc-btn .cc-caret { color: #888; font-style: normal; font-size: 0.8em; }
+.phone-cc-panel {
+    display: none; position: absolute; z-index: 50; top: calc(100% + 4px); left: 0;
+    width: 260px; max-height: 280px; overflow-y: auto;
+    background: #fff; border: 1px solid #ccd2da; border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.14); padding: 6px;
+}
+.phone-cc.open .phone-cc-panel { display: block; }
+.phone-cc-opt {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    padding: 7px 8px; border: 0; background: transparent; border-radius: 6px;
+    cursor: pointer; font-size: 0.88rem; color: #333; text-align: left;
+}
+.phone-cc-opt:hover { background: #f4f6f9; }
+.phone-cc-opt img { display: block; border-radius: 2px; object-fit: cover; flex: 0 0 auto; }
+.phone-cc-opt .cc-name { flex: 1 1 auto; }
+.phone-cc-opt .cc-dial { color: #888; font-size: 0.85rem; }
+
+/* Поле пароля с кнопкой показать/скрыть */
+.pwd-field { position: relative; display: block; }
+.pwd-field input { padding-right: 44px !important; }
+.pwd-field .pwd-toggle {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    width: 26px !important;
+    height: 26px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0 !important;
+    background: transparent !important;
+    color: #b3b3b3 !important;
+    cursor: pointer;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    font-size: 0.95rem;
+    line-height: 1;
+    text-transform: none;
+    transition: color 0.15s;
+}
+.pwd-field .pwd-toggle:hover { background: transparent !important; color: #888 !important; }
+.pwd-field .pwd-toggle:focus { outline: none; color: #888 !important; }
+
+
 /* Слайдер: гарантированный min-height и фон из data-bgimg */
 .slider_area .single_slider {
     min-height: 420px;
@@ -747,6 +821,35 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
 }
 .az-megamenu__col .az-megamenu__list li a:hover {
     padding-left: 20px;
+}
+
+/* Группа: родитель + список подкатегорий */
+.az-megamenu__group { margin-bottom: 10px; }
+.az-megamenu__head {
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    color: #1a1a1a !important;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.az-megamenu__sub {
+    list-style: none;
+    margin: 2px 0 0;
+    padding: 0;
+}
+.az-megamenu__sub li a {
+    display: block;
+    padding: 5px 16px 5px 16px;
+    color: #555;
+    font-size: 12.5px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: normal;
+    transition: color 0.15s, padding-left 0.15s;
+}
+.az-megamenu__sub li a:hover {
+    color: #d32f2f;
+    padding-left: 22px;
 }
 
 /* Счётчик подкатегорий */
@@ -1236,10 +1339,10 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
 
     /* ── Слайдер ── */
     .slider_area .single_slider {
-        min-height: 280px !important;
+        height: 380px !important;
+        min-height: 0 !important;
         background-position: center center !important;
         padding: 16px 0;
-        align-items: flex-start !important;   /* контент к верху */
     }
     .slider_area .single_slider .container { width: 100%; }
     .slider_content {
@@ -1651,7 +1754,7 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
 ───────────────────────────────────────── */
 @media (max-width: 390px) {
     .logo .logo-text { font-size: 1.3rem; }
-    .slider_area .single_slider { min-height: 240px !important; }
+    .slider_area .single_slider { height: 320px !important; min-height: 0 !important; }
     .slider_content h1 { font-size: 1.15rem !important; }
 
     /* Товары 1 в ряд на маленьких */
@@ -1954,3 +2057,95 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
     /* ─── 8. footer_widgets и shipping_area — без переполнения ─── */
     .footer_widgets, .shipping_area, .footer_top, .footer_bottom { overflow-x: hidden; }
 }
+
+/* ─── Боковой виджет категорий/брендов: прокрутка + подкатегории ─── */
+.widget_categories .cat_widget_scroll,
+.widget_categories .brand_widget_scroll {
+    max-height: 360px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+.widget_categories .cat_widget_scroll::-webkit-scrollbar,
+.widget_categories .brand_widget_scroll::-webkit-scrollbar { width: 6px; }
+.widget_categories .cat_widget_scroll::-webkit-scrollbar-thumb,
+.widget_categories .brand_widget_scroll::-webkit-scrollbar-thumb {
+    background: #d9d9d9; border-radius: 3px;
+}
+.widget_categories .cat_widget_scroll::-webkit-scrollbar-thumb:hover,
+.widget_categories .brand_widget_scroll::-webkit-scrollbar-thumb:hover { background: #bbb; }
+
+/* Родитель: строка с названием и кнопкой-стрелкой */
+.widget_categories .cat_parent_row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.widget_categories .cat_parent_row > a { flex: 1; }
+.widget_categories .cat_toggle {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 4px 6px;
+    font-size: 14px;
+    line-height: 1;
+    transition: transform 0.2s, color 0.15s;
+}
+.widget_categories .cat_toggle:hover { color: #d32f2f; }
+.widget_categories .cat_parent.is_open > .cat_parent_row .cat_toggle { transform: rotate(180deg); color: #d32f2f; }
+
+/* Подкатегории: скрыты по умолчанию, раскрываются у .is_open */
+.widget_categories .cat_children {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 14px;
+    border-left: 2px solid #f0f0f0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+}
+.widget_categories .cat_parent.is_open > .cat_children {
+    max-height: 600px;
+    margin: 4px 0 8px;
+}
+.widget_categories .cat_children li a {
+    font-size: 13px;
+    color: #777;
+    padding: 4px 0;
+    display: block;
+    transition: color 0.15s, padding-left 0.15s;
+}
+.widget_categories .cat_children li a:hover { color: #d32f2f; padding-left: 4px; }
+.widget_categories .cat_children li.active_categorie a { color: #d32f2f; font-weight: 600; }
+
+/* ─── Переключатель "В наличии" ─── */
+.avail_toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    margin: 6px 0 0;
+    user-select: none;
+}
+.avail_toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.avail_switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    background: #d9d9d9;
+    border-radius: 22px;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+.avail_switch::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 18px; height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+}
+.avail_toggle input:checked + .avail_switch { background: #d32f2f; }
+.avail_toggle input:checked + .avail_switch::after { transform: translateX(18px); }
+.avail_text { font-size: 14px; color: #333; }

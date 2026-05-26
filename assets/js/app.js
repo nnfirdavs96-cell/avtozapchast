@@ -55,7 +55,8 @@ function showToast(msg, type) {
 // CSRF token from meta tag
 window._csrf = document.querySelector('meta[name=csrf]') ? document.querySelector('meta[name=csrf]').content : '';
 
-// Apply data-bgimg as background-image, picking the mobile variant on small screens
+// Apply data-bgimg as background-image, picking the mobile variant on small screens.
+// Height is fully controlled by CSS (380px on mobile, 420px on desktop).
 function applyResponsiveBg() {
     var isMobile = window.matchMedia('(max-width: 767px)').matches;
     document.querySelectorAll('[data-bgimg]').forEach(function (el) {
@@ -74,6 +75,24 @@ document.addEventListener('DOMContentLoaded', function () {
         clearTimeout(_bgResizeT);
         _bgResizeT = setTimeout(applyResponsiveBg, 150);
     });
+
+    // Collapse/expand subcategories in catalog sidebar widget
+    document.querySelectorAll('.widget_categories .cat_toggle').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            var li = this.closest('.cat_parent');
+            if (li) li.classList.toggle('is_open');
+        });
+    });
+
+    // Availability toggle (checkbox) — navigate on change
+    var availBox = document.getElementById('avail_in_stock');
+    if (availBox) {
+        availBox.addEventListener('change', function () {
+            var url = this.checked ? this.getAttribute('data-on') : this.getAttribute('data-off');
+            if (url) window.location.href = url;
+        });
+    }
 
     // Toggle for the categories dropdown (class-based, works on mobile touch)
     document.querySelectorAll('.categori_toggle').forEach(function (toggle) {
@@ -103,6 +122,128 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     var ocWrap = document.querySelector('.offcanvas_menu_wrapper');
     if (ocWrap) lockObserver.observe(ocWrap, { attributes: true, attributeFilter: ['class'] });
+
+    // ── Телефон с выбором страны: селектор кода + маска ────────────────
+    // Маска заполняет шаблон вида "(XX) XXX-XX-XX"; разделители ставятся
+    // только ПЕРЕД следующей цифрой, поэтому удаление работает без «отскока».
+    // Список стран приходит из настроек (window.PHONE_COUNTRIES); по умолчанию — только Таджикистан.
+    var PHONE_COUNTRIES = (window.PHONE_COUNTRIES && window.PHONE_COUNTRIES.length)
+        ? window.PHONE_COUNTRIES
+        : [{ code:'tj', dial:'992', flag:'🇹🇯', name:'Таджикистан', mask:'(XX) XXX-XX-XX' }];
+    function pcByCode(code) {
+        for (var i = 0; i < PHONE_COUNTRIES.length; i++) {
+            if (PHONE_COUNTRIES[i].code === code) return PHONE_COUNTRIES[i];
+        }
+        return PHONE_COUNTRIES[0];
+    }
+    function pcFlagUrl(c) { return 'https://flagcdn.com/w40/' + c.code + '.png'; }
+    function pcMaxDigits(c) { return (c.mask.match(/X/g) || []).length; }
+    function pcApplyMask(mask, digits) {
+        var out = '', di = 0;
+        for (var i = 0; i < mask.length && di < digits.length; i++) {
+            out += (mask[i] === 'X') ? digits[di++] : mask[i];
+        }
+        return out;
+    }
+    // National digits already known → full "+dial ...".
+    function pcFormatNational(c, nat) {
+        nat = nat.slice(0, pcMaxDigits(c));
+        return nat.length ? '+' + c.dial + ' ' + pcApplyMask(c.mask, nat) : '';
+    }
+    // Strip the dial code from a raw string of all-digits.
+    function pcStripDial(c, allDigits) {
+        return (allDigits.slice(0, c.dial.length) === c.dial)
+            ? allDigits.slice(c.dial.length) : allDigits;
+    }
+    // Guess country from a pre-filled value (longest dial match first).
+    function pcDetect(val) {
+        var d = (val || '').replace(/\D/g, '');
+        var sorted = PHONE_COUNTRIES.slice().sort(function (a, b) { return b.dial.length - a.dial.length; });
+        for (var i = 0; i < sorted.length; i++) {
+            if (d.slice(0, sorted[i].dial.length) === sorted[i].dial) return sorted[i];
+        }
+        return null;
+    }
+
+    document.querySelectorAll('input[data-phone]').forEach(function (inp) {
+        if (inp.dataset.phoneInit) return;
+        inp.dataset.phoneInit = '1';
+
+        var country = pcByCode(inp.getAttribute('data-phone'));
+
+        // Pre-filled value: detect country from existing number, reformat
+        if (inp.value.trim()) {
+            var det = pcDetect(inp.value);
+            if (det) country = det;
+            inp.value = pcFormatNational(country, pcStripDial(country, inp.value.replace(/\D/g, '')));
+        }
+
+        inp.addEventListener('input', function () {
+            inp.value = pcFormatNational(country, pcStripDial(country, inp.value.replace(/\D/g, '')));
+        });
+
+        // Селектор страны (кастомный, с картинками флагов) — только если включено больше одной страны.
+        if (PHONE_COUNTRIES.length > 1) {
+            var wrap = document.createElement('div');
+            wrap.className = 'phone-wrap';
+            inp.parentNode.insertBefore(wrap, inp);
+
+            var cc = document.createElement('div');
+            cc.className = 'phone-cc';
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'phone-cc-btn';
+            function ccBtnHtml(c) {
+                return '<img src="' + pcFlagUrl(c) + '" alt="" width="22" height="16" loading="lazy">' +
+                       '<span class="cc-d">+' + c.dial + '</span><i class="cc-caret">▾</i>';
+            }
+            btn.innerHTML = ccBtnHtml(country);
+
+            var panel = document.createElement('div');
+            panel.className = 'phone-cc-panel';
+            PHONE_COUNTRIES.forEach(function (c) {
+                var opt = document.createElement('button');
+                opt.type = 'button';
+                opt.className = 'phone-cc-opt';
+                opt.innerHTML = '<img src="' + pcFlagUrl(c) + '" alt="" width="22" height="16" loading="lazy">' +
+                                '<span class="cc-name">' + c.name + '</span>' +
+                                '<span class="cc-dial">+' + c.dial + '</span>';
+                opt.addEventListener('click', function () {
+                    var prev = country;
+                    country = c;
+                    var nat = pcStripDial(prev, inp.value.replace(/\D/g, ''));
+                    inp.value = pcFormatNational(country, nat);
+                    btn.innerHTML = ccBtnHtml(country);
+                    cc.classList.remove('open');
+                    inp.focus();
+                });
+                panel.appendChild(opt);
+            });
+
+            btn.addEventListener('click', function () { cc.classList.toggle('open'); });
+            document.addEventListener('click', function (e) { if (!cc.contains(e.target)) cc.classList.remove('open'); });
+
+            cc.appendChild(btn);
+            cc.appendChild(panel);
+            wrap.appendChild(cc);
+            wrap.appendChild(inp);
+        }
+    });
+
+    // ── Показать/скрыть пароль (кнопка-глаз в .pwd-field)
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.pwd-toggle');
+        if (!btn) return;
+        e.preventDefault();
+        var field = btn.closest('.pwd-field');
+        var input = field ? field.querySelector('input') : null;
+        if (!input) return;
+        var show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        var icon = btn.querySelector('i');
+        if (icon) icon.className = show ? 'fa fa-eye-slash' : 'fa fa-eye';
+        btn.setAttribute('aria-label', show ? 'Скрыть пароль' : 'Показать пароль');
+    });
 
     // ── Cart icon: на мобиле — прямая ссылка на /buyer/cart.php, не открывать панель
     document.querySelectorAll('.mini_cart_wrapper > a').forEach(function (a) {

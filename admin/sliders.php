@@ -24,8 +24,27 @@ $db->exec("CREATE TABLE IF NOT EXISTS `sliders` (
 // Add columns to pre-existing tables (portable across MariaDB dev / MySQL 8.0 prod).
 dbAddColumnIfMissing($db, 'sliders', 'image_url_mobile', "`image_url_mobile` VARCHAR(500) NOT NULL DEFAULT '' AFTER `image_url`");
 dbAddColumnIfMissing($db, 'sliders', 'title_highlight',  "`title_highlight` VARCHAR(255) NOT NULL DEFAULT '' AFTER `title`");
-dbAddColumnIfMissing($db, 'sliders', 'text_blocks',      "`text_blocks` TEXT NULL AFTER `subtitle`");
-dbAddColumnIfMissing($db, 'sliders', 'text_pos',         "`text_pos` VARCHAR(20) NOT NULL DEFAULT 'left-center' AFTER `text_blocks`");
+dbAddColumnIfMissing($db, 'sliders', 'text_blocks',        "`text_blocks` TEXT NULL AFTER `subtitle`");
+dbAddColumnIfMissing($db, 'sliders', 'text_blocks_mobile', "`text_blocks_mobile` TEXT NULL AFTER `text_blocks`");
+dbAddColumnIfMissing($db, 'sliders', 'text_pos',          "`text_pos` VARCHAR(20) NOT NULL DEFAULT 'left-center' AFTER `text_blocks_mobile`");
+dbAddColumnIfMissing($db, 'sliders', 'text_pos_mobile',   "`text_pos_mobile` VARCHAR(20) NOT NULL DEFAULT 'left-center' AFTER `text_pos`");
+dbAddColumnIfMissing($db, 'sliders', 'button_text',       "`button_text` VARCHAR(100) NOT NULL DEFAULT '' AFTER `text_pos_mobile`");
+
+// ── One-time migration: fix link_url values pointing to private/internal IPs ──
+// (e.g. Timeweb reverse-proxy IP 10.x.x.x stored during development)
+(function() use ($db) {
+    $privatePattern = "link_url LIKE 'http://10.%' OR link_url LIKE 'https://10.%'"
+                    . " OR link_url LIKE 'http://192.168.%' OR link_url LIKE 'https://192.168.%'"
+                    . " OR link_url LIKE 'http://172.1%.%' OR link_url LIKE 'https://172.1%.%'";
+    $rows = $db->query("SELECT id, link_url FROM sliders WHERE $privatePattern")->fetchAll();
+    if ($rows) {
+        $upd = $db->prepare("UPDATE sliders SET link_url = ? WHERE id = ?");
+        foreach ($rows as $row) {
+            $fixed = preg_replace('~^https?://(?:10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+)~i', '', $row['link_url']);
+            $upd->execute([$fixed, $row['id']]);
+        }
+    }
+})();
 
 // ── POST handler ──────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -59,33 +78,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Save (add / edit)
-    $sid       = (int)($_POST['id'] ?? 0);
-    $imgUrl    = trim($_POST['image_url'] ?? '');
-    $imgMobile = trim($_POST['image_url_mobile'] ?? '');
-    $linkUrl   = trim($_POST['link_url'] ?? '');
-    $sort      = (int)($_POST['sort_order'] ?? 0);
+    $sid        = (int)($_POST['id'] ?? 0);
+    $imgUrl     = trim($_POST['image_url'] ?? '');
+    $imgMobile  = trim($_POST['image_url_mobile'] ?? '');
+    $linkUrl    = trim($_POST['link_url'] ?? '');
+    $buttonText = trim($_POST['button_text'] ?? '');
+    $sort       = (int)($_POST['sort_order'] ?? 0);
 
-    // Build text blocks from the parallel form arrays.
-    $rawBlocks = [];
-    $blkText = $_POST['blk_text'] ?? [];
-    if (is_array($blkText)) {
-        foreach ($blkText as $i => $txt) {
-            $rawBlocks[] = [
-                'text'        => $txt,
-                'size'        => $_POST['blk_size'][$i]        ?? 24,
-                'size_mobile' => $_POST['blk_size_mobile'][$i] ?? 0,
-                'weight'      => $_POST['blk_weight'][$i]      ?? '400',
-                'color'       => $_POST['blk_color'][$i]       ?? '#ffffff',
-                'font'        => $_POST['blk_font'][$i]        ?? '',
-                'mb'          => $_POST['blk_mb'][$i]          ?? 10,
-            ];
-        }
-    }
-    $blocks     = normalizeSliderBlocks($rawBlocks);
-    $textBlocks = $blocks ? json_encode($blocks, JSON_UNESCAPED_UNICODE) : '';
-    $title      = $blocks[0]['text'] ?? '';   // first block doubles as the list-preview title
-    $rawPos     = trim($_POST['text_pos'] ?? 'left-center');
-    $textPos    = preg_match('/^(left|center|right)-(top|center|bottom)$/', $rawPos) ? $rawPos : 'left-center';
+    // Strip private/internal IP prefixes so stored URLs stay portable across environments.
+    $linkUrl = preg_replace('~^https?://(?:10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+)~i', '', $linkUrl);
+
+    // Desktop & mobile text blocks arrive as JSON (serialised by the editor JS),
+    // so each device keeps its own independent set of blocks.
+    $decodeBlocks = function ($json): array {
+        $arr = json_decode((string)$json, true);
+        return is_array($arr) ? normalizeSliderBlocks($arr) : [];
+    };
+    $blocksD = $decodeBlocks($_POST['blocks_desktop'] ?? '');
+    $blocksM = $decodeBlocks($_POST['blocks_mobile']  ?? '');
+
+    $textBlocks       = $blocksD ? json_encode($blocksD, JSON_UNESCAPED_UNICODE) : '';
+    $textBlocksMobile = $blocksM ? json_encode($blocksM, JSON_UNESCAPED_UNICODE) : '';
+    // First desktop block (or first mobile if no desktop) doubles as list-preview title.
+    $title = $blocksD[0]['text'] ?? ($blocksM[0]['text'] ?? '');
+
+    $validPos = fn(string $p): string =>
+        preg_match('/^(left|center|right)-(top|center|bottom)$/', $p) ? $p : 'left-center';
+    $textPos       = $validPos(trim($_POST['text_pos']        ?? 'left-center'));
+    $textPosMobile = $validPos(trim($_POST['text_pos_mobile'] ?? 'left-center'));
 
     if ($imgUrl === '' && $imgMobile === '') {
         flashMessage('danger', 'Загрузите хотя бы одно изображение (десктоп или мобильное).');
@@ -94,13 +114,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($sid) {
         $db->prepare(
-            "UPDATE sliders SET title=?, title_highlight='', subtitle='', text_blocks=?, text_pos=?, image_url=?, image_url_mobile=?, link_url=?, sort_order=? WHERE id=?"
-        )->execute([$title, $textBlocks, $textPos, $imgUrl, $imgMobile, $linkUrl, $sort, $sid]);
+            "UPDATE sliders SET title=?, title_highlight='', subtitle='', text_blocks=?, text_blocks_mobile=?, text_pos=?, text_pos_mobile=?, image_url=?, image_url_mobile=?, link_url=?, button_text=?, sort_order=? WHERE id=?"
+        )->execute([$title, $textBlocks, $textBlocksMobile, $textPos, $textPosMobile, $imgUrl, $imgMobile, $linkUrl, $buttonText, $sort, $sid]);
         flashMessage('success', 'Слайд обновлён.');
     } else {
         $db->prepare(
-            "INSERT INTO sliders (title, text_blocks, text_pos, image_url, image_url_mobile, link_url, sort_order, is_active) VALUES (?,?,?,?,?,?,?,1)"
-        )->execute([$title, $textBlocks, $textPos, $imgUrl, $imgMobile, $linkUrl, $sort]);
+            "INSERT INTO sliders (title, text_blocks, text_blocks_mobile, text_pos, text_pos_mobile, image_url, image_url_mobile, link_url, button_text, sort_order, is_active) VALUES (?,?,?,?,?,?,?,?,?,?,1)"
+        )->execute([$title, $textBlocks, $textBlocksMobile, $textPos, $textPosMobile, $imgUrl, $imgMobile, $linkUrl, $buttonText, $sort]);
         flashMessage('success', 'Слайд добавлен.');
     }
     redirect(APP_URL . '/admin/sliders.php');
@@ -138,6 +158,20 @@ if (!$initialBlocks) {
     $initialBlocks[] = ['text'=>'', 'size'=>30, 'weight'=>'400', 'color'=>'#ffffff', 'font'=>'', 'mb'=>6];
     $initialBlocks[] = ['text'=>'', 'size'=>60, 'weight'=>'800', 'color'=>'#ffffff', 'font'=>'', 'mb'=>22];
 }
+
+// Mobile blocks: prefer saved mobile JSON; otherwise start from a copy of the
+// desktop blocks so the slide keeps working on phones until the admin tweaks it.
+$initialBlocksMobile = [];
+if ($editSlide && !empty($editSlide['text_blocks_mobile'])) {
+    $decodedM = json_decode($editSlide['text_blocks_mobile'], true);
+    if (is_array($decodedM)) $initialBlocksMobile = normalizeSliderBlocks($decodedM);
+}
+if (!$initialBlocksMobile) {
+    $initialBlocksMobile = $initialBlocks;
+}
+
+$savedPosDesktop = $editSlide['text_pos']        ?? 'left-center';
+$savedPosMobile  = $editSlide['text_pos_mobile'] ?? $savedPosDesktop;
 
 $pageTitle = 'Слайдер — Администратор';
 require_once dirname(__DIR__) . '/includes/header.php';
@@ -224,7 +258,8 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         </label>
                         <span id="mbStatus" style="font-size:0.8rem;color:#888;margin-left:8px;"></span>
                         <div style="margin-top:10px;padding:10px 12px;background:#eef6ff;border:1px solid #cfe4fb;border-radius:6px;font-size:0.78rem;color:#1c5a99;line-height:1.55;">
-                            <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> ~768&times;900&nbsp;px (вертикальный/квадратный).
+                            <i class="fa fa-info-circle"></i> <strong>Рекомендуемый размер:</strong> ~1080&times;1080&nbsp;px (квадратное).<br>
+                            <span style="color:#5a87b3;">Слайдер на телефоне — высота 380&nbsp;px, обрезается по центру. Важный объект держите в центре.</span>
                         </div>
                         <input type="hidden" name="image_url_mobile" id="imageUrlMobile"
                                value="<?= sanitize($editSlide['image_url_mobile'] ?? '') ?>">
@@ -245,17 +280,25 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <div id="slPreview" class="sl-preview">
                             <div id="slPreviewFrame">
                                 <div id="slPreviewContent"></div>
-                                <span class="sl-preview-btn"><?= t('shop') ?> &raquo;</span>
+                                <span class="sl-preview-btn" id="slPreviewBtn"><?= sanitize($editSlide['button_text'] ?? '') ?: t('shop') ?> &raquo;</span>
                             </div>
                         </div>
                         <small style="color:#888;">Пиксель-в-пиксель: рендерится в реальных размерах и масштабируется.</small>
                     </div>
 
+                    <div id="modeBanner" class="az-alert" style="display:flex;align-items:center;gap:10px;font-weight:600;">
+                        <i class="fa fa-pencil"></i>
+                        <span>Вы редактируете: <strong id="modeBannerLabel">Десктоп</strong></span>
+                        <span style="font-weight:400;font-size:0.82rem;opacity:0.8;">— переключайте «Десктоп / Мобильный» выше, чтобы настроить каждую версию отдельно.</span>
+                        <button type="button" id="copyFromDesktop" class="az-btn az-btn-secondary az-btn-sm" style="margin-left:auto;display:none;">
+                            <i class="fa fa-copy"></i> Скопировать из десктопа
+                        </button>
+                    </div>
+
                     <div class="az-card">
-                        <h3><i class="fa fa-arrows"></i> Расположение текста на слайде</h3>
+                        <h3><i class="fa fa-arrows"></i> Расположение текста <span id="posModeTag" style="color:#C70909;"></span></h3>
                         <p style="font-size:0.83rem;color:#666;margin-top:0;">Выберите куда разместить текст — нажмите нужную ячейку.</p>
                         <?php
-                        $savedPos = $editSlide['text_pos'] ?? 'left-center';
                         $posLabels = [
                             'left-top'=>'Лево верх','center-top'=>'Центр верх','right-top'=>'Право верх',
                             'left-center'=>'Лево середина','center-center'=>'Центр середина','right-center'=>'Право середина',
@@ -269,50 +312,21 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         ?>
                         <div class="pos-picker">
                             <?php foreach ($posIcons as $posKey => $icon): ?>
-                                <button type="button" class="pos-btn<?= $posKey === $savedPos ? ' active' : '' ?>"
+                                <button type="button" class="pos-btn"
                                         data-pos="<?= $posKey ?>" title="<?= $posLabels[$posKey] ?>">
                                     <?= $icon ?>
                                 </button>
                             <?php endforeach; ?>
                         </div>
-                        <input type="hidden" name="text_pos" id="textPosInput" value="<?= sanitize($savedPos) ?>">
+                        <input type="hidden" name="text_pos"        id="textPosInput"       value="<?= sanitize($savedPosDesktop) ?>">
+                        <input type="hidden" name="text_pos_mobile" id="textPosInputMobile" value="<?= sanitize($savedPosMobile) ?>">
                         <div style="margin-top:8px;font-size:0.8rem;color:#555;">
-                            Выбрано: <strong id="posLabel"><?= sanitize($posLabels[$savedPos] ?? 'Лево середина') ?></strong>
+                            Выбрано: <strong id="posLabel"></strong>
                         </div>
                     </div>
 
                     <div class="az-card">
-                        <h3><i class="fa fa-arrows"></i> Расположение текста на слайде</h3>
-                        <p style="font-size:0.83rem;color:#666;margin-top:0;">Выберите куда разместить текст — нажмите нужную ячейку.</p>
-                        <?php
-                        $savedPos = $editSlide['text_pos'] ?? 'left-center';
-                        $posLabels = [
-                            'left-top'=>'Лево верх','center-top'=>'Центр верх','right-top'=>'Право верх',
-                            'left-center'=>'Лево середина','center-center'=>'Центр середина','right-center'=>'Право середина',
-                            'left-bottom'=>'Лево низ','center-bottom'=>'Центр низ','right-bottom'=>'Право низ',
-                        ];
-                        $posIcons = [
-                            'left-top'=>'↖','center-top'=>'↑','right-top'=>'↗',
-                            'left-center'=>'←','center-center'=>'⊙','right-center'=>'→',
-                            'left-bottom'=>'↙','center-bottom'=>'↓','right-bottom'=>'↘',
-                        ];
-                        ?>
-                        <div class="pos-picker">
-                            <?php foreach ($posIcons as $posKey => $icon): ?>
-                                <button type="button" class="pos-btn<?= $posKey === $savedPos ? ' active' : '' ?>"
-                                        data-pos="<?= $posKey ?>" title="<?= $posLabels[$posKey] ?>">
-                                    <?= $icon ?>
-                                </button>
-                            <?php endforeach; ?>
-                        </div>
-                        <input type="hidden" name="text_pos" id="textPosInput" value="<?= sanitize($savedPos) ?>">
-                        <div style="margin-top:8px;font-size:0.8rem;color:#555;">
-                            Выбрано: <strong id="posLabel"><?= sanitize($posLabels[$savedPos] ?? 'Лево середина') ?></strong>
-                        </div>
-                    </div>
-
-                    <div class="az-card">
-                        <h3><i class="fa fa-font"></i> Текстовые блоки</h3>
+                        <h3><i class="fa fa-font"></i> Текстовые блоки <span id="blkModeTag" style="color:#C70909;"></span></h3>
                         <p style="font-size:0.83rem;color:#666;margin-top:0;">
                             Добавьте сколько угодно строк (заголовки и подзаголовки). Для каждой настройте
                             размер, жирность, цвет, шрифт и отступ снизу. Порядок — стрелками.
@@ -321,15 +335,25 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <button type="button" class="az-btn az-btn-secondary az-btn-sm" id="addBlockBtn">
                             <i class="fa fa-plus"></i> Добавить блок
                         </button>
+                        <input type="hidden" name="blocks_desktop" id="blocksDesktop">
+                        <input type="hidden" name="blocks_mobile"  id="blocksMobile">
                     </div>
 
                     <div class="az-card">
                         <h3>Кнопка и порядок</h3>
                         <div class="az-form-group">
+                            <label>Текст кнопки <small style="color:#888;font-weight:400;">(если пусто — будет «<?= t('shop') ?>»)</small></label>
+                            <input type="text" name="button_text" id="buttonTextInput"
+                                   value="<?= sanitize($editSlide['button_text'] ?? '') ?>"
+                                   placeholder="<?= sanitize(t('shop')) ?>"
+                                   style="max-width:260px;">
+                        </div>
+                        <div class="az-form-group">
                             <label>Ссылка кнопки (URL)</label>
                             <input type="text" name="link_url"
                                    value="<?= sanitize($editSlide['link_url'] ?? '') ?>"
-                                   placeholder="/shop.php">
+                                   placeholder="/catalog/index.php">
+                            <small style="color:#888;">Используйте относительный путь (/catalog/index.php) — не вводите IP-адрес.</small>
                         </div>
                         <div class="az-form-group">
                             <label>Порядок сортировки</label>
@@ -425,19 +449,35 @@ require_once dirname(__DIR__) . '/includes/header.php';
             window.SL_FONTS      = <?= json_encode(sliderFonts(), JSON_UNESCAPED_UNICODE) ?>;
             window.SL_WEIGHTS    = <?= json_encode(sliderWeights(), JSON_UNESCAPED_UNICODE) ?>;
             window.SL_FONT_STACK = <?= json_encode((function(){ $m=[]; foreach(array_keys(sliderFonts()) as $f){ $m[$f]=sliderFontStack($f); } return $m; })(), JSON_UNESCAPED_UNICODE) ?>;
-            window.SL_INIT       = <?= json_encode($initialBlocks, JSON_UNESCAPED_UNICODE) ?>;
+            window.SL_INIT        = <?= json_encode($initialBlocks, JSON_UNESCAPED_UNICODE) ?>;
+            window.SL_INIT_MOBILE = <?= json_encode($initialBlocksMobile, JSON_UNESCAPED_UNICODE) ?>;
 
             (function () {
                 const container = document.getElementById('blocksContainer');
                 const preview   = document.getElementById('slPreview');
                 const frame     = document.getElementById('slPreviewFrame');
                 const pvContent = document.getElementById('slPreviewContent');
+                const form      = document.getElementById('sliderForm');
                 var   slMode    = 'desktop'; // 'desktop' | 'mobile'
 
-                // Preview dimensions per mode
+                // Independent state per device — each holds its own block list + position.
+                var blocksState = {
+                    desktop: (window.SL_INIT        && window.SL_INIT.length        ? window.SL_INIT.slice()        : [null]),
+                    mobile:  (window.SL_INIT_MOBILE && window.SL_INIT_MOBILE.length ? window.SL_INIT_MOBILE.slice() : [null])
+                };
+                var posState = {
+                    desktop: document.getElementById('textPosInput').value       || 'left-center',
+                    mobile:  document.getElementById('textPosInputMobile').value || 'left-center'
+                };
+
                 var SL_DIM = {
                     desktop: { w: 1140, h: 420 },
-                    mobile:  { w: 390,  h: 300 }
+                    mobile:  { w: 390,  h: 380 }   // matches the CSS height:380px on mobile
+                };
+                var posLabels = {
+                    'left-top':'Лево верх','center-top':'Центр верх','right-top':'Право верх',
+                    'left-center':'Лево середина','center-center':'Центр середина','right-center':'Право середина',
+                    'left-bottom':'Лево низ','center-bottom':'Центр низ','right-bottom':'Право низ'
                 };
 
                 function optionsHtml(map, selected) {
@@ -460,20 +500,18 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 '<button type="button" class="blk-del"  title="Удалить">&times;</button>' +
                             '</span>' +
                         '</div>' +
-                        '<input type="text" class="blk-text" name="blk_text[]" placeholder="Текст строки" value="">' +
+                        '<input type="text" class="blk-text" placeholder="Текст строки" value="">' +
                         '<div class="blk-grid">' +
-                            '<div><label>Размер десктоп, px</label><input type="number" min="8" max="200" name="blk_size[]"></div>' +
-                            '<div><label>Размер мобильный, px</label><input type="number" min="0" max="120" name="blk_size_mobile[]" placeholder="авто"></div>' +
-                            '<div><label>Жирность</label><select name="blk_weight[]">' + optionsHtml(window.SL_WEIGHTS, b.weight) + '</select></div>' +
-                            '<div><label>Цвет</label><input type="color" name="blk_color[]"></div>' +
-                            '<div><label>Шрифт</label><select name="blk_font[]">' + optionsHtml(window.SL_FONTS, b.font) + '</select></div>' +
-                            '<div><label>Отступ снизу, px</label><input type="number" min="0" max="160" name="blk_mb[]"></div>' +
+                            '<div><label>Размер, px</label><input type="number" min="8" max="200" class="blk-size"></div>' +
+                            '<div><label>Жирность</label><select class="blk-weight">' + optionsHtml(window.SL_WEIGHTS, b.weight) + '</select></div>' +
+                            '<div><label>Цвет</label><input type="color" class="blk-color"></div>' +
+                            '<div><label>Шрифт</label><select class="blk-font">' + optionsHtml(window.SL_FONTS, b.font) + '</select></div>' +
+                            '<div><label>Отступ снизу, px</label><input type="number" min="0" max="160" class="blk-mb"></div>' +
                         '</div>';
-                    row.querySelector('.blk-text').value  = b.text || '';
-                    row.querySelector('[name="blk_size[]"]').value        = b.size;
-                    row.querySelector('[name="blk_size_mobile[]"]').value = b.size_mobile || '';
-                    row.querySelector('[name="blk_color[]"]').value       = b.color || '#ffffff';
-                    row.querySelector('[name="blk_mb[]"]').value          = b.mb;
+                    row.querySelector('.blk-text').value   = b.text || '';
+                    row.querySelector('.blk-size').value   = b.size != null ? b.size : 30;
+                    row.querySelector('.blk-color').value  = b.color || '#ffffff';
+                    row.querySelector('.blk-mb').value     = b.mb != null ? b.mb : 10;
                     row.addEventListener('input', renderPreview);
                     row.querySelector('.blk-del').addEventListener('click', function () { row.remove(); renumber(); renderPreview(); });
                     row.querySelector('.blk-up').addEventListener('click', function () {
@@ -491,11 +529,34 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     container.querySelectorAll('.blk-row .blk-num').forEach(function (el, i) { el.textContent = 'Блок ' + (i + 1); });
                 }
 
+                // Read the rows currently in the DOM into a plain array of block objects.
+                function collectRows() {
+                    var out = [];
+                    container.querySelectorAll('.blk-row').forEach(function (row) {
+                        out.push({
+                            text:   row.querySelector('.blk-text').value,
+                            size:   parseInt(row.querySelector('.blk-size').value, 10) || 24,
+                            weight: row.querySelector('.blk-weight').value,
+                            color:  row.querySelector('.blk-color').value,
+                            font:   row.querySelector('.blk-font').value,
+                            mb:     parseInt(row.querySelector('.blk-mb').value, 10) || 0
+                        });
+                    });
+                    return out;
+                }
+
+                // Rebuild the rows from a block array.
+                function loadRows(arr) {
+                    container.innerHTML = '';
+                    (arr && arr.length ? arr : [null]).forEach(function (b) {
+                        container.appendChild(makeRow(b));
+                    });
+                    renumber();
+                }
+
                 function renderPreview() {
                     var dim = SL_DIM[slMode];
                     var url = (document.getElementById('imageUrl') || {}).value || '';
-
-                    // Desktop uses uploaded image; mobile uses mobile image if available
                     if (slMode === 'mobile') {
                         var mobileUrl = (document.getElementById('imageUrlMobile') || {}).value || '';
                         if (mobileUrl) url = mobileUrl;
@@ -508,8 +569,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     frame.style.transform = 'scale(' + scale + ')';
                     preview.style.height  = (dim.h * scale) + 'px';
 
-                    // Text position
-                    var pos    = (document.getElementById('textPosInput') || {}).value || 'left-center';
+                    var pos    = posState[slMode] || 'left-center';
                     var parts  = pos.split('-');
                     var hAlign = parts[0] || 'left';
                     var vAlign = parts[1] || 'center';
@@ -524,16 +584,11 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     container.querySelectorAll('.blk-row').forEach(function (row) {
                         var text = row.querySelector('.blk-text').value;
                         if (!text.trim()) return;
-                        var desktopSz = parseInt(row.querySelector('[name="blk_size[]"]').value, 10) || 24;
-                        var mobileSz  = parseInt(row.querySelector('[name="blk_size_mobile[]"]').value, 10) || 0;
-                        // Mobile preview: use explicit mobile size if set, else auto-scale 0.32
-                        var size = slMode === 'mobile'
-                            ? (mobileSz > 0 ? mobileSz : Math.round(desktopSz * 0.32))
-                            : desktopSz;
-                        var mb     = parseInt(row.querySelector('[name="blk_mb[]"]').value, 10) || 0;
-                        var weight = row.querySelector('[name="blk_weight[]"]').value;
-                        var color  = row.querySelector('[name="blk_color[]"]').value;
-                        var font   = row.querySelector('[name="blk_font[]"]').value;
+                        var size   = parseInt(row.querySelector('.blk-size').value, 10) || 24;
+                        var mb     = parseInt(row.querySelector('.blk-mb').value, 10) || 0;
+                        var weight = row.querySelector('.blk-weight').value;
+                        var color  = row.querySelector('.blk-color').value;
+                        var font   = row.querySelector('.blk-font').value;
                         var div = document.createElement('div');
                         div.className = 'sl-preview-block';
                         div.textContent = text;
@@ -549,21 +604,66 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 }
                 window.renderSlPreview = renderPreview;
 
-                // Mode toggle buttons
-                document.querySelectorAll('.sl-mode-btn').forEach(function (btn) {
+                // ── Position picker (mode-aware) ──────────────────────
+                var posLbl = document.getElementById('posLabel');
+                function syncPosPicker() {
+                    var cur = posState[slMode];
+                    document.querySelectorAll('.pos-btn').forEach(function (b) {
+                        b.classList.toggle('active', b.dataset.pos === cur);
+                    });
+                    posLbl.textContent = posLabels[cur] || cur;
+                }
+                document.querySelectorAll('.pos-btn').forEach(function (btn) {
                     btn.addEventListener('click', function () {
-                        document.querySelectorAll('.sl-mode-btn').forEach(function (b) { b.classList.remove('active'); });
-                        btn.classList.add('active');
-                        slMode = btn.dataset.mode;
+                        posState[slMode] = btn.dataset.pos;
+                        syncPosPicker();
                         renderPreview();
                     });
                 });
 
-                (window.SL_INIT && window.SL_INIT.length ? window.SL_INIT : [null]).forEach(function (b) {
-                    container.appendChild(makeRow(b));
+                // ── Mode label/tags ───────────────────────────────────
+                var modeBanner      = document.getElementById('modeBanner');
+                var modeBannerLabel = document.getElementById('modeBannerLabel');
+                var posModeTag      = document.getElementById('posModeTag');
+                var blkModeTag      = document.getElementById('blkModeTag');
+                var copyBtn         = document.getElementById('copyFromDesktop');
+                function syncModeLabels() {
+                    var label = slMode === 'mobile' ? 'Мобильный' : 'Десктоп';
+                    modeBannerLabel.textContent = label;
+                    posModeTag.textContent = '(' + label + ')';
+                    blkModeTag.textContent = '(' + label + ')';
+                    modeBanner.className = 'az-alert ' + (slMode === 'mobile' ? 'az-alert-warning' : 'az-alert-info');
+                    modeBanner.style.display = 'flex';
+                    copyBtn.style.display = slMode === 'mobile' ? 'inline-flex' : 'none';
+                }
+
+                // ── Mode toggle: save current rows, swap to the other set ──
+                function switchMode(newMode) {
+                    if (newMode === slMode) return;
+                    blocksState[slMode] = collectRows();   // persist current edits
+                    slMode = newMode;
+                    loadRows(blocksState[slMode]);
+                    syncPosPicker();
+                    syncModeLabels();
+                    renderPreview();
+                }
+                document.querySelectorAll('.sl-mode-btn').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        document.querySelectorAll('.sl-mode-btn').forEach(function (b) { b.classList.remove('active'); });
+                        btn.classList.add('active');
+                        switchMode(btn.dataset.mode);
+                    });
                 });
-                renumber();
-                renderPreview();
+
+                // Copy desktop blocks + position into mobile (convenience).
+                copyBtn.addEventListener('click', function () {
+                    if (slMode !== 'mobile') return;
+                    blocksState.mobile = JSON.parse(JSON.stringify(blocksState.desktop));
+                    posState.mobile = posState.desktop;
+                    loadRows(blocksState.mobile);
+                    syncPosPicker();
+                    renderPreview();
+                });
 
                 document.getElementById('addBlockBtn').addEventListener('click', function () {
                     container.appendChild(makeRow());
@@ -572,23 +672,30 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 });
                 window.addEventListener('resize', renderPreview);
 
-                // ── Position picker ───────────────────────────────────
-                var posInput  = document.getElementById('textPosInput');
-                var posLbl    = document.getElementById('posLabel');
-                var posLabels = {
-                    'left-top':'Лево верх','center-top':'Центр верх','right-top':'Право верх',
-                    'left-center':'Лево середина','center-center':'Центр середина','right-center':'Право середина',
-                    'left-bottom':'Лево низ','center-bottom':'Центр низ','right-bottom':'Право низ'
-                };
-                document.querySelectorAll('.pos-btn').forEach(function (btn) {
-                    btn.addEventListener('click', function () {
-                        document.querySelectorAll('.pos-btn').forEach(function (b) { b.classList.remove('active'); });
-                        btn.classList.add('active');
-                        posInput.value = btn.dataset.pos;
-                        posLbl.textContent = posLabels[btn.dataset.pos] || btn.dataset.pos;
-                        renderPreview();
+                // Live-update preview button text.
+                var btnTxtInput = document.getElementById('buttonTextInput');
+                var pvBtn       = document.getElementById('slPreviewBtn');
+                var defaultBtnLabel = <?= json_encode(t('shop')) ?>;
+                if (btnTxtInput && pvBtn) {
+                    btnTxtInput.addEventListener('input', function () {
+                        pvBtn.textContent = (this.value.trim() || defaultBtnLabel) + ' »';
                     });
+                }
+
+                // ── On submit: serialise both states into hidden inputs ──
+                form.addEventListener('submit', function () {
+                    blocksState[slMode] = collectRows();
+                    document.getElementById('blocksDesktop').value     = JSON.stringify(blocksState.desktop);
+                    document.getElementById('blocksMobile').value      = JSON.stringify(blocksState.mobile);
+                    document.getElementById('textPosInput').value      = posState.desktop;
+                    document.getElementById('textPosInputMobile').value = posState.mobile;
                 });
+
+                // Initial render (desktop mode).
+                loadRows(blocksState.desktop);
+                syncPosPicker();
+                syncModeLabels();
+                renderPreview();
             })();
             </script>
 

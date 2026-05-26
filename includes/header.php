@@ -10,6 +10,20 @@ $wishCount   = getWishlistCount();
 $miniCart    = getMiniCart();
 $miniTotal   = getMiniCartTotal();
 $currentUser = getCurrentUser();
+// One-time seed: populate subcategories & product images on first page load after deploy
+if (!getSetting('cat_subseed_v2', '')) {
+    seedCategorySubcategories();
+    setSetting('cat_subseed_v2', '1');
+}
+if (!getSetting('prod_imgseed_done', '')) {
+    fillMissingProductImages();
+    setSetting('prod_imgseed_done', '1');
+}
+if (!getSetting('brands_seed_done', '')) {
+    seedBrands();
+    setSetting('brands_seed_done', '1');
+}
+
 $categories  = getCategories();
 $catTree     = getCategoryTree($categories);
 $siteName    = getSetting('site_name', t('site_name'));
@@ -337,13 +351,20 @@ unset($queryParams['lang'], $queryParams['currency']);
                                                 <div class="az-megamenu__col">
                                                     <ul class="az-megamenu__list">
                                                         <?php foreach ($chunk as $cat): ?>
-                                                        <li>
-                                                            <a href="<?= APP_URL ?>/catalog/category.php?slug=<?= urlencode($cat['slug']) ?>">
+                                                        <li class="az-megamenu__group">
+                                                            <a class="az-megamenu__head" href="<?= APP_URL ?>/catalog/category.php?slug=<?= urlencode($cat['slug']) ?>">
                                                                 <?= sanitize(tField($cat,'name')) ?>
                                                                 <?php if (!empty($cat['children'])): ?>
                                                                 <span class="az-mega-count"><?= count($cat['children']) ?></span>
                                                                 <?php endif; ?>
                                                             </a>
+                                                            <?php if (!empty($cat['children'])): ?>
+                                                            <ul class="az-megamenu__sub">
+                                                                <?php foreach ($cat['children'] as $child): ?>
+                                                                <li><a href="<?= APP_URL ?>/catalog/category.php?slug=<?= urlencode($child['slug']) ?>"><?= sanitize(tField($child,'name')) ?></a></li>
+                                                                <?php endforeach; ?>
+                                                            </ul>
+                                                            <?php endif; ?>
                                                         </li>
                                                         <?php endforeach; ?>
                                                     </ul>

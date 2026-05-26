@@ -138,11 +138,16 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             </p>
                             <p>
                                 <label><?= t('password') ?> <span>*</span></label>
-                                <input type="password"
-                                       name="password"
-                                       placeholder="••••••••"
-                                       required
-                                       autocomplete="current-password">
+                                <span class="pwd-field">
+                                    <input type="password"
+                                           name="password"
+                                           placeholder="••••••••"
+                                           required
+                                           autocomplete="current-password">
+                                    <button type="button" class="pwd-toggle" aria-label="Показать пароль">
+                                        <i class="fa fa-eye"></i>
+                                    </button>
+                                </span>
                             </p>
                             <div class="login_submit">
                                 <a href="#"><?= t('forgot_password') ?></a>

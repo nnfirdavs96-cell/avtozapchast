@@ -35,6 +35,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
            ->execute([$key, $val, $val]);
     }
 
+    // Phone countries (multi-select) — stored as comma-separated codes; Tajikistan always kept.
+    $pc = $_POST['phone_countries'] ?? [];
+    if (!is_array($pc)) $pc = [];
+    $validCodes = array_column(phoneCountriesCatalog(), 'code');
+    $pc = array_values(array_intersect($pc, $validCodes));
+    if (!in_array('tj', $pc, true)) array_unshift($pc, 'tj');
+    $pcVal = implode(',', $pc);
+    $db->prepare("INSERT INTO site_settings (`key`, `value`) VALUES ('phone_countries', ?) ON DUPLICATE KEY UPDATE `value`=?, updated_at=NOW()")
+       ->execute([$pcVal, $pcVal]);
+
     flashMessage('success', 'Настройки сохранены.');
     redirect(APP_URL . '/superadmin/settings.php');
 }
@@ -112,6 +122,107 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                   <input type="text" name="site_address" class="form-control" value="<?= sv($settings, 'site_address') ?>">
                 </div>
               </div>
+
+              <!-- Страны для выбора в поле телефона -->
+              <div class="col-12">
+                <div class="az-form-group">
+                  <label>Страны в поле телефона</label>
+                  <p style="font-size:0.82rem;color:#888;margin:0 0 8px;">
+                    Таджикистан включён всегда. Отметьте другие страны — они появятся в выпадающем списке выбора кода (например, когда станет доступна доставка в эти страны).
+                  </p>
+                  <?php
+                    $enabledCodes = array_filter(array_map('trim', explode(',', $settings['phone_countries'] ?? 'tj')));
+                  ?>
+                  <div class="pcms" id="phoneCountriesMs">
+                    <button type="button" class="pcms-toggle" id="pcmsToggle">
+                      <span class="pcms-label">Выбрано стран: <strong id="pcmsCount">0</strong></span>
+                      <span class="pcms-caret">▾</span>
+                    </button>
+                    <div class="pcms-panel" id="pcmsPanel">
+                      <input type="text" class="pcms-search" id="pcmsSearch" placeholder="Поиск страны…" autocomplete="off">
+                      <div class="pcms-options">
+                        <?php foreach (phoneCountriesCatalog() as $pc):
+                            $checked = in_array($pc['code'], $enabledCodes, true) || $pc['code']==='tj';
+                            $isTj    = $pc['code']==='tj';
+                        ?>
+                        <label class="pcms-option<?= $isTj ? ' is-locked' : '' ?>" data-name="<?= sanitize(mb_strtolower($pc['name'].' '.$pc['dial'].' '.$pc['code'])) ?>">
+                          <input type="checkbox" name="phone_countries[]" value="<?= sanitize($pc['code']) ?>"
+                                 <?= $checked ? 'checked' : '' ?> <?= $isTj ? 'disabled' : '' ?>>
+                          <img class="pcms-flag" src="https://flagcdn.com/w40/<?= sanitize($pc['code']) ?>.png" alt="" width="24" height="18" loading="lazy">
+                          <span class="pcms-name"><?= sanitize($pc['name']) ?></span>
+                          <span class="pcms-dial">+<?= sanitize($pc['dial']) ?></span>
+                          <?php if ($isTj): ?><span class="pcms-lock">всегда</span><?php endif; ?>
+                        </label>
+                        <?php endforeach; ?>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <style>
+                .pcms { position: relative; max-width: 420px; }
+                .pcms-toggle {
+                    width: 100%; display: flex; align-items: center; justify-content: space-between;
+                    padding: 10px 14px; border: 1px solid #ccd2da; border-radius: 8px; background: #fff;
+                    cursor: pointer; font-size: 0.92rem; color: #333;
+                }
+                .pcms-toggle:hover { border-color: #999; }
+                .pcms-caret { transition: transform .15s; color: #888; }
+                .pcms.open .pcms-caret { transform: rotate(180deg); }
+                .pcms-panel {
+                    display: none; position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; right: 0;
+                    background: #fff; border: 1px solid #ccd2da; border-radius: 8px;
+                    box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 8px;
+                }
+                .pcms.open .pcms-panel { display: block; }
+                .pcms-search {
+                    width: 100%; padding: 8px 10px; border: 1px solid #e0e0e0; border-radius: 6px;
+                    margin-bottom: 6px; font-size: 0.88rem;
+                }
+                .pcms-options { max-height: 280px; overflow-y: auto; }
+                .pcms-option {
+                    display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 6px;
+                    cursor: pointer; font-weight: 400; margin: 0;
+                }
+                .pcms-option:hover { background: #f4f6f9; }
+                .pcms-option.is-locked { opacity: .65; cursor: default; }
+                .pcms-flag { display: block; border-radius: 2px; object-fit: cover; flex: 0 0 auto; }
+                .pcms-name { flex: 1 1 auto; }
+                .pcms-dial { color: #888; font-size: 0.85rem; }
+                .pcms-lock {
+                    font-size: 0.7rem; color: #fff; background: #C70909; border-radius: 10px;
+                    padding: 1px 8px; text-transform: uppercase;
+                }
+              </style>
+              <script>
+                (function () {
+                    var ms     = document.getElementById('phoneCountriesMs');
+                    var toggle = document.getElementById('pcmsToggle');
+                    var panel  = document.getElementById('pcmsPanel');
+                    var search = document.getElementById('pcmsSearch');
+                    var count  = document.getElementById('pcmsCount');
+                    if (!ms) return;
+                    var boxes  = panel.querySelectorAll('input[type="checkbox"]');
+                    function refreshCount() {
+                        var n = 0;
+                        boxes.forEach(function (b) { if (b.checked) n++; });
+                        count.textContent = n;
+                    }
+                    toggle.addEventListener('click', function () { ms.classList.toggle('open'); search.focus(); });
+                    document.addEventListener('click', function (e) {
+                        if (!ms.contains(e.target)) ms.classList.remove('open');
+                    });
+                    boxes.forEach(function (b) { b.addEventListener('change', refreshCount); });
+                    search.addEventListener('input', function () {
+                        var q = this.value.trim().toLowerCase();
+                        panel.querySelectorAll('.pcms-option').forEach(function (opt) {
+                            opt.style.display = (opt.getAttribute('data-name') || '').indexOf(q) !== -1 ? '' : 'none';
+                        });
+                    });
+                    refreshCount();
+                })();
+              </script>
 
               <!-- Карта -->
               <div class="col-12">

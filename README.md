@@ -1577,6 +1577,44 @@ if ($flash = getFlashMessage()) {
 Описано в формате «что → где → зачем», чтобы любой разработчик мог
 сориентироваться в коде. Новые записи — сверху.
 
+### Слайдер: независимые десктоп/мобильный настройки, кнопка, фикс IP-ссылки, высота моб. (PR #127–#133)
+
+**Цель:** полностью разделить вид слайда на десктопе и телефоне, дать контроль над
+кнопкой и убрать переход на внутренний IP.
+
+**1. Независимые настройки десктоп / мобильный.** Раньше изменение текста, шрифтов
+и отступов на десктопе менялось и на мобильном. Теперь у каждой версии — свой набор.
+
+| Файл | Что изменено |
+|------|--------------|
+| БД `sliders` | Новые колонки (через `dbAddColumnIfMissing`): `text_blocks_mobile TEXT`, `text_pos_mobile VARCHAR(20)`, `button_text VARCHAR(100)`. |
+| `admin/sliders.php` | Редактор хранит два независимых состояния (`blocksState.desktop/mobile`, `posState.desktop/mobile`), сериализует в скрытые поля `blocks_desktop`/`blocks_mobile` при сабмите. Вкладки **Десктоп/Мобильный**, баннер режима, кнопка «Скопировать из десктопа». |
+| `index.php` | Два абсолютных слоя `.sl-variant--desktop` / `.sl-variant--mobile`; на `<768px` через CSS-медиазапрос показывается только мобильный. Мобильный использует `--fsm` (закреплённый размер без автомасштаба). |
+| `assets/css/custom.css` | `.sl-variant { position:absolute; inset:0 }`; переключение слоёв по `@media (max-width:767px)`. |
+
+**2. Управление кнопкой слайда.** Текст кнопки задаётся в админке (поле «Текст
+кнопки»; пусто → стандартный `t('shop')`), превью обновляется в реальном времени.
+
+**3. Фикс ссылки на внутренний IP `10.230.13.107`.** Кнопка вела на внутренний
+прокси-IP Timeweb вместо `https://autodoc.tj`.
+
+| Файл | Что изменено |
+|------|--------------|
+| `admin/sliders.php` | Одноразовая миграция при загрузке: все `link_url` с приватными IP (`10.x`, `192.168.x`, `172.16-31.x`) исправляются автоматически. При сохранении IP-префикс всегда обрезается из `link_url`. |
+| `index.php` | На фронтенде `link_url` тоже нормализуется перед выводом (защита от легаси-записей). |
+
+**4. Высота мобильного слайдера и превью.** Подбор оптимальной высоты, чтобы
+изображение не обрезалось «за край» и админ-превью совпадало с сайтом.
+
+| Файл | Что изменено |
+|------|--------------|
+| `assets/css/custom.css` | Мобильный слайдер: фиксированная высота `380px` (≤390px экраны — `320px`), `background-size:cover; center`. |
+| `assets/js/app.js` | `applyResponsiveBg()` упрощён — только устанавливает фоновое изображение (мобильный вариант), высота полностью через CSS. |
+| `admin/sliders.php` | Превью мобильного режима — фрейм `390×380` (совпадает с реальной высотой). Рекомендация изображения: **~1080×1080 px (квадратное)**, важный объект — в центре. |
+
+**5. Фикс позиционирования (баг).** В редакторе был дублирующийся блок
+«Расположение текста» — позиция никогда не сохранялась. Дубль удалён.
+
 ### Фикс: весь сайт открывался по внутреннему IP `10.230.13.107` (PR #124)
 
 **Проблема:** на проде все страницы (вход, магазин, блог…) и редиректы оставались
@@ -2382,6 +2420,311 @@ sudo systemctl reload php8.1-fpm
 | #21 | Newsletter / КОНТАКТЫ кнопки full-width, categories dropdown |
 | #22 | Class-based categories toggle, Owl destroy approach |
 | #23 | Owl CSS override (вместо destroy), `.sticky-header { overflow: visible }` |
+
+---
+
+## Последние изменения (сессия Claude Code)
+
+> Всё ниже сделано в одной сессии разработки; все изменения доступны в `main`.
+> Для применения на сервере достаточно `git pull origin main`.
+
+### Краткий Changelog
+
+| PR | Что сделано |
+|----|-------------|
+| #139 | Маска телефона +992 (Таджикистан) без «отскока» при удалении |
+| #140 | Выбор страны для телефона + управление из настроек суперадмина |
+| #141 | ~38 стран с флагами, выпадающий список с поиском в настройках |
+| #142 | Реальные PNG-флаги (flagcdn.com) вместо emoji (сломанных в Windows) |
+| #143 | Автозаполнение картинок товаров без фото (заглушки product1-13.jpg) |
+| #144 | Подкатегории в «ВСЕ КАТЕГОРИИ» (seed-функция) |
+| #145 | setSetting() + одноразовый seed через header.php вместо admin-триггера |
+| #146 | Фикс seed: NOT NULL image_path_mobile, per-INSERT try/catch, bump flag |
+| #147 | Виджет «КАТЕГОРИИ» в каталоге: подкатегории + скролл |
+| #148 | Сворачиваемые подкатегории (стрелка), скролл брендов, 30+ брендов, тумблер «В наличии» |
+
+---
+
+### Детальное описание изменений
+
+#### 🔑 Пароль: кнопка показать/скрыть
+
+**Файлы:** `auth/login.php`, `auth/register.php`, `assets/js/app.js`, `assets/css/custom.css`
+
+На формах входа и регистрации добавлена кнопка-глаз (FontAwesome) для показа/скрытия пароля.
+
+```html
+<!-- Разметка: оборачиваем поле в .pwd-field -->
+<span class="pwd-field">
+    <input type="password" name="password" ...>
+    <button type="button" class="pwd-toggle" aria-label="Показать пароль">
+        <i class="fa fa-eye"></i>
+    </button>
+</span>
+```
+
+JS (в `app.js`) через делегирование по `.pwd-toggle`:
+```js
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.pwd-toggle');
+    if (!btn) return;
+    var input = btn.closest('.pwd-field')?.querySelector('input');
+    if (!input) return;
+    var show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    var icon = btn.querySelector('i');
+    if (icon) icon.className = show ? 'fa fa-eye-slash' : 'fa fa-eye';
+});
+```
+
+CSS — перебивает красный стиль темы:
+```css
+.pwd-field .pwd-toggle {
+    background: transparent !important;
+    color: #aaa !important;
+    border: none !important;
+    /* ... */
+}
+```
+
+---
+
+#### 📷 Аватар покупателя: доступ разрешён
+
+**Файл:** `api/upload.php`
+
+Покупатели (`role = buyer`) получили права загружать только аватары (`type = avatars`). Остальные типы загрузки по-прежнему требуют роли manager/admin/superadmin.
+
+```php
+$isStaff = in_array($_SESSION['role'] ?? '', ['manager', 'admin', 'superadmin']);
+if (!$isStaff && $type !== 'avatars') {
+    http_response_code(403); echo json_encode(['error' => 'Доступ запрещён']); exit;
+}
+```
+
+---
+
+#### 📱 Маска телефона +992 (Таджикистан) и выбор страны
+
+**Файлы:** `assets/js/app.js`, `includes/functions.php`, `includes/footer.php`, `includes/admin-footer.php`, `superadmin/settings.php`, `assets/css/custom.css`
+
+**Маска:**
+- По умолчанию `+992 (XX) XXX-XX-XX` (Таджикистан).
+- Алгоритм маски не добавляет trailing-разделители → при backspace цифры удаляются без «отскока».
+
+**Выбор страны:**
+- ~38 стран с кодами набора, реальными PNG-флагами (https://flagcdn.com/w40/{code}.png) и масками.
+- Если в настройках включено >1 страны — появляется custom dropdown с флагами.
+- Если 1 страна — показывается только флаг без dropdown.
+
+**Каталог стран (единый источник истины в PHP):**
+```php
+// includes/functions.php
+function phoneCountriesCatalog(): array {
+    return [
+        ['code'=>'tj','dial'=>'992','flag'=>'🇹🇯','name'=>'Таджикистан','mask'=>'(XX) XXX-XX-XX'],
+        ['code'=>'ru','dial'=>'7',  'flag'=>'🇷🇺','name'=>'Россия',     'mask'=>'(XXX) XXX-XX-XX'],
+        // ... ~38 стран
+    ];
+}
+
+function enabledPhoneCountries(): array { /* фильтрация по настройке phone_countries */ }
+```
+
+**Инъекция в JS:**
+```php
+// includes/footer.php и includes/admin-footer.php
+<script>window.PHONE_COUNTRIES = <?= json_encode(enabledPhoneCountries(), JSON_UNESCAPED_UNICODE) ?>;</script>
+```
+
+**Управление из суперадмина:**  
+`Суперадмин → Настройки → Страны телефонных кодов` — multiselect с флагами, Таджикистан всегда первый и обязательный.
+
+---
+
+#### 🏷️ Автозаполнение картинок товаров
+
+**Файл:** `includes/functions.php` → `fillMissingProductImages()`
+
+Товарам без изображений назначаются шаблонные фото `product1.jpg..product13.jpg` (из темы Mazlay), подбираемые по `id % 13 + 1`. Идемпотентно: трогает только строки с пустым полем `images`.
+
+Запускается **один раз** при первом заходе на сайт через флаг `prod_imgseed_done` в `site_settings`.
+
+---
+
+#### 🗂️ Подкатегории и мега-меню «ВСЕ КАТЕГОРИИ»
+
+**Файл:** `includes/functions.php` → `seedCategorySubcategories()`
+
+Функция заполняет 6 родительских категорий подкатегориями:
+
+| Категория | Подкатегории |
+|-----------|-------------|
+| Двигатель | Поршни и кольца, Клапаны, Прокладки ГБЦ, Масляный насос, Ремни ГРМ, Масляные фильтры |
+| Тормозная система | Тормозные колодки, Тормозные диски, Суппорты, Тормозные шланги, Тормозная жидкость |
+| Подвеска | Амортизаторы, Пружины, Рычаги, Шаровые опоры, Сайлентблоки, Стойки стабилизатора |
+| Электрика | Аккумуляторы, Стартеры, Генераторы, Свечи зажигания, Датчики, Реле и предохранители |
+| Кузов | Бамперы, Капоты, Крылья, Зеркала, Фары, Решётки радиатора |
+| Трансмиссия | Сцепление, Маховики, ШРУСы, Карданные валы, Подшипники ступицы |
+
+Запускается **один раз** через флаг `cat_subseed_v2` (не при каждом заходе).  
+**Удалённые категории не восстанавливаются** — seed устанавливает флаг и больше не запускается.
+
+---
+
+#### ⚙️ setSetting() — хелпер настроек
+
+**Файл:** `includes/functions.php`
+
+```php
+function setSetting(string $key, string $value): void {
+    $db->prepare(
+        "INSERT INTO site_settings (`key`, `value`) VALUES (?,?)
+         ON DUPLICATE KEY UPDATE `value`=?, updated_at=NOW()"
+    )->execute([$key, $value, $value]);
+}
+```
+
+Дополняет существующий `getSetting()`. Используется для записи one-time флагов из `header.php`.
+
+---
+
+#### 🚀 Автозапуск seed при первом заходе
+
+**Файл:** `includes/header.php`
+
+```php
+// Запускается один раз после деплоя, флаги в site_settings:
+if (!getSetting('cat_subseed_v2', '')) {
+    seedCategorySubcategories();
+    setSetting('cat_subseed_v2', '1');
+}
+if (!getSetting('prod_imgseed_done', '')) {
+    fillMissingProductImages();
+    setSetting('prod_imgseed_done', '1');
+}
+if (!getSetting('brands_seed_done', '')) {
+    seedBrands();
+    setSetting('brands_seed_done', '1');
+}
+```
+
+**Важно:** seed запускается до `getCategories()`, поэтому меню уже содержит подкатегории при первом же рендере.
+
+---
+
+#### 🏭 seedBrands() — 30 популярных брендов
+
+**Файл:** `includes/functions.php` → `seedBrands()`
+
+Добавляет при первом старте: Bosch, Brembo, Denso, Febi, Gates, Monroe, NGK, SKF, Mann-Filter, Mahle, Sachs, TRW, Valeo, Continental, LuK, Hella, Lemförder, ATE, Mobil, Castrol, Liqui Moly, Aisin, KYB, Exedy, Delphi, Optimal, Ruville, Zimmermann, Nipparts, Blue Print.
+
+Запускается один раз (флаг `brands_seed_done`). Бренды видны и управляемы в `manager/brands.php`.
+
+---
+
+#### 📋 Виджет «КАТЕГОРИИ» в каталоге
+
+**Файлы:** `catalog/index.php`, `assets/css/custom.css`, `assets/js/app.js`
+
+- Подкатегории выводятся под каждой родительской категорией.
+- **По умолчанию свёрнуты** — раскрываются стрелкой `▼` (кнопка `.cat_toggle`).
+- Активная ветка автоматически раскрывается при загрузке страницы.
+- Список ограничен **360px со скроллом** (тонкий кастомный скроллбар).
+- Аналогичный скролл добавлен для виджета «ПО БРЕНДУ».
+
+**Markup:**
+```html
+<li class="cat_parent is_open has_children">
+    <div class="cat_parent_row">
+        <a href="...">Двигатель</a>
+        <button class="cat_toggle"><i class="fa fa-angle-down"></i></button>
+    </div>
+    <ul class="cat_children">
+        <li><a href="...">Поршни и кольца</a></li>
+        ...
+    </ul>
+</li>
+```
+
+**JS:** При клике на `.cat_toggle` переключает класс `.is_open` на `<li>`. CSS анимирует `max-height` от 0 до 600px.
+
+---
+
+#### 🔘 Тумблер «В наличии»
+
+**Файлы:** `catalog/index.php`, `assets/css/custom.css`, `assets/js/app.js`
+
+Вместо двух ссылок «Все товары» / «В наличии» — CSS-тумблер, который при переключении делает `window.location.href` на нужный URL (сохраняет все текущие GET-параметры).
+
+```html
+<label class="avail_toggle">
+    <input type="checkbox" id="avail_in_stock" <?= $inStock ? 'checked' : '' ?>
+           data-on="?...&in_stock=1"
+           data-off="?...">  <!-- без in_stock -->
+    <span class="avail_switch"></span>
+    <span class="avail_text">В наличии</span>
+</label>
+```
+
+---
+
+### Как продолжить разработку
+
+#### После `git clone` / `git pull`
+
+```bash
+# 1. Обновить на сервере:
+cd ~/public_html
+git pull origin main
+
+# 2. Открыть любую страницу сайта в браузере.
+#    header.php автоматически выполнит все pending seed-функции (один раз):
+#    - seedCategorySubcategories()  → подкатегории в меню
+#    - fillMissingProductImages()   → картинки для товаров без фото
+#    - seedBrands()                 → 30 популярных брендов
+#    Повторные заходы — без overhead.
+
+# 3. При добавлении нового seed:
+#    а) Написать функцию seedXxx() в includes/functions.php
+#    б) Добавить в includes/header.php:
+#       if (!getSetting('xxx_seed_done', '')) { seedXxx(); setSetting('xxx_seed_done', '1'); }
+#    в) Имя флага менять при исправлении уже запустившегося seed
+#       (например 'xxx_seed_v2') — иначе он не повторится на серверах.
+```
+
+#### Добавление подкатегории вручную
+
+1. Суперадмин / Менеджер → **Категории** → «Новая категория»
+2. Указать название, слаг, выбрать **Родительскую категорию**
+3. Сохранить — подкатегория сразу появляется в меню и боковом виджете
+
+#### Добавление страны для телефона
+
+1. Суперадмин → **Настройки** → раздел «Страны телефонных кодов»
+2. Выбрать нужные страны из списка
+3. Сохранить — стране-тумблер появится у всех форм с телефоном
+
+Для добавления новой страны в каталог — отредактировать `phoneCountriesCatalog()` в `includes/functions.php`.
+
+#### Сброс seed-флага вручную (если нужно перезапустить)
+
+```sql
+DELETE FROM site_settings WHERE `key` IN ('cat_subseed_v2', 'prod_imgseed_done', 'brands_seed_done');
+```
+Или через PHP: откройте любую страницу — seed запустится снова (только добавит недостающее, дубликатов не будет).
+
+---
+
+### Что ещё можно улучшить (следующие шаги)
+
+- [ ] **Реальные изображения товаров** — загрузить фото реальных запчастей через панель менеджера, они автоматически заменят заглушки (функция трогает только строки с пустым полем `images`).
+- [ ] **VIN-поиск** — страница `/pages/vin.php` готова, нужно подключить API каталога (TecDoc, AutoData и т.д.).
+- [ ] **Доставка в другие страны** — включить нужные страны в настройках телефона; обновить список зон доставки.
+- [ ] **Интеграция со складом** — `api/warehouse.php` и `api/autoeuro.php` готовы, нужно прописать API-ключи в настройках.
+- [ ] **SEO** — заполнить мета-описания для каждой категории и товара.
+- [ ] **Email-уведомления** — настроить SMTP в суперадмин-настройках.
+- [ ] **Логотип** — заменить `logo.png` на реальный логотип компании.
 
 ---
 

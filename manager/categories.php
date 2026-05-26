@@ -12,6 +12,9 @@ $errors = [];
 // Separate mobile image column (added on demand, portable across MariaDB / MySQL 8.0).
 dbAddColumnIfMissing($db, 'categories', 'image_path_mobile', "`image_path_mobile` VARCHAR(500) NOT NULL DEFAULT '' AFTER `image_path`");
 
+// Заполняем подкатегории под основными категориями (однократно, идемпотентно).
+seedCategorySubcategories();
+
 // ── POST handler ──────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {

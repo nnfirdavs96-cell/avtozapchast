@@ -603,7 +603,7 @@ function getEffectiveMarkup(int $partId, int $categoryId): float {
  */
 function getSetting(string $key, string $default = ''): string {
     static $cache = [];
-    if (isset($cache[$key])) return $cache[$key];
+    if (array_key_exists($key, $cache)) return $cache[$key];
     try {
         $db   = getDB();
         $stmt = $db->prepare("SELECT value FROM site_settings WHERE `key` = ? LIMIT 1");
@@ -612,6 +612,84 @@ function getSetting(string $key, string $default = ''): string {
         $cache[$key] = $row ? (string)$row['value'] : $default;
         return $cache[$key];
     } catch (Exception $e) { return $default; }
+}
+
+/**
+ * Persist a setting in site_settings (upsert).
+ */
+function setSetting(string $key, string $value): void {
+    try {
+        $db = getDB();
+        $db->prepare(
+            "INSERT INTO site_settings (`key`, `value`) VALUES (?,?)
+             ON DUPLICATE KEY UPDATE `value`=?, updated_at=NOW()"
+        )->execute([$key, $value, $value]);
+    } catch (Exception $e) { /* silent */ }
+}
+
+/**
+ * Full catalog of supported phone countries (single source of truth, shared with JS).
+ * mask: 'X' = digit placeholder, остальные символы — литералы разделителей.
+ */
+function phoneCountriesCatalog(): array {
+    return [
+        // СНГ и соседи
+        ['code'=>'tj','dial'=>'992','flag'=>'🇹🇯','name'=>'Таджикистан','mask'=>'(XX) XXX-XX-XX'],
+        ['code'=>'ru','dial'=>'7',  'flag'=>'🇷🇺','name'=>'Россия',     'mask'=>'(XXX) XXX-XX-XX'],
+        ['code'=>'uz','dial'=>'998','flag'=>'🇺🇿','name'=>'Узбекистан', 'mask'=>'(XX) XXX-XX-XX'],
+        ['code'=>'kz','dial'=>'7',  'flag'=>'🇰🇿','name'=>'Казахстан',  'mask'=>'(XXX) XXX-XX-XX'],
+        ['code'=>'kg','dial'=>'996','flag'=>'🇰🇬','name'=>'Киргизия',   'mask'=>'(XXX) XXX-XXX'],
+        ['code'=>'tm','dial'=>'993','flag'=>'🇹🇲','name'=>'Туркменистан','mask'=>'(XX) XX-XX-XX'],
+        ['code'=>'az','dial'=>'994','flag'=>'🇦🇿','name'=>'Азербайджан','mask'=>'(XX) XXX-XX-XX'],
+        ['code'=>'am','dial'=>'374','flag'=>'🇦🇲','name'=>'Армения',    'mask'=>'(XX) XXX-XXX'],
+        ['code'=>'ge','dial'=>'995','flag'=>'🇬🇪','name'=>'Грузия',     'mask'=>'(XXX) XXX-XXX'],
+        ['code'=>'by','dial'=>'375','flag'=>'🇧🇾','name'=>'Беларусь',   'mask'=>'(XX) XXX-XX-XX'],
+        ['code'=>'ua','dial'=>'380','flag'=>'🇺🇦','name'=>'Украина',    'mask'=>'(XX) XXX-XX-XX'],
+        ['code'=>'md','dial'=>'373','flag'=>'🇲🇩','name'=>'Молдова',    'mask'=>'(XX) XXX-XXX'],
+        // Азия и Ближний Восток
+        ['code'=>'cn','dial'=>'86', 'flag'=>'🇨🇳','name'=>'Китай',      'mask'=>'XXX XXXX-XXXX'],
+        ['code'=>'in','dial'=>'91', 'flag'=>'🇮🇳','name'=>'Индия',      'mask'=>'XXXXX-XXXXX'],
+        ['code'=>'pk','dial'=>'92', 'flag'=>'🇵🇰','name'=>'Пакистан',   'mask'=>'(XXX) XXX-XXXX'],
+        ['code'=>'af','dial'=>'93', 'flag'=>'🇦🇫','name'=>'Афганистан', 'mask'=>'(XX) XXX-XXXX'],
+        ['code'=>'ir','dial'=>'98', 'flag'=>'🇮🇷','name'=>'Иран',       'mask'=>'(XXX) XXX-XXXX'],
+        ['code'=>'tr','dial'=>'90', 'flag'=>'🇹🇷','name'=>'Турция',     'mask'=>'(XXX) XXX-XX-XX'],
+        ['code'=>'ae','dial'=>'971','flag'=>'🇦🇪','name'=>'ОАЭ',        'mask'=>'(XX) XXX-XXXX'],
+        ['code'=>'sa','dial'=>'966','flag'=>'🇸🇦','name'=>'Саудовская Аравия','mask'=>'(XX) XXX-XXXX'],
+        ['code'=>'kr','dial'=>'82', 'flag'=>'🇰🇷','name'=>'Южная Корея','mask'=>'(XX) XXXX-XXXX'],
+        ['code'=>'jp','dial'=>'81', 'flag'=>'🇯🇵','name'=>'Япония',     'mask'=>'(XX) XXXX-XXXX'],
+        ['code'=>'th','dial'=>'66', 'flag'=>'🇹🇭','name'=>'Таиланд',    'mask'=>'(XX) XXX-XXXX'],
+        ['code'=>'vn','dial'=>'84', 'flag'=>'🇻🇳','name'=>'Вьетнам',    'mask'=>'(XXX) XXX-XXXX'],
+        ['code'=>'my','dial'=>'60', 'flag'=>'🇲🇾','name'=>'Малайзия',   'mask'=>'(XX) XXX-XXXX'],
+        ['code'=>'id','dial'=>'62', 'flag'=>'🇮🇩','name'=>'Индонезия',  'mask'=>'(XXX) XXX-XXXX'],
+        // Европа
+        ['code'=>'de','dial'=>'49', 'flag'=>'🇩🇪','name'=>'Германия',   'mask'=>'(XXX) XXXX-XXXX'],
+        ['code'=>'fr','dial'=>'33', 'flag'=>'🇫🇷','name'=>'Франция',    'mask'=>'(X) XX-XX-XX-XX'],
+        ['code'=>'gb','dial'=>'44', 'flag'=>'🇬🇧','name'=>'Великобритания','mask'=>'XXXX XXXXXX'],
+        ['code'=>'it','dial'=>'39', 'flag'=>'🇮🇹','name'=>'Италия',     'mask'=>'(XXX) XXX-XXXX'],
+        ['code'=>'es','dial'=>'34', 'flag'=>'🇪🇸','name'=>'Испания',    'mask'=>'(XXX) XX-XX-XX'],
+        ['code'=>'pl','dial'=>'48', 'flag'=>'🇵🇱','name'=>'Польша',     'mask'=>'(XXX) XXX-XXX'],
+        ['code'=>'nl','dial'=>'31', 'flag'=>'🇳🇱','name'=>'Нидерланды', 'mask'=>'(XX) XXX-XXXX'],
+        ['code'=>'cz','dial'=>'420','flag'=>'🇨🇿','name'=>'Чехия',      'mask'=>'(XXX) XXX-XXX'],
+        // Америка и прочее
+        ['code'=>'us','dial'=>'1',  'flag'=>'🇺🇸','name'=>'США',        'mask'=>'(XXX) XXX-XXXX'],
+        ['code'=>'ca','dial'=>'1',  'flag'=>'🇨🇦','name'=>'Канада',     'mask'=>'(XXX) XXX-XXXX'],
+        ['code'=>'br','dial'=>'55', 'flag'=>'🇧🇷','name'=>'Бразилия',   'mask'=>'(XX) XXXXX-XXXX'],
+        ['code'=>'eg','dial'=>'20', 'flag'=>'🇪🇬','name'=>'Египет',     'mask'=>'(XX) XXXX-XXXX'],
+    ];
+}
+
+/**
+ * Countries enabled for the phone selector (configured in superadmin settings,
+ * stored as a comma-separated list of codes; defaults to Tajikistan only).
+ */
+function enabledPhoneCountries(): array {
+    $enabled = array_filter(array_map('trim', explode(',', getSetting('phone_countries', 'tj'))));
+    $catalog = phoneCountriesCatalog();
+    $out = [];
+    foreach ($enabled as $code) {
+        foreach ($catalog as $c) { if ($c['code'] === $code) { $out[] = $c; break; } }
+    }
+    return $out ?: [$catalog[0]];
 }
 
 /**
@@ -751,6 +829,158 @@ function productImageUrl($images, int $index = 0): string {
         return UPLOAD_URL . ltrim($img, '/');
     }
     return APP_URL . '/assets/img/product/placeholder.jpg';
+}
+
+/**
+ * Transliterate a (Cyrillic) name into a URL slug.
+ */
+function categorySlugify(string $name): string {
+    $map = [
+        'а'=>'a','б'=>'b','в'=>'v','г'=>'g','д'=>'d','е'=>'e','ё'=>'e','ж'=>'zh',
+        'з'=>'z','и'=>'i','й'=>'y','к'=>'k','л'=>'l','м'=>'m','н'=>'n','о'=>'o',
+        'п'=>'p','р'=>'r','с'=>'s','т'=>'t','у'=>'u','ф'=>'f','х'=>'h','ц'=>'ts',
+        'ч'=>'ch','ш'=>'sh','щ'=>'sch','ъ'=>'','ы'=>'y','ь'=>'','э'=>'e','ю'=>'yu','я'=>'ya',
+    ];
+    $s = mb_strtolower(trim($name), 'UTF-8');
+    $s = strtr($s, $map);
+    $s = preg_replace('/[^a-z0-9]+/', '-', $s);
+    $s = trim($s, '-');
+    return $s !== '' ? $s : 'cat';
+}
+
+/**
+ * Seed subcategories under the existing top-level categories so the
+ * "ВСЕ КАТЕГОРИИ" mega-menu and catalog look populated. Idempotent: matches
+ * parents by name, skips subcategories that already exist. Returns count added.
+ */
+function seedCategorySubcategories(): int {
+    $plan = [
+        'Двигатель'         => ['Поршни и кольца','Клапаны','Прокладки ГБЦ','Масляный насос','Ремни ГРМ','Масляные фильтры'],
+        'Тормозная система' => ['Тормозные колодки','Тормозные диски','Суппорты','Тормозные шланги','Тормозная жидкость'],
+        'Подвеска'          => ['Амортизаторы','Пружины','Рычаги','Шаровые опоры','Сайлентблоки','Стойки стабилизатора'],
+        'Электрика'         => ['Аккумуляторы','Стартеры','Генераторы','Свечи зажигания','Датчики','Реле и предохранители'],
+        'Кузов'             => ['Бамперы','Капоты','Крылья','Зеркала','Фары','Решётки радиатора'],
+        'Трансмиссия'       => ['Сцепление','Маховики','ШРУСы','Карданные валы','Подшипники ступицы'],
+    ];
+    try {
+        $db = getDB();
+        $n  = 0;
+        foreach ($plan as $parentName => $subs) {
+            $st = $db->prepare("SELECT id FROM categories WHERE name = ? AND parent_id IS NULL LIMIT 1");
+            $st->execute([$parentName]);
+            $parentId = $st->fetchColumn();
+            if (!$parentId) continue;
+            $sort = 0;
+            foreach ($subs as $subName) {
+                $sort++;
+                $chk = $db->prepare("SELECT id FROM categories WHERE name = ? AND parent_id = ? LIMIT 1");
+                $chk->execute([$subName, $parentId]);
+                if ($chk->fetchColumn()) continue;
+                $slug = categorySlugify($subName);
+                $base = $slug; $i = 1;
+                while (true) {
+                    $s = $db->prepare("SELECT id FROM categories WHERE slug = ? LIMIT 1");
+                    $s->execute([$slug]);
+                    if (!$s->fetchColumn()) break;
+                    $slug = $base . '-' . (++$i);
+                }
+                try {
+                    $db->prepare(
+                        "INSERT INTO categories (name, slug, parent_id, description, image_path, image_path_mobile, sort_order, is_active, markup_percent)
+                         VALUES (?,?,?,?,?,?,?,1,NULL)"
+                    )->execute([$subName, $slug, (int)$parentId, null, null, '', $sort]);
+                    $n++;
+                } catch (Exception $e) { /* skip this one, keep going */ }
+            }
+        }
+        return $n;
+    } catch (Exception $e) {
+        return 0;
+    }
+}
+
+/**
+ * Assign a real-looking catalog photo to any product that has no image yet.
+ * Idempotent: only touches rows with empty images, cycles through the theme
+ * photos product1..product13.jpg (stored as root-relative paths). Returns the
+ * number of products updated.
+ */
+function fillMissingProductImages(): int {
+    try {
+        $db   = getDB();
+        $ids  = $db->query(
+            "SELECT id FROM parts
+             WHERE images IS NULL OR images = '' OR images = '[]' OR images = 'null'"
+        )->fetchAll(PDO::FETCH_COLUMN);
+        if (!$ids) return 0;
+        $upd = $db->prepare("UPDATE parts SET images = ? WHERE id = ?");
+        $n = 0;
+        foreach ($ids as $id) {
+            $imgN = ((int)$id % 13) + 1;   // product1.jpg .. product13.jpg
+            $json = json_encode(['/assets/img/product/product' . $imgN . '.jpg']);
+            $upd->execute([$json, (int)$id]);
+            $n++;
+        }
+        return $n;
+    } catch (Exception $e) {
+        return 0;
+    }
+}
+
+/**
+ * Seed a catalog of popular auto-parts manufacturers (idempotent).
+ * Skips brands that already exist by name. Returns count added.
+ */
+function seedBrands(): int {
+    $brands = [
+        ['Bosch','Германия'], ['Brembo','Италия'], ['Denso','Япония'],
+        ['Febi','Германия'], ['Gates','США'], ['Monroe','Бельгия'],
+        ['NGK','Япония'], ['SKF','Швеция'], ['Mann-Filter','Германия'],
+        ['Mahle','Германия'], ['Sachs','Германия'], ['TRW','Германия'],
+        ['Valeo','Франция'], ['Continental','Германия'], ['LuK','Германия'],
+        ['Hella','Германия'], ['Lemförder','Германия'], ['ATE','Германия'],
+        ['Mobil','США'], ['Castrol','Великобритания'], ['Liqui Moly','Германия'],
+        ['Aisin','Япония'], ['KYB','Япония'], ['Exedy','Япония'],
+        ['Delphi','Великобритания'], ['Optimal','Германия'], ['Ruville','Германия'],
+        ['Zimmermann','Германия'], ['Nipparts','Нидерланды'], ['Blue Print','Великобритания'],
+    ];
+    try {
+        $db = getDB();
+        $n  = 0;
+        $sort = 0;
+        foreach ($brands as [$name, $country]) {
+            $sort++;
+            $chk = $db->prepare("SELECT id FROM brands WHERE name = ? LIMIT 1");
+            $chk->execute([$name]);
+            if ($chk->fetchColumn()) continue;
+            $slug = categorySlugify($name);
+            $base = $slug; $i = 1;
+            while (true) {
+                $s = $db->prepare("SELECT id FROM brands WHERE slug = ? LIMIT 1");
+                $s->execute([$slug]);
+                if (!$s->fetchColumn()) break;
+                $slug = $base . '-' . (++$i);
+            }
+            try {
+                $db->prepare(
+                    "INSERT INTO brands (name, slug, country, description, logo_path, is_active, sort_order)
+                     VALUES (?,?,?,?,?,1,?)"
+                )->execute([$name, $slug, $country, null, null, $sort]);
+                $n++;
+            } catch (Exception $e) {
+                try {
+                    $db->prepare(
+                        "INSERT INTO brands (name, slug, country, description, logo_path, is_active)
+                         VALUES (?,?,?,?,?,1)"
+                    )->execute([$name, $slug, $country, null, null]);
+                    $n++;
+                } catch (Exception $e2) { /* skip */ }
+            }
+        }
+        return $n;
+    } catch (Exception $e) {
+        return 0;
+    }
 }
 
 /**
