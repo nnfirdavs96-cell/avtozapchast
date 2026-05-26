@@ -105,6 +105,21 @@ document.addEventListener('DOMContentLoaded', function () {
     var ocWrap = document.querySelector('.offcanvas_menu_wrapper');
     if (ocWrap) lockObserver.observe(ocWrap, { attributes: true, attributeFilter: ['class'] });
 
+    // ── Показать/скрыть пароль (кнопка-глаз в .pwd-field)
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.pwd-toggle');
+        if (!btn) return;
+        e.preventDefault();
+        var field = btn.closest('.pwd-field');
+        var input = field ? field.querySelector('input') : null;
+        if (!input) return;
+        var show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        var icon = btn.querySelector('i');
+        if (icon) icon.className = show ? 'fa fa-eye-slash' : 'fa fa-eye';
+        btn.setAttribute('aria-label', show ? 'Скрыть пароль' : 'Показать пароль');
+    });
+
     // ── Cart icon: на мобиле — прямая ссылка на /buyer/cart.php, не открывать панель
     document.querySelectorAll('.mini_cart_wrapper > a').forEach(function (a) {
         a.addEventListener('click', function (e) {

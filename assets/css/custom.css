@@ -358,6 +358,32 @@
     .sl-variant--mobile  { display: flex; }
 }
 
+/* Поле пароля с кнопкой показать/скрыть */
+.pwd-field { position: relative; display: block; }
+.pwd-field input { padding-right: 44px !important; }
+.pwd-toggle {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: #888;
+    cursor: pointer;
+    padding: 0;
+    font-size: 1rem;
+    line-height: 1;
+    transition: color 0.15s;
+}
+.pwd-toggle:hover { color: #C70909; }
+.pwd-toggle:focus { outline: none; color: #C70909; }
+
+
 /* Слайдер: гарантированный min-height и фон из data-bgimg */
 .slider_area .single_slider {
     min-height: 420px;
