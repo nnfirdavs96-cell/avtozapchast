@@ -615,6 +615,37 @@ function getSetting(string $key, string $default = ''): string {
 }
 
 /**
+ * Full catalog of supported phone countries (single source of truth, shared with JS).
+ * mask: 'X' = digit placeholder, остальные символы — литералы разделителей.
+ */
+function phoneCountriesCatalog(): array {
+    return [
+        ['code'=>'tj','dial'=>'992','flag'=>'🇹🇯','name'=>'Таджикистан','mask'=>'(XX) XXX-XX-XX'],
+        ['code'=>'ru','dial'=>'7',  'flag'=>'🇷🇺','name'=>'Россия',     'mask'=>'(XXX) XXX-XX-XX'],
+        ['code'=>'uz','dial'=>'998','flag'=>'🇺🇿','name'=>'Узбекистан', 'mask'=>'(XX) XXX-XX-XX'],
+        ['code'=>'kz','dial'=>'7',  'flag'=>'🇰🇿','name'=>'Казахстан',  'mask'=>'(XXX) XXX-XX-XX'],
+        ['code'=>'kg','dial'=>'996','flag'=>'🇰🇬','name'=>'Киргизия',   'mask'=>'(XXX) XXX-XXX'],
+        ['code'=>'af','dial'=>'93', 'flag'=>'🇦🇫','name'=>'Афганистан', 'mask'=>'(XX) XXX-XXXX'],
+        ['code'=>'tr','dial'=>'90', 'flag'=>'🇹🇷','name'=>'Турция',     'mask'=>'(XXX) XXX-XX-XX'],
+        ['code'=>'cn','dial'=>'86', 'flag'=>'🇨🇳','name'=>'Китай',      'mask'=>'XXX XXXX-XXXX'],
+    ];
+}
+
+/**
+ * Countries enabled for the phone selector (configured in superadmin settings,
+ * stored as a comma-separated list of codes; defaults to Tajikistan only).
+ */
+function enabledPhoneCountries(): array {
+    $enabled = array_filter(array_map('trim', explode(',', getSetting('phone_countries', 'tj'))));
+    $catalog = phoneCountriesCatalog();
+    $out = [];
+    foreach ($enabled as $code) {
+        foreach ($catalog as $c) { if ($c['code'] === $code) { $out[] = $c; break; } }
+    }
+    return $out ?: [$catalog[0]];
+}
+
+/**
  * Get mini cart items for logged-in user
  */
 function getMiniCart(): array {
