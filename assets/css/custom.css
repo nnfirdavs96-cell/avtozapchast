@@ -361,27 +361,30 @@
 /* Поле пароля с кнопкой показать/скрыть */
 .pwd-field { position: relative; display: block; }
 .pwd-field input { padding-right: 44px !important; }
-.pwd-toggle {
+.pwd-field .pwd-toggle {
     position: absolute;
     top: 50%;
     right: 12px;
     transform: translateY(-50%);
-    width: 28px;
-    height: 28px;
+    width: 26px !important;
+    height: 26px !important;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: none;
-    background: transparent;
-    color: #888;
+    border: 0 !important;
+    background: transparent !important;
+    color: #b3b3b3 !important;
     cursor: pointer;
-    padding: 0;
-    font-size: 1rem;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    font-size: 0.95rem;
     line-height: 1;
+    text-transform: none;
     transition: color 0.15s;
 }
-.pwd-toggle:hover { color: #C70909; }
-.pwd-toggle:focus { outline: none; color: #C70909; }
+.pwd-field .pwd-toggle:hover { background: transparent !important; color: #888 !important; }
+.pwd-field .pwd-toggle:focus { outline: none; color: #888 !important; }
 
 
 /* Слайдер: гарантированный min-height и фон из data-bgimg */
