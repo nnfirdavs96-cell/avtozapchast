@@ -148,7 +148,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                         <label class="pcms-option<?= $isTj ? ' is-locked' : '' ?>" data-name="<?= sanitize(mb_strtolower($pc['name'].' '.$pc['dial'].' '.$pc['code'])) ?>">
                           <input type="checkbox" name="phone_countries[]" value="<?= sanitize($pc['code']) ?>"
                                  <?= $checked ? 'checked' : '' ?> <?= $isTj ? 'disabled' : '' ?>>
-                          <span class="pcms-flag"><?= sanitize($pc['flag']) ?></span>
+                          <img class="pcms-flag" src="https://flagcdn.com/w40/<?= sanitize($pc['code']) ?>.png" alt="" width="24" height="18" loading="lazy">
                           <span class="pcms-name"><?= sanitize($pc['name']) ?></span>
                           <span class="pcms-dial">+<?= sanitize($pc['dial']) ?></span>
                           <?php if ($isTj): ?><span class="pcms-lock">всегда</span><?php endif; ?>
@@ -187,7 +187,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 }
                 .pcms-option:hover { background: #f4f6f9; }
                 .pcms-option.is-locked { opacity: .65; cursor: default; }
-                .pcms-flag { font-size: 1.1rem; }
+                .pcms-flag { display: block; border-radius: 2px; object-fit: cover; flex: 0 0 auto; }
                 .pcms-name { flex: 1 1 auto; }
                 .pcms-dial { color: #888; font-size: 0.85rem; }
                 .pcms-lock {

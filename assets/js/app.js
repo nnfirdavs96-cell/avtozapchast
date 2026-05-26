@@ -118,6 +118,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         return PHONE_COUNTRIES[0];
     }
+    function pcFlagUrl(c) { return 'https://flagcdn.com/w40/' + c.code + '.png'; }
     function pcMaxDigits(c) { return (c.mask.match(/X/g) || []).length; }
     function pcApplyMask(mask, digits) {
         var out = '', di = 0;
@@ -163,30 +164,51 @@ document.addEventListener('DOMContentLoaded', function () {
             inp.value = pcFormatNational(country, pcStripDial(country, inp.value.replace(/\D/g, '')));
         });
 
-        // Селектор страны показываем только если включено больше одной страны.
+        // Селектор страны (кастомный, с картинками флагов) — только если включено больше одной страны.
         if (PHONE_COUNTRIES.length > 1) {
-            var sel = document.createElement('select');
-            sel.className = 'phone-country';
-            PHONE_COUNTRIES.forEach(function (c) {
-                var o = document.createElement('option');
-                o.value = c.code;
-                o.textContent = c.flag + ' +' + c.dial;
-                o.title = c.name;
-                sel.appendChild(o);
-            });
             var wrap = document.createElement('div');
             wrap.className = 'phone-wrap';
             inp.parentNode.insertBefore(wrap, inp);
-            wrap.appendChild(sel);
-            wrap.appendChild(inp);
-            sel.value = country.code;
-            sel.addEventListener('change', function () {
-                var prev = country;
-                country = pcByCode(sel.value);
-                var nat = pcStripDial(prev, inp.value.replace(/\D/g, ''));
-                inp.value = pcFormatNational(country, nat);
-                inp.focus();
+
+            var cc = document.createElement('div');
+            cc.className = 'phone-cc';
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'phone-cc-btn';
+            function ccBtnHtml(c) {
+                return '<img src="' + pcFlagUrl(c) + '" alt="" width="22" height="16" loading="lazy">' +
+                       '<span class="cc-d">+' + c.dial + '</span><i class="cc-caret">▾</i>';
+            }
+            btn.innerHTML = ccBtnHtml(country);
+
+            var panel = document.createElement('div');
+            panel.className = 'phone-cc-panel';
+            PHONE_COUNTRIES.forEach(function (c) {
+                var opt = document.createElement('button');
+                opt.type = 'button';
+                opt.className = 'phone-cc-opt';
+                opt.innerHTML = '<img src="' + pcFlagUrl(c) + '" alt="" width="22" height="16" loading="lazy">' +
+                                '<span class="cc-name">' + c.name + '</span>' +
+                                '<span class="cc-dial">+' + c.dial + '</span>';
+                opt.addEventListener('click', function () {
+                    var prev = country;
+                    country = c;
+                    var nat = pcStripDial(prev, inp.value.replace(/\D/g, ''));
+                    inp.value = pcFormatNational(country, nat);
+                    btn.innerHTML = ccBtnHtml(country);
+                    cc.classList.remove('open');
+                    inp.focus();
+                });
+                panel.appendChild(opt);
             });
+
+            btn.addEventListener('click', function () { cc.classList.toggle('open'); });
+            document.addEventListener('click', function (e) { if (!cc.contains(e.target)) cc.classList.remove('open'); });
+
+            cc.appendChild(btn);
+            cc.appendChild(panel);
+            wrap.appendChild(cc);
+            wrap.appendChild(inp);
         }
     });
 
