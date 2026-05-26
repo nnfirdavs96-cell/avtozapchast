@@ -884,11 +884,13 @@ function seedCategorySubcategories(): int {
                     if (!$s->fetchColumn()) break;
                     $slug = $base . '-' . (++$i);
                 }
-                $db->prepare(
-                    "INSERT INTO categories (name, slug, parent_id, description, image_path, image_path_mobile, sort_order, is_active, markup_percent)
-                     VALUES (?,?,?,?,?,?,?,1,NULL)"
-                )->execute([$subName, $slug, (int)$parentId, null, null, null, $sort]);
-                $n++;
+                try {
+                    $db->prepare(
+                        "INSERT INTO categories (name, slug, parent_id, description, image_path, image_path_mobile, sort_order, is_active, markup_percent)
+                         VALUES (?,?,?,?,?,?,?,1,NULL)"
+                    )->execute([$subName, $slug, (int)$parentId, null, null, '', $sort]);
+                    $n++;
+                } catch (Exception $e) { /* skip this one, keep going */ }
             }
         }
         return $n;
