@@ -928,6 +928,62 @@ function fillMissingProductImages(): int {
 }
 
 /**
+ * Seed a catalog of popular auto-parts manufacturers (idempotent).
+ * Skips brands that already exist by name. Returns count added.
+ */
+function seedBrands(): int {
+    $brands = [
+        ['Bosch','Германия'], ['Brembo','Италия'], ['Denso','Япония'],
+        ['Febi','Германия'], ['Gates','США'], ['Monroe','Бельгия'],
+        ['NGK','Япония'], ['SKF','Швеция'], ['Mann-Filter','Германия'],
+        ['Mahle','Германия'], ['Sachs','Германия'], ['TRW','Германия'],
+        ['Valeo','Франция'], ['Continental','Германия'], ['LuK','Германия'],
+        ['Hella','Германия'], ['Lemförder','Германия'], ['ATE','Германия'],
+        ['Mobil','США'], ['Castrol','Великобритания'], ['Liqui Moly','Германия'],
+        ['Aisin','Япония'], ['KYB','Япония'], ['Exedy','Япония'],
+        ['Delphi','Великобритания'], ['Optimal','Германия'], ['Ruville','Германия'],
+        ['Zimmermann','Германия'], ['Nipparts','Нидерланды'], ['Blue Print','Великобритания'],
+    ];
+    try {
+        $db = getDB();
+        $n  = 0;
+        $sort = 0;
+        foreach ($brands as [$name, $country]) {
+            $sort++;
+            $chk = $db->prepare("SELECT id FROM brands WHERE name = ? LIMIT 1");
+            $chk->execute([$name]);
+            if ($chk->fetchColumn()) continue;
+            $slug = categorySlugify($name);
+            $base = $slug; $i = 1;
+            while (true) {
+                $s = $db->prepare("SELECT id FROM brands WHERE slug = ? LIMIT 1");
+                $s->execute([$slug]);
+                if (!$s->fetchColumn()) break;
+                $slug = $base . '-' . (++$i);
+            }
+            try {
+                $db->prepare(
+                    "INSERT INTO brands (name, slug, country, description, logo_path, is_active, sort_order)
+                     VALUES (?,?,?,?,?,1,?)"
+                )->execute([$name, $slug, $country, null, null, $sort]);
+                $n++;
+            } catch (Exception $e) {
+                try {
+                    $db->prepare(
+                        "INSERT INTO brands (name, slug, country, description, logo_path, is_active)
+                         VALUES (?,?,?,?,?,1)"
+                    )->execute([$name, $slug, $country, null, null]);
+                    $n++;
+                } catch (Exception $e2) { /* skip */ }
+            }
+        }
+        return $n;
+    } catch (Exception $e) {
+        return 0;
+    }
+}
+
+/**
  * Slider text-block fonts available to admins. Key = font family stored in DB
  * ('' = the site default Rubik); value = human label for the dropdown.
  * All chosen families support Cyrillic.

@@ -19,6 +19,10 @@ if (!getSetting('prod_imgseed_done', '')) {
     fillMissingProductImages();
     setSetting('prod_imgseed_done', '1');
 }
+if (!getSetting('brands_seed_done', '')) {
+    seedBrands();
+    setSetting('brands_seed_done', '1');
+}
 
 $categories  = getCategories();
 $catTree     = getCategoryTree($categories);
