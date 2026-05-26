@@ -106,27 +106,23 @@ document.addEventListener('DOMContentLoaded', function () {
     if (ocWrap) lockObserver.observe(ocWrap, { attributes: true, attributeFilter: ['class'] });
 
     // ── Маска телефона Таджикистана: +992 (XX) XXX-XX-XX
+    // Разделители добавляются только ПЕРЕД следующими цифрами, поэтому
+    // удаление работает естественно (без «отскока» скобок), а когда все
+    // цифры стёрты — поле очищается полностью.
     function formatTjPhone(raw) {
         var d = (raw || '').replace(/\D/g, '');
-        if (d.indexOf('992') === 0) d = d.slice(3);
+        if (d.slice(0, 3) === '992') d = d.slice(3);
         d = d.slice(0, 9);
-        var out = '+992';
-        if (d.length > 0)  out += ' (' + d.slice(0, 2);
-        if (d.length >= 2) out += ')';
-        if (d.length > 2)  out += ' ' + d.slice(2, 5);
-        if (d.length > 5)  out += '-' + d.slice(5, 7);
-        if (d.length > 7)  out += '-' + d.slice(7, 9);
+        if (d.length === 0) return '';
+        var out = '+992 (' + d.slice(0, 2);
+        if (d.length > 2) out += ') ' + d.slice(2, 5);
+        if (d.length > 5) out += '-'  + d.slice(5, 7);
+        if (d.length > 7) out += '-'  + d.slice(7, 9);
         return out;
     }
     document.querySelectorAll('input[data-phone="tj"]').forEach(function (inp) {
-        inp.addEventListener('focus', function () {
-            if (!inp.value.trim()) inp.value = '+992 (';
-        });
         inp.addEventListener('input', function () {
             inp.value = formatTjPhone(inp.value);
-        });
-        inp.addEventListener('blur', function () {
-            if (/^\+992\s*\(?\)?$/.test(inp.value.trim())) inp.value = '';
         });
     });
 
