@@ -219,9 +219,9 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                     </div>
                                     <div class="col-lg-6 mb-20">
                                         <label><?= t('phone') ?> <span>*</span></label>
-                                        <input type="tel" name="phone"
+                                        <input type="tel" name="phone" data-phone="tj"
                                                value="<?= sanitize($prefillPhone) ?>"
-                                               placeholder="+7 (___) ___-__-__"
+                                               placeholder="+992 (__) ___-__-__"
                                                required>
                                     </div>
                                     <div class="col-12 mb-20">
