@@ -105,25 +105,89 @@ document.addEventListener('DOMContentLoaded', function () {
     var ocWrap = document.querySelector('.offcanvas_menu_wrapper');
     if (ocWrap) lockObserver.observe(ocWrap, { attributes: true, attributeFilter: ['class'] });
 
-    // ── Маска телефона Таджикистана: +992 (XX) XXX-XX-XX
-    // Разделители добавляются только ПЕРЕД следующими цифрами, поэтому
-    // удаление работает естественно (без «отскока» скобок), а когда все
-    // цифры стёрты — поле очищается полностью.
-    function formatTjPhone(raw) {
-        var d = (raw || '').replace(/\D/g, '');
-        if (d.slice(0, 3) === '992') d = d.slice(3);
-        d = d.slice(0, 9);
-        if (d.length === 0) return '';
-        var out = '+992 (' + d.slice(0, 2);
-        if (d.length > 2) out += ') ' + d.slice(2, 5);
-        if (d.length > 5) out += '-'  + d.slice(5, 7);
-        if (d.length > 7) out += '-'  + d.slice(7, 9);
+    // ── Телефон с выбором страны: селектор кода + маска ────────────────
+    // Маска заполняет шаблон вида "(XX) XXX-XX-XX"; разделители ставятся
+    // только ПЕРЕД следующей цифрой, поэтому удаление работает без «отскока».
+    // Список стран приходит из настроек (window.PHONE_COUNTRIES); по умолчанию — только Таджикистан.
+    var PHONE_COUNTRIES = (window.PHONE_COUNTRIES && window.PHONE_COUNTRIES.length)
+        ? window.PHONE_COUNTRIES
+        : [{ code:'tj', dial:'992', flag:'🇹🇯', name:'Таджикистан', mask:'(XX) XXX-XX-XX' }];
+    function pcByCode(code) {
+        for (var i = 0; i < PHONE_COUNTRIES.length; i++) {
+            if (PHONE_COUNTRIES[i].code === code) return PHONE_COUNTRIES[i];
+        }
+        return PHONE_COUNTRIES[0];
+    }
+    function pcMaxDigits(c) { return (c.mask.match(/X/g) || []).length; }
+    function pcApplyMask(mask, digits) {
+        var out = '', di = 0;
+        for (var i = 0; i < mask.length && di < digits.length; i++) {
+            out += (mask[i] === 'X') ? digits[di++] : mask[i];
+        }
         return out;
     }
-    document.querySelectorAll('input[data-phone="tj"]').forEach(function (inp) {
+    // National digits already known → full "+dial ...".
+    function pcFormatNational(c, nat) {
+        nat = nat.slice(0, pcMaxDigits(c));
+        return nat.length ? '+' + c.dial + ' ' + pcApplyMask(c.mask, nat) : '';
+    }
+    // Strip the dial code from a raw string of all-digits.
+    function pcStripDial(c, allDigits) {
+        return (allDigits.slice(0, c.dial.length) === c.dial)
+            ? allDigits.slice(c.dial.length) : allDigits;
+    }
+    // Guess country from a pre-filled value (longest dial match first).
+    function pcDetect(val) {
+        var d = (val || '').replace(/\D/g, '');
+        var sorted = PHONE_COUNTRIES.slice().sort(function (a, b) { return b.dial.length - a.dial.length; });
+        for (var i = 0; i < sorted.length; i++) {
+            if (d.slice(0, sorted[i].dial.length) === sorted[i].dial) return sorted[i];
+        }
+        return null;
+    }
+
+    document.querySelectorAll('input[data-phone]').forEach(function (inp) {
+        if (inp.dataset.phoneInit) return;
+        inp.dataset.phoneInit = '1';
+
+        var country = pcByCode(inp.getAttribute('data-phone'));
+
+        // Pre-filled value: detect country from existing number, reformat
+        if (inp.value.trim()) {
+            var det = pcDetect(inp.value);
+            if (det) country = det;
+            inp.value = pcFormatNational(country, pcStripDial(country, inp.value.replace(/\D/g, '')));
+        }
+
         inp.addEventListener('input', function () {
-            inp.value = formatTjPhone(inp.value);
+            inp.value = pcFormatNational(country, pcStripDial(country, inp.value.replace(/\D/g, '')));
         });
+
+        // Селектор страны показываем только если включено больше одной страны.
+        if (PHONE_COUNTRIES.length > 1) {
+            var sel = document.createElement('select');
+            sel.className = 'phone-country';
+            PHONE_COUNTRIES.forEach(function (c) {
+                var o = document.createElement('option');
+                o.value = c.code;
+                o.textContent = c.flag + ' +' + c.dial;
+                o.title = c.name;
+                sel.appendChild(o);
+            });
+            var wrap = document.createElement('div');
+            wrap.className = 'phone-wrap';
+            inp.parentNode.insertBefore(wrap, inp);
+            wrap.appendChild(sel);
+            wrap.appendChild(inp);
+            sel.value = country.code;
+            sel.addEventListener('change', function () {
+                var prev = country;
+                country = pcByCode(sel.value);
+                var nat = pcStripDial(prev, inp.value.replace(/\D/g, ''));
+                inp.value = pcFormatNational(country, nat);
+                inp.focus();
+            });
+        }
     });
 
     // ── Показать/скрыть пароль (кнопка-глаз в .pwd-field)

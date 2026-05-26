@@ -358,6 +358,22 @@
     .sl-variant--mobile  { display: flex; }
 }
 
+/* Телефон с выбором страны */
+.phone-wrap { display: flex; align-items: stretch; gap: 6px; }
+.phone-wrap .phone-country {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 92px;
+    max-width: 130px;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+.phone-wrap > input { flex: 1 1 auto; min-width: 0; }
+
 /* Поле пароля с кнопкой показать/скрыть */
 .pwd-field { position: relative; display: block; }
 .pwd-field input { padding-right: 44px !important; }

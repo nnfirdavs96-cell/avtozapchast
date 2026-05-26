@@ -35,6 +35,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
            ->execute([$key, $val, $val]);
     }
 
+    // Phone countries (multi-select) — stored as comma-separated codes; Tajikistan always kept.
+    $pc = $_POST['phone_countries'] ?? [];
+    if (!is_array($pc)) $pc = [];
+    $validCodes = array_column(phoneCountriesCatalog(), 'code');
+    $pc = array_values(array_intersect($pc, $validCodes));
+    if (!in_array('tj', $pc, true)) array_unshift($pc, 'tj');
+    $pcVal = implode(',', $pc);
+    $db->prepare("INSERT INTO site_settings (`key`, `value`) VALUES ('phone_countries', ?) ON DUPLICATE KEY UPDATE `value`=?, updated_at=NOW()")
+       ->execute([$pcVal, $pcVal]);
+
     flashMessage('success', 'Настройки сохранены.');
     redirect(APP_URL . '/superadmin/settings.php');
 }
@@ -110,6 +120,29 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 <div class="az-form-group">
                   <label>Адрес</label>
                   <input type="text" name="site_address" class="form-control" value="<?= sv($settings, 'site_address') ?>">
+                </div>
+              </div>
+
+              <!-- Страны для выбора в поле телефона -->
+              <div class="col-12">
+                <div class="az-form-group">
+                  <label>Страны в поле телефона</label>
+                  <p style="font-size:0.82rem;color:#888;margin:0 0 8px;">
+                    Таджикистан включён всегда. Отметьте другие страны — они появятся в выпадающем списке выбора кода (например, когда станет доступна доставка в эти страны).
+                  </p>
+                  <?php
+                    $enabledCodes = array_filter(array_map('trim', explode(',', $settings['phone_countries'] ?? 'tj')));
+                  ?>
+                  <div style="display:flex;flex-wrap:wrap;gap:10px 18px;">
+                    <?php foreach (phoneCountriesCatalog() as $pc): ?>
+                      <label style="display:inline-flex;align-items:center;gap:6px;font-weight:400;<?= $pc['code']==='tj' ? 'opacity:0.7;' : '' ?>">
+                        <input type="checkbox" name="phone_countries[]" value="<?= sanitize($pc['code']) ?>"
+                               <?= in_array($pc['code'], $enabledCodes, true) || $pc['code']==='tj' ? 'checked' : '' ?>
+                               <?= $pc['code']==='tj' ? 'disabled' : '' ?>>
+                        <?= sanitize($pc['flag'] . ' ' . $pc['name']) ?> (+<?= sanitize($pc['dial']) ?>)
+                      </label>
+                    <?php endforeach; ?>
+                  </div>
                 </div>
               </div>
 
