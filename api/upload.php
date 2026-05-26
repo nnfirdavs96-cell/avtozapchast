@@ -1,14 +1,14 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 
-// Require login with appropriate role
-if (!isLoggedIn() || !in_array($_SESSION['role'] ?? '', ['manager', 'admin', 'superadmin'])) {
+header('Content-Type: application/json');
+
+// Must be logged in
+if (!isLoggedIn()) {
     http_response_code(403);
     echo json_encode(['error' => 'Доступ запрещён']);
     exit;
 }
-
-header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['error' => 'Метод не поддерживается']);
@@ -19,6 +19,14 @@ $type    = $_GET['type'] ?? 'products'; // products | sliders | blog | categorie
 $allowed = ['products', 'sliders', 'blog', 'categories', 'brands', 'avatars', 'banners'];
 if (!in_array($type, $allowed)) {
     echo json_encode(['error' => 'Недопустимый тип']);
+    exit;
+}
+
+// Buyers may only upload their own avatar; staff can upload all content types.
+$isStaff = in_array($_SESSION['role'] ?? '', ['manager', 'admin', 'superadmin']);
+if (!$isStaff && $type !== 'avatars') {
+    http_response_code(403);
+    echo json_encode(['error' => 'Доступ запрещён']);
     exit;
 }
 
