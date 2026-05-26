@@ -603,7 +603,7 @@ function getEffectiveMarkup(int $partId, int $categoryId): float {
  */
 function getSetting(string $key, string $default = ''): string {
     static $cache = [];
-    if (isset($cache[$key])) return $cache[$key];
+    if (array_key_exists($key, $cache)) return $cache[$key];
     try {
         $db   = getDB();
         $stmt = $db->prepare("SELECT value FROM site_settings WHERE `key` = ? LIMIT 1");
@@ -612,6 +612,19 @@ function getSetting(string $key, string $default = ''): string {
         $cache[$key] = $row ? (string)$row['value'] : $default;
         return $cache[$key];
     } catch (Exception $e) { return $default; }
+}
+
+/**
+ * Persist a setting in site_settings (upsert).
+ */
+function setSetting(string $key, string $value): void {
+    try {
+        $db = getDB();
+        $db->prepare(
+            "INSERT INTO site_settings (`key`, `value`) VALUES (?,?)
+             ON DUPLICATE KEY UPDATE `value`=?, updated_at=NOW()"
+        )->execute([$key, $value, $value]);
+    } catch (Exception $e) { /* silent */ }
 }
 
 /**

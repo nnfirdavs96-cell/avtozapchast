@@ -10,6 +10,16 @@ $wishCount   = getWishlistCount();
 $miniCart    = getMiniCart();
 $miniTotal   = getMiniCartTotal();
 $currentUser = getCurrentUser();
+// One-time seed: populate subcategories & product images on first page load after deploy
+if (!getSetting('cat_subseed_done', '')) {
+    seedCategorySubcategories();
+    setSetting('cat_subseed_done', '1');
+}
+if (!getSetting('prod_imgseed_done', '')) {
+    fillMissingProductImages();
+    setSetting('prod_imgseed_done', '1');
+}
+
 $categories  = getCategories();
 $catTree     = getCategoryTree($categories);
 $siteName    = getSetting('site_name', t('site_name'));
