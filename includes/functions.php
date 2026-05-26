@@ -819,6 +819,34 @@ function productImageUrl($images, int $index = 0): string {
 }
 
 /**
+ * Assign a real-looking catalog photo to any product that has no image yet.
+ * Idempotent: only touches rows with empty images, cycles through the theme
+ * photos product1..product13.jpg (stored as root-relative paths). Returns the
+ * number of products updated.
+ */
+function fillMissingProductImages(): int {
+    try {
+        $db   = getDB();
+        $ids  = $db->query(
+            "SELECT id FROM parts
+             WHERE images IS NULL OR images = '' OR images = '[]' OR images = 'null'"
+        )->fetchAll(PDO::FETCH_COLUMN);
+        if (!$ids) return 0;
+        $upd = $db->prepare("UPDATE parts SET images = ? WHERE id = ?");
+        $n = 0;
+        foreach ($ids as $id) {
+            $imgN = ((int)$id % 13) + 1;   // product1.jpg .. product13.jpg
+            $json = json_encode(['/assets/img/product/product' . $imgN . '.jpg']);
+            $upd->execute([$json, (int)$id]);
+            $n++;
+        }
+        return $n;
+    } catch (Exception $e) {
+        return 0;
+    }
+}
+
+/**
  * Slider text-block fonts available to admins. Key = font family stored in DB
  * ('' = the site default Rubik); value = human label for the dropdown.
  * All chosen families support Cyrillic.
