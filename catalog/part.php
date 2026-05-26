@@ -73,8 +73,54 @@ $reviewCount = count($reviews);
 $avgRating   = $reviewCount ? round(array_sum(array_column($reviews, 'rating')) / $reviewCount, 1) : 0;
 
 $stock     = getStockStatus((int)$part['stock']);
-$pageTitle = $part['name'];
+$pageTitle = $part['name'] . ' — ' . getSetting('site_name');
 $csrf      = generateCsrfToken();
+
+// ── SEO: per-page meta + schema.org Product (JSON-LD) ─────────────────────
+$cleanDesc = mb_substr(trim(preg_replace('/\s+/u', ' ', strip_tags((string)($part['description'] ?? '')))), 0, 500);
+$pageDescription = $cleanDesc !== ''
+    ? $cleanDesc
+    : trim($part['name'] . (!empty($part['brand_name']) ? ', ' . $part['brand_name'] : '') . '. ' . ($part['category_name'] ?? ''));
+
+$canonical = APP_URL . '/catalog/part.php?id=' . $id;
+$ogType    = 'product';
+
+// Absolute image URL for og:image / schema
+$ogImage = $mainImage;
+if ($ogImage !== '' && !preg_match('#^https?://#i', $ogImage)) {
+    if (str_starts_with($ogImage, '//'))      $ogImage = 'https:' . $ogImage;
+    elseif ($ogImage[0] === '/')              $ogImage = rtrim(APP_URL, '/') . $ogImage;
+}
+
+$ldPriceCur = getActiveCurrency();
+$ldPrice    = number_format(convertPrice((float)$part['price']), 2, '.', '');
+$ld = [
+    '@context'    => 'https://schema.org/',
+    '@type'       => 'Product',
+    'name'        => $part['name'],
+    'sku'         => $part['part_number'],
+    'mpn'         => $part['part_number'],
+    'description' => $pageDescription,
+];
+if ($ogImage !== '') $ld['image'] = $ogImage;
+if (!empty($part['brand_name'])) $ld['brand'] = ['@type' => 'Brand', 'name' => $part['brand_name']];
+$ld['offers'] = [
+    '@type'         => 'Offer',
+    'url'           => $canonical,
+    'priceCurrency' => $ldPriceCur,
+    'price'         => $ldPrice,
+    'availability'  => (int)$part['stock'] > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+];
+if ($reviewCount > 0) {
+    $ld['aggregateRating'] = [
+        '@type'       => 'AggregateRating',
+        'ratingValue' => (string)$avgRating,
+        'reviewCount' => (string)$reviewCount,
+    ];
+}
+$headExtra = '<script type="application/ld+json">'
+    . json_encode($ld, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG)
+    . '</script>';
 
 require_once dirname(__DIR__) . '/includes/header.php';
 ?>

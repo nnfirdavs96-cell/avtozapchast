@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+# Закрытые разделы (панели, API, служебное)
+Disallow: /admin
+Disallow: /superadmin
+Disallow: /manager
+Disallow: /api
+Disallow: /auth
+Disallow: /buyer
+Disallow: /config/
+Disallow: /sql/
+Disallow: /deploy/
+Disallow: /storage/
+
+Sitemap: https://autodoc.tj/sitemap.xml

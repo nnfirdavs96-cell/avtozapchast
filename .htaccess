@@ -11,6 +11,9 @@ RewriteRule ^deploy/ - [F,L]
 RewriteRule ^storage/backups/ - [F,L]
 RewriteRule ^\.git/ - [F,L]
 
+# SEO: serve the dynamic sitemap at the conventional /sitemap.xml
+RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
 # Route all requests through index.php (same as nginx try_files)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

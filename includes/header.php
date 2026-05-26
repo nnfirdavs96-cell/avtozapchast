@@ -39,6 +39,20 @@ $langs = [
 $currentUrl  = strtok($_SERVER['REQUEST_URI'], '?');
 $queryParams = $_GET;
 unset($queryParams['lang'], $queryParams['currency']);
+
+// ── SEO meta (each page may override via $pageDescription/$canonical/$ogImage) ──
+$metaDescription = (isset($pageDescription) && trim((string)$pageDescription) !== '')
+    ? (string)$pageDescription
+    : getSetting('meta_description', t('tagline'));
+$metaDescription = mb_substr(trim(preg_replace('/\s+/u', ' ', strip_tags($metaDescription))), 0, 300);
+$canonicalUrl = (isset($canonical) && $canonical !== '')
+    ? $canonical
+    : (APP_URL !== '' ? APP_URL . $currentUrl : $currentUrl);
+$ogImageUrl = (isset($ogImage) && $ogImage !== '')
+    ? $ogImage
+    : APP_URL . '/assets/img/logo/avtodoc-favicon.png';
+$ogType    = $ogType    ?? 'website';
+$headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </head>
 ?>
 <!doctype html>
 <html class="no-js" lang="<?= $lang ?>">
@@ -46,15 +60,24 @@ unset($queryParams['lang'], $queryParams['currency']);
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <title><?= sanitize($pageTitle) ?></title>
-    <meta name="description" content="<?= sanitize(getSetting('meta_description', t('tagline'))) ?>">
+    <meta name="description" content="<?= sanitize($metaDescription) ?>">
     <meta name="keywords" content="<?= sanitize(getSetting('meta_keywords', '')) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <?php if ($canonicalUrl !== ''): ?><link rel="canonical" href="<?= sanitize($canonicalUrl) ?>">
+    <?php endif; ?><meta property="og:type" content="<?= sanitize($ogType) ?>">
+    <meta property="og:title" content="<?= sanitize($pageTitle) ?>">
+    <meta property="og:description" content="<?= sanitize($metaDescription) ?>">
+    <meta property="og:site_name" content="<?= sanitize($siteName) ?>">
+    <?php if ($canonicalUrl !== ''): ?><meta property="og:url" content="<?= sanitize($canonicalUrl) ?>">
+    <?php endif; ?><?php if ($ogImageUrl !== ''): ?><meta property="og:image" content="<?= sanitize($ogImageUrl) ?>">
+    <?php endif; ?><meta name="twitter:card" content="summary_large_image">
     <link rel="icon" type="image/png" href="<?= APP_URL ?>/assets/img/logo/avtodoc-favicon.png?v=<?= @filemtime(APP_ROOT.'/assets/img/logo/avtodoc-favicon.png') ?>">
     <link rel="apple-touch-icon" href="<?= APP_URL ?>/assets/img/logo/avtodoc-favicon.png">
     <link rel="stylesheet" href="<?= MAZLAY_CSS ?>/plugins.css">
     <link rel="stylesheet" href="<?= MAZLAY_CSS ?>/style.css">
     <?php $cssV = @filemtime(APP_ROOT . '/assets/css/custom.css') ?: time(); ?>
     <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/custom.css?v=<?= $cssV ?>">
+    <?= $headExtra ?>
 </head>
 <body>
 
