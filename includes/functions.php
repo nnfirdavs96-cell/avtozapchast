@@ -620,14 +620,48 @@ function getSetting(string $key, string $default = ''): string {
  */
 function phoneCountriesCatalog(): array {
     return [
+        // СНГ и соседи
         ['code'=>'tj','dial'=>'992','flag'=>'🇹🇯','name'=>'Таджикистан','mask'=>'(XX) XXX-XX-XX'],
         ['code'=>'ru','dial'=>'7',  'flag'=>'🇷🇺','name'=>'Россия',     'mask'=>'(XXX) XXX-XX-XX'],
         ['code'=>'uz','dial'=>'998','flag'=>'🇺🇿','name'=>'Узбекистан', 'mask'=>'(XX) XXX-XX-XX'],
         ['code'=>'kz','dial'=>'7',  'flag'=>'🇰🇿','name'=>'Казахстан',  'mask'=>'(XXX) XXX-XX-XX'],
         ['code'=>'kg','dial'=>'996','flag'=>'🇰🇬','name'=>'Киргизия',   'mask'=>'(XXX) XXX-XXX'],
-        ['code'=>'af','dial'=>'93', 'flag'=>'🇦🇫','name'=>'Афганистан', 'mask'=>'(XX) XXX-XXXX'],
-        ['code'=>'tr','dial'=>'90', 'flag'=>'🇹🇷','name'=>'Турция',     'mask'=>'(XXX) XXX-XX-XX'],
+        ['code'=>'tm','dial'=>'993','flag'=>'🇹🇲','name'=>'Туркменистан','mask'=>'(XX) XX-XX-XX'],
+        ['code'=>'az','dial'=>'994','flag'=>'🇦🇿','name'=>'Азербайджан','mask'=>'(XX) XXX-XX-XX'],
+        ['code'=>'am','dial'=>'374','flag'=>'🇦🇲','name'=>'Армения',    'mask'=>'(XX) XXX-XXX'],
+        ['code'=>'ge','dial'=>'995','flag'=>'🇬🇪','name'=>'Грузия',     'mask'=>'(XXX) XXX-XXX'],
+        ['code'=>'by','dial'=>'375','flag'=>'🇧🇾','name'=>'Беларусь',   'mask'=>'(XX) XXX-XX-XX'],
+        ['code'=>'ua','dial'=>'380','flag'=>'🇺🇦','name'=>'Украина',    'mask'=>'(XX) XXX-XX-XX'],
+        ['code'=>'md','dial'=>'373','flag'=>'🇲🇩','name'=>'Молдова',    'mask'=>'(XX) XXX-XXX'],
+        // Азия и Ближний Восток
         ['code'=>'cn','dial'=>'86', 'flag'=>'🇨🇳','name'=>'Китай',      'mask'=>'XXX XXXX-XXXX'],
+        ['code'=>'in','dial'=>'91', 'flag'=>'🇮🇳','name'=>'Индия',      'mask'=>'XXXXX-XXXXX'],
+        ['code'=>'pk','dial'=>'92', 'flag'=>'🇵🇰','name'=>'Пакистан',   'mask'=>'(XXX) XXX-XXXX'],
+        ['code'=>'af','dial'=>'93', 'flag'=>'🇦🇫','name'=>'Афганистан', 'mask'=>'(XX) XXX-XXXX'],
+        ['code'=>'ir','dial'=>'98', 'flag'=>'🇮🇷','name'=>'Иран',       'mask'=>'(XXX) XXX-XXXX'],
+        ['code'=>'tr','dial'=>'90', 'flag'=>'🇹🇷','name'=>'Турция',     'mask'=>'(XXX) XXX-XX-XX'],
+        ['code'=>'ae','dial'=>'971','flag'=>'🇦🇪','name'=>'ОАЭ',        'mask'=>'(XX) XXX-XXXX'],
+        ['code'=>'sa','dial'=>'966','flag'=>'🇸🇦','name'=>'Саудовская Аравия','mask'=>'(XX) XXX-XXXX'],
+        ['code'=>'kr','dial'=>'82', 'flag'=>'🇰🇷','name'=>'Южная Корея','mask'=>'(XX) XXXX-XXXX'],
+        ['code'=>'jp','dial'=>'81', 'flag'=>'🇯🇵','name'=>'Япония',     'mask'=>'(XX) XXXX-XXXX'],
+        ['code'=>'th','dial'=>'66', 'flag'=>'🇹🇭','name'=>'Таиланд',    'mask'=>'(XX) XXX-XXXX'],
+        ['code'=>'vn','dial'=>'84', 'flag'=>'🇻🇳','name'=>'Вьетнам',    'mask'=>'(XXX) XXX-XXXX'],
+        ['code'=>'my','dial'=>'60', 'flag'=>'🇲🇾','name'=>'Малайзия',   'mask'=>'(XX) XXX-XXXX'],
+        ['code'=>'id','dial'=>'62', 'flag'=>'🇮🇩','name'=>'Индонезия',  'mask'=>'(XXX) XXX-XXXX'],
+        // Европа
+        ['code'=>'de','dial'=>'49', 'flag'=>'🇩🇪','name'=>'Германия',   'mask'=>'(XXX) XXXX-XXXX'],
+        ['code'=>'fr','dial'=>'33', 'flag'=>'🇫🇷','name'=>'Франция',    'mask'=>'(X) XX-XX-XX-XX'],
+        ['code'=>'gb','dial'=>'44', 'flag'=>'🇬🇧','name'=>'Великобритания','mask'=>'XXXX XXXXXX'],
+        ['code'=>'it','dial'=>'39', 'flag'=>'🇮🇹','name'=>'Италия',     'mask'=>'(XXX) XXX-XXXX'],
+        ['code'=>'es','dial'=>'34', 'flag'=>'🇪🇸','name'=>'Испания',    'mask'=>'(XXX) XX-XX-XX'],
+        ['code'=>'pl','dial'=>'48', 'flag'=>'🇵🇱','name'=>'Польша',     'mask'=>'(XXX) XXX-XXX'],
+        ['code'=>'nl','dial'=>'31', 'flag'=>'🇳🇱','name'=>'Нидерланды', 'mask'=>'(XX) XXX-XXXX'],
+        ['code'=>'cz','dial'=>'420','flag'=>'🇨🇿','name'=>'Чехия',      'mask'=>'(XXX) XXX-XXX'],
+        // Америка и прочее
+        ['code'=>'us','dial'=>'1',  'flag'=>'🇺🇸','name'=>'США',        'mask'=>'(XXX) XXX-XXXX'],
+        ['code'=>'ca','dial'=>'1',  'flag'=>'🇨🇦','name'=>'Канада',     'mask'=>'(XXX) XXX-XXXX'],
+        ['code'=>'br','dial'=>'55', 'flag'=>'🇧🇷','name'=>'Бразилия',   'mask'=>'(XX) XXXXX-XXXX'],
+        ['code'=>'eg','dial'=>'20', 'flag'=>'🇪🇬','name'=>'Египет',     'mask'=>'(XX) XXXX-XXXX'],
     ];
 }
 
