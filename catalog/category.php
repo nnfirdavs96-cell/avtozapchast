@@ -126,6 +126,20 @@ if ($category['parent_id']) {
 }
 
 $pageTitle = $catName . ' — ' . getSetting('site_name');
+
+// ── SEO: per-page meta from the category's own description ────────────────
+$catDescRaw = trim(strip_tags((string)tField($category, 'description')));
+$pageDescription = $catDescRaw !== ''
+    ? mb_substr(preg_replace('/\s+/u', ' ', $catDescRaw), 0, 300)
+    : $catName . '. ' . getSetting('meta_description', t('tagline'));
+$canonical = APP_URL . '/catalog/category.php?slug=' . urlencode($category['slug']);
+if (!empty($category['image_path'])) {
+    $ci = $category['image_path'];
+    if (preg_match('#^https?://#i', $ci))      $ogImage = $ci;
+    elseif ($ci[0] === '/')                    $ogImage = rtrim(APP_URL, '/') . $ci;
+    else                                       $ogImage = UPLOAD_URL . ltrim($ci, '/');
+}
+
 require_once dirname(__DIR__) . '/includes/header.php';
 ?>
 <meta name="csrf" content="<?= generateCsrfToken() ?>">
