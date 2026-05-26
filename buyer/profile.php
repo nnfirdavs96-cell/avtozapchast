@@ -187,9 +187,9 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         </div>
                         <div class="az-form-group">
                             <label>Телефон</label>
-                            <input type="tel" name="phone"
+                            <input type="tel" name="phone" data-phone="tj"
                                    value="<?= sanitize($userData['phone'] ?? '') ?>"
-                                   placeholder="+7 (___) ___-__-__">
+                                   placeholder="+992 (__) ___-__-__">
                         </div>
                     </div>
 

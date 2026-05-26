@@ -183,7 +183,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
               <div class="col-md-6">
                 <div class="az-form-group">
                   <label>Телефон</label>
-                  <input type="tel" name="phone" class="form-control" value="<?= sanitize($formData['phone'] ?? '') ?>">
+                  <input type="tel" name="phone" data-phone="tj" placeholder="+992 (__) ___-__-__" class="form-control" value="<?= sanitize($formData['phone'] ?? '') ?>">
                 </div>
               </div>
               <div class="col-12">
