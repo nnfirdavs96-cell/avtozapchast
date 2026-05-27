@@ -51,6 +51,13 @@
     color: #fff; border-left-color: var(--az-red);
 }
 .az-sidebar nav ul li a i { width: 18px; text-align: center; opacity: 0.85; }
+.az-sidebar-group {
+    padding: 16px 22px 6px;
+    font-size: 0.68rem; font-weight: 800; letter-spacing: 1.2px;
+    text-transform: uppercase; color: rgba(255,255,255,0.34);
+    pointer-events: none; user-select: none;
+}
+.az-sidebar-group:first-of-type { padding-top: 8px; }
 
 .az-main { flex: 1; background: var(--az-bg); min-width: 0; }
 .az-topbar {
