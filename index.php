@@ -20,10 +20,16 @@ $bestParts = $db->query("SELECT p.*, b.name AS brand_name,
 $newParts = $db->query("SELECT p.*, b.name AS brand_name FROM parts p
     LEFT JOIN brands b ON b.id=p.brand_id WHERE p.is_active=1 ORDER BY p.created_at DESC, p.id DESC LIMIT 10")->fetchAll();
 
+$saleParts = $db->query("SELECT p.*, b.name AS brand_name FROM parts p
+    LEFT JOIN brands b ON b.id=p.brand_id
+    WHERE p.is_active=1 AND p.old_price IS NOT NULL AND p.old_price > p.price
+    ORDER BY (p.old_price - p.price)/p.old_price DESC LIMIT 10")->fetchAll();
+
 $ratings = getProductRatings(array_merge(
     array_column($featParts, 'id'),
     array_column($bestParts, 'id'),
-    array_column($newParts, 'id')
+    array_column($newParts, 'id'),
+    array_column($saleParts, 'id')
 ));
 
 $blogPosts = $db->query("SELECT * FROM blog_posts WHERE is_published=1 ORDER BY created_at DESC LIMIT 5")->fetchAll();
@@ -349,6 +355,73 @@ require_once __DIR__ . '/includes/header.php';
         </div>
     </div>
     <!--product area end-->
+
+    <!--sale products area start-->
+    <?php if (!empty($saleParts)): ?>
+    <div class="product_area sale_product_area" style="padding-top:0;">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <div class="section_title title_style2">
+                        <div class="title_content">
+                            <h2><span><?= t('shop') ?></span> <?= t('discount') ?></h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="product_carousel product_details_column5 owl-carousel">
+                    <?php foreach ($saleParts as $part):
+                        $sImg = productImageUrl($part['images']);
+                    ?>
+                    <div class="col-lg-3">
+                        <article class="single_product">
+                            <figure>
+                                <div class="product_thumb">
+                                    <a class="primary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
+                                        <img src="<?= sanitize($sImg) ?>" alt="<?= sanitize($part['name']) ?>">
+                                    </a>
+                                    <a class="secondary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
+                                        <img src="<?= sanitize($sImg) ?>" alt="<?= sanitize($part['name']) ?>">
+                                    </a>
+                                    <?= productBadges($part) ?>
+                                    <div class="quick_button">
+                                        <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>" title="<?= t('quick_view') ?>"><i class="icon-eye"></i></a>
+                                    </div>
+                                </div>
+                                <div class="product_content grid_content">
+                                    <div class="product_content_inner">
+                                        <p class="manufacture_product"><a href="<?= APP_URL ?>/catalog/index.php?brand=<?= (int)$part['brand_id'] ?>"><?= sanitize($part['brand_name'] ?? '') ?></a></p>
+                                        <h4 class="product_name"><a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>"><?= sanitize(truncate($part['name'], 45)) ?></a></h4>
+                                        <?= priceBox($part) ?>
+                                        <?= productStarsInline((int)$part['id'], $ratings) ?>
+                                    </div>
+                                    <div class="action_links">
+                                        <ul>
+                                            <?php if (isLoggedIn()): ?>
+                                            <li class="add_to_cart"><a href="javascript:void(0)" onclick="addToCart(<?= (int)$part['id'] ?>)" title="<?= t('add_to_cart') ?>"><?= t('add_to_cart') ?></a></li>
+                                            <li class="wishlist"><a href="javascript:void(0)" onclick="addToWishlist(<?= (int)$part['id'] ?>)" title="<?= t('add_to_wishlist') ?>"><i class="icon-heart"></i></a></li>
+                                            <?php else: ?>
+                                            <li class="add_to_cart"><a href="<?= APP_URL ?>/auth/login.php"><?= t('login') ?></a></li>
+                                            <?php endif; ?>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </figure>
+                        </article>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12" style="text-align:center;margin-top:18px;">
+                    <a href="<?= APP_URL ?>/catalog/index.php?sale=1" class="button"><?= t('discount') ?></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+    <!--sale products area end-->
 
     <!--blog area start-->
     <?php if (!empty($blogPosts)): ?>
