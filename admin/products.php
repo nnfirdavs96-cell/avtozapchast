@@ -46,6 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $brand     = (int)($_POST['brand_id'] ?? 0);
     $cat       = (int)($_POST['category_id'] ?? 0);
     $price     = (float)str_replace(',', '.', $_POST['price'] ?? 0);
+    $oldPrice  = ($_POST['old_price'] ?? '') !== '' ? (float)str_replace(',', '.', $_POST['old_price']) : null;
     $costPrice = ($_POST['cost_price'] ?? '') !== '' ? (float)str_replace(',', '.', $_POST['cost_price']) : null;
     $markupPct = ($_POST['markup_percent'] ?? '') !== '' ? (float)str_replace(',', '.', $_POST['markup_percent']) : null;
     $stock     = (int)($_POST['stock'] ?? 0);
@@ -63,6 +64,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$brand)       $errors[] = 'Выберите бренд.';
     if (!$cat)         $errors[] = 'Выберите категорию.';
     if ($price <= 0)   $errors[] = 'Цена должна быть больше 0.';
+    if ($oldPrice !== null && $oldPrice <= $price) {
+        $errors[] = 'Старая цена должна быть больше цены продажи (для скидки). Оставьте пустым, если скидки нет.';
+    }
 
     if (empty($errors)) {
         $chk = $db->prepare("SELECT id FROM parts WHERE part_number = ? AND id != ? LIMIT 1");
@@ -75,15 +79,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($pid) {
             $db->prepare(
                 "UPDATE parts SET part_number=?, name=?, description=?, brand_id=?, category_id=?,
-                 price=?, cost_price=?, markup_percent=?, stock=?, weight=?, dimensions=?, images=?, updated_at=NOW() WHERE id=?"
-            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $costPrice, $markupPct, $stock, $weight, $dims, $imagesJson, $pid]);
+                 price=?, old_price=?, cost_price=?, markup_percent=?, stock=?, weight=?, dimensions=?, images=?, updated_at=NOW() WHERE id=?"
+            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $oldPrice, $costPrice, $markupPct, $stock, $weight, $dims, $imagesJson, $pid]);
             flashMessage('success', 'Товар обновлён.');
         } else {
             $db->prepare(
                 "INSERT INTO parts (part_number, name, description, brand_id, category_id,
-                 price, cost_price, markup_percent, stock, weight, dimensions, images, is_active, created_at)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1,NOW())"
-            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $costPrice, $markupPct, $stock, $weight, $dims, $imagesJson]);
+                 price, old_price, cost_price, markup_percent, stock, weight, dimensions, images, is_active, created_at)
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1,NOW())"
+            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $oldPrice, $costPrice, $markupPct, $stock, $weight, $dims, $imagesJson]);
             flashMessage('success', 'Товар добавлен.');
         }
         redirect(APP_URL . '/admin/products.php');
@@ -198,6 +202,13 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                     <input type="number" id="fieldPrice" name="price" step="0.01" min="0.01"
                                            value="<?= sanitize((string)($editPart['price'] ?? ($_POST['price'] ?? ''))) ?>"
                                            placeholder="1500.00" required>
+                                </div>
+                                <div class="az-form-group">
+                                    <label>Старая цена / до скидки (СМН)</label>
+                                    <input type="number" id="fieldOldPrice" name="old_price" step="0.01" min="0"
+                                           value="<?= sanitize((string)($editPart['old_price'] ?? ($_POST['old_price'] ?? ''))) ?>"
+                                           placeholder="Оставьте пустым, если скидки нет">
+                                    <small style="color:#888;font-size:0.78rem;">Если больше цены продажи — товар попадёт в «Скидки» с бейджем −%.</small>
                                 </div>
                             </div>
 

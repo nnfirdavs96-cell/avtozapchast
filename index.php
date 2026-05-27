@@ -10,11 +10,15 @@ $featParts = $db->query("SELECT p.*, b.name AS brand_name, c.name AS category_na
     FROM parts p LEFT JOIN brands b ON b.id=p.brand_id LEFT JOIN categories c ON c.id=p.category_id
     WHERE p.is_active=1 ORDER BY p.created_at DESC LIMIT 10")->fetchAll();
 
-$bestParts = $db->query("SELECT p.*, b.name AS brand_name FROM parts p
-    LEFT JOIN brands b ON b.id=p.brand_id WHERE p.is_active=1 ORDER BY p.stock DESC LIMIT 10")->fetchAll();
+$bestParts = $db->query("SELECT p.*, b.name AS brand_name,
+        (SELECT COALESCE(SUM(oi.quantity),0) FROM order_items oi
+         JOIN orders o ON o.id=oi.order_id
+         WHERE oi.part_id=p.id AND o.status<>'cancelled') AS sold_qty
+    FROM parts p LEFT JOIN brands b ON b.id=p.brand_id
+    WHERE p.is_active=1 ORDER BY sold_qty DESC, p.stock DESC, p.created_at DESC LIMIT 10")->fetchAll();
 
 $newParts = $db->query("SELECT p.*, b.name AS brand_name FROM parts p
-    LEFT JOIN brands b ON b.id=p.brand_id WHERE p.is_active=1 ORDER BY p.id DESC LIMIT 10")->fetchAll();
+    LEFT JOIN brands b ON b.id=p.brand_id WHERE p.is_active=1 ORDER BY p.created_at DESC, p.id DESC LIMIT 10")->fetchAll();
 
 $ratings = getProductRatings(array_merge(
     array_column($featParts, 'id'),
@@ -310,9 +314,7 @@ require_once __DIR__ . '/includes/header.php';
                                             <a class="primary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
                                                 <img src="<?= $img ?>" alt="<?= sanitize($part['name']) ?>" onerror="this.src='<?= $fallbackImg ?>'">
                                             </a>
-                                            <?php if ($part['stock'] > 0): ?>
-                                            <div class="label_product"><span class="label_new"><?= t('in_stock') ?></span></div>
-                                            <?php endif; ?>
+                                            <?= productBadges($part) ?>
                                             <div class="quick_button">
                                                 <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>" title="<?= t('quick_view') ?>"><i class="icon-eye"></i></a>
                                             </div>
@@ -321,9 +323,7 @@ require_once __DIR__ . '/includes/header.php';
                                             <div class="product_content_inner">
                                                 <p class="manufacture_product"><a href="<?= APP_URL ?>/catalog/index.php?brand=<?= (int)$part['brand_id'] ?>"><?= sanitize($part['brand_name'] ?? '') ?></a></p>
                                                 <h4 class="product_name"><a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>"><?= sanitize(truncate($part['name'],45)) ?></a></h4>
-                                                <div class="price_box">
-                                                    <span class="current_price"><?= formatPrice($part['price']) ?></span>
-                                                </div>
+                                                <?= priceBox($part) ?>
                                                 <?= productStarsInline((int)$part['id'], $ratings) ?>
                                             </div>
                                             <div class="action_links">

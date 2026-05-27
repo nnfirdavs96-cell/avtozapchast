@@ -82,6 +82,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
               <a class="primary_img" href="<?php echo APP_URL; ?>/catalog/part.php?id=<?php echo (int)$part['id']; ?>">
                 <img src="<?php echo $img; ?>" alt="<?php echo sanitize($part['name']); ?>" style="height:200px;object-fit:contain;width:100%">
               </a>
+              <?php echo productBadges($part); ?>
               <div class="quick_button"><a href="<?php echo APP_URL; ?>/catalog/part.php?id=<?php echo (int)$part['id']; ?>"><i class="icon-eye"></i></a></div>
             </div>
             <div class="product_content grid_content">
@@ -89,7 +90,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 <p class="manufacture_product"><a href="#"><?php echo sanitize($part['brand_name']); ?></a></p>
                 <h4 class="product_name"><a href="<?php echo APP_URL; ?>/catalog/part.php?id=<?php echo (int)$part['id']; ?>"><?php echo sanitize(truncate($part['name'],55)); ?></a></h4>
                 <p style="font-size:0.75rem;color:#888;margin:2px 0"><?php echo sanitize($part['part_number']); ?></p>
-                <div class="price_box"><span class="current_price"><?php echo formatPrice($part['price']); ?></span></div>
+                <?php echo priceBox($part); ?>
                 <p class="stock-<?php echo $stock['class']; ?>" style="font-size:0.75rem"><?php echo $stock['label']; ?></p>
               </div>
               <div class="action_links">

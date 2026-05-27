@@ -564,6 +564,61 @@ function getStockStatus(int $stock): array {
 }
 
 /**
+ * Скидка в процентах, если old_price > price. Иначе 0.
+ */
+function discountPercent(array $part): int {
+    $old   = (float)($part['old_price'] ?? 0);
+    $price = (float)($part['price'] ?? 0);
+    if ($old > 0 && $old > $price) {
+        return (int)round(($old - $price) / $old * 100);
+    }
+    return 0;
+}
+
+/**
+ * Товар «новый», если добавлен за последние $days дней.
+ */
+function isNewProduct(array $part, int $days = 30): bool {
+    if (empty($part['created_at'])) return false;
+    $ts = strtotime((string)$part['created_at']);
+    return $ts && $ts >= strtotime("-{$days} days");
+}
+
+/**
+ * Единый бейдж для карточки товара внутри .product_thumb.
+ * Приоритет: скидка → новинка → нет в наличии → заканчивается.
+ */
+function productBadges(array $part): string {
+    $disc  = discountPercent($part);
+    $stock = (int)($part['stock'] ?? 0);
+    if ($disc > 0) {
+        return '<div class="label_product"><span class="label_sale">-' . $disc . '%</span></div>';
+    }
+    if (isNewProduct($part)) {
+        return '<div class="label_product"><span class="label_new">' . sanitize(t('new_label')) . '</span></div>';
+    }
+    if ($stock <= 0) {
+        return '<div class="label_product"><span class="label_sale">' . sanitize(t('out_of_stock')) . '</span></div>';
+    }
+    if ($stock <= 5) {
+        return '<div class="label_product"><span class="label_new">' . sanitize(t('low_stock')) . '</span></div>';
+    }
+    return '';
+}
+
+/**
+ * HTML блока цены: при скидке показывает зачёркнутую старую цену + новую.
+ */
+function priceBox(array $part): string {
+    $disc = discountPercent($part);
+    $cur  = '<span class="current_price">' . formatPrice($part['price']) . '</span>';
+    if ($disc > 0) {
+        return '<div class="price_box"><span class="old_price">' . formatPrice($part['old_price']) . '</span> ' . $cur . '</div>';
+    }
+    return '<div class="price_box">' . $cur . '</div>';
+}
+
+/**
  * Get wishlist count for logged-in user
  */
 function getWishlistCount(): int {

@@ -363,15 +363,7 @@ $bcItems[] = ['label' => $catName];
                                     <a class="primary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
                                         <img src="<?= sanitize($imgUrl) ?>" alt="<?= sanitize($part['name']) ?>">
                                     </a>
-                                    <?php if ($part['stock'] <= 0): ?>
-                                    <div class="label_product">
-                                        <span class="label_sale"><?= t('out_of_stock') ?></span>
-                                    </div>
-                                    <?php elseif ($part['stock'] <= 5): ?>
-                                    <div class="label_product">
-                                        <span class="label_new"><?= t('low_stock') ?></span>
-                                    </div>
-                                    <?php endif; ?>
+                                    <?= productBadges($part) ?>
                                     <div class="quick_button">
                                         <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>" title="<?= t('quick_view') ?>">
                                             <i class="icon-eye"></i>
@@ -390,9 +382,7 @@ $bcItems[] = ['label' => $catName];
                                                 <?= sanitize($part['name']) ?>
                                             </a>
                                         </h4>
-                                        <div class="price_box">
-                                            <span class="current_price"><?= formatPrice($part['price']) ?></span>
-                                        </div>
+                                        <?= priceBox($part) ?>
                                         <?= productStarsInline((int)$part['id'], $ratings) ?>
                                     </div>
                                     <div class="action_links">
@@ -428,9 +418,7 @@ $bcItems[] = ['label' => $catName];
                                                 <?= sanitize($part['name']) ?>
                                             </a>
                                         </h4>
-                                        <div class="price_box">
-                                            <span class="current_price"><?= formatPrice($part['price']) ?></span>
-                                        </div>
+                                        <?= priceBox($part) ?>
                                         <?= productStarsInline((int)$part['id'], $ratings) ?>
                                         <div class="product_desc">
                                             <p><?= t('part_number') ?>: <?= sanitize($part['part_number']) ?></p>
@@ -484,15 +472,7 @@ $bcItems[] = ['label' => $catName];
                                     <a class="secondary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
                                         <img src="<?= sanitize($imgUrl) ?>" alt="<?= sanitize($part['name']) ?>">
                                     </a>
-                                    <?php if ($part['stock'] <= 0): ?>
-                                    <div class="label_product">
-                                        <span class="label_sale"><?= t('out_of_stock') ?></span>
-                                    </div>
-                                    <?php elseif ($part['stock'] <= 5): ?>
-                                    <div class="label_product">
-                                        <span class="label_new"><?= t('low_stock') ?></span>
-                                    </div>
-                                    <?php endif; ?>
+                                    <?= productBadges($part) ?>
                                     <div class="quick_button">
                                         <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>" title="<?= t('quick_view') ?>">
                                             <i class="icon-eye"></i>
@@ -511,9 +491,7 @@ $bcItems[] = ['label' => $catName];
                                                 <?= sanitize(truncate($part['name'], 55)) ?>
                                             </a>
                                         </h4>
-                                        <div class="price_box">
-                                            <span class="current_price"><?= formatPrice($part['price']) ?></span>
-                                        </div>
+                                        <?= priceBox($part) ?>
                                         <?= productStarsInline((int)$part['id'], $ratings) ?>
                                     </div>
                                     <div class="action_links">
@@ -549,9 +527,7 @@ $bcItems[] = ['label' => $catName];
                                                 <?= sanitize($part['name']) ?>
                                             </a>
                                         </h4>
-                                        <div class="price_box">
-                                            <span class="current_price"><?= formatPrice($part['price']) ?></span>
-                                        </div>
+                                        <?= priceBox($part) ?>
                                         <?= productStarsInline((int)$part['id'], $ratings) ?>
                                         <div class="product_desc">
                                             <p><?= t('part_number') ?>: <?= sanitize($part['part_number']) ?></p>

@@ -29,6 +29,8 @@ return [
     'in_stock'           => 'In Stock',
     'out_of_stock'       => 'Out of Stock',
     'low_stock'          => 'Low Stock',
+    'new_label'          => 'New',
+    'discount'           => 'Discounts',
     'part_number'        => 'Part Number',
     'brand'              => 'Brand',
     'category'           => 'Category',

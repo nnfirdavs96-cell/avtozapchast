@@ -218,8 +218,15 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 <?php endif; ?>
                             </div>
 
+                            <?php $pDisc = discountPercent($part); ?>
                             <div class="price_box">
+                                <?php if ($pDisc > 0): ?>
+                                <span class="old_price"><?= formatPrice($part['old_price']) ?></span>
                                 <span class="current_price"><?= formatPrice($part['price']) ?></span>
+                                <span class="label_sale" style="margin-left:8px;">-<?= $pDisc ?>%</span>
+                                <?php else: ?>
+                                <span class="current_price"><?= formatPrice($part['price']) ?></span>
+                                <?php endif; ?>
                             </div>
 
                             <div class="product_desc" style="margin-bottom:16px;">
@@ -530,15 +537,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                     <a class="secondary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$rel['id'] ?>">
                                         <img src="<?= sanitize($relImg) ?>" alt="<?= sanitize($rel['name']) ?>">
                                     </a>
-                                    <?php if ($rel['stock'] <= 0): ?>
-                                    <div class="label_product">
-                                        <span class="label_sale"><?= t('out_of_stock') ?></span>
-                                    </div>
-                                    <?php elseif ($rel['stock'] <= 5): ?>
-                                    <div class="label_product">
-                                        <span class="label_new"><?= t('low_stock') ?></span>
-                                    </div>
-                                    <?php endif; ?>
+                                    <?= productBadges($rel) ?>
                                     <div class="quick_button">
                                         <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$rel['id'] ?>" title="<?= t('quick_view') ?>">
                                             <i class="icon-eye"></i>
@@ -557,9 +556,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                 <?= sanitize(truncate($rel['name'], 55)) ?>
                                             </a>
                                         </h4>
-                                        <div class="price_box">
-                                            <span class="current_price"><?= formatPrice($rel['price']) ?></span>
-                                        </div>
+                                        <?= priceBox($rel) ?>
                                     </div>
                                     <div class="action_links">
                                         <ul>

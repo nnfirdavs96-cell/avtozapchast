@@ -9,7 +9,9 @@ $q        = trim($_getStr('q'));
 $catId    = (int)$_getStr('cat', '0');
 $brandId  = (int)$_getStr('brand', '0');
 $sortRaw  = $_getStr('sort');
-$sort     = in_array($sortRaw, ['price_asc', 'price_desc', 'newest'], true) ? $sortRaw : 'newest';
+if ($sortRaw === 'new') $sortRaw = 'newest';   // alias из меню «Новинки»
+$sort     = in_array($sortRaw, ['price_asc', 'price_desc', 'newest', 'popular', 'discount'], true) ? $sortRaw : 'newest';
+$sale     = $_getStr('sale') === '1';          // «Скидки»: только товары со старой ценой
 $inStock  = $_getStr('in_stock') === '1';
 $page     = max(1, (int)$_getStr('page', '1'));
 $perPage  = 12;
@@ -44,6 +46,10 @@ if ($brandId) {
 if ($inStock) {
     $where[] = 'p.stock > 0';
 }
+if ($sale) {
+    $where[] = 'p.old_price IS NOT NULL AND p.old_price > p.price';
+    if ($sortRaw === '') $sort = 'discount';   // по умолчанию — самые большие скидки
+}
 if ($priceMin > 0) {
     $where[]  = 'p.price >= ?';
     $params[] = $priceMin;
@@ -69,10 +75,15 @@ $page       = min($page, $totalPages);
 $offset     = ($page - 1) * $perPage;
 
 // ── Sort ────────────────────────────────────────────────────────────────────
+$soldExpr = '(SELECT COALESCE(SUM(oi.quantity),0) FROM order_items oi
+              JOIN orders o ON o.id = oi.order_id
+              WHERE oi.part_id = p.id AND o.status <> \'cancelled\')';
 $orderMap = [
     'price_asc'  => 'p.price ASC',
     'price_desc' => 'p.price DESC',
     'newest'     => 'p.created_at DESC',
+    'popular'    => "{$soldExpr} DESC, p.stock DESC, p.created_at DESC",
+    'discount'   => '(p.old_price - p.price) / NULLIF(p.old_price,0) DESC, p.created_at DESC',
 ];
 $orderSQL = $orderMap[$sort] ?? 'p.created_at DESC';
 
@@ -280,6 +291,18 @@ require_once dirname(__DIR__) . '/includes/header.php';
 
             <div class="col-lg-9 col-md-12">
 
+                <?php
+                $specialHeading = '';
+                if ($sale)                  $specialHeading = t('discount');
+                elseif ($sort === 'popular') $specialHeading = t('best_sellers');
+                elseif ($sort === 'newest' && $sortRaw === 'newest') $specialHeading = t('new_arrivals');
+                ?>
+                <?php if ($specialHeading): ?>
+                <div class="section_title" style="margin-bottom:18px;">
+                    <h2><?= sanitize($specialHeading) ?></h2>
+                </div>
+                <?php endif; ?>
+
                 <!--shop banner area start-->
                 <div class="shop_banner_area mb-30">
                     <div class="row">
@@ -345,15 +368,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                     <a class="primary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
                                         <img src="<?= sanitize($imgUrl) ?>" alt="<?= sanitize($part['name']) ?>">
                                     </a>
-                                    <?php if ($part['stock'] <= 0): ?>
-                                    <div class="label_product">
-                                        <span class="label_sale"><?= t('out_of_stock') ?></span>
-                                    </div>
-                                    <?php elseif ($part['stock'] <= 5): ?>
-                                    <div class="label_product">
-                                        <span class="label_new"><?= t('low_stock') ?></span>
-                                    </div>
-                                    <?php endif; ?>
+                                    <?= productBadges($part) ?>
                                     <div class="quick_button">
                                         <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>" title="<?= t('quick_view') ?>">
                                             <i class="icon-eye"></i>
@@ -372,9 +387,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                 <?= sanitize($part['name']) ?>
                                             </a>
                                         </h4>
-                                        <div class="price_box">
-                                            <span class="current_price"><?= formatPrice($part['price']) ?></span>
-                                        </div>
+                                        <?= priceBox($part) ?>
                                         <?= productStarsInline((int)$part['id'], $ratings) ?>
                                     </div>
                                     <div class="action_links">
@@ -410,9 +423,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                 <?= sanitize($part['name']) ?>
                                             </a>
                                         </h4>
-                                        <div class="price_box">
-                                            <span class="current_price"><?= formatPrice($part['price']) ?></span>
-                                        </div>
+                                        <?= priceBox($part) ?>
                                         <?= productStarsInline((int)$part['id'], $ratings) ?>
                                         <div class="product_desc">
                                             <p><?= t('part_number') ?>: <?= sanitize($part['part_number']) ?></p>
@@ -466,15 +477,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                     <a class="secondary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
                                         <img src="<?= sanitize($imgUrl) ?>" alt="<?= sanitize($part['name']) ?>">
                                     </a>
-                                    <?php if ($part['stock'] <= 0): ?>
-                                    <div class="label_product">
-                                        <span class="label_sale"><?= t('out_of_stock') ?></span>
-                                    </div>
-                                    <?php elseif ($part['stock'] <= 5): ?>
-                                    <div class="label_product">
-                                        <span class="label_new"><?= t('low_stock') ?></span>
-                                    </div>
-                                    <?php endif; ?>
+                                    <?= productBadges($part) ?>
                                     <div class="quick_button">
                                         <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>" title="<?= t('quick_view') ?>">
                                             <i class="icon-eye"></i>
@@ -493,9 +496,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                 <?= sanitize(truncate($part['name'], 55)) ?>
                                             </a>
                                         </h4>
-                                        <div class="price_box">
-                                            <span class="current_price"><?= formatPrice($part['price']) ?></span>
-                                        </div>
+                                        <?= priceBox($part) ?>
                                         <?= productStarsInline((int)$part['id'], $ratings) ?>
                                     </div>
                                     <div class="action_links">
@@ -531,9 +532,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                 <?= sanitize($part['name']) ?>
                                             </a>
                                         </h4>
-                                        <div class="price_box">
-                                            <span class="current_price"><?= formatPrice($part['price']) ?></span>
-                                        </div>
+                                        <?= priceBox($part) ?>
                                         <?= productStarsInline((int)$part['id'], $ratings) ?>
                                         <div class="product_desc">
                                             <p><?= t('part_number') ?>: <?= sanitize($part['part_number']) ?></p>
