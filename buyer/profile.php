@@ -34,12 +34,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (mb_strlen($username) < 2) {
             $errors[] = 'Имя пользователя слишком короткое (минимум 2 символа).';
         }
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        // Email is optional (phone-registered users may not have one);
+        // validate only when provided.
+        $email = $email ?: null;
+        if ($email !== null && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'Введите корректный email.';
         }
 
         // Email uniqueness (exclude current user)
-        if (empty($errors)) {
+        if (empty($errors) && $email !== null) {
             $chk = $db->prepare("SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1");
             $chk->execute([$email, $user['id']]);
             if ($chk->fetch()) {
@@ -47,17 +50,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Password change requested?
+        // Does this account already have a password set?
+        $pwStmt = $db->prepare("SELECT password_hash FROM users WHERE id = ? LIMIT 1");
+        $pwStmt->execute([$user['id']]);
+        $existingHash = $pwStmt->fetchColumn() ?: '';
+        $hasPassword  = $existingHash !== '';
+
+        // Password change / set requested?
         $changePassword = !empty($newPass);
         if ($changePassword) {
-            // Verify current password
-            if (empty($currentPass)) {
-                $errors[] = 'Введите текущий пароль для подтверждения.';
-            } else {
-                $pwStmt = $db->prepare("SELECT password_hash FROM users WHERE id = ? LIMIT 1");
-                $pwStmt->execute([$user['id']]);
-                $pwRow = $pwStmt->fetch();
-                if (!$pwRow || !password_verify($currentPass, $pwRow['password_hash'])) {
+            // Users who already have a password must confirm the current one.
+            // Phone-registered users without a password can set one directly.
+            if ($hasPassword) {
+                if (empty($currentPass)) {
+                    $errors[] = 'Введите текущий пароль для подтверждения.';
+                } elseif (!password_verify($currentPass, $existingHash)) {
                     $errors[] = 'Текущий пароль введён неверно.';
                 }
             }
@@ -70,16 +77,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (empty($errors)) {
-            $hash = $changePassword ? password_hash($newPass, PASSWORD_DEFAULT) : null;
+            $hash    = $changePassword ? password_hash($newPass, PASSWORD_DEFAULT) : null;
+            $phoneN  = $phone ?: null;
+            $phoneE  = $phoneN ? (normalizePhone($phoneN) ?: null) : null;
             try {
                 if ($changePassword) {
                     $db->prepare(
-                        "UPDATE users SET username=?, email=?, phone=?, avatar_path=?, first_name=?, last_name=?, address=?, city=?, zip_code=?, country=?, password_hash=?, updated_at=NOW() WHERE id=?"
-                    )->execute([$username, $email, $phone ?: null, $avatarPath, $firstName, $lastName, $address, $city, $zipCode, $country, $hash, $user['id']]);
+                        "UPDATE users SET username=?, email=?, phone=?, phone_e164=?, avatar_path=?, first_name=?, last_name=?, address=?, city=?, zip_code=?, country=?, password_hash=?, updated_at=NOW() WHERE id=?"
+                    )->execute([$username, $email, $phoneN, $phoneE, $avatarPath, $firstName, $lastName, $address, $city, $zipCode, $country, $hash, $user['id']]);
                 } else {
                     $db->prepare(
-                        "UPDATE users SET username=?, email=?, phone=?, avatar_path=?, first_name=?, last_name=?, address=?, city=?, zip_code=?, country=?, updated_at=NOW() WHERE id=?"
-                    )->execute([$username, $email, $phone ?: null, $avatarPath, $firstName, $lastName, $address, $city, $zipCode, $country, $user['id']]);
+                        "UPDATE users SET username=?, email=?, phone=?, phone_e164=?, avatar_path=?, first_name=?, last_name=?, address=?, city=?, zip_code=?, country=?, updated_at=NOW() WHERE id=?"
+                    )->execute([$username, $email, $phoneN, $phoneE, $avatarPath, $firstName, $lastName, $address, $city, $zipCode, $country, $user['id']]);
                 }
             } catch (PDOException $e) {
                 // New profile columns may not exist yet (migration not run) — save core fields only
@@ -108,6 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $userStmt = $db->prepare("SELECT * FROM users WHERE id = ? LIMIT 1");
 $userStmt->execute([$user['id']]);
 $userData = $userStmt->fetch() ?: $user;
+$hasPwd   = !empty($userData['password_hash']);
 
 $pageTitle = 'Мой профиль';
 require_once dirname(__DIR__) . '/includes/header.php';
@@ -180,10 +190,10 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                    required minlength="2" maxlength="50">
                         </div>
                         <div class="az-form-group">
-                            <label>Email</label>
+                            <label>Email <span style="color:#aaa;font-weight:400;">(необязательно)</span></label>
                             <input type="email" name="email"
-                                   value="<?= sanitize($userData['email']) ?>"
-                                   required>
+                                   value="<?= sanitize($userData['email'] ?? '') ?>"
+                                   placeholder="your@email.com">
                         </div>
                         <div class="az-form-group">
                             <label>Телефон</label>
@@ -242,29 +252,35 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         </div>
                     </div>
 
-                    <!-- Password change -->
+                    <!-- Password change / set -->
                     <div class="az-card">
-                        <h3>Изменить пароль</h3>
+                        <h3><?= $hasPwd ? 'Изменить пароль' : 'Задать пароль' ?></h3>
                         <p style="font-size:0.85rem;color:#888;margin-bottom:16px;">
-                            Оставьте поля пустыми, если не хотите менять пароль.
+                            <?php if ($hasPwd): ?>
+                                Оставьте поля пустыми, если не хотите менять пароль.
+                            <?php else: ?>
+                                Вы вошли по номеру телефона. Задайте пароль, чтобы можно было входить и по паролю (вход по SMS-коду продолжит работать).
+                            <?php endif; ?>
                         </p>
 
+                        <?php if ($hasPwd): ?>
                         <div class="az-form-group">
                             <label>Текущий пароль</label>
                             <input type="password" name="current_password"
                                    placeholder="Введите текущий пароль"
                                    autocomplete="current-password">
                         </div>
+                        <?php endif; ?>
                         <div class="az-form-group">
-                            <label>Новый пароль</label>
+                            <label><?= $hasPwd ? 'Новый пароль' : 'Пароль' ?></label>
                             <input type="password" name="new_password"
                                    placeholder="Минимум 6 символов"
                                    autocomplete="new-password">
                         </div>
                         <div class="az-form-group">
-                            <label>Подтверждение нового пароля</label>
+                            <label>Подтверждение пароля</label>
                             <input type="password" name="confirm_new_password"
-                                   placeholder="Повторите новый пароль"
+                                   placeholder="Повторите пароль"
                                    autocomplete="new-password">
                         </div>
                     </div>

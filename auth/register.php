@@ -5,11 +5,64 @@ if (isLoggedIn()) {
     redirect(APP_URL . '/index.php');
 }
 
-$errors   = [];
-$username = '';
-$email    = '';
+ensurePhoneAuthSchema();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$errors    = [];
+$username  = '';
+$email     = '';
+$regPhone  = '';
+$activeTab = 'phone';   // default tab: quick phone registration
+
+// ── Phone registration (SMS code) ──────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'phone_register') {
+    $activeTab = 'phone';
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $errors[] = 'Неверный токен безопасности. Обновите страницу.';
+    } else {
+        $regPhone = trim($_POST['phone'] ?? '');
+        $code     = trim($_POST['code'] ?? '');
+        $norm     = normalizePhone($regPhone);
+
+        if ($norm === '') {
+            $errors[] = 'Введите корректный номер телефона.';
+        } elseif ($code === '') {
+            $errors[] = 'Введите код из SMS.';
+        } elseif (findUserByPhone($norm)) {
+            $errors[] = 'Этот номер уже зарегистрирован. Войдите по номеру.';
+        } elseif (!verifyPhoneOtp($norm, $code, 'register')) {
+            $errors[] = 'Неверный или просроченный код. Запросите новый.';
+        } else {
+            try {
+                $db = getDB();
+                // Generate a unique username from the phone (user + last 4 digits)
+                $base = 'user' . substr($norm, -4);
+                $uname = $base; $i = 0;
+                while (true) {
+                    $chk = $db->prepare("SELECT id FROM users WHERE username = ? LIMIT 1");
+                    $chk->execute([$uname]);
+                    if (!$chk->fetch()) break;
+                    $uname = $base . (++$i);
+                }
+                $db->prepare(
+                    "INSERT INTO users (username, email, password_hash, role, phone, phone_e164, is_active, created_at)
+                     VALUES (?, NULL, NULL, 'buyer', ?, ?, 1, NOW())"
+                )->execute([$uname, '+' . $norm, $norm]);
+                $newId = (int)$db->lastInsertId();
+                $row = $db->prepare("SELECT * FROM users WHERE id = ? LIMIT 1");
+                $row->execute([$newId]);
+                loginUser($row->fetch());
+                flashMessage('success', 'Добро пожаловать! Заполните профиль, чтобы оформлять заказы быстрее.');
+                redirect(APP_URL . '/buyer/profile.php');
+            } catch (Exception $e) {
+                $errors[] = 'Ошибка сервера. Попробуйте позже.';
+            }
+        }
+    }
+}
+
+// ── Email registration (login + password) ──────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') !== 'phone_register') {
+    $activeTab = 'email';
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
         $errors[] = 'Неверный токен безопасности. Обновите страницу.';
     } else {
@@ -120,34 +173,75 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             </div>
                         <?php endif; ?>
 
-                        <form method="POST" action="<?= APP_URL ?>/auth/register.php">
+                        <!-- Tabs -->
+                        <div class="auth_tabs">
+                            <button type="button" class="auth_tab <?= $activeTab==='phone'?'active':'' ?>" data-auth-tab="phone">
+                                <i class="fa fa-mobile"></i> По номеру
+                            </button>
+                            <button type="button" class="auth_tab <?= $activeTab==='email'?'active':'' ?>" data-auth-tab="email">
+                                <i class="fa fa-envelope-o"></i> По email
+                            </button>
+                        </div>
+
+                        <!-- Phone (SMS) registration -->
+                        <form method="POST" action="<?= APP_URL ?>/auth/register.php"
+                              class="auth_pane" data-auth-pane="phone" style="<?= $activeTab==='phone'?'':'display:none;' ?>"
+                              data-sms-mode="register">
                             <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
+                            <input type="hidden" name="action" value="phone_register">
+
+                            <p>
+                                <label>Номер телефона <span>*</span></label>
+                                <input type="tel" name="phone" data-phone="tj"
+                                       value="<?= sanitize($regPhone) ?>"
+                                       placeholder="+992 (__) ___-__-__"
+                                       autocomplete="tel" required>
+                            </p>
+
+                            <div class="sms_send_row">
+                                <button type="button" class="sms_send_btn"><i class="fa fa-paper-plane-o"></i> Получить код</button>
+                                <span class="sms_send_status"></span>
+                            </div>
+
+                            <div class="sms_code_wrap" style="display:none;">
+                                <p>
+                                    <label>Код из SMS <span>*</span></label>
+                                    <input type="text" name="code" inputmode="numeric" maxlength="4"
+                                           placeholder="4 цифры" autocomplete="one-time-code">
+                                </p>
+                                <div class="login_submit">
+                                    <button type="submit"><?= t('sign_up') ?></button>
+                                </div>
+                            </div>
+
+                            <p class="auth_hint">Быстрая регистрация: введите номер, получите код по SMS и войдите. Остальное (email, адрес) можно заполнить позже в профиле.</p>
+                        </form>
+
+                        <!-- Email + password registration -->
+                        <form method="POST" action="<?= APP_URL ?>/auth/register.php"
+                              class="auth_pane" data-auth-pane="email" style="<?= $activeTab==='email'?'':'display:none;' ?>">
+                            <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
+                            <input type="hidden" name="action" value="email_register">
 
                             <p>
                                 <label><?= t('username') ?> <span>*</span></label>
-                                <input type="text"
-                                       name="username"
+                                <input type="text" name="username"
                                        placeholder="<?= t('username') ?>"
                                        value="<?= sanitize($username) ?>"
-                                       required
                                        autocomplete="username">
                             </p>
                             <p>
                                 <label><?= t('email') ?> <span>*</span></label>
-                                <input type="email"
-                                       name="email"
+                                <input type="email" name="email"
                                        placeholder="your@email.com"
                                        value="<?= sanitize($email) ?>"
-                                       required
                                        autocomplete="email">
                             </p>
                             <p>
                                 <label><?= t('password') ?> <span>*</span></label>
                                 <span class="pwd-field">
-                                    <input type="password"
-                                           name="password"
+                                    <input type="password" name="password"
                                            placeholder="<?= t('min_6_chars') ?>"
-                                           required
                                            autocomplete="new-password">
                                     <button type="button" class="pwd-toggle" aria-label="Показать пароль">
                                         <i class="fa fa-eye"></i>
@@ -157,10 +251,8 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             <p>
                                 <label><?= t('confirm_password') ?> <span>*</span></label>
                                 <span class="pwd-field">
-                                    <input type="password"
-                                           name="confirm_password"
+                                    <input type="password" name="confirm_password"
                                            placeholder="<?= t('confirm_password') ?>"
-                                           required
                                            autocomplete="new-password">
                                     <button type="button" class="pwd-toggle" aria-label="Показать пароль">
                                         <i class="fa fa-eye"></i>

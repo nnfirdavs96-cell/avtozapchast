@@ -1039,6 +1039,179 @@ function seedBrands(): int {
     }
 }
 
+/* ───────────────────────── Phone / SMS authentication ───────────────────────── */
+
+/**
+ * Ensure the DB schema supports phone-based (SMS) registration.
+ * Idempotent, runs once per deploy (guarded by a settings flag):
+ *  - email / password_hash become NULLable (phone-only accounts have neither)
+ *  - phone_e164 column added (normalized digits, the canonical login key)
+ *  - phone_otp table created (one-time SMS codes)
+ */
+function ensurePhoneAuthSchema(): void {
+    if (getSetting('phone_auth_schema_v1', '') === '1') return;
+    try {
+        $db = getDB();
+        // email: drop NOT NULL (keep the unique index — MySQL allows multiple NULLs)
+        $col = $db->query("SELECT IS_NULLABLE FROM information_schema.COLUMNS
+                           WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'email'")
+                  ->fetchColumn();
+        if ($col === 'NO') {
+            $db->exec("ALTER TABLE `users` MODIFY `email` VARCHAR(180) NULL");
+        }
+        // password_hash: drop NOT NULL
+        $col = $db->query("SELECT IS_NULLABLE FROM information_schema.COLUMNS
+                           WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'password_hash'")
+                  ->fetchColumn();
+        if ($col === 'NO') {
+            $db->exec("ALTER TABLE `users` MODIFY `password_hash` VARCHAR(255) NULL");
+        }
+        // phone_e164: canonical normalized phone for reliable lookup
+        dbAddColumnIfMissing($db, 'users', 'phone_e164',
+            "`phone_e164` VARCHAR(20) DEFAULT NULL AFTER `phone`");
+        try { $db->exec("CREATE INDEX `idx_phone_e164` ON `users` (`phone_e164`)"); } catch (Exception $e) {}
+        // OTP table
+        $db->exec(
+            "CREATE TABLE IF NOT EXISTS `phone_otp` (
+                `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `phone`       VARCHAR(20)  NOT NULL,
+                `code_hash`   VARCHAR(255) NOT NULL,
+                `purpose`     VARCHAR(20)  NOT NULL DEFAULT 'login',
+                `attempts`    TINYINT      NOT NULL DEFAULT 0,
+                `expires_at`  DATETIME     NOT NULL,
+                `consumed_at` DATETIME     DEFAULT NULL,
+                `created_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                KEY `idx_phone` (`phone`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        setSetting('phone_auth_schema_v1', '1');
+    } catch (Exception $e) { /* leave flag unset → retried next load */ }
+}
+
+/**
+ * Normalize a phone to canonical digits with country code (no '+', no separators).
+ * Tajik local numbers (9 digits, no country code) are prefixed with 992.
+ * Returns '' if there aren't enough digits to be a real number.
+ */
+function normalizePhone(string $raw): string {
+    $d = preg_replace('/\D+/', '', $raw);
+    if ($d === '') return '';
+    // 8XXXXXXXXXX (RU-style trunk) → 7XXXXXXXXXX
+    if (strlen($d) === 11 && $d[0] === '8') $d = '7' . substr($d, 1);
+    // Local Tajik number without country code (e.g. 92 123 45 67) → prefix 992
+    if (strlen($d) === 9) $d = '992' . $d;
+    return strlen($d) >= 9 ? $d : '';
+}
+
+/** Is a real SMS provider configured? When false, codes are shown on screen (test mode). */
+function smsConfigured(): bool {
+    return getSetting('sms_provider', '') !== '';
+}
+
+/**
+ * Send an SMS. In test mode (no provider configured) the message is written to
+ * storage/sms.log and the function returns true so the flow keeps working.
+ * Real providers can be wired in here later (config in superadmin settings).
+ */
+function sendSms(string $phone, string $message): bool {
+    $provider = getSetting('sms_provider', '');
+    if ($provider === '') {
+        $line = '[' . date('Y-m-d H:i:s') . '] +' . $phone . ' :: ' . $message . "\n";
+        @file_put_contents(APP_ROOT . '/storage/sms.log', $line, FILE_APPEND | LOCK_EX);
+        return true;
+    }
+    // Extension point: implement provider HTTP calls here (OSON SMS / SMSC / Twilio …)
+    return false;
+}
+
+/**
+ * Create and send a one-time code for a phone.
+ * Rate-limited: one code per 60s, max 5 per hour.
+ * Returns ['ok'=>bool, 'error'=>?string, 'dev_code'=>?string] (dev_code only in test mode).
+ */
+function createPhoneOtp(string $phone, string $purpose = 'login'): array {
+    $phone = normalizePhone($phone);
+    if ($phone === '') return ['ok' => false, 'error' => 'Введите корректный номер телефона.'];
+    try {
+        $db = getDB();
+        // Rate limit
+        $last = $db->prepare("SELECT created_at FROM phone_otp WHERE phone = ? ORDER BY id DESC LIMIT 1");
+        $last->execute([$phone]);
+        $lastAt = $last->fetchColumn();
+        if ($lastAt && (time() - strtotime($lastAt)) < 60) {
+            return ['ok' => false, 'error' => 'Код уже отправлен. Подождите минуту перед повторной отправкой.'];
+        }
+        $hr = $db->prepare("SELECT COUNT(*) FROM phone_otp WHERE phone = ? AND created_at > (NOW() - INTERVAL 1 HOUR)");
+        $hr->execute([$phone]);
+        if ((int)$hr->fetchColumn() >= 5) {
+            return ['ok' => false, 'error' => 'Слишком много запросов. Попробуйте через час.'];
+        }
+        $code = str_pad((string)random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+        $db->prepare(
+            "INSERT INTO phone_otp (phone, code_hash, purpose, expires_at)
+             VALUES (?, ?, ?, (NOW() + INTERVAL 5 MINUTE))"
+        )->execute([$phone, password_hash($code, PASSWORD_DEFAULT), $purpose]);
+        sendSms($phone, 'Ваш код для входа на ' . getSetting('site_name', 'сайт') . ': ' . $code);
+        return ['ok' => true, 'error' => null, 'dev_code' => smsConfigured() ? null : $code];
+    } catch (Exception $e) {
+        return ['ok' => false, 'error' => 'Не удалось отправить код. Попробуйте позже.'];
+    }
+}
+
+/**
+ * Verify a one-time code. On success the code is consumed (single-use).
+ * Returns true only for a valid, unexpired, unconsumed code.
+ */
+function verifyPhoneOtp(string $phone, string $code, string $purpose = 'login'): bool {
+    $phone = normalizePhone($phone);
+    $code  = preg_replace('/\D+/', '', $code);
+    if ($phone === '' || $code === '') return false;
+    try {
+        $db  = getDB();
+        $row = $db->prepare(
+            "SELECT * FROM phone_otp
+             WHERE phone = ? AND purpose = ? AND consumed_at IS NULL AND expires_at > NOW()
+             ORDER BY id DESC LIMIT 1"
+        );
+        $row->execute([$phone, $purpose]);
+        $otp = $row->fetch();
+        if (!$otp) return false;
+        if ((int)$otp['attempts'] >= 5) return false;
+        if (!password_verify($code, $otp['code_hash'])) {
+            $db->prepare("UPDATE phone_otp SET attempts = attempts + 1 WHERE id = ?")->execute([$otp['id']]);
+            return false;
+        }
+        $db->prepare("UPDATE phone_otp SET consumed_at = NOW() WHERE id = ?")->execute([$otp['id']]);
+        return true;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+/** Find an active user by phone (matches the normalized phone_e164 key). */
+function findUserByPhone(string $phone): ?array {
+    $norm = normalizePhone($phone);
+    if ($norm === '') return null;
+    try {
+        $db   = getDB();
+        $stmt = $db->prepare("SELECT * FROM users WHERE phone_e164 = ? AND is_active = 1 LIMIT 1");
+        $stmt->execute([$norm]);
+        return $stmt->fetch() ?: null;
+    } catch (Exception $e) {
+        return null;
+    }
+}
+
+/** Establish a login session for a user row (shared by all auth flows). */
+function loginUser(array $user): void {
+    session_regenerate_id(true);
+    $_SESSION['user_id']  = $user['id'];
+    $_SESSION['role']     = $user['role'];
+    $_SESSION['username'] = $user['username'];
+    unset($_SESSION['user_data']);
+}
+
 /**
  * Slider text-block fonts available to admins. Key = font family stored in DB
  * ('' = the site default Rubik); value = human label for the dropdown.
