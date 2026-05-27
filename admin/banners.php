@@ -127,6 +127,16 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         на телефонах покажется десктопная (и наоборот).
                     </div>
 
+                    <!-- Живое превью: как баннер увидят посетители -->
+                    <div class="az-card" id="bannerPreviewCard">
+                        <h3><i class="fa fa-eye"></i> Превью — как увидят посетители</h3>
+                        <div id="bannerPreviewLabel" style="font-size:0.82rem;color:#888;margin-bottom:12px;"></div>
+                        <div id="bannerPreviewStage"
+                             style="background:#eef0f2;border-radius:10px;padding:18px;display:flex;justify-content:center;min-height:120px;align-items:center;">
+                            <div style="color:#bbb;font-size:0.9rem;">Загрузите изображение — здесь появится превью</div>
+                        </div>
+                    </div>
+
                     <div class="az-card">
                         <h3><i class="fa fa-desktop"></i> Версия для десктопа</h3>
                         <div id="dtPreviewWrap" style="margin-bottom:12px;">
@@ -184,7 +194,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <div class="az-form-group">
                             <label>Где показывать</label>
                             <?php $curPlace = $editBanner['placement'] ?? 'home'; ?>
-                            <select name="placement">
+                            <select name="placement" onchange="renderBannerPreview()">
                                 <?php foreach ($placements as $pk => $pl): ?>
                                 <option value="<?= $pk ?>" <?= $curPlace === $pk ? 'selected' : '' ?>><?= sanitize($pl) ?></option>
                                 <?php endforeach; ?>
@@ -246,6 +256,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             document.getElementById(wrapId).appendChild(img);
                         }
                         status.textContent = 'Загружено';
+                        renderBannerPreview();
                     } else {
                         status.textContent = data.error || 'Ошибка';
                     }
@@ -254,6 +265,43 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 }
                 input.value = '';
             }
+
+            // Живое превью баннера по выбранному месту и загруженной картинке
+            function renderBannerPreview() {
+                var stage = document.getElementById('bannerPreviewStage');
+                var label = document.getElementById('bannerPreviewLabel');
+                if (!stage) return;
+                var d = (document.getElementById('imageUrl') || {}).value || '';
+                var m = (document.getElementById('imageUrlMobile') || {}).value || '';
+                var img = (d || m).trim();
+                var sel = document.querySelector('select[name="placement"]');
+                var place = sel ? sel.value : 'home';
+
+                if (!img) {
+                    stage.innerHTML = '<div style="color:#bbb;font-size:0.9rem;">Загрузите изображение — здесь появится превью</div>';
+                    if (label) label.textContent = '';
+                    return;
+                }
+                if (place === 'catalog') {
+                    if (label) label.innerHTML = 'Широкий баннер вверху страницы <b>Каталога</b>:';
+                    stage.innerHTML =
+                        '<div style="width:100%;max-width:760px;">' +
+                          '<div style="width:100%;aspect-ratio:1170/300;border-radius:8px;overflow:hidden;border:1px solid #dde;background:#fff;">' +
+                            '<img src="' + img + '" style="width:100%;height:100%;object-fit:cover;display:block;">' +
+                          '</div>' +
+                        '</div>';
+                } else {
+                    if (label) label.innerHTML = 'Один из трёх баннеров под слайдером на <b>Главной</b>:';
+                    var ghost = '<div style="flex:1;aspect-ratio:570/320;border-radius:8px;border:2px dashed #cfd4da;background:#f4f6f8;"></div>';
+                    stage.innerHTML =
+                        '<div style="display:flex;gap:12px;width:100%;max-width:760px;align-items:stretch;">' +
+                          '<div style="flex:1;aspect-ratio:570/320;border-radius:8px;overflow:hidden;border:1px solid #dde;background:#fff;">' +
+                            '<img src="' + img + '" style="width:100%;height:100%;object-fit:cover;display:block;">' +
+                          '</div>' + ghost + ghost +
+                        '</div>';
+                }
+            }
+            document.addEventListener('DOMContentLoaded', renderBannerPreview);
             </script>
 
             <?php else: ?>

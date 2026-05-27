@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
-requireRole('superadmin');
+requireRole(['superadmin', 'admin', 'manager']);
+requirePermission('delivery');
 
 $db   = getDB();
 $csrf = generateCsrfToken();

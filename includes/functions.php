@@ -96,17 +96,23 @@ function permissionSections(): array {
     return [
         'products'   => 'Товары / Запчасти',
         'markup'     => 'Себестоимость и наценка',
-        'sliders'    => 'Слайдер / Баннеры',
-        'orders'     => 'Заказы',
-        'users'      => 'Пользователи',
         'categories' => 'Категории',
         'brands'     => 'Бренды',
+        'warehouse'  => 'Склад API',
+        'vin'        => 'VIN-поиск',
+        'orders'     => 'Заказы',
+        'delivery'   => 'Доставка',
+        'sliders'    => 'Слайдер / Баннеры',
         'blog'       => 'Блог',
         'pages'      => 'Страницы (CMS)',
         'reviews'    => 'Отзывы',
-        'warehouse'  => 'Склад API',
-        'vin'        => 'VIN-поиск',
+        'users'      => 'Пользователи',
+        'settings'   => 'Настройки сайта',
+        'currencies' => 'Валюты',
+        'languages'  => 'Языки',
     ];
+    // NOTE: 'permissions' (Права доступа) and 'backup' (Бэкапы) are intentionally
+    // NOT delegatable — they stay superadmin-only for security.
 }
 
 /**
@@ -227,71 +233,85 @@ function renderRoleSidebar(string $active = ''): void {
     $role = $user['role'] ?? '';
     $url  = APP_URL;
 
-    if ($role === 'superadmin') {
-        $items = [
-            ['key' => 'dashboard',  'href' => "$url/superadmin/index.php",   'icon' => 'fa-tachometer',   'label' => 'Панель'],
-            ['key' => 'users',      'href' => "$url/superadmin/users.php",   'icon' => 'fa-users',        'label' => 'Пользователи'],
-            ['key' => 'permissions','href' => "$url/superadmin/permissions.php",'icon' => 'fa-shield',     'label' => 'Права доступа'],
-            ['key' => 'orders',     'href' => "$url/admin/orders.php",       'icon' => 'fa-shopping-bag', 'label' => 'Заказы'],
-            ['key' => 'delivery',   'href' => "$url/superadmin/delivery.php",'icon' => 'fa-truck',        'label' => 'Доставка'],
-            ['key' => 'products',   'href' => "$url/admin/products.php",     'icon' => 'fa-cogs',         'label' => 'Товары'],
-            ['key' => 'sliders',    'href' => "$url/admin/sliders.php",      'icon' => 'fa-picture-o',    'label' => 'Слайдер'],
-            ['key' => 'banners',    'href' => "$url/admin/banners.php",      'icon' => 'fa-clone',        'label' => 'Баннеры'],
-            ['key' => 'settings',   'href' => "$url/superadmin/settings.php",'icon' => 'fa-cog',          'label' => 'Настройки'],
-            ['key' => 'currencies', 'href' => "$url/superadmin/currencies.php", 'icon' => 'fa-money',     'label' => 'Валюты'],
-            ['key' => 'languages',  'href' => "$url/superadmin/languages.php",  'icon' => 'fa-language',  'label' => 'Языки'],
-            ['key' => 'warehouse',  'href' => "$url/superadmin/warehouse.php",  'icon' => 'fa-database',  'label' => 'Склад API'],
-            ['key' => 'vin',        'href' => "$url/superadmin/vin.php",        'icon' => 'fa-search',    'label' => 'VIN-поиск'],
-            ['key' => 'blog',       'href' => "$url/superadmin/blog.php",       'icon' => 'fa-newspaper-o', 'label' => 'Блог'],
-            ['key' => 'partners',   'href' => "$url/manager/brands.php",        'icon' => 'fa-handshake-o', 'label' => 'Партнёры'],
-            ['key' => 'pages',      'href' => "$url/manager/pages.php",         'icon' => 'fa-file-text-o', 'label' => 'Страницы'],
-            ['key' => 'reviews',    'href' => "$url/manager/reviews.php",       'icon' => 'fa-comments-o',  'label' => 'Отзывы'],
-            ['key' => 'categories', 'href' => "$url/manager/categories.php",    'icon' => 'fa-sitemap',     'label' => 'Категории'],
-            ['key' => 'backup',     'href' => "$url/superadmin/backup.php",     'icon' => 'fa-archive',   'label' => 'Бэкапы'],
-            ['key' => 'manual',     'href' => "$url/superadmin/manual.php",     'icon' => 'fa-book',      'label' => 'Руководство'],
-        ];
-        $logoHtml = '<div class="az-sidebar-logo"><span style="color:#fcb700;">★</span> СУПЕР<span>АДМИН</span></div>';
-        $asideStyle = '';
-    } elseif ($role === 'admin') {
-        $items = [
-            ['key' => 'dashboard', 'href' => "$url/admin/index.php",     'icon' => 'fa-tachometer',   'label' => 'Панель'],
-            ['key' => 'products',  'href' => "$url/admin/products.php",  'icon' => 'fa-cogs',         'label' => 'Товары'],
-            ['key' => 'sliders',   'href' => "$url/admin/sliders.php",   'icon' => 'fa-picture-o',    'label' => 'Слайдер'],
-            ['key' => 'banners',   'href' => "$url/admin/banners.php",   'icon' => 'fa-clone',        'label' => 'Баннеры'],
-            ['key' => 'orders',    'href' => "$url/admin/orders.php",    'icon' => 'fa-shopping-bag', 'label' => 'Заказы'],
-            ['key' => 'users',     'href' => "$url/admin/users.php",     'icon' => 'fa-users',        'label' => 'Пользователи'],
-            ['key' => 'vin',       'href' => "$url/superadmin/vin.php",  'icon' => 'fa-search',       'label' => 'VIN-поиск'],
-        ];
-        $logoHtml = '<div class="az-sidebar-logo">ADMIN<span>PANEL</span></div>';
-        $asideStyle = '';
-    } elseif ($role === 'manager') {
-        $items = [
-            ['key' => 'dashboard',  'href' => "$url/manager/index.php",      'icon' => 'fa-dashboard',    'label' => 'Панель'],
-            ['key' => 'parts',      'href' => "$url/manager/parts.php",      'icon' => 'fa-cogs',         'label' => 'Запчасти'],
-            ['key' => 'categories', 'href' => "$url/manager/categories.php", 'icon' => 'fa-sitemap',      'label' => 'Категории'],
-            ['key' => 'brands',     'href' => "$url/manager/brands.php",     'icon' => 'fa-tag',          'label' => 'Бренды'],
-            ['key' => 'blog',       'href' => "$url/manager/blog.php",       'icon' => 'fa-newspaper-o',  'label' => 'Блог'],
-        ];
-        $logoHtml = '<div class="az-sidebar-logo">AUTO<span>PARTS</span></div>';
-        $asideStyle = '';
-    } else {
-        return;
-    }
+    if (!in_array($role, ['admin', 'manager', 'superadmin'], true)) return;
 
-    echo '<aside class="az-sidebar"' . ($asideStyle ? ' style="' . $asideStyle . '"' : '') . '>';
+    // Role-dependent destinations (the rest are shared pages that allow all admin roles).
+    $dashHref     = $role === 'superadmin' ? "$url/superadmin/index.php"
+                  : ($role === 'admin' ? "$url/admin/index.php" : "$url/manager/index.php");
+    $productsHref = $role === 'manager' ? "$url/manager/parts.php" : "$url/admin/products.php";
+    $usersHref    = $role === 'superadmin' ? "$url/superadmin/users.php" : "$url/admin/users.php";
+
+    // Single grouped catalog, rendered for every admin role and filtered by
+    // userCan() — superadmin sees all; admin/manager see their granted sections.
+    $groups = [
+        ['label' => '', 'items' => [
+            ['key' => 'dashboard',  'href' => $dashHref,                       'icon' => 'fa-tachometer',  'label' => 'Панель'],
+        ]],
+        ['label' => 'Каталог', 'items' => [
+            ['key' => 'products',   'href' => $productsHref,                    'icon' => 'fa-cogs',        'label' => 'Товары'],
+            ['key' => 'categories', 'href' => "$url/manager/categories.php",   'icon' => 'fa-sitemap',     'label' => 'Категории'],
+            ['key' => 'brands',     'href' => "$url/manager/brands.php",       'icon' => 'fa-tag',         'label' => 'Бренды'],
+            ['key' => 'warehouse',  'href' => "$url/superadmin/warehouse.php", 'icon' => 'fa-database',    'label' => 'Склад API'],
+            ['key' => 'vin',        'href' => "$url/superadmin/vin.php",       'icon' => 'fa-search',      'label' => 'VIN-поиск'],
+        ]],
+        ['label' => 'Продажи', 'items' => [
+            ['key' => 'orders',     'href' => "$url/admin/orders.php",         'icon' => 'fa-shopping-bag','label' => 'Заказы'],
+            ['key' => 'delivery',   'href' => "$url/superadmin/delivery.php",  'icon' => 'fa-truck',       'label' => 'Доставка'],
+        ]],
+        ['label' => 'Контент', 'items' => [
+            ['key' => 'sliders',    'href' => "$url/admin/sliders.php",        'icon' => 'fa-picture-o',   'label' => 'Слайдер'],
+            ['key' => 'banners',    'href' => "$url/admin/banners.php",        'icon' => 'fa-clone',       'label' => 'Баннеры'],
+            ['key' => 'blog',       'href' => "$url/manager/blog.php",         'icon' => 'fa-newspaper-o', 'label' => 'Блог'],
+            ['key' => 'pages',      'href' => "$url/manager/pages.php",        'icon' => 'fa-file-text-o', 'label' => 'Страницы'],
+            ['key' => 'reviews',    'href' => "$url/manager/reviews.php",      'icon' => 'fa-comments-o',  'label' => 'Отзывы'],
+        ]],
+        ['label' => 'Доступ', 'items' => [
+            ['key' => 'users',      'href' => $usersHref,                      'icon' => 'fa-users',       'label' => 'Пользователи'],
+            ['key' => 'permissions','href' => "$url/superadmin/permissions.php",'icon' => 'fa-shield',     'label' => 'Права доступа'],
+        ]],
+        ['label' => 'Система', 'items' => [
+            ['key' => 'settings',   'href' => "$url/superadmin/settings.php",  'icon' => 'fa-cog',         'label' => 'Настройки'],
+            ['key' => 'currencies', 'href' => "$url/superadmin/currencies.php",'icon' => 'fa-money',       'label' => 'Валюты'],
+            ['key' => 'languages',  'href' => "$url/superadmin/languages.php", 'icon' => 'fa-language',    'label' => 'Языки'],
+            ['key' => 'backup',     'href' => "$url/superadmin/backup.php",    'icon' => 'fa-archive',     'label' => 'Бэкапы'],
+            ['key' => 'manual',     'href' => "$url/superadmin/manual.php",    'icon' => 'fa-book',        'label' => 'Руководство'],
+        ]],
+    ];
+
+    $logoHtml = $role === 'superadmin'
+        ? '<div class="az-sidebar-logo"><span style="color:#fcb700;">★</span> СУПЕР<span>АДМИН</span></div>'
+        : ($role === 'admin'
+            ? '<div class="az-sidebar-logo">ADMIN<span>PANEL</span></div>'
+            : '<div class="az-sidebar-logo">AUTO<span>PARTS</span></div>');
+
+    // 'parts'/'partners' are legacy active-keys; normalize to the canonical item key.
+    $activeKey = $active === 'parts' ? 'products' : ($active === 'partners' ? 'brands' : $active);
+
+    // Visibility: dashboard always; permissions/backup/manual are superadmin-only;
+    // everything else by userCan() (superadmin always passes).
+    $canSee = function (string $key) use ($role): bool {
+        if ($key === 'dashboard') return true;
+        if ($role === 'superadmin') return true;
+        if (in_array($key, ['permissions', 'backup', 'manual'], true)) return false;
+        return userCan(permissionAlias($key));
+    };
+
+    echo '<aside class="az-sidebar">';
     echo $logoHtml;
     echo '<nav><ul>';
-    foreach ($items as $it) {
-        // Hide links the superadmin has restricted for this user.
-        // 'dashboard' is always visible (entry point).
-        if ($it['key'] !== 'dashboard' && !userCan(permissionAlias($it['key']))) {
-            continue;
+    foreach ($groups as $g) {
+        $visible = array_values(array_filter($g['items'], fn($it) => $canSee($it['key'])));
+        if (!$visible) continue;
+        if ($g['label'] !== '') {
+            echo '<li class="az-sidebar-group">' . sanitize($g['label']) . '</li>';
         }
-        $cls = $it['key'] === $active ? ' class="active"' : '';
-        echo '<li><a href="' . sanitize($it['href']) . '"' . $cls . '><i class="fa ' . sanitize($it['icon']) . '"></i> ' . sanitize($it['label']) . '</a></li>';
+        foreach ($visible as $it) {
+            $cls = $it['key'] === $activeKey ? ' class="active"' : '';
+            echo '<li><a href="' . sanitize($it['href']) . '"' . $cls . '><i class="fa ' . sanitize($it['icon']) . '"></i> ' . sanitize($it['label']) . '</a></li>';
+        }
     }
-    echo '<li style="border-top:1px solid rgba(255,255,255,0.1);margin-top:12px;">';
-    echo '<a href="' . $url . '/index.php"><i class="fa fa-home"></i> На сайт</a></li>';
+    echo '<li class="az-sidebar-group">Аккаунт</li>';
+    echo '<li><a href="' . $url . '/index.php"><i class="fa fa-home"></i> На сайт</a></li>';
     echo '<li><a href="' . $url . '/auth/logout.php" style="color:rgba(255,100,100,0.85)!important;"><i class="fa fa-sign-out"></i> Выйти</a></li>';
     echo '</ul></nav></aside>';
 }
