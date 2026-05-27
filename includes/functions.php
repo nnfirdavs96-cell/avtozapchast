@@ -1320,6 +1320,48 @@ function normalizeSliderBlocks(array $raw): array {
 }
 
 /**
+ * Seed the banners table with the 3 Mazlay template slider images (one-time).
+ * Only runs when the banners table is empty; call is guarded by 'banners_seed_done' setting.
+ */
+function seedBanners(): void {
+    $db = getDB();
+    // Ensure table & columns exist before seeding
+    $db->exec("CREATE TABLE IF NOT EXISTS `banners` (
+      `id`               INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+      `title`            VARCHAR(255)  NOT NULL DEFAULT '',
+      `image_url`        VARCHAR(500)  NOT NULL DEFAULT '',
+      `image_url_mobile` VARCHAR(500)  NOT NULL DEFAULT '',
+      `link_url`         VARCHAR(500)  NOT NULL DEFAULT '',
+      `sort_order`       SMALLINT      NOT NULL DEFAULT 0,
+      `is_active`        TINYINT(1)    NOT NULL DEFAULT 1,
+      `created_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    dbAddColumnIfMissing($db, 'banners', 'image_url_mobile',
+        "`image_url_mobile` VARCHAR(500) NOT NULL DEFAULT '' AFTER `image_url`");
+    dbAddColumnIfMissing($db, 'banners', 'placement',
+        "`placement` VARCHAR(20) NOT NULL DEFAULT 'home' AFTER `link_url`");
+
+    // Skip if already has banners
+    $count = (int)$db->query("SELECT COUNT(*) FROM banners")->fetchColumn();
+    if ($count > 0) return;
+
+    $catalogUrl = defined('APP_URL') ? APP_URL . '/catalog/index.php' : '/catalog/index.php';
+    $seeds = [
+        ['Авто запчасти — выгодные цены',  '/assets/img/slider/slider1.jpg', 1],
+        ['Надёжные детали для грузовиков', '/assets/img/slider/slider2.jpg', 2],
+        ['Спортивные и тюнинг запчасти',   '/assets/img/slider/slider3.jpg', 3],
+    ];
+    $stmt = $db->prepare(
+        "INSERT INTO banners (title, image_url, image_url_mobile, link_url, placement, sort_order, is_active)
+         VALUES (?, ?, '', ?, 'home', ?, 1)"
+    );
+    foreach ($seeds as [$title, $img, $sort]) {
+        $stmt->execute([$title, $img, $catalogUrl, $sort]);
+    }
+}
+
+/**
  * Add a column to an existing table only if it is missing.
  *
  * `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` is MariaDB-only (works on the
