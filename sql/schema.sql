@@ -101,6 +101,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `total_amount`     DECIMAL(12,2) NOT NULL DEFAULT 0.00,
   `shipping_address` TEXT          NOT NULL,
   `notes`            TEXT          DEFAULT NULL,
+  `payment_method`   VARCHAR(50)   NOT NULL DEFAULT 'cash_on_delivery',
   `created_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
