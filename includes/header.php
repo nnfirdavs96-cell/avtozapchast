@@ -24,6 +24,10 @@ if (!getSetting('brands_seed_done', '')) {
     setSetting('brands_seed_done', '1');
 }
 ensurePhoneAuthSchema();
+if (!getSetting('banners_seed_done', '')) {
+    seedBanners();
+    setSetting('banners_seed_done', '1');
+}
 
 $categories  = getCategories();
 $catTree     = getCategoryTree($categories);
