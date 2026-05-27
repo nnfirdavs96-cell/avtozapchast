@@ -317,9 +317,16 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                     </div>
                                     <div class="col-lg-6 mb-20">
                                         <label><?= t('country') ?></label>
-                                        <input type="text" name="country"
-                                               value="<?= sanitize($prefillCountry ?: 'Таджикистан') ?>"
-                                               placeholder="<?= t('country') ?>">
+                                        <?php
+                                        $countryList = ['Таджикистан', 'Узбекистан', 'Кыргызстан', 'Казахстан', 'Россия', 'Афганистан', 'Туркменистан'];
+                                        $selCountry  = $prefillCountry ?: 'Таджикистан';
+                                        if (!in_array($selCountry, $countryList, true)) { array_unshift($countryList, $selCountry); }
+                                        ?>
+                                        <select name="country" class="form-control">
+                                            <?php foreach ($countryList as $cn): ?>
+                                            <option value="<?= sanitize($cn) ?>" <?= $selCountry === $cn ? 'selected' : '' ?>><?= sanitize($cn) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
                                     </div>
                                     <div class="col-12 mb-20">
                                         <div class="order-notes">

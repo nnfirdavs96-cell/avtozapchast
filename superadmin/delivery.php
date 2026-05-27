@@ -80,6 +80,14 @@ try {
     flashMessage('danger', 'Таблица доставки не найдена. Примените миграцию sql/add_delivery_zones.sql.');
 }
 
+// Готовый список городов Таджикистана для выпадающей подсказки.
+$presetCities = [
+    'Душанбе', 'Худжанд', 'Бохтар', 'Куляб', 'Истаравшан', 'Турсунзаде',
+    'Канибадам', 'Исфара', 'Пенджикент', 'Вахдат', 'Хорог', 'Гиссар',
+    'Яван', 'Нурек', 'Дангара', 'Истиклол', 'Рашт', 'Бустон', 'Леваканд',
+    'Спитамен', 'Гулистон', 'Турсунзода', 'Кушониён', 'Норак',
+];
+
 $pageTitle = 'Доставка — ' . getSetting('site_name');
 require_once dirname(__DIR__) . '/includes/admin-header.php';
 ?>
@@ -196,7 +204,12 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
             <input type="hidden" name="action" value="add">
             <div style="flex:1 1 180px;">
               <label style="font-size:0.8rem;color:#666;">Город *</label>
-              <input type="text" name="city" required class="form-control form-control-sm" placeholder="Напр. Душанбе">
+              <input type="text" name="city" list="tj-cities" required class="form-control form-control-sm" placeholder="Выберите или введите" autocomplete="off">
+              <datalist id="tj-cities">
+                <?php foreach ($presetCities as $pc): ?>
+                <option value="<?= sanitize($pc) ?>"></option>
+                <?php endforeach; ?>
+              </datalist>
             </div>
             <div style="flex:0 1 140px;">
               <label style="font-size:0.8rem;color:#666;">Стоимость</label>
