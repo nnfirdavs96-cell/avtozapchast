@@ -32,18 +32,30 @@ foreach ($cartItems as $item) {
     $cartTotal += (float)$item['price'] * (int)$item['quantity'];
 }
 
-// Active delivery cities. Empty if migration not applied yet → falls back to a
-// free-text city field and free shipping (keeps checkout working regardless).
-$deliveryZones  = [];
-$zoneCostByCity = [];
+// Active delivery zones (with country when migration applied).
+$deliveryZones   = [];
+$zonesByCountry  = [];   // country => [ ['city'=>…,'cost'=>…,'days'=>…], … ]
 try {
+    $hasZoneCountry = (bool)$db->query(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'delivery_zones' AND COLUMN_NAME = 'country'"
+    )->fetchColumn();
+    $countryExpr = $hasZoneCountry ? "COALESCE(country,'Таджикистан')" : "'Таджикистан'";
     $deliveryZones = $db->query(
-        "SELECT city, cost, delivery_days FROM delivery_zones WHERE is_active = 1 ORDER BY sort_order, city"
+        "SELECT city, cost, delivery_days, {$countryExpr} AS country
+         FROM delivery_zones WHERE is_active = 1 ORDER BY sort_order, city"
     )->fetchAll();
-    foreach ($deliveryZones as $z) { $zoneCostByCity[$z['city']] = (float)$z['cost']; }
+    foreach ($deliveryZones as $z) {
+        $zonesByCountry[$z['country']][] = $z;
+    }
 } catch (Throwable $e) {
     $deliveryZones = [];
 }
+// Costs for selected country (used server-side after POST)
+$selectedCountryForPost = $_POST['country'] ?? ($prefillCountry ?: 'Таджикистан');
+$activeZonesForCountry  = $zonesByCountry[$selectedCountryForPost] ?? [];
+$zoneCostByCity = [];
+foreach ($activeZonesForCountry as $z) { $zoneCostByCity[$z['city']] = (float)$z['cost']; }
 
 // Whether the orders table already has the shipping_cost column (migration applied).
 $hasShippingCostCol = false;
@@ -109,15 +121,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($address)) $errors[] = t('address') . ' — обязательное поле.';
     if (empty($city))    $errors[] = t('city')    . ' — обязательное поле.';
 
-    // When delivery cities are configured AND Tajikistan selected, city must be from the list.
-    if (!empty($deliveryZones) && $city !== '' && $country === 'Таджикистан' && !isset($zoneCostByCity[$city])) {
+    // Recalculate per-country costs using the submitted country value.
+    $postCountryZones = $zonesByCountry[$country] ?? [];
+    $postZoneCosts    = [];
+    foreach ($postCountryZones as $z) { $postZoneCosts[$z['city']] = (float)$z['cost']; }
+
+    // If the chosen country has delivery zones, the city must be one of them.
+    if (!empty($postCountryZones) && $city !== '' && !isset($postZoneCosts[$city])) {
         $errors[] = 'Выберите город доставки из списка.';
     }
 
-    // Delivery cost: only for Tajikistan zones; other countries → 0 (уточняется).
-    $shippingCost = ($country === 'Таджикистан' && !empty($zoneCostByCity) && isset($zoneCostByCity[$city]))
-        ? (float)$zoneCostByCity[$city]
-        : 0.0;
+    // Delivery cost: use zone price if found, otherwise 0 (уточняется).
+    $shippingCost = isset($postZoneCosts[$city]) ? $postZoneCosts[$city] : 0.0;
     $grandTotal = $cartTotal + $shippingCost;
 
     if (empty($errors)) {
@@ -415,28 +430,42 @@ require_once dirname(__DIR__) . '/includes/header.php';
 <?php if (!empty($deliveryZones)): ?>
 <script>
 (function () {
-    var subtotal    = <?= json_encode(round(convertPrice($cartTotal), 2)) ?>;
-    var symbol      = <?= json_encode(getCurrencySymbol()) ?>;
-    var citySelect  = document.getElementById('checkout-city');
-    var cityText    = document.getElementById('checkout-city-text');
-    var countrySel  = document.getElementById('checkout-country');
-    var shipCell    = document.getElementById('summary-shipping');
-    var totalCell   = document.getElementById('summary-total');
+    var subtotal      = <?= json_encode(round(convertPrice($cartTotal), 2)) ?>;
+    var symbol        = <?= json_encode(getCurrencySymbol()) ?>;
+    var zonesByCountry = <?php
+        $jsZones = [];
+        foreach ($zonesByCountry as $cn => $czones) {
+            foreach ($czones as $z) {
+                $jsZones[$cn][] = [
+                    'city' => $z['city'],
+                    'cost' => round(convertPrice((float)$z['cost']), 2),
+                    'days' => $z['delivery_days'] ?? '',
+                ];
+            }
+        }
+        echo json_encode($jsZones, JSON_UNESCAPED_UNICODE);
+    ?>;
+
+    var citySelect = document.getElementById('checkout-city');
+    var cityText   = document.getElementById('checkout-city-text');
+    var countrySel = document.getElementById('checkout-country');
+    var shipCell   = document.getElementById('summary-shipping');
+    var totalCell  = document.getElementById('summary-total');
 
     function fmt(n) {
-        return n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ' + symbol;
+        return n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ' + symbol;
     }
 
     function updateShipping() {
         var cost = 0, label;
-        if (countrySel && countrySel.value !== 'Таджикистан') {
-            label = 'Уточняется';
-        } else if (citySelect && citySelect.value) {
+        if (citySelect && !citySelect.disabled && citySelect.value) {
             var opt = citySelect.options[citySelect.selectedIndex];
             cost = parseFloat(opt.getAttribute('data-cost')) || 0;
             var days = opt.getAttribute('data-days') || '';
             label = cost > 0 ? fmt(cost) : 'Уточняется';
             if (days) label += ' <small style="color:#888;">(' + days + ')</small>';
+        } else if (cityText && !cityText.disabled) {
+            label = 'Уточняется';
         } else {
             label = 'Выберите город';
         }
@@ -444,10 +473,26 @@ require_once dirname(__DIR__) . '/includes/header.php';
         if (totalCell) totalCell.innerHTML = '<strong>' + fmt(subtotal + cost) + '</strong>';
     }
 
-    function switchCountry() {
-        if (!citySelect || !cityText) return;
-        var isTajik = (countrySel.value === 'Таджикистан');
-        if (isTajik) {
+    function rebuildCitySelect(zones, prefill) {
+        citySelect.innerHTML = '<option value="">— Выберите город —</option>';
+        zones.forEach(function(z) {
+            var opt = document.createElement('option');
+            opt.value = z.city;
+            opt.setAttribute('data-cost', z.cost);
+            opt.setAttribute('data-days', z.days);
+            var costLabel = z.cost > 0 ? ' (' + z.cost.toFixed(2) + ' ' + symbol + ')' : ' (уточняется)';
+            opt.textContent = z.city + costLabel;
+            if (prefill && prefill === z.city) opt.selected = true;
+            citySelect.appendChild(opt);
+        });
+    }
+
+    function switchCountry(prefill) {
+        if (!citySelect || !cityText || !countrySel) return;
+        var country = countrySel.value;
+        var zones   = zonesByCountry[country] || [];
+        if (zones.length > 0) {
+            rebuildCitySelect(zones, prefill || null);
             citySelect.style.display = '';
             citySelect.disabled = false;
             citySelect.required = true;
@@ -468,8 +513,10 @@ require_once dirname(__DIR__) . '/includes/header.php';
     }
 
     if (citySelect)  citySelect.addEventListener('change', updateShipping);
-    if (countrySel)  countrySel.addEventListener('change', switchCountry);
-    updateShipping();
+    if (countrySel)  countrySel.addEventListener('change', function() { switchCountry(); });
+
+    // Init: pass current prefill city so it gets pre-selected
+    switchCountry(<?= json_encode($prefillCity) ?>);
 })();
 </script>
 <?php endif; ?>

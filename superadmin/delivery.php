@@ -5,6 +5,17 @@ requireRole('superadmin');
 $db   = getDB();
 $csrf = generateCsrfToken();
 
+// Check if country column exists (migration may not be applied yet)
+$hasCountryCol = false;
+try {
+    $hasCountryCol = (bool)$db->query(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'delivery_zones' AND COLUMN_NAME = 'country'"
+    )->fetchColumn();
+} catch (Throwable $e) {}
+
+$countryList = ['Таджикистан', 'Узбекистан', 'Кыргызстан', 'Казахстан', 'Россия', 'Афганистан', 'Туркменистан'];
+
 // ── POST handler ──────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
@@ -14,18 +25,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postAction = $_POST['action'] ?? '';
 
     if ($postAction === 'add') {
-        $city = trim($_POST['city'] ?? '');
-        $cost = max(0, (float)($_POST['cost'] ?? 0));
-        $days = trim($_POST['delivery_days'] ?? '');
+        $city    = trim($_POST['city'] ?? '');
+        $cost    = max(0, (float)($_POST['cost'] ?? 0));
+        $days    = trim($_POST['delivery_days'] ?? '');
+        $country = in_array($_POST['country'] ?? '', $countryList, true) ? $_POST['country'] : 'Таджикистан';
         if ($city === '') {
             flashMessage('danger', 'Укажите название города.');
         } else {
             try {
-                $db->prepare("INSERT INTO delivery_zones (city, cost, delivery_days, is_active, sort_order) VALUES (?,?,?,1,99)")
-                   ->execute([$city, $cost, $days ?: null]);
-                flashMessage('success', "Город «{$city}» добавлен.");
+                if ($hasCountryCol) {
+                    $db->prepare("INSERT INTO delivery_zones (city, country, cost, delivery_days, is_active, sort_order) VALUES (?,?,?,?,1,99)")
+                       ->execute([$city, $country, $cost, $days ?: null]);
+                } else {
+                    $db->prepare("INSERT INTO delivery_zones (city, cost, delivery_days, is_active, sort_order) VALUES (?,?,?,1,99)")
+                       ->execute([$city, $cost, $days ?: null]);
+                }
+                flashMessage('success', "Город «{$city}» ({$country}) добавлен.");
             } catch (PDOException $e) {
-                flashMessage('danger', 'Такой город уже есть в списке.');
+                flashMessage('danger', 'Такой город уже есть в списке для этой страны.');
             }
         }
         redirect(APP_URL . '/superadmin/delivery.php');
@@ -75,17 +92,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // ── Load zones ─────────────────────────────────────────────────────────────────
 $zones = [];
 try {
-    $zones = $db->query("SELECT * FROM delivery_zones ORDER BY sort_order, city")->fetchAll();
+    $countryExpr = $hasCountryCol ? "COALESCE(country,'Таджикистан')" : "'Таджикистан'";
+    $orderBy     = $hasCountryCol ? 'country, sort_order, city' : 'sort_order, city';
+    $zones = $db->query("SELECT *, {$countryExpr} AS _country FROM delivery_zones ORDER BY {$orderBy}")->fetchAll();
 } catch (Exception $e) {
     flashMessage('danger', 'Таблица доставки не найдена. Примените миграцию sql/add_delivery_zones.sql.');
 }
 
-// Готовый список городов Таджикистана для выпадающей подсказки.
-$presetCities = [
-    'Душанбе', 'Худжанд', 'Бохтар', 'Куляб', 'Истаравшан', 'Турсунзаде',
-    'Канибадам', 'Исфара', 'Пенджикент', 'Вахдат', 'Хорог', 'Гиссар',
-    'Яван', 'Нурек', 'Дангара', 'Истиклол', 'Рашт', 'Бустон', 'Леваканд',
-    'Спитамен', 'Гулистон', 'Турсунзода', 'Кушониён', 'Норак',
+// Preset cities organised by country for JS datalist
+$presetCitiesByCountry = [
+    'Таджикистан'  => ['Душанбе','Худжанд','Бохтар','Куляб','Истаравшан','Турсунзаде','Канибадам','Исфара','Пенджикент','Вахдат','Хорог','Гиссар','Яван','Нурек','Дангара','Истиклол','Рашт','Бустон','Леваканд','Спитамен','Гулистон','Турсунзода','Кушониён','Норак'],
+    'Узбекистан'   => ['Ташкент','Самарканд','Бухара','Наманган','Андижан','Фергана','Нукус','Карши','Термез','Коканд','Маргилан','Навои'],
+    'Кыргызстан'   => ['Бишкек','Ош','Джалал-Абад','Каракол','Токмок','Узген','Нарын','Талас'],
+    'Казахстан'    => ['Алматы','Астана','Шымкент','Актобе','Тараз','Усть-Каменогорск','Павлодар','Семей','Актау'],
+    'Россия'       => ['Москва','Санкт-Петербург','Новосибирск','Екатеринбург','Нижний Новгород','Казань','Уфа','Челябинск','Омск','Самара'],
+    'Афганистан'   => ['Кабул','Мазари-Шариф','Герат','Кандагар','Джалалабад','Кундуз'],
+    'Туркменистан' => ['Ашхабад','Туркменабат','Дашогуз','Мары','Балканабат'],
 ];
 
 $pageTitle = 'Доставка — ' . getSetting('site_name');
@@ -106,6 +128,13 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
       <div class="alert alert-<?= sanitize($flash['type']) ?> mb-16"><?= sanitize($flash['message']) ?></div>
       <?php endif; ?>
 
+      <?php if (!$hasCountryCol): ?>
+      <div class="alert alert-warning mb-16">
+        Для поддержки стран примените миграцию:<br>
+        <code>mysql -u cs360870_auto -p cs360870_auto &lt; sql/add_delivery_zones_country.sql</code>
+      </div>
+      <?php endif; ?>
+
       <!-- Zones table -->
       <div class="az-card mb-24">
         <div class="az-card-header">
@@ -120,6 +149,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 <thead>
                   <tr>
                     <th>Город</th>
+                    <?php if ($hasCountryCol): ?><th style="width:140px;">Страна</th><?php endif; ?>
                     <th style="width:160px;">Стоимость (сомони)</th>
                     <th style="width:160px;">Срок (напр. «1–2 дня»)</th>
                     <th style="text-align:center;">Статус</th>
@@ -128,12 +158,27 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                   </tr>
                 </thead>
                 <tbody>
-                  <?php foreach ($zones as $z): ?>
+                  <?php
+                  $lastCountry = null;
+                  foreach ($zones as $z):
+                      $zCountry = $z['_country'] ?? 'Таджикистан';
+                      if ($hasCountryCol && $zCountry !== $lastCountry):
+                          $lastCountry = $zCountry;
+                  ?>
+                  <tr style="background:#f3eaff;">
+                    <td colspan="7" style="padding:6px 12px;font-size:0.78rem;font-weight:700;color:#7b1fa2;letter-spacing:.04em;">
+                      <?= sanitize($zCountry) ?>
+                    </td>
+                  </tr>
+                  <?php endif; ?>
                   <tr <?= !$z['is_active'] ? 'style="opacity:0.55;"' : '' ?>>
                     <td>
                       <strong><?= sanitize($z['city']) ?></strong>
                       <input type="hidden" name="zone_id[]" value="<?= (int)$z['id'] ?>">
                     </td>
+                    <?php if ($hasCountryCol): ?>
+                    <td><small style="color:#888;"><?= sanitize($zCountry) ?></small></td>
+                    <?php endif; ?>
                     <td>
                       <input type="number" name="zone_cost[]" step="0.01" min="0"
                              value="<?= number_format((float)$z['cost'], 2, '.', '') ?>"
@@ -167,7 +212,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                   </tr>
                   <?php endforeach; ?>
                   <?php if (empty($zones)): ?>
-                  <tr><td colspan="6" style="text-align:center;color:#999;padding:24px;">Городов пока нет. Добавьте ниже.</td></tr>
+                  <tr><td colspan="<?= $hasCountryCol ? 7 : 6 ?>" style="text-align:center;color:#999;padding:24px;">Городов пока нет. Добавьте ниже.</td></tr>
                   <?php endif; ?>
                 </tbody>
               </table>
@@ -196,26 +241,31 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
       </div>
 
       <!-- Add city -->
-      <div class="az-card mb-24" style="max-width:600px;">
+      <div class="az-card mb-24" style="max-width:700px;">
         <div class="az-card-header"><h4 class="az-card-title">Добавить город</h4></div>
         <div class="az-card-body">
           <form method="post" action="" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
             <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
             <input type="hidden" name="action" value="add">
+            <div style="flex:0 1 160px;">
+              <label style="font-size:0.8rem;color:#666;">Страна *</label>
+              <select name="country" id="add-country" class="form-control form-control-sm">
+                <?php foreach ($countryList as $cn): ?>
+                <option value="<?= sanitize($cn) ?>"><?= sanitize($cn) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
             <div style="flex:1 1 180px;">
               <label style="font-size:0.8rem;color:#666;">Город *</label>
-              <input type="text" name="city" list="tj-cities" required class="form-control form-control-sm" placeholder="Выберите или введите" autocomplete="off">
-              <datalist id="tj-cities">
-                <?php foreach ($presetCities as $pc): ?>
-                <option value="<?= sanitize($pc) ?>"></option>
-                <?php endforeach; ?>
-              </datalist>
+              <input type="text" name="city" id="add-city" list="preset-cities" required
+                     class="form-control form-control-sm" placeholder="Выберите или введите" autocomplete="off">
+              <datalist id="preset-cities"></datalist>
             </div>
-            <div style="flex:0 1 140px;">
+            <div style="flex:0 1 120px;">
               <label style="font-size:0.8rem;color:#666;">Стоимость</label>
               <input type="number" name="cost" step="0.01" min="0" value="0" class="form-control form-control-sm">
             </div>
-            <div style="flex:0 1 140px;">
+            <div style="flex:0 1 120px;">
               <label style="font-size:0.8rem;color:#666;">Срок</label>
               <input type="text" name="delivery_days" maxlength="40" class="form-control form-control-sm" placeholder="1–2 дня">
             </div>
@@ -225,11 +275,11 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
       </div>
 
       <!-- Info -->
-      <div class="az-card" style="max-width:600px;border-left:3px solid #9b59b6;">
+      <div class="az-card" style="max-width:700px;border-left:3px solid #9b59b6;">
         <div class="az-card-body">
           <h5 style="color:#6a1b9a;margin-bottom:8px;">Как это работает</h5>
           <p style="font-size:0.85rem;color:#555;line-height:1.7;margin:0;">
-            Покупатель выбирает город при оформлении заказа.<br>
+            Покупатель выбирает страну и город при оформлении заказа.<br>
             <strong>Стоимость = 0</strong> → доставка показывается как «Уточняется» и
             <em>не прибавляется</em> к сумме (актуально, пока нет договора с такси).<br>
             <strong>Стоимость &gt; 0</strong> → сумма доставки прибавляется к заказу автоматически.<br>
@@ -241,5 +291,27 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
     </div><!-- /.az-content -->
   </div><!-- /.az-main -->
 </div><!-- /.az-panel -->
+
+<script>
+(function () {
+    var cities = <?= json_encode($presetCitiesByCountry, JSON_UNESCAPED_UNICODE) ?>;
+    var countrySel = document.getElementById('add-country');
+    var datalist   = document.getElementById('preset-cities');
+    var cityInput  = document.getElementById('add-city');
+
+    function fillDatalist() {
+        var list = cities[countrySel.value] || [];
+        datalist.innerHTML = list.map(function(c) {
+            return '<option value="' + c.replace(/"/g,'&quot;') + '"></option>';
+        }).join('');
+        cityInput.value = '';
+    }
+
+    if (countrySel) {
+        countrySel.addEventListener('change', fillDatalist);
+        fillDatalist();
+    }
+})();
+</script>
 
 <?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>

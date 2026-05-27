@@ -161,12 +161,13 @@ CREATE TABLE IF NOT EXISTS `site_settings` (
 CREATE TABLE IF NOT EXISTS `delivery_zones` (
   `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
   `city`          VARCHAR(120)  NOT NULL,
+  `country`       VARCHAR(100)  NOT NULL DEFAULT 'Таджикистан',
   `cost`          DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   `delivery_days` VARCHAR(40)   DEFAULT NULL,
   `is_active`     TINYINT(1)    NOT NULL DEFAULT 1,
   `sort_order`    INT           NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_city` (`city`)
+  UNIQUE KEY `uk_city_country` (`city`, `country`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
