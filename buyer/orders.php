@@ -6,6 +6,29 @@ $user   = getCurrentUser();
 $userId = (int)$user['id'];
 $db     = getDB();
 
+// ── Cancel order (buyer can cancel only while the order is still pending) ──
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cancel') {
+    if (!verifyCsrfToken($_POST['_csrf'] ?? '')) {
+        flashMessage('danger', 'Ошибка безопасности. Попробуйте снова.');
+        redirect(APP_URL . '/buyer/orders.php');
+    }
+    $cancelId = (int)($_POST['order_id'] ?? 0);
+    $chk = $db->prepare("SELECT status FROM orders WHERE id = ? AND user_id = ? LIMIT 1");
+    $chk->execute([$cancelId, $userId]);
+    $st = $chk->fetchColumn();
+
+    if ($st === false) {
+        flashMessage('danger', 'Заказ не найден.');
+    } elseif ($st !== 'pending') {
+        flashMessage('warning', 'Этот заказ уже подтверждён — отменить его можно только через поддержку.');
+    } else {
+        $db->prepare("UPDATE orders SET status = 'cancelled', updated_at = NOW() WHERE id = ? AND user_id = ? AND status = 'pending'")
+           ->execute([$cancelId, $userId]);
+        flashMessage('success', 'Заказ #' . $cancelId . ' отменён.');
+    }
+    redirect(APP_URL . '/buyer/orders.php?id=' . $cancelId);
+}
+
 // ── Single order detail ───────────────────────────────────────────────
 $viewId      = (int)($_GET['id'] ?? 0);
 $orderDetail = null;
@@ -140,10 +163,37 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     </table>
                 </div>
 
-                <div style="margin-top:20px;">
+                <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
                     <a href="<?= APP_URL ?>/buyer/orders.php" class="az-btn az-btn-secondary az-btn-sm">
                         <i class="fa fa-arrow-left"></i> Все заказы
                     </a>
+
+                    <?php if ($orderDetail['status'] === 'pending'): ?>
+                        <form method="post" action="<?= APP_URL ?>/buyer/orders.php"
+                              onsubmit="return confirm('Отменить заказ #<?= (int)$orderDetail['id'] ?>? Это действие нельзя отменить.');"
+                              style="display:inline;margin:0;">
+                            <input type="hidden" name="_csrf" value="<?= generateCsrfToken() ?>">
+                            <input type="hidden" name="action" value="cancel">
+                            <input type="hidden" name="order_id" value="<?= (int)$orderDetail['id'] ?>">
+                            <button type="submit" class="az-btn az-btn-sm" style="background:#d32f2f;color:#fff;border:none;">
+                                <i class="fa fa-times"></i> Отменить заказ
+                            </button>
+                        </form>
+                    <?php elseif (in_array($orderDetail['status'], ['processing', 'shipped'], true)):
+                        $supPhone = getSetting('site_phone', '');
+                        $supWa    = getSetting('site_whatsapp', '');
+                    ?>
+                        <div style="flex:1 1 100%;margin-top:8px;padding:12px;background:#fff3cd;border-radius:6px;font-size:0.85rem;color:#664d03;">
+                            <i class="fa fa-info-circle"></i>
+                            Заказ уже подтверждён. Чтобы отменить его, свяжитесь с поддержкой:
+                            <?php if ($supPhone !== ''): ?>
+                                <a href="tel:<?= sanitize(preg_replace('/[^\d+]/', '', $supPhone)) ?>" style="font-weight:700;color:#d32f2f;"><?= sanitize($supPhone) ?></a>
+                            <?php endif; ?>
+                            <?php if ($supWa !== ''): ?>
+                                &middot; <a href="https://wa.me/<?= sanitize(preg_replace('/\D/', '', $supWa)) ?>" target="_blank" rel="noopener" style="font-weight:700;color:#25D366;">WhatsApp</a>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
             <?php endif; ?>
