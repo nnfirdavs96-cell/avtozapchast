@@ -106,6 +106,13 @@ $allCategories = getCategories();
 $catTree       = getCategoryTree($allCategories);
 $allBrands     = getBrands();
 
+// Top catalog banner — managed in admin → Баннеры (placement = 'catalog').
+$catalogBanner = null;
+try {
+    $cbStmt = $db->query("SELECT * FROM banners WHERE is_active=1 AND placement='catalog' ORDER BY sort_order ASC, id ASC LIMIT 1");
+    $catalogBanner = $cbStmt->fetch() ?: null;
+} catch (Exception $e) { $catalogBanner = null; }
+
 $currentCat = null;
 if ($catId) {
     foreach ($allCategories as $cat) {
@@ -308,7 +315,33 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     <div class="row">
                         <div class="col-12">
                             <div class="shop_banner_thumb">
-                                <img src="<?= APP_URL ?>/assets/img/bg/banner23.jpg" alt="<?= sanitize(t('shop')) ?>">
+                                <?php
+                                $nbCat = function (string $u): string {
+                                    $u = trim($u);
+                                    if ($u === '') return '';
+                                    if ($u[0] === '/') return APP_URL . $u;
+                                    if (!preg_match('~^https?://~i', $u)) return APP_URL . '/' . ltrim($u, '/');
+                                    return $u;
+                                };
+                                if ($catalogBanner):
+                                    $cbD = $nbCat($catalogBanner['image_url'] ?? '');
+                                    $cbM = $nbCat($catalogBanner['image_url_mobile'] ?? '');
+                                    $cbDesktop = $cbD ?: $cbM;
+                                    $cbMobile  = $cbM ?: $cbD;
+                                    $cbLink    = trim($catalogBanner['link_url'] ?? '');
+                                    $cbAlt     = $catalogBanner['title'] ?: t('shop');
+                                ?>
+                                    <?php if ($cbLink !== ''): ?><a href="<?= sanitize($nbCat($cbLink)) ?>"><?php endif; ?>
+                                    <picture>
+                                        <?php if ($cbMobile !== '' && $cbMobile !== $cbDesktop): ?>
+                                        <source media="(max-width:767px)" srcset="<?= sanitize($cbMobile) ?>">
+                                        <?php endif; ?>
+                                        <img src="<?= sanitize($cbDesktop) ?>" alt="<?= sanitize($cbAlt) ?>">
+                                    </picture>
+                                    <?php if ($cbLink !== ''): ?></a><?php endif; ?>
+                                <?php else: ?>
+                                    <img src="<?= APP_URL ?>/assets/img/bg/banner23.jpg" alt="<?= sanitize(t('shop')) ?>">
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>

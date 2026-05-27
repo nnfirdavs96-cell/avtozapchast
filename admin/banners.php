@@ -21,6 +21,10 @@ $db->exec("CREATE TABLE IF NOT EXISTS `banners` (
 
 // Add mobile column to pre-existing tables (portable across MariaDB / MySQL 8.0).
 dbAddColumnIfMissing($db, 'banners', 'image_url_mobile', "`image_url_mobile` VARCHAR(500) NOT NULL DEFAULT '' AFTER `image_url`");
+// Where the banner is shown: 'home' (3 banners under the slider) or 'catalog' (top of the shop page).
+dbAddColumnIfMissing($db, 'banners', 'placement', "`placement` VARCHAR(20) NOT NULL DEFAULT 'home' AFTER `link_url`");
+
+$placements = ['home' => 'Главная (под слайдером)', 'catalog' => 'Каталог (вверху магазина)'];
 
 // ── POST handler ──────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -51,6 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $imgMobile = trim($_POST['image_url_mobile'] ?? '');
     $linkUrl   = trim($_POST['link_url'] ?? '');
     $sort      = (int)($_POST['sort_order'] ?? 0);
+    $placement = isset($placements[$_POST['placement'] ?? '']) ? $_POST['placement'] : 'home';
 
     if ($imgUrl === '' && $imgMobile === '') {
         flashMessage('danger', 'Загрузите хотя бы одно изображение (десктоп или мобильное).');
@@ -59,13 +64,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($bid) {
         $db->prepare(
-            "UPDATE banners SET title=?, image_url=?, image_url_mobile=?, link_url=?, sort_order=? WHERE id=?"
-        )->execute([$title, $imgUrl, $imgMobile, $linkUrl, $sort, $bid]);
+            "UPDATE banners SET title=?, image_url=?, image_url_mobile=?, link_url=?, placement=?, sort_order=? WHERE id=?"
+        )->execute([$title, $imgUrl, $imgMobile, $linkUrl, $placement, $sort, $bid]);
         flashMessage('success', 'Баннер обновлён.');
     } else {
         $db->prepare(
-            "INSERT INTO banners (title, image_url, image_url_mobile, link_url, sort_order, is_active) VALUES (?,?,?,?,?,1)"
-        )->execute([$title, $imgUrl, $imgMobile, $linkUrl, $sort]);
+            "INSERT INTO banners (title, image_url, image_url_mobile, link_url, placement, sort_order, is_active) VALUES (?,?,?,?,?,?,1)"
+        )->execute([$title, $imgUrl, $imgMobile, $linkUrl, $placement, $sort]);
         flashMessage('success', 'Баннер добавлен.');
     }
     redirect(APP_URL . '/admin/banners.php');
@@ -94,7 +99,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
 
     <main class="az-main">
         <div class="az-topbar">
-            <h1>Баннеры главной страницы</h1>
+            <h1>Баннеры (главная и каталог)</h1>
             <span style="font-size:0.85rem;color:#666;"><?= sanitize($_SESSION['username'] ?? '') ?></span>
         </div>
 
@@ -177,6 +182,18 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     <div class="az-card">
                         <h3>Описание и ссылка</h3>
                         <div class="az-form-group">
+                            <label>Где показывать</label>
+                            <?php $curPlace = $editBanner['placement'] ?? 'home'; ?>
+                            <select name="placement">
+                                <?php foreach ($placements as $pk => $pl): ?>
+                                <option value="<?= $pk ?>" <?= $curPlace === $pk ? 'selected' : '' ?>><?= sanitize($pl) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p style="font-size:0.78rem;color:#aaa;margin-top:6px;">
+                                «Главная» — три баннера под слайдером. «Каталог» — широкий баннер вверху страницы магазина.
+                            </p>
+                        </div>
+                        <div class="az-form-group">
                             <label>Название (для админки)</label>
                             <input type="text" name="title"
                                    value="<?= sanitize($editBanner['title'] ?? '') ?>"
@@ -249,8 +266,9 @@ require_once dirname(__DIR__) . '/includes/header.php';
             </div>
 
             <div class="az-alert az-alert-info" style="font-size:0.85rem;">
-                <i class="fa fa-info-circle"></i> Это три рекламных баннера под слайдером на главной.
-                Если баннеров нет — на сайте показываются стандартные картинки из шаблона.
+                <i class="fa fa-info-circle"></i> Баннеры с местом «Главная» — три блока под слайдером.
+                Баннер с местом «Каталог» — широкая картинка вверху страницы магазина (берётся первый активный).
+                Если для места баннеров нет — показывается стандартная картинка из шаблона.
             </div>
 
             <?php if (empty($banners)): ?>
@@ -288,6 +306,13 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             </div>
                         </div>
                         <div style="padding:14px;">
+                            <div style="margin-bottom:6px;">
+                                <span class="badge badge-<?= ($banner['placement'] ?? 'home') === 'catalog' ? 'info' : 'primary' ?>"
+                                      style="font-size:0.72rem;">
+                                    <i class="fa fa-<?= ($banner['placement'] ?? 'home') === 'catalog' ? 'th-list' : 'home' ?>"></i>
+                                    <?= sanitize($placements[$banner['placement'] ?? 'home'] ?? 'Главная') ?>
+                                </span>
+                            </div>
                             <?php if ($banner['title']): ?>
                                 <div style="font-weight:700;font-size:0.9rem;margin-bottom:4px;"><?= sanitize($banner['title']) ?></div>
                             <?php endif; ?>
