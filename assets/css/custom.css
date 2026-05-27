@@ -359,33 +359,83 @@
 }
 
 /* Телефон с выбором страны (кастомный дропдаун с флагами) */
-.phone-wrap { display: flex; align-items: stretch; gap: 6px; }
+.phone-wrap { display: flex; align-items: stretch; gap: 8px; }
 .phone-wrap > input { flex: 1 1 auto; min-width: 0; }
 .phone-cc { position: relative; flex: 0 0 auto; }
-.phone-cc-btn {
-    display: flex; align-items: center; gap: 6px; height: 100%;
-    padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px;
-    background: #fff; cursor: pointer; font-size: 0.9rem; color: #333;
+
+/* Кнопка выбора страны — нейтральная, перебивает красную кнопку темы (.account_form button) */
+.phone-cc-btn,
+.account_form .phone-cc-btn {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    height: 100%;
+    min-height: 46px;
+    padding: 0 12px !important;
+    margin: 0 !important;
+    border: 1px solid #dcdfe4 !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+    color: #222 !important;
+    cursor: pointer;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    line-height: 1 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    width: auto !important;
+    transition: border-color .15s, box-shadow .15s;
 }
-.phone-cc-btn:hover { border-color: #999; }
-.phone-cc-btn img { display: block; border-radius: 2px; object-fit: cover; }
-.phone-cc-btn .cc-caret { color: #888; font-style: normal; font-size: 0.8em; }
+.phone-cc-btn:hover,
+.account_form .phone-cc-btn:hover {
+    border-color: #d32f2f !important;
+    background: #fff !important;
+}
+.phone-cc-btn img { display: block; border-radius: 3px; object-fit: cover; width: 24px; height: 17px; box-shadow: 0 0 0 1px rgba(0,0,0,.06); }
+.phone-cc-btn .cc-d { color: #222; }
+.phone-cc-btn .cc-caret { color: #aaa; font-style: normal; font-size: 11px; margin-left: 2px; }
+.phone-cc.open .phone-cc-btn { border-color: #d32f2f !important; box-shadow: 0 0 0 3px rgba(211,47,47,.12) !important; }
+
+/* Выпадающая панель */
 .phone-cc-panel {
-    display: none; position: absolute; z-index: 50; top: calc(100% + 4px); left: 0;
-    width: 260px; max-height: 280px; overflow-y: auto;
-    background: #fff; border: 1px solid #ccd2da; border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0,0,0,.14); padding: 6px;
+    display: none; position: absolute; z-index: 60; top: calc(100% + 6px); left: 0;
+    width: 280px; max-height: 320px; overflow-y: auto;
+    background: #fff; border: 1px solid #e3e6ea; border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.16); padding: 6px;
 }
 .phone-cc.open .phone-cc-panel { display: block; }
-.phone-cc-opt {
-    display: flex; align-items: center; gap: 8px; width: 100%;
-    padding: 7px 8px; border: 0; background: transparent; border-radius: 6px;
-    cursor: pointer; font-size: 0.88rem; color: #333; text-align: left;
+.phone-cc-panel::-webkit-scrollbar { width: 8px; }
+.phone-cc-panel::-webkit-scrollbar-thumb { background: #d9dde2; border-radius: 4px; border: 2px solid #fff; }
+
+/* Опция страны — белая строка, флаг | название | код, без красного фона темы */
+.phone-cc-opt,
+.account_form .phone-cc-opt {
+    display: flex !important;
+    align-items: center;
+    gap: 11px;
+    width: 100% !important;
+    padding: 9px 12px !important;
+    margin: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    border-radius: 8px !important;
+    cursor: pointer;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    line-height: 1.25 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    color: #2a2a2a !important;
+    text-align: left;
 }
-.phone-cc-opt:hover { background: #f4f6f9; }
-.phone-cc-opt img { display: block; border-radius: 2px; object-fit: cover; flex: 0 0 auto; }
-.phone-cc-opt .cc-name { flex: 1 1 auto; }
-.phone-cc-opt .cc-dial { color: #888; font-size: 0.85rem; }
+.phone-cc-opt:hover,
+.account_form .phone-cc-opt:hover { background: #fdeaea !important; color: #d32f2f !important; }
+.phone-cc-opt img { display: block; border-radius: 3px; object-fit: cover; width: 24px; height: 17px; flex: 0 0 auto; box-shadow: 0 0 0 1px rgba(0,0,0,.06); }
+.phone-cc-opt .cc-name { flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.phone-cc-opt .cc-dial { color: #9aa0a6; font-size: 13px; font-weight: 600; flex: 0 0 auto; }
+.phone-cc-opt:hover .cc-dial { color: #d32f2f; }
 
 /* Поле пароля с кнопкой показать/скрыть */
 .pwd-field { position: relative; display: block; }
