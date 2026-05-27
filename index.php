@@ -357,65 +357,96 @@ require_once __DIR__ . '/includes/header.php';
     <!--product area end-->
 
     <!--sale products area start-->
-    <?php if (!empty($saleParts)): ?>
+    <?php if (!empty($saleParts)):
+        $featDeal   = $saleParts[0];                 // самая большая скидка — крупная карточка
+        $smallDeals = array_slice($saleParts, 1, 4); // следующие — мелкие карточки
+        $featImg    = productImageUrl($featDeal['images']);
+    ?>
     <div class="product_area sale_product_area" style="padding-top:0;">
         <div class="container">
+            <div class="section_title title_style2" style="display:flex;align-items:baseline;gap:14px;border-bottom:1px solid #eee;padding-bottom:16px;margin-bottom:26px;">
+                <div class="title_content" style="padding:0;background:none;">
+                    <h2 style="margin:0;"><span><?= t('discount_title_1') ?></span> <?= t('discount_title_2') ?></h2>
+                </div>
+                <p style="margin:0;color:#888;font-size:14px;"><?= t('discount_subtitle') ?></p>
+                <a href="<?= APP_URL ?>/catalog/index.php?sale=1" style="margin-left:auto;font-size:13px;font-weight:600;color:#C70909;white-space:nowrap;"><?= t('discount') ?> →</a>
+            </div>
+
             <div class="row">
-                <div class="col-12">
-                    <div class="section_title title_style2">
-                        <div class="title_content">
-                            <h2><span><?= t('shop') ?></span> <?= t('discount') ?></h2>
+                <!-- Крупная промо-карточка -->
+                <div class="col-lg-5 col-md-6 mb-30">
+                    <div class="single_product" style="border:1px solid #eee;border-radius:6px;padding:22px;height:100%;display:flex;flex-wrap:wrap;align-items:center;">
+                        <div class="product_thumb" style="position:relative;flex:0 0 45%;max-width:45%;">
+                            <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$featDeal['id'] ?>">
+                                <img src="<?= sanitize($featImg) ?>" alt="<?= sanitize($featDeal['name']) ?>" style="width:100%;">
+                            </a>
+                            <?= productBadges($featDeal) ?>
+                        </div>
+                        <div class="product_content" style="flex:1;padding-left:20px;min-width:200px;">
+                            <p class="manufacture_product"><a href="<?= APP_URL ?>/catalog/index.php?brand=<?= (int)$featDeal['brand_id'] ?>"><?= sanitize($featDeal['brand_name'] ?? '') ?></a></p>
+                            <h4 class="product_name"><a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$featDeal['id'] ?>"><?= sanitize(truncate($featDeal['name'], 50)) ?></a></h4>
+                            <?= productStarsInline((int)$featDeal['id'], $ratings) ?>
+                            <?= priceBox($featDeal) ?>
+                            <?php if (!empty($featDeal['description'])): ?>
+                            <div class="product_desc" style="margin:12px 0 16px;color:#777;font-size:13px;line-height:1.6;">
+                                <p><?= sanitize(truncate($featDeal['description'], 120)) ?></p>
+                            </div>
+                            <?php endif; ?>
+                            <div class="action_links">
+                                <ul>
+                                    <?php if (isLoggedIn()): ?>
+                                    <li class="add_to_cart"><a href="javascript:void(0)" onclick="addToCart(<?= (int)$featDeal['id'] ?>)" title="<?= t('add_to_cart') ?>"><?= t('add_to_cart') ?></a></li>
+                                    <li class="wishlist"><a href="javascript:void(0)" onclick="addToWishlist(<?= (int)$featDeal['id'] ?>)" title="<?= t('add_to_wishlist') ?>"><i class="icon-heart"></i></a></li>
+                                    <?php else: ?>
+                                    <li class="add_to_cart"><a href="<?= APP_URL ?>/auth/login.php"><?= t('login') ?></a></li>
+                                    <?php endif; ?>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="row">
-                <div class="product_carousel product_details_column5 owl-carousel">
-                    <?php foreach ($saleParts as $part):
-                        $sImg = productImageUrl($part['images']);
-                    ?>
-                    <div class="col-lg-3">
-                        <article class="single_product">
-                            <figure>
-                                <div class="product_thumb">
-                                    <a class="primary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
-                                        <img src="<?= sanitize($sImg) ?>" alt="<?= sanitize($part['name']) ?>">
-                                    </a>
-                                    <a class="secondary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
-                                        <img src="<?= sanitize($sImg) ?>" alt="<?= sanitize($part['name']) ?>">
-                                    </a>
-                                    <?= productBadges($part) ?>
-                                    <div class="quick_button">
-                                        <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>" title="<?= t('quick_view') ?>"><i class="icon-eye"></i></a>
+
+                <!-- Мелкие карточки -->
+                <div class="col-lg-7 col-md-6">
+                    <div class="row shop_wrapper">
+                        <?php foreach ($smallDeals as $part):
+                            $sImg = productImageUrl($part['images']);
+                        ?>
+                        <div class="col-lg-3 col-md-6 col-6 mb-30">
+                            <article class="single_product">
+                                <figure>
+                                    <div class="product_thumb">
+                                        <a class="primary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
+                                            <img src="<?= sanitize($sImg) ?>" alt="<?= sanitize($part['name']) ?>">
+                                        </a>
+                                        <?= productBadges($part) ?>
+                                        <div class="quick_button">
+                                            <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>" title="<?= t('quick_view') ?>"><i class="icon-eye"></i></a>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="product_content grid_content">
-                                    <div class="product_content_inner">
-                                        <p class="manufacture_product"><a href="<?= APP_URL ?>/catalog/index.php?brand=<?= (int)$part['brand_id'] ?>"><?= sanitize($part['brand_name'] ?? '') ?></a></p>
-                                        <h4 class="product_name"><a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>"><?= sanitize(truncate($part['name'], 45)) ?></a></h4>
-                                        <?= priceBox($part) ?>
-                                        <?= productStarsInline((int)$part['id'], $ratings) ?>
+                                    <div class="product_content grid_content">
+                                        <div class="product_content_inner">
+                                            <p class="manufacture_product"><a href="<?= APP_URL ?>/catalog/index.php?brand=<?= (int)$part['brand_id'] ?>"><?= sanitize($part['brand_name'] ?? '') ?></a></p>
+                                            <h4 class="product_name"><a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>"><?= sanitize(truncate($part['name'], 40)) ?></a></h4>
+                                            <?= priceBox($part) ?>
+                                            <?= productStarsInline((int)$part['id'], $ratings) ?>
+                                        </div>
+                                        <div class="action_links">
+                                            <ul>
+                                                <?php if (isLoggedIn()): ?>
+                                                <li class="add_to_cart"><a href="javascript:void(0)" onclick="addToCart(<?= (int)$part['id'] ?>)" title="<?= t('add_to_cart') ?>"><?= t('add_to_cart') ?></a></li>
+                                                <li class="wishlist"><a href="javascript:void(0)" onclick="addToWishlist(<?= (int)$part['id'] ?>)" title="<?= t('add_to_wishlist') ?>"><i class="icon-heart"></i></a></li>
+                                                <?php else: ?>
+                                                <li class="add_to_cart"><a href="<?= APP_URL ?>/auth/login.php"><?= t('login') ?></a></li>
+                                                <?php endif; ?>
+                                            </ul>
+                                        </div>
                                     </div>
-                                    <div class="action_links">
-                                        <ul>
-                                            <?php if (isLoggedIn()): ?>
-                                            <li class="add_to_cart"><a href="javascript:void(0)" onclick="addToCart(<?= (int)$part['id'] ?>)" title="<?= t('add_to_cart') ?>"><?= t('add_to_cart') ?></a></li>
-                                            <li class="wishlist"><a href="javascript:void(0)" onclick="addToWishlist(<?= (int)$part['id'] ?>)" title="<?= t('add_to_wishlist') ?>"><i class="icon-heart"></i></a></li>
-                                            <?php else: ?>
-                                            <li class="add_to_cart"><a href="<?= APP_URL ?>/auth/login.php"><?= t('login') ?></a></li>
-                                            <?php endif; ?>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </figure>
-                        </article>
+                                </figure>
+                            </article>
+                        </div>
+                        <?php endforeach; ?>
                     </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-12" style="text-align:center;margin-top:18px;">
-                    <a href="<?= APP_URL ?>/catalog/index.php?sale=1" class="button"><?= t('discount') ?></a>
                 </div>
             </div>
         </div>
