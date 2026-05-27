@@ -171,6 +171,13 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 <?php endforeach; ?>
               </tbody>
               <tfoot>
+                <?php $admShipCost = (float)($orderDetail['shipping_cost'] ?? 0); ?>
+                <?php if ($admShipCost > 0): ?>
+                <tr>
+                  <td colspan="5" style="text-align:right;color:#666;">Доставка:</td>
+                  <td style="text-align:right;color:#666;"><?= formatPrice($admShipCost) ?></td>
+                </tr>
+                <?php endif; ?>
                 <tr>
                   <td colspan="5" style="text-align:right;font-weight:700;">ИТОГО:</td>
                   <td style="text-align:right;font-weight:700;font-size:1.1rem;"><?= formatPrice($orderDetail['total_amount']) ?></td>
