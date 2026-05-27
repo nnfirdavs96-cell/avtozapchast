@@ -29,6 +29,8 @@ return [
     'in_stock'           => 'В наличии',
     'out_of_stock'       => 'Нет в наличии',
     'low_stock'          => 'Заканчивается',
+    'new_label'          => 'Новый',
+    'discount'           => 'Скидки',
     'part_number'        => 'Артикул',
     'brand'              => 'Бренд',
     'category'           => 'Категория',

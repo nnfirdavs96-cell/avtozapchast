@@ -29,6 +29,8 @@ return [
     'in_stock'           => 'Дар анбор',
     'out_of_stock'       => 'Нест',
     'low_stock'          => 'Каммикдор',
+    'new_label'          => 'Нав',
+    'discount'           => 'Тахфифҳо',
     'part_number'        => 'Рақами қисм',
     'brand'              => 'Бренд',
     'category'           => 'Категория',

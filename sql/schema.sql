@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS `parts` (
   `brand_id`    INT UNSIGNED    NOT NULL,
   `category_id` INT UNSIGNED    NOT NULL,
   `price`       DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
+  `old_price`   DECIMAL(10,2)   DEFAULT NULL COMMENT 'старая цена до скидки',
   `stock`       INT             NOT NULL DEFAULT 0,
   `weight`      DECIMAL(8,3)    DEFAULT NULL COMMENT 'kg',
   `dimensions`  VARCHAR(80)     DEFAULT NULL COMMENT 'LxWxH mm',
