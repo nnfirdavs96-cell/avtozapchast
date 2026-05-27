@@ -233,6 +233,7 @@ function renderRoleSidebar(string $active = ''): void {
             ['key' => 'users',      'href' => "$url/superadmin/users.php",   'icon' => 'fa-users',        'label' => 'Пользователи'],
             ['key' => 'permissions','href' => "$url/superadmin/permissions.php",'icon' => 'fa-shield',     'label' => 'Права доступа'],
             ['key' => 'orders',     'href' => "$url/admin/orders.php",       'icon' => 'fa-shopping-bag', 'label' => 'Заказы'],
+            ['key' => 'delivery',   'href' => "$url/superadmin/delivery.php",'icon' => 'fa-truck',        'label' => 'Доставка'],
             ['key' => 'products',   'href' => "$url/admin/products.php",     'icon' => 'fa-cogs',         'label' => 'Товары'],
             ['key' => 'sliders',    'href' => "$url/admin/sliders.php",      'icon' => 'fa-picture-o',    'label' => 'Слайдер'],
             ['key' => 'banners',    'href' => "$url/admin/banners.php",      'icon' => 'fa-clone',        'label' => 'Баннеры'],

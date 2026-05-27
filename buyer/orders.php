@@ -153,9 +153,16 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             <?php endforeach; ?>
                         </tbody>
                         <tfoot>
+                            <?php $shipCost = (float)($orderDetail['shipping_cost'] ?? 0); ?>
+                            <?php if ($shipCost > 0): ?>
                             <tr>
-                                <td colspan="5" style="text-align:right;font-weight:700;padding-top:12px;">ИТОГО:</td>
-                                <td style="text-align:right;font-weight:900;color:#d32f2f;font-size:1.1rem;padding-top:12px;">
+                                <td colspan="5" style="text-align:right;color:#666;padding-top:12px;">Доставка:</td>
+                                <td style="text-align:right;color:#666;padding-top:12px;"><?= formatPrice($shipCost) ?></td>
+                            </tr>
+                            <?php endif; ?>
+                            <tr>
+                                <td colspan="5" style="text-align:right;font-weight:700;<?= $shipCost > 0 ? '' : 'padding-top:12px;' ?>">ИТОГО:</td>
+                                <td style="text-align:right;font-weight:900;color:#d32f2f;font-size:1.1rem;<?= $shipCost > 0 ? '' : 'padding-top:12px;' ?>">
                                     <?= formatPrice($orderDetail['total_amount']) ?>
                                 </td>
                             </tr>

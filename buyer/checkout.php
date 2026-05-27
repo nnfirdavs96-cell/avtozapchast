@@ -32,6 +32,30 @@ foreach ($cartItems as $item) {
     $cartTotal += (float)$item['price'] * (int)$item['quantity'];
 }
 
+// Active delivery cities. Empty if migration not applied yet → falls back to a
+// free-text city field and free shipping (keeps checkout working regardless).
+$deliveryZones  = [];
+$zoneCostByCity = [];
+try {
+    $deliveryZones = $db->query(
+        "SELECT city, cost, delivery_days FROM delivery_zones WHERE is_active = 1 ORDER BY sort_order, city"
+    )->fetchAll();
+    foreach ($deliveryZones as $z) { $zoneCostByCity[$z['city']] = (float)$z['cost']; }
+} catch (Throwable $e) {
+    $deliveryZones = [];
+}
+
+// Whether the orders table already has the shipping_cost column (migration applied).
+$hasShippingCostCol = false;
+try {
+    $hasShippingCostCol = (bool)$db->query(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'shipping_cost'"
+    )->fetchColumn();
+} catch (Throwable $e) {
+    $hasShippingCostCol = false;
+}
+
 // Load user profile for prefilling
 try {
     $profileStmt = $db->prepare("SELECT email, phone, first_name, last_name, address, city, zip_code, country FROM users WHERE id = ? LIMIT 1");
@@ -85,6 +109,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($address)) $errors[] = t('address') . ' — обязательное поле.';
     if (empty($city))    $errors[] = t('city')    . ' — обязательное поле.';
 
+    // When delivery cities are configured, the chosen city must be one of them.
+    if (!empty($deliveryZones) && $city !== '' && !isset($zoneCostByCity[$city])) {
+        $errors[] = 'Выберите город доставки из списка.';
+    }
+
+    // Delivery cost: 0 (или город вне списка) → не прибавляется к сумме.
+    $shippingCost = (!empty($zoneCostByCity) && isset($zoneCostByCity[$city]))
+        ? (float)$zoneCostByCity[$city]
+        : 0.0;
+    $grandTotal = $cartTotal + $shippingCost;
+
     if (empty($errors)) {
         // Build shipping address JSON
         $shippingData = json_encode([
@@ -100,18 +135,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $db->beginTransaction();
         try {
-            // Insert order
-            $ordStmt = $db->prepare(
-                "INSERT INTO orders (user_id, status, total_amount, shipping_address, notes, payment_method, created_at, updated_at)
-                 VALUES (?, 'pending', ?, ?, ?, ?, NOW(), NOW())"
-            );
-            $ordStmt->execute([
-                $user['id'],
-                $cartTotal,
-                $shippingData,
-                $orderNotes ?: null,
-                $payMethod,
-            ]);
+            // Insert order. total_amount includes delivery; shipping_cost stored
+            // separately when the column exists (migration applied).
+            if ($hasShippingCostCol) {
+                $ordStmt = $db->prepare(
+                    "INSERT INTO orders (user_id, status, total_amount, shipping_cost, shipping_address, notes, payment_method, created_at, updated_at)
+                     VALUES (?, 'pending', ?, ?, ?, ?, ?, NOW(), NOW())"
+                );
+                $ordStmt->execute([
+                    $user['id'],
+                    $grandTotal,
+                    $shippingCost,
+                    $shippingData,
+                    $orderNotes ?: null,
+                    $payMethod,
+                ]);
+            } else {
+                $ordStmt = $db->prepare(
+                    "INSERT INTO orders (user_id, status, total_amount, shipping_address, notes, payment_method, created_at, updated_at)
+                     VALUES (?, 'pending', ?, ?, ?, ?, NOW(), NOW())"
+                );
+                $ordStmt->execute([
+                    $user['id'],
+                    $grandTotal,
+                    $shippingData,
+                    $orderNotes ?: null,
+                    $payMethod,
+                ]);
+            }
             $orderId = (int)$db->lastInsertId();
 
             // Insert order items
@@ -233,10 +284,29 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                     </div>
                                     <div class="col-12 mb-20">
                                         <label><?= t('city') ?> <span>*</span></label>
+                                        <?php if (!empty($deliveryZones)): ?>
+                                        <select name="city" id="checkout-city" required class="form-control">
+                                            <option value="">— Выберите город —</option>
+                                            <?php foreach ($deliveryZones as $z):
+                                                $cc = convertPrice((float)$z['cost']);
+                                                $costLabel = $cc > 0
+                                                    ? ' (' . number_format($cc, 2, '.', ',') . ' ' . getCurrencySymbol() . ')'
+                                                    : ' (уточняется)';
+                                            ?>
+                                            <option value="<?= sanitize($z['city']) ?>"
+                                                    data-cost="<?= number_format($cc, 2, '.', '') ?>"
+                                                    data-days="<?= sanitize($z['delivery_days'] ?? '') ?>"
+                                                    <?= $prefillCity === $z['city'] ? 'selected' : '' ?>>
+                                                <?= sanitize($z['city'] . $costLabel) ?>
+                                            </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <?php else: ?>
                                         <input type="text" name="city"
                                                value="<?= sanitize($prefillCity) ?>"
                                                placeholder="<?= t('city') ?>"
                                                required>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="col-lg-6 mb-20">
                                         <label><?= t('zip_code') ?></label>
@@ -248,7 +318,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                     <div class="col-lg-6 mb-20">
                                         <label><?= t('country') ?></label>
                                         <input type="text" name="country"
-                                               value="<?= sanitize($prefillCountry ?: 'Россия') ?>"
+                                               value="<?= sanitize($prefillCountry ?: 'Таджикистан') ?>"
                                                placeholder="<?= t('country') ?>">
                                     </div>
                                     <div class="col-12 mb-20">
@@ -289,11 +359,11 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                             </tr>
                                             <tr>
                                                 <th><?= t('shipping') ?></th>
-                                                <td><strong><?= t('free') ?></strong></td>
+                                                <td id="summary-shipping"><strong><?= !empty($deliveryZones) ? '—' : t('free') ?></strong></td>
                                             </tr>
                                             <tr class="order_total">
                                                 <th><?= t('total') ?></th>
-                                                <td><strong><?= formatPrice($cartTotal) ?></strong></td>
+                                                <td id="summary-total"><strong><?= formatPrice($cartTotal) ?></strong></td>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -327,5 +397,38 @@ require_once dirname(__DIR__) . '/includes/header.php';
     </div>
 </div>
 <!--Checkout page section end-->
+
+<?php if (!empty($deliveryZones)): ?>
+<script>
+(function () {
+    var subtotal = <?= json_encode(round(convertPrice($cartTotal), 2)) ?>;
+    var symbol   = <?= json_encode(getCurrencySymbol()) ?>;
+    var sel       = document.getElementById('checkout-city');
+    var shipCell  = document.getElementById('summary-shipping');
+    var totalCell = document.getElementById('summary-total');
+    if (!sel) return;
+
+    function fmt(n) {
+        return n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ' + symbol;
+    }
+    function update() {
+        var cost = 0, label;
+        if (sel.value) {
+            var opt = sel.options[sel.selectedIndex];
+            cost = parseFloat(opt.getAttribute('data-cost')) || 0;
+            var days = opt.getAttribute('data-days') || '';
+            label = cost > 0 ? fmt(cost) : 'Уточняется';
+            if (days) label += ' <small style="color:#888;">(' + days + ')</small>';
+        } else {
+            label = 'Выберите город';
+        }
+        if (shipCell)  shipCell.innerHTML  = '<strong>' + label + '</strong>';
+        if (totalCell) totalCell.innerHTML = '<strong>' + fmt(subtotal + cost) + '</strong>';
+    }
+    sel.addEventListener('change', update);
+    update();
+})();
+</script>
+<?php endif; ?>
 
 <?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
