@@ -13,10 +13,67 @@ if (isLoggedIn()) {
     redirect($redirectMap[$role] ?? APP_URL . '/index.php');
 }
 
-$errors = [];
-$email  = '';
+ensurePhoneAuthSchema();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$errors     = [];
+$email      = '';
+$loginPhone = '';
+$activeTab  = 'phone';
+
+$redirectAfterLogin = function (array $user) {
+    $redirectTo = $_GET['redirect'] ?? '';
+    if ($redirectTo && strpos($redirectTo, '/') === 0 && strpos($redirectTo, '//') !== 0) {
+        redirect(APP_URL . $redirectTo);
+    }
+    $map = [
+        'buyer'      => APP_URL . '/buyer/index.php',
+        'manager'    => APP_URL . '/manager/index.php',
+        'admin'      => APP_URL . '/admin/index.php',
+        'superadmin' => APP_URL . '/superadmin/index.php',
+    ];
+    redirect($map[$user['role']] ?? APP_URL . '/index.php');
+};
+
+// ── Phone login (SMS code, or password if the user has set one) ─────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'phone_login') {
+    $activeTab = 'phone';
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $errors[] = 'Неверный токен безопасности. Обновите страницу.';
+    } else {
+        $loginPhone = trim($_POST['phone'] ?? '');
+        $code       = trim($_POST['code'] ?? '');
+        $password   = $_POST['password'] ?? '';
+        $user       = findUserByPhone($loginPhone);
+
+        if (!$user) {
+            $errors[] = 'Номер не найден. Зарегистрируйтесь по номеру.';
+        } elseif ($code !== '') {
+            // SMS code path
+            if (verifyPhoneOtp($loginPhone, $code, 'login')) {
+                loginUser($user);
+                flashMessage('success', 'Добро пожаловать!');
+                $redirectAfterLogin($user);
+            } else {
+                $errors[] = 'Неверный или просроченный код. Запросите новый.';
+            }
+        } elseif ($password !== '') {
+            // Password path (only if the user has set a password)
+            if (!empty($user['password_hash']) && password_verify($password, $user['password_hash'])) {
+                loginUser($user);
+                flashMessage('success', 'Добро пожаловать, ' . $user['username'] . '!');
+                $redirectAfterLogin($user);
+            } else {
+                $errors[] = 'Неверный пароль, либо пароль не задан — войдите по SMS-коду.';
+            }
+        } else {
+            $errors[] = 'Введите код из SMS или пароль.';
+        }
+    }
+}
+
+// ── Email + password login ──────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') !== 'phone_login') {
+    $activeTab = 'email';
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
         $errors[] = 'Неверный токен безопасности. Обновите страницу.';
     } else {
@@ -123,26 +180,83 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             </div>
                         <?php endif; ?>
 
-                        <form method="POST"
-                              action="<?= APP_URL ?>/auth/login.php<?= isset($_GET['redirect']) ? '?redirect=' . urlencode($_GET['redirect']) : '' ?>">
+                        <?php $act = APP_URL . '/auth/login.php' . (isset($_GET['redirect']) ? '?redirect=' . urlencode($_GET['redirect']) : ''); ?>
+
+                        <!-- Tabs -->
+                        <div class="auth_tabs">
+                            <button type="button" class="auth_tab <?= $activeTab==='phone'?'active':'' ?>" data-auth-tab="phone">
+                                <i class="fa fa-mobile"></i> По номеру
+                            </button>
+                            <button type="button" class="auth_tab <?= $activeTab==='email'?'active':'' ?>" data-auth-tab="email">
+                                <i class="fa fa-envelope-o"></i> По email
+                            </button>
+                        </div>
+
+                        <!-- Phone login (SMS or password) -->
+                        <form method="POST" action="<?= $act ?>"
+                              class="auth_pane" data-auth-pane="phone" style="<?= $activeTab==='phone'?'':'display:none;' ?>"
+                              data-sms-mode="login">
                             <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
+                            <input type="hidden" name="action" value="phone_login">
+
+                            <p>
+                                <label>Номер телефона <span>*</span></label>
+                                <input type="tel" name="phone" data-phone="tj"
+                                       value="<?= sanitize($loginPhone) ?>"
+                                       placeholder="+992 (__) ___-__-__"
+                                       autocomplete="tel" required>
+                            </p>
+
+                            <div class="sms_send_row">
+                                <button type="button" class="sms_send_btn"><i class="fa fa-paper-plane-o"></i> Получить код</button>
+                                <span class="sms_send_status"></span>
+                            </div>
+
+                            <div class="sms_code_wrap" style="display:none;">
+                                <p>
+                                    <label>Код из SMS <span>*</span></label>
+                                    <input type="text" name="code" inputmode="numeric" maxlength="4"
+                                           placeholder="4 цифры" autocomplete="one-time-code">
+                                </p>
+                            </div>
+
+                            <div class="pwd_login_wrap" style="display:none;">
+                                <p>
+                                    <label><?= t('password') ?></label>
+                                    <span class="pwd-field">
+                                        <input type="password" name="password"
+                                               placeholder="••••••••" autocomplete="current-password">
+                                        <button type="button" class="pwd-toggle" aria-label="Показать пароль">
+                                            <i class="fa fa-eye"></i>
+                                        </button>
+                                    </span>
+                                </p>
+                            </div>
+
+                            <div class="login_submit">
+                                <a href="#" class="pwd_login_toggle">Войти по паролю</a>
+                                <button type="submit"><?= t('sign_in') ?></button>
+                            </div>
+                        </form>
+
+                        <!-- Email + password login -->
+                        <form method="POST" action="<?= $act ?>"
+                              class="auth_pane" data-auth-pane="email" style="<?= $activeTab==='email'?'':'display:none;' ?>">
+                            <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
+                            <input type="hidden" name="action" value="email_login">
 
                             <p>
                                 <label><?= t('email') ?> <span>*</span></label>
-                                <input type="email"
-                                       name="email"
+                                <input type="email" name="email"
                                        placeholder="your@email.com"
                                        value="<?= sanitize($email) ?>"
-                                       required
                                        autocomplete="email">
                             </p>
                             <p>
                                 <label><?= t('password') ?> <span>*</span></label>
                                 <span class="pwd-field">
-                                    <input type="password"
-                                           name="password"
+                                    <input type="password" name="password"
                                            placeholder="••••••••"
-                                           required
                                            autocomplete="current-password">
                                     <button type="button" class="pwd-toggle" aria-label="Показать пароль">
                                         <i class="fa fa-eye"></i>

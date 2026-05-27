@@ -23,6 +23,7 @@ if (!getSetting('brands_seed_done', '')) {
     seedBrands();
     setSetting('brands_seed_done', '1');
 }
+ensurePhoneAuthSchema();
 
 $categories  = getCategories();
 $catTree     = getCategoryTree($categories);

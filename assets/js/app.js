@@ -245,6 +245,96 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.setAttribute('aria-label', show ? 'Скрыть пароль' : 'Показать пароль');
     });
 
+    // ── Auth: переключение вкладок «По номеру» / «По email»
+    document.querySelectorAll('.auth_tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            var which = this.getAttribute('data-auth-tab');
+            var root  = this.closest('.account_form');
+            if (!root) return;
+            root.querySelectorAll('.auth_tab').forEach(function (t) {
+                t.classList.toggle('active', t.getAttribute('data-auth-tab') === which);
+            });
+            root.querySelectorAll('.auth_pane').forEach(function (p) {
+                p.style.display = (p.getAttribute('data-auth-pane') === which) ? '' : 'none';
+            });
+        });
+    });
+
+    // ── Auth: «Войти по паролю» (раскрыть поле пароля во вкладке номера)
+    document.querySelectorAll('.pwd_login_toggle').forEach(function (link) {
+        link.addEventListener('click', function (e) {
+            e.preventDefault();
+            var form = this.closest('form');
+            var wrap = form ? form.querySelector('.pwd_login_wrap') : null;
+            if (!wrap) return;
+            var open = wrap.style.display !== 'none';
+            wrap.style.display = open ? 'none' : 'block';
+            this.textContent = open ? 'Войти по паролю' : 'Войти по SMS-коду';
+        });
+    });
+
+    // ── Auth: отправка SMS-кода (AJAX)
+    document.querySelectorAll('.sms_send_btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var form   = this.closest('form');
+            if (!form) return;
+            var phone  = (form.querySelector('input[name="phone"]') || {}).value || '';
+            var mode   = form.getAttribute('data-sms-mode') || 'login';
+            var csrf   = (form.querySelector('input[name="csrf_token"]') || {}).value || '';
+            var status = form.querySelector('.sms_send_status');
+            var wrap   = form.querySelector('.sms_code_wrap');
+            var self   = this;
+
+            if (phone.replace(/\D+/g, '').length < 9) {
+                if (status) { status.style.color = '#c0392b'; status.textContent = 'Введите номер'; }
+                return;
+            }
+            self.disabled = true;
+            if (status) { status.style.color = '#888'; status.textContent = 'Отправка…'; }
+
+            var fd = new FormData();
+            fd.append('phone', phone);
+            fd.append('mode', mode);
+            fd.append('csrf_token', csrf);
+
+            fetch((window.APP_URL || '') + '/api/sms_auth.php', { method: 'POST', body: fd })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.ok) {
+                        if (wrap) wrap.style.display = 'block';
+                        var codeInput = form.querySelector('input[name="code"]');
+                        if (codeInput) codeInput.focus();
+                        if (status) {
+                            status.style.color = '#0a7';
+                            status.textContent = data.dev_code
+                                ? ('Код (тест-режим): ' + data.dev_code)
+                                : 'Код отправлен по SMS';
+                        }
+                        // Кулдаун 60с
+                        var left = 60;
+                        self.textContent = 'Повторить (' + left + ')';
+                        var timer = setInterval(function () {
+                            left--;
+                            if (left <= 0) {
+                                clearInterval(timer);
+                                self.disabled = false;
+                                self.innerHTML = '<i class="fa fa-paper-plane-o"></i> Отправить код снова';
+                            } else {
+                                self.textContent = 'Повторить (' + left + ')';
+                            }
+                        }, 1000);
+                    } else {
+                        self.disabled = false;
+                        if (status) { status.style.color = '#c0392b'; status.textContent = data.error || 'Ошибка'; }
+                    }
+                })
+                .catch(function () {
+                    self.disabled = false;
+                    if (status) { status.style.color = '#c0392b'; status.textContent = 'Ошибка сети'; }
+                });
+        });
+    });
+
     // ── Cart icon: на мобиле — прямая ссылка на /buyer/cart.php, не открывать панель
     document.querySelectorAll('.mini_cart_wrapper > a').forEach(function (a) {
         a.addEventListener('click', function (e) {
