@@ -109,13 +109,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($address)) $errors[] = t('address') . ' — обязательное поле.';
     if (empty($city))    $errors[] = t('city')    . ' — обязательное поле.';
 
-    // When delivery cities are configured, the chosen city must be one of them.
-    if (!empty($deliveryZones) && $city !== '' && !isset($zoneCostByCity[$city])) {
+    // When delivery cities are configured AND Tajikistan selected, city must be from the list.
+    if (!empty($deliveryZones) && $city !== '' && $country === 'Таджикистан' && !isset($zoneCostByCity[$city])) {
         $errors[] = 'Выберите город доставки из списка.';
     }
 
-    // Delivery cost: 0 (или город вне списка) → не прибавляется к сумме.
-    $shippingCost = (!empty($zoneCostByCity) && isset($zoneCostByCity[$city]))
+    // Delivery cost: only for Tajikistan zones; other countries → 0 (уточняется).
+    $shippingCost = ($country === 'Таджикистан' && !empty($zoneCostByCity) && isset($zoneCostByCity[$city]))
         ? (float)$zoneCostByCity[$city]
         : 0.0;
     $grandTotal = $cartTotal + $shippingCost;
@@ -282,10 +282,32 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                placeholder="<?= t('address') ?>"
                                                required>
                                     </div>
+                                    <div class="col-lg-6 mb-20">
+                                        <label><?= t('zip_code') ?></label>
+                                        <input type="text" name="zip_code"
+                                               value="<?= sanitize($prefillZip) ?>"
+                                               placeholder="123456"
+                                               maxlength="20">
+                                    </div>
+                                    <div class="col-lg-6 mb-20">
+                                        <label><?= t('country') ?></label>
+                                        <?php
+                                        $countryList = ['Таджикистан', 'Узбекистан', 'Кыргызстан', 'Казахстан', 'Россия', 'Афганистан', 'Туркменистан'];
+                                        $selCountry  = $prefillCountry ?: 'Таджикистан';
+                                        if (!in_array($selCountry, $countryList, true)) { array_unshift($countryList, $selCountry); }
+                                        ?>
+                                        <select name="country" id="checkout-country" class="form-control">
+                                            <?php foreach ($countryList as $cn): ?>
+                                            <option value="<?= sanitize($cn) ?>" <?= $selCountry === $cn ? 'selected' : '' ?>><?= sanitize($cn) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
                                     <div class="col-12 mb-20">
                                         <label><?= t('city') ?> <span>*</span></label>
+                                        <?php $isTajik = ($selCountry === 'Таджикистан'); ?>
                                         <?php if (!empty($deliveryZones)): ?>
-                                        <select name="city" id="checkout-city" required class="form-control">
+                                        <select name="city" id="checkout-city" required class="form-control"
+                                                <?= !$isTajik ? 'style="display:none;" disabled' : '' ?>>
                                             <option value="">— Выберите город —</option>
                                             <?php foreach ($deliveryZones as $z):
                                                 $cc = convertPrice((float)$z['cost']);
@@ -301,32 +323,17 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                             </option>
                                             <?php endforeach; ?>
                                         </select>
+                                        <input type="text" id="checkout-city-text" name="city"
+                                               value="<?= !$isTajik ? sanitize($prefillCity) : '' ?>"
+                                               placeholder="Введите название города"
+                                               class="form-control"
+                                               <?= $isTajik ? 'style="display:none;" disabled' : 'required' ?>>
                                         <?php else: ?>
                                         <input type="text" name="city"
                                                value="<?= sanitize($prefillCity) ?>"
                                                placeholder="<?= t('city') ?>"
                                                required>
                                         <?php endif; ?>
-                                    </div>
-                                    <div class="col-lg-6 mb-20">
-                                        <label><?= t('zip_code') ?></label>
-                                        <input type="text" name="zip_code"
-                                               value="<?= sanitize($prefillZip) ?>"
-                                               placeholder="123456"
-                                               maxlength="20">
-                                    </div>
-                                    <div class="col-lg-6 mb-20">
-                                        <label><?= t('country') ?></label>
-                                        <?php
-                                        $countryList = ['Таджикистан', 'Узбекистан', 'Кыргызстан', 'Казахстан', 'Россия', 'Афганистан', 'Туркменистан'];
-                                        $selCountry  = $prefillCountry ?: 'Таджикистан';
-                                        if (!in_array($selCountry, $countryList, true)) { array_unshift($countryList, $selCountry); }
-                                        ?>
-                                        <select name="country" class="form-control">
-                                            <?php foreach ($countryList as $cn): ?>
-                                            <option value="<?= sanitize($cn) ?>" <?= $selCountry === $cn ? 'selected' : '' ?>><?= sanitize($cn) ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
                                     </div>
                                     <div class="col-12 mb-20">
                                         <div class="order-notes">
@@ -408,20 +415,24 @@ require_once dirname(__DIR__) . '/includes/header.php';
 <?php if (!empty($deliveryZones)): ?>
 <script>
 (function () {
-    var subtotal = <?= json_encode(round(convertPrice($cartTotal), 2)) ?>;
-    var symbol   = <?= json_encode(getCurrencySymbol()) ?>;
-    var sel       = document.getElementById('checkout-city');
-    var shipCell  = document.getElementById('summary-shipping');
-    var totalCell = document.getElementById('summary-total');
-    if (!sel) return;
+    var subtotal    = <?= json_encode(round(convertPrice($cartTotal), 2)) ?>;
+    var symbol      = <?= json_encode(getCurrencySymbol()) ?>;
+    var citySelect  = document.getElementById('checkout-city');
+    var cityText    = document.getElementById('checkout-city-text');
+    var countrySel  = document.getElementById('checkout-country');
+    var shipCell    = document.getElementById('summary-shipping');
+    var totalCell   = document.getElementById('summary-total');
 
     function fmt(n) {
         return n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ' + symbol;
     }
-    function update() {
+
+    function updateShipping() {
         var cost = 0, label;
-        if (sel.value) {
-            var opt = sel.options[sel.selectedIndex];
+        if (countrySel && countrySel.value !== 'Таджикистан') {
+            label = 'Уточняется';
+        } else if (citySelect && citySelect.value) {
+            var opt = citySelect.options[citySelect.selectedIndex];
             cost = parseFloat(opt.getAttribute('data-cost')) || 0;
             var days = opt.getAttribute('data-days') || '';
             label = cost > 0 ? fmt(cost) : 'Уточняется';
@@ -432,8 +443,33 @@ require_once dirname(__DIR__) . '/includes/header.php';
         if (shipCell)  shipCell.innerHTML  = '<strong>' + label + '</strong>';
         if (totalCell) totalCell.innerHTML = '<strong>' + fmt(subtotal + cost) + '</strong>';
     }
-    sel.addEventListener('change', update);
-    update();
+
+    function switchCountry() {
+        if (!citySelect || !cityText) return;
+        var isTajik = (countrySel.value === 'Таджикистан');
+        if (isTajik) {
+            citySelect.style.display = '';
+            citySelect.disabled = false;
+            citySelect.required = true;
+            cityText.style.display = 'none';
+            cityText.disabled = true;
+            cityText.required = false;
+            cityText.value = '';
+        } else {
+            citySelect.style.display = 'none';
+            citySelect.disabled = true;
+            citySelect.required = false;
+            cityText.style.display = '';
+            cityText.disabled = false;
+            cityText.required = true;
+            citySelect.value = '';
+        }
+        updateShipping();
+    }
+
+    if (citySelect)  citySelect.addEventListener('change', updateShipping);
+    if (countrySel)  countrySel.addEventListener('change', switchCountry);
+    updateShipping();
 })();
 </script>
 <?php endif; ?>
