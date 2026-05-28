@@ -31,12 +31,16 @@
     /*---slider activation---*/
     var $sliderCarousel = $('.slider_carousel');
     var sliderTimer = null;
+    /* Интервал смены слайдов задаётся в админке (Настройки → сек). Фолбэк 5с. */
+    var sliderIntervalMs = parseInt(window.AZ_SLIDER_INTERVAL_MS, 10);
+    if (!sliderIntervalMs || sliderIntervalMs < 1000) sliderIntervalMs = 5000;
 
-    /* Прогресс-таймер: вставляем новый span в активную точку — анимация стартует с нуля */
+    /* Прогресс-таймер: вставляем новый span в активную точку — анимация стартует с нуля.
+       Длительность анимации точки = интервалу таймера (CSS и setInterval синхронны). */
     function resetSliderDotProgress() {
         $sliderCarousel.find('.owl-dots .owl-dot .dot-progress').remove();
         $sliderCarousel.find('.owl-dots .owl-dot.active')
-            .append('<span class="dot-progress"></span>');
+            .append('<span class="dot-progress" style="animation-duration:' + (sliderIntervalMs / 1000) + 's;"></span>');
     }
 
     /* Свой таймер вместо встроенного owl autoplay.
@@ -48,7 +52,7 @@
         clearInterval(sliderTimer);
         sliderTimer = setInterval(function () {
             $sliderCarousel.trigger('next.owl.carousel');
-        }, 15000);
+        }, sliderIntervalMs);
     }
 
     /* ВАЖНО: события owl стреляют синхронно при .owlCarousel(...),

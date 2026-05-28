@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'site_telegram', 'site_whatsapp', 'site_instagram', 'site_facebook',
         'site_youtube', 'site_tiktok',
         'meta_description', 'meta_keywords',
-        'items_per_page', 'default_lang', 'default_currency',
+        'items_per_page', 'default_lang', 'default_currency', 'slider_interval_sec',
         'warehouse_api_url', 'warehouse_api_key',
         'map_lat', 'map_lng', 'map_zoom',
         'global_markup',
@@ -311,6 +311,13 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 <div class="az-form-group">
                   <label>Товаров на странице</label>
                   <input type="number" name="items_per_page" class="form-control" min="4" max="100" value="<?= sv($settings, 'items_per_page', '12') ?>">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="az-form-group">
+                  <label>Смена слайдов на главной, сек</label>
+                  <input type="number" name="slider_interval_sec" class="form-control" min="2" max="60" step="1" value="<?= sv($settings, 'slider_interval_sec', '5') ?>">
+                  <small class="text-muted">Через сколько секунд главный слайдер меняет слайд (2–60).</small>
                 </div>
               </div>
               <div class="col-md-4">
