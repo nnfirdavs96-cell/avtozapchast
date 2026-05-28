@@ -535,6 +535,16 @@
 .product_carousel:not(.owl-loaded)        { display: flex; flex-wrap: wrap; }
 .product_carousel:not(.owl-loaded) > div  { flex: 0 0 25%; max-width: 25%; padding: 0 8px; }
 
+/* ── Блок «Товары со скидкой»: карусель со стрелками (как в шаблоне) ───────── */
+/* Стрелки ‹ › в правом верхнем углу — на уровне заголовка секции */
+.sale_product_area .product_carousel .owl-nav { top: -54px; right: 2px; }
+/* До инициализации owl показываем 3 карточки в ряд, а не 4 */
+.sale_product_area .product_carousel:not(.owl-loaded) > div { flex: 0 0 33.333%; max-width: 33.333%; }
+/* Отступ справа у ссылки «Скидки →», чтобы стрелки не наезжали на неё */
+@media (min-width: 992px) {
+    .sale_product_area .deal_more_link { margin-right: 92px; }
+}
+
 .categories_product_inner:not(.owl-loaded) { display: flex; flex-wrap: wrap; }
 .categories_product_inner:not(.owl-loaded) > .single_categories_product { flex: 0 0 14.28%; max-width: 14.28%; }
 
