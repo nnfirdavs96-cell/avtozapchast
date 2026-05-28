@@ -368,12 +368,16 @@ require_once __DIR__ . '/includes/header.php';
     ?>
     <div class="product_area sale_product_area" style="padding-top:0;">
         <div class="container">
-            <div class="section_title title_style2" style="display:flex;align-items:baseline;gap:14px;border-bottom:1px solid #eee;padding-bottom:16px;margin-bottom:26px;">
-                <div class="title_content" style="padding:0;background:none;">
-                    <h2 style="margin:0;"><span><?= t('discount_title_1') ?></span> <?= t('discount_title_2') ?></h2>
+            <div class="section_title sale_head" style="position:relative;display:flex;align-items:center;margin-bottom:26px;">
+                <span class="sale_head_line"></span>
+                <div class="title_content" style="position:relative;z-index:1;background:#fff;padding:0 14px 0 0;">
+                    <h2 style="margin:0;font-size:24px;line-height:24px;"><span><?= t('discount_title_1') ?></span> <?= t('discount_title_2') ?></h2>
                 </div>
-                <p style="margin:0;color:#888;font-size:14px;"><?= t('discount_subtitle') ?></p>
-                <a href="<?= APP_URL ?>/catalog/index.php?sale=1" class="deal_more_link" style="margin-left:auto;font-size:13px;font-weight:600;color:#C70909;white-space:nowrap;"><?= t('discount') ?> →</a>
+                <p style="position:relative;z-index:1;background:#fff;margin:0;padding:0 14px;color:#888;font-size:14px;line-height:24px;"><?= t('discount_subtitle') ?></p>
+                <div class="deal_nav" style="margin-left:auto;position:relative;z-index:1;background:#fff;padding-left:14px;">
+                    <button type="button" class="deal_prev" aria-label="Назад"><i class="fa fa-angle-left"></i></button>
+                    <button type="button" class="deal_next" aria-label="Вперёд"><i class="fa fa-angle-right"></i></button>
+                </div>
             </div>
 
             <div class="row">

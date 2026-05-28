@@ -536,13 +536,26 @@
 .product_carousel:not(.owl-loaded) > div  { flex: 0 0 25%; max-width: 25%; padding: 0 8px; }
 
 /* ── Блок «Товары со скидкой»: карусель со стрелками (как в шаблоне) ───────── */
-/* Стрелки ‹ › в правом верхнем углу — на уровне заголовка секции */
-.sale_product_area .product_carousel .owl-nav { top: -54px; right: 2px; }
+/* Прячем авто-стрелки owl — используем свои в заголовке секции */
+.sale_product_area .product_carousel .owl-nav { display: none !important; }
 /* До инициализации owl показываем 3 карточки в ряд, а не 4 */
 .sale_product_area .product_carousel:not(.owl-loaded) > div { flex: 0 0 33.333%; max-width: 33.333%; }
-/* Отступ справа у ссылки «Скидки →», чтобы стрелки не наезжали на неё */
-@media (min-width: 992px) {
-    .sale_product_area .deal_more_link { margin-right: 92px; }
+/* Аккуратные стрелки ‹ › в заголовке, выровненные по строке заголовка */
+.deal_nav { display: inline-flex; align-items: center; gap: 6px; }
+.deal_nav button {
+    width: 34px; height: 34px;
+    border: 1px solid #e5e5e5; background: #fff; color: #555;
+    border-radius: 3px; font-size: 18px; line-height: 1; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background .2s, color .2s, border-color .2s;
+}
+.deal_nav button:hover { background: #C70909; border-color: #C70909; color: #fff; }
+/* Тонкая линия по центру заголовка (как в шаблоне), замаскирована белым фоном текста/стрелок */
+.sale_head .sale_head_line { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: #ebebeb; z-index: 0; }
+@media (max-width: 575px) {
+    .sale_head { flex-wrap: wrap; }
+    .sale_head .sale_head_line { display: none; }
+    .sale_head .deal_nav { margin-top: 8px; }
 }
 
 .categories_product_inner:not(.owl-loaded) { display: flex; flex-wrap: wrap; }
