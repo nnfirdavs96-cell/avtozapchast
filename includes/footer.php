@@ -141,7 +141,8 @@ $siteWa      = getSetting('site_whatsapp', '');
 
 <!-- Mazlay JS (plugins.js bundles jQuery + Bootstrap + all plugins) -->
 <script>window.APP_URL = <?= json_encode(APP_URL) ?>;
-window.PHONE_COUNTRIES = <?= json_encode(enabledPhoneCountries(), JSON_UNESCAPED_UNICODE) ?>;</script>
+window.PHONE_COUNTRIES = <?= json_encode(enabledPhoneCountries(), JSON_UNESCAPED_UNICODE) ?>;
+window.AZ_SLIDER_INTERVAL_MS = <?= (int) (max(2, min(60, (int) getSetting('slider_interval_sec', '5'))) * 1000) ?>;</script>
 <?php
 $mainJsV = @filemtime(APP_ROOT . '/assets/mazlay-js/main.js') ?: time();
 $appJsV  = @filemtime(APP_ROOT . '/assets/js/app.js') ?: time();

@@ -363,7 +363,7 @@ require_once __DIR__ . '/includes/header.php';
     <!--sale products area start-->
     <?php if (!empty($saleParts)):
         $featDeal   = $saleParts[0];                 // самая большая скидка — крупная карточка
-        $smallDeals = array_slice($saleParts, 1, 4); // следующие — мелкие карточки
+        $smallDeals = array_slice($saleParts, 1);    // остальные — в карусель со стрелками
         $featImg    = productImageUrl($featDeal['images']);
     ?>
     <div class="product_area sale_product_area" style="padding-top:0;">
@@ -373,7 +373,7 @@ require_once __DIR__ . '/includes/header.php';
                     <h2 style="margin:0;"><span><?= t('discount_title_1') ?></span> <?= t('discount_title_2') ?></h2>
                 </div>
                 <p style="margin:0;color:#888;font-size:14px;"><?= t('discount_subtitle') ?></p>
-                <a href="<?= APP_URL ?>/catalog/index.php?sale=1" style="margin-left:auto;font-size:13px;font-weight:600;color:#C70909;white-space:nowrap;"><?= t('discount') ?> →</a>
+                <a href="<?= APP_URL ?>/catalog/index.php?sale=1" class="deal_more_link" style="margin-left:auto;font-size:13px;font-weight:600;color:#C70909;white-space:nowrap;"><?= t('discount') ?> →</a>
             </div>
 
             <div class="row">
@@ -410,13 +410,13 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                 </div>
 
-                <!-- Мелкие карточки -->
+                <!-- Мелкие карточки — карусель со стрелками (видно 3, остальные листаются) -->
                 <div class="col-lg-7 col-md-6">
-                    <div class="row shop_wrapper">
+                    <div class="product_carousel product_column3 owl-carousel">
                         <?php foreach ($smallDeals as $part):
                             $sImg = productImageUrl($part['images']);
                         ?>
-                        <div class="col-lg-3 col-md-6 col-6 mb-30">
+                        <div class="col-lg-3 mb-30">
                             <article class="single_product">
                                 <figure>
                                     <div class="product_thumb">
