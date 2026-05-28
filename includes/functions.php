@@ -1320,6 +1320,51 @@ function normalizeSliderBlocks(array $raw): array {
 }
 
 /**
+ * Swap ONLY the slider photos to the real Mazlay template hero images (one-time).
+ *
+ * The user's slides keep ALL their text — we touch only the image columns. The old
+ * demo had a wrong photo (a blue Lamborghini placeholder); we replace it with the
+ * genuine 1920×500 template images:
+ *   hero1.jpg — салон/интерьер · hero2.jpg — тягач · hero3.jpg — Fidanza спорткар
+ *
+ * Each existing slide is matched to the most fitting photo by keywords in its text
+ * (Fidanza / тягач / салон); anything else falls back to position order.
+ *
+ * Self-guarded by the 'slider_photos_template_v1' setting so it runs once.
+ */
+function seedSliderTemplate(): void {
+    if (getSetting('slider_photos_template_v1', '')) return;
+    $db = getDB();
+
+    $fidanza  = '/assets/img/slider/hero3.jpg'; // спорткар Fidanza
+    $truck    = '/assets/img/slider/hero2.jpg'; // тягач с прицепом
+    $interior = '/assets/img/slider/hero1.jpg'; // салон автомобиля
+    $byOrder  = [$interior, $truck, $fidanza];  // дефолтный порядок шаблона
+
+    try {
+        $slides = $db->query("SELECT id, title, text_blocks, text_blocks_mobile FROM sliders ORDER BY sort_order ASC, id ASC")->fetchAll();
+        if (!$slides) { setSetting('slider_photos_template_v1', '1'); return; } // нет слайдов — менять нечего
+
+        // Pick the best photo for a slide from the words in its text.
+        $pick = function (array $row) use ($fidanza, $truck, $interior): ?string {
+            $hay = mb_strtolower(($row['title'] ?? '') . ' ' . ($row['text_blocks'] ?? '') . ' ' . ($row['text_blocks_mobile'] ?? ''));
+            if (preg_match('/fidanza|фиданза/u', $hay))               return $fidanza;
+            if (preg_match('/тягач|прицеп|грузов|truck/u', $hay))     return $truck;
+            if (preg_match('/салон|интерьер|interior|cabin/u', $hay)) return $interior;
+            return null;
+        };
+
+        // Update only the image columns; text is left untouched.
+        $upd = $db->prepare("UPDATE sliders SET image_url = ?, image_url_mobile = '' WHERE id = ?");
+        foreach ($slides as $i => $row) {
+            $img = $pick($row) ?? $byOrder[$i % 3];
+            $upd->execute([$img, $row['id']]);
+        }
+        setSetting('slider_photos_template_v1', '1');
+    } catch (Exception $e) { /* leave flag unset → retried next load */ }
+}
+
+/**
  * Seed the banners table with the 3 Mazlay template slider images (one-time).
  * Only runs when the banners table is empty; call is guarded by 'banners_seed_done' setting.
  */

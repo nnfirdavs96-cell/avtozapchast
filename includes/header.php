@@ -28,6 +28,7 @@ if (!getSetting('banners_seed_done', '')) {
     seedBanners();
     setSetting('banners_seed_done', '1');
 }
+seedSliderTemplate(); // swaps only slider photos to template images (self-guarded, one-time)
 
 $categories  = getCategories();
 $catTree     = getCategoryTree($categories);
