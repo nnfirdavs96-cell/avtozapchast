@@ -312,8 +312,18 @@
 			},    
 		  }
     });
-    
-    
+
+    /*--- свои стрелки для блока «Товары со скидкой» ---*/
+    $(document).on('click', '.deal_next', function (e) {
+        e.preventDefault();
+        $('.sale_product_area .product_carousel').trigger('next.owl.carousel');
+    });
+    $(document).on('click', '.deal_prev', function (e) {
+        e.preventDefault();
+        $('.sale_product_area .product_carousel').trigger('prev.owl.carousel');
+    });
+
+
     /*---product column2 activation---*/
        $('.product_column2').on('changed.owl.carousel initialized.owl.carousel', function (event) {
         $(event.target).find('.owl-item').removeClass('last').eq(event.item.index + event.page.size - 1).addClass('last')}).owlCarousel({
