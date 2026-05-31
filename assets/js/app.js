@@ -364,6 +364,22 @@ document.addEventListener('DOMContentLoaded', function () {
         }, true);
     });
 
+    // ── Надёжное закрытие мини-корзины (оверлей / крестик / Escape).
+    //    Дублирует обработчики темы — гарантирует, что панель всегда закрывается.
+    function closeMiniCart() {
+        document.querySelectorAll('.mini_cart, .off_canvars_overlay, .offcanvas_menu_wrapper')
+            .forEach(function (el) { el.classList.remove('active'); });
+    }
+    document.addEventListener('click', function (e) {
+        if (e.target.classList.contains('off_canvars_overlay') || e.target.closest('.mini_cart_close')) {
+            e.preventDefault();
+            closeMiniCart();
+        }
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' || e.keyCode === 27) closeMiniCart();
+    });
+
     // ── Filter sidebar accordion: на мобиле каждый widget_list — collapsible
     if (isMobile()) {
         document.querySelectorAll('.sidebar_widget .widget_list').forEach(function (w) {
