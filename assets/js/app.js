@@ -1,6 +1,19 @@
 /* АвтоЗапчасть — app.js */
 
 // Add to cart via AJAX
+function refreshMiniCart() {
+    fetch('/api/cart.php?action=mini')
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            document.querySelectorAll('.cart_count').forEach(function(el) { el.textContent = d.cart_count; });
+            document.querySelectorAll('.cart_amount').forEach(function(el) { el.innerHTML = d.cart_total_html; });
+            document.querySelectorAll('.cart_subtotal').forEach(function(el) { el.innerHTML = d.cart_total_html; });
+            var items = document.querySelector('.mini_cart_items');
+            if (items) items.innerHTML = d.items_html;
+        })
+        .catch(function() {});
+}
+
 function addToCart(partId, qty) {
     qty = qty || 1;
     fetch('/api/cart.php', {
@@ -8,17 +21,22 @@ function addToCart(partId, qty) {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({action:'add', part_id: partId, quantity: qty, _csrf: window._csrf})
     })
-    .then(r => r.json())
-    .then(d => {
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
         if (d.success) {
             showToast(d.message || 'Добавлено в корзину', 'success');
-            document.querySelectorAll('.cart_count').forEach(el => el.textContent = d.cart_count);
+            document.querySelectorAll('.cart_count').forEach(function(el) { el.textContent = d.cart_count; });
+            if (d.cart_total_html) {
+                document.querySelectorAll('.cart_amount').forEach(function(el) { el.innerHTML = d.cart_total_html; });
+                document.querySelectorAll('.cart_subtotal').forEach(function(el) { el.innerHTML = d.cart_total_html; });
+            }
+            refreshMiniCart();
         } else {
             if (d.redirect) { window.location = d.redirect; }
             else showToast(d.message || 'Ошибка', 'danger');
         }
     })
-    .catch(() => showToast('Ошибка соединения', 'danger'));
+    .catch(function() { showToast('Ошибка соединения', 'danger'); });
 }
 
 // Add to wishlist via AJAX
