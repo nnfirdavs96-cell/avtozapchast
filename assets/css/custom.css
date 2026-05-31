@@ -1,7 +1,9 @@
 /* АвтоЗапчасть — custom overrides for Mazlay template */
 
 /* Оверлей закрывает боковые панели — курсор-указатель, не крестик */
-.off_canvars_overlay { cursor: pointer !important; }
+.off_canvars_overlay { cursor: pointer !important; z-index: 9998 !important; }
+/* Панель мини-корзины (вынесена JS на уровень body) — выше оверлея, чтобы кнопки нажимались */
+.mini_cart { z-index: 10000 !important; }
 
 /* Валюта в цене — мелкими строчными буквами после суммы (650.00 смн) */
 .cur-sym {

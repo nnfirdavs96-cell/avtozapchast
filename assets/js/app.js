@@ -87,6 +87,13 @@ function applyResponsiveBg() {
 // Mazlay main.js re-applies data-bgimg on window 'load'; run after it so the mobile variant wins.
 window.addEventListener('load', applyResponsiveBg);
 document.addEventListener('DOMContentLoaded', function () {
+    // Вынести панель мини-корзины на уровень body — иначе она «заперта»
+    // в стэкинг-контексте .main_header (z-index:100) и серый оверлей перекрывает её кнопки.
+    var _mc = document.querySelector('.mini_cart');
+    if (_mc && _mc.parentElement !== document.body) {
+        document.body.appendChild(_mc);
+    }
+
     applyResponsiveBg();
     var _bgResizeT;
     window.addEventListener('resize', function () {
