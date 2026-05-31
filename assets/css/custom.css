@@ -1,5 +1,8 @@
 /* АвтоЗапчасть — custom overrides for Mazlay template */
 
+/* Оверлей закрывает боковые панели — курсор-указатель, не крестик */
+.off_canvars_overlay { cursor: pointer !important; }
+
 /* Валюта в цене — мелкими строчными буквами после суммы (650.00 смн) */
 .cur-sym {
     font-size: 0.72em;
