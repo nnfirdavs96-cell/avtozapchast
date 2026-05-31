@@ -365,17 +365,23 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // ── Надёжное закрытие мини-корзины (оверлей / крестик / Escape).
-    //    Дублирует обработчики темы — гарантирует, что панель всегда закрывается.
     function closeMiniCart() {
-        document.querySelectorAll('.mini_cart, .off_canvars_overlay, .offcanvas_menu_wrapper')
-            .forEach(function (el) { el.classList.remove('active'); });
+        var els = document.querySelectorAll('.mini_cart, .off_canvars_overlay, .offcanvas_menu_wrapper');
+        els.forEach(function (el) { el.classList.remove('active'); });
+        // также через jQuery чтобы перекрыть обработчики темы
+        if (window.jQuery) {
+            jQuery('.mini_cart,.off_canvars_overlay,.offcanvas_menu_wrapper').removeClass('active');
+        }
     }
+    // Вешаем на capture-фазу — сработает раньше, чем jQuery-обработчики темы
     document.addEventListener('click', function (e) {
-        if (e.target.classList.contains('off_canvars_overlay') || e.target.closest('.mini_cart_close')) {
-            e.preventDefault();
+        var tgt = e.target;
+        if (tgt.classList.contains('off_canvars_overlay') ||
+            tgt.closest('.mini_cart_close') ||
+            tgt.closest('.mini_cart_wrapper .mini_cart_close')) {
             closeMiniCart();
         }
-    });
+    }, true);
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' || e.keyCode === 27) closeMiniCart();
     });
