@@ -273,7 +273,7 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
                                 <div class="mini_cart_wrapper">
                                     <a href="javascript:void(0)">
                                         <i class="icon-shopping-bag2"></i>
-                                        <span class="cart_price"><?= formatPrice($miniTotal) ?> <i class="ion-ios-arrow-down"></i></span>
+                                        <span class="cart_price"><span class="cart_amount"><?= formatPrice($miniTotal) ?></span> <i class="ion-ios-arrow-down"></i></span>
                                         <span class="cart_count"><?= $cartCount ?></span>
                                     </a>
                                     <div class="mini_cart">
@@ -282,6 +282,7 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
                                                 <div class="cart_text"><h3><?= t('shopping_cart') ?></h3></div>
                                                 <div class="mini_cart_close"><a href="javascript:void(0)"><i class="icon-x"></i></a></div>
                                             </div>
+                                            <div class="mini_cart_items">
                                             <?php if (empty($miniCart)): ?>
                                             <p style="padding:16px;color:#888;text-align:center"><?= t('cart_empty') ?></p>
                                             <?php else: foreach ($miniCart as $item): ?>
@@ -300,10 +301,11 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
                                                 </div>
                                             </div>
                                             <?php endforeach; endif; ?>
+                                            </div>
                                             <div class="mini_cart_table">
                                                 <div class="cart_total">
                                                     <span><?= t('subtotal') ?>:</span>
-                                                    <span class="price"><?= formatPrice($miniTotal) ?></span>
+                                                    <span class="price cart_subtotal"><?= formatPrice($miniTotal) ?></span>
                                                 </div>
                                             </div>
                                         </div>

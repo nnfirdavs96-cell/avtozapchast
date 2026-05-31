@@ -43,6 +43,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         exit;
     }
     $db = getDB();
+
+    // mini — returns cart_count + cart_total_html + items HTML for live update
+    if ($action === 'mini') {
+        $userId = (int)$_SESSION['user_id'];
+        $cnt    = cartCount($db, $userId);
+        $total  = cartTotal($db, $userId);
+        $items  = $db->prepare(
+            "SELECT p.id, p.name, p.price, p.images, c.quantity
+             FROM cart c JOIN parts p ON p.id = c.part_id WHERE c.user_id = ? ORDER BY c.added_at DESC"
+        );
+        $items->execute([$userId]);
+        $rows = $items->fetchAll();
+        $csrf = generateCsrfToken();
+        ob_start();
+        if (empty($rows)) {
+            echo '<p style="padding:16px;color:#888;text-align:center">' . t('cart_empty') . '</p>';
+        } else {
+            foreach ($rows as $row) {
+                $img = productImageUrl($row['images']);
+                $url = APP_URL . '/catalog/part.php?id=' . (int)$row['id'];
+                echo '<div class="cart_item">'
+                   . '<div class="cart_img"><a href="' . $url . '"><img src="' . sanitize($img) . '" alt="' . sanitize($row['name']) . '" style="width:60px;height:60px;object-fit:cover"></a></div>'
+                   . '<div class="cart_info"><a href="' . $url . '">' . sanitize(truncate($row['name'], 40)) . '</a>'
+                   . '<p>' . t('quantity') . ': ' . (int)$row['quantity'] . ' &times; <span>' . formatPrice($row['price']) . '</span></p></div>'
+                   . '<div class="cart_remove"><a href="' . APP_URL . '/api/cart.php?action=remove&part_id=' . (int)$row['id'] . '&_csrf=' . $csrf . '"><i class="ion-android-close"></i></a></div>'
+                   . '</div>';
+            }
+        }
+        $itemsHtml = ob_get_clean();
+        echo json_encode([
+            'cart_count'     => $cnt,
+            'cart_total_html'=> formatPrice($total),
+            'items_html'     => $itemsHtml,
+        ]);
+        exit;
+    }
+
     echo json_encode(['cart_count' => cartCount($db, (int)$_SESSION['user_id'])]);
     exit;
 }
@@ -104,11 +141,13 @@ switch ($action) {
              ON DUPLICATE KEY UPDATE quantity = LEAST(quantity + VALUES(quantity), 99), added_at = NOW()"
         )->execute([$userId, $partId, $qty]);
 
+        $newTotal = cartTotal($db, $userId);
         echo json_encode([
-            'success'    => true,
-            'cart_count' => cartCount($db, $userId),
-            'cart_total' => cartTotal($db, $userId),
-            'message'    => 'Товар добавлен в корзину.',
+            'success'         => true,
+            'cart_count'      => cartCount($db, $userId),
+            'cart_total'      => $newTotal,
+            'cart_total_html' => formatPrice($newTotal),
+            'message'         => 'Товар добавлен в корзину.',
         ]);
         break;
     }
