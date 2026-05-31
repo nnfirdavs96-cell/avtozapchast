@@ -550,11 +550,13 @@
     transition: background .2s, color .2s, border-color .2s;
 }
 .deal_nav button:hover { background: #C70909; border-color: #C70909; color: #fff; }
-/* Тонкая линия по центру заголовка (как в шаблоне), замаскирована белым фоном текста/стрелок */
-.sale_head .sale_head_line { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: #ebebeb; z-index: 0; }
+/* Тонкая линия в зазоре между подзаголовком и стрелками (как в шаблоне).
+   Это растягивающийся flex-элемент — без белых масок, поэтому фона за текстом нет. */
+.sale_head .sale_head_line { flex: 1 1 auto; height: 1px; background: #ebebeb; margin: 0 18px; }
+.sale_head .deal_nav { flex: 0 0 auto; }
 @media (max-width: 575px) {
     .sale_head { flex-wrap: wrap; }
-    .sale_head .sale_head_line { display: none; }
+    .sale_head .sale_head_line { flex-basis: 100%; margin: 10px 0 0; }
     .sale_head .deal_nav { margin-top: 8px; }
 }
 
