@@ -410,7 +410,9 @@ class VinService
     {
         $provider = getSetting('vin_api_provider', 'nhtsa');
         $timeout  = (int)getSetting('vin_api_timeout', '8');
-        return $provider === 'custom'
+        // 'custom' and 'partsapi' both use the admin-configured URL+key template;
+        // 'partsapi' is just a labelled preset of the same mechanism.
+        return ($provider === 'custom' || $provider === 'partsapi')
             ? self::callCustomApi($vin, $timeout)
             : self::callNhtsa($vin, $timeout);
     }
@@ -459,7 +461,9 @@ class VinService
         $key = getSetting('vin_api_key', '');
         if (!$url) return [];
 
-        $url  = str_replace(['{VIN}', '{vin}'], $vin, $url);
+        // {VIN} and {KEY} placeholders (case-insensitive) — supports both
+        // query-param keys (…?key={KEY}&vin={VIN}) and header-based auth below.
+        $url  = str_ireplace(['{VIN}', '{KEY}'], [rawurlencode($vin), rawurlencode($key)], $url);
         $hdrs = array_filter([
             "Accept: application/json",
             $key ? "Authorization: Bearer {$key}" : '',

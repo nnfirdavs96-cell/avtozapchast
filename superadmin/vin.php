@@ -3,6 +3,7 @@ require_once dirname(__DIR__) . '/config/config.php';
 requireRole(['admin', 'manager', 'superadmin']);
 requirePermission('vin');
 require_once dirname(__DIR__) . '/includes/vin_service.php';
+require_once dirname(__DIR__) . '/includes/catalog_api.php';
 
 $db     = getDB();
 $csrf   = generateCsrfToken();
@@ -28,6 +29,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                ->execute([$key, $val, $val]);
         }
         flashMessage('success', 'Настройки VIN сохранены.');
+        redirect(APP_URL . '/superadmin/vin.php?action=settings');
+    }
+
+    // Save external CATALOG API settings (superadmin only)
+    if ($postAction === 'save_catalog_settings' && $role === 'superadmin') {
+        // Checkbox → explicit '0'/'1'
+        setSetting('catalog_api_enabled', isset($_POST['catalog_api_enabled']) ? '1' : '0');
+        foreach (['catalog_api_provider', 'catalog_api_url', 'catalog_api_key', 'catalog_api_timeout'] as $key) {
+            setSetting($key, trim($_POST[$key] ?? ''));
+        }
+        flashMessage('success', 'Настройки каталога сохранены.');
         redirect(APP_URL . '/superadmin/vin.php?action=settings');
     }
 
@@ -101,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ── Load data ─────────────────────────────────────────────────────────────────
-$settingsRaw = $db->query("SELECT `key`,`value` FROM site_settings WHERE `key` LIKE 'vin_%'")->fetchAll();
+$settingsRaw = $db->query("SELECT `key`,`value` FROM site_settings WHERE `key` LIKE 'vin_%' OR `key` LIKE 'catalog_%'")->fetchAll();
 $settings = [];
 foreach ($settingsRaw as $r) $settings[$r['key']] = $r['value'];
 
@@ -173,6 +185,12 @@ if ($action === 'settings' && isset($_GET['test_vin'])) {
     } else {
         $testResult = ['error' => 'Неверный VIN'];
     }
+}
+
+// Test external CATALOG connection (via GET)
+$catalogTest = null;
+if ($action === 'settings' && isset($_GET['test_catalog']) && $role === 'superadmin') {
+    $catalogTest = CatalogApi::testConnection(trim($_GET['test_catalog']));
 }
 
 $pageTitle = 'VIN-поиск — Администрирование';
@@ -269,22 +287,27 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                         <option value="nhtsa"  <?= ($settings['vin_api_provider']??'nhtsa')==='nhtsa' ?'selected':'' ?>>
                             NHTSA (бесплатный, без ключа) — США/Япония/Европа
                         </option>
+                        <option value="partsapi" <?= ($settings['vin_api_provider']??'')==='partsapi'?'selected':'' ?>>
+                            PartsAPI / TecDoc (платный, по ключу) — СНГ/Россия
+                        </option>
                         <option value="custom" <?= ($settings['vin_api_provider']??'')==='custom'?'selected':'' ?>>
-                            Платный / собственный API
+                            Другой / собственный API
                         </option>
                     </select>
                 </div>
 
-                <div id="customFields" style="display:<?= ($settings['vin_api_provider']??'nhtsa')==='custom'?'block':'none' ?>;">
+                <?php $vinCustom = in_array(($settings['vin_api_provider'] ?? 'nhtsa'), ['custom','partsapi'], true); ?>
+                <div id="customFields" style="display:<?= $vinCustom ? 'block' : 'none' ?>;">
                     <div class="az-form-group">
-                        <label>URL платного API <small style="color:#888;">(используйте {VIN} как плейсхолдер)</small></label>
+                        <label>URL API <small style="color:#888;">(плейсхолдеры {VIN} и {KEY})</small></label>
                         <input type="text" name="vin_api_url" value="<?= sv2($settings,'vin_api_url') ?>"
-                               placeholder="https://api.vinprovider.com/decode/{VIN}">
+                               placeholder="https://api.partsapi.ru/?method=VINdecode&key={KEY}&vin={VIN}&format=json">
                     </div>
                     <div class="az-form-group">
                         <label>API ключ</label>
                         <input type="text" name="vin_api_key" value="<?= sv2($settings,'vin_api_key') ?>"
-                               placeholder="sk_live_...">
+                               placeholder="вставьте ключ от провайдера">
+                        <small style="color:#888;">Ключ подставляется в {KEY} URL и в заголовки Authorization / X-Api-Key.</small>
                     </div>
                 </div>
 
@@ -358,8 +381,120 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
         <p style="margin:0;font-size:0.875rem;color:#6d4c41;line-height:1.6;">
             Сейчас используется <strong>NHTSA</strong> — бесплатный US-сервис без ключа. Хорошо работает для Toyota, Honda, Nissan, BMW, Mercedes, VW, Audi, Renault и других крупных марок.
             Для российских автомобилей (Lada, GAZ, UAZ) данные берутся из локальной базы WMI.<br>
-            Когда приобретёте платный API — укажите URL и ключ выше, переключите провайдер на «Платный».
+            Когда приобретёте платный API — укажите URL и ключ выше, переключите провайдер на «PartsAPI / TecDoc».
         </p>
+    </div>
+
+    <!-- ── External CATALOG integration (parts by VIN) ─────────────────── -->
+    <?php
+        $catEnabled  = ($settings['catalog_api_enabled'] ?? '0') === '1';
+        $catHasKey   = trim($settings['catalog_api_key'] ?? '') !== '';
+        $catHasUrl   = trim($settings['catalog_api_url'] ?? '') !== '';
+        $catLive     = $catEnabled && $catHasUrl;
+        $catProvider = $settings['catalog_api_provider'] ?? 'partsapi';
+    ?>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;margin-top:24px;">
+        <div class="az-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                <h3 style="margin:0;"><i class="fa fa-book" style="color:#d32f2f;"></i> Каталог запчастей (внешний API)</h3>
+                <span style="font-size:0.75rem;font-weight:700;padding:3px 10px;border-radius:20px;<?= $catLive ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#f0f1f5;color:#888;' ?>">
+                    <?= $catLive ? '● Подключён' : '○ Выключен' ?>
+                </span>
+            </div>
+            <p style="color:#888;font-size:0.82rem;margin:0 0 14px;">
+                Подбор запчастей по VIN из внешнего каталога (PartsAPI / TecDoc). Пока выключено — сайт
+                работает на бесплатном поиске и собственном каталоге.
+            </p>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
+                <input type="hidden" name="action" value="save_catalog_settings">
+
+                <div class="az-form-group">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                        <input type="checkbox" name="catalog_api_enabled" value="1" <?= $catEnabled ? 'checked' : '' ?>>
+                        Включить каталог по API
+                    </label>
+                </div>
+
+                <div class="az-form-group">
+                    <label>Провайдер каталога</label>
+                    <select name="catalog_api_provider" id="catalogProviderSelect" onchange="toggleCatalogCustom()">
+                        <option value="partsapi" <?= $catProvider==='partsapi'?'selected':'' ?>>PartsAPI / TecDoc — СНГ/Россия</option>
+                        <option value="custom"   <?= $catProvider==='custom'?'selected':'' ?>>Другой / собственный API</option>
+                    </select>
+                </div>
+
+                <div class="az-form-group">
+                    <label>URL запроса <small style="color:#888;">(плейсхолдеры {VIN} и {KEY})</small></label>
+                    <input type="text" name="catalog_api_url" value="<?= sv2($settings,'catalog_api_url') ?>"
+                           placeholder="https://api.partsapi.ru/?method=PartsByVIN&key={KEY}&vin={VIN}&format=json">
+                    <small id="catalogUrlHint" style="color:#888;">
+                        <?= $catProvider==='partsapi'
+                            ? 'Пример: https://api.partsapi.ru/?method=PartsByVIN&key={KEY}&vin={VIN}&format=json'
+                            : 'Укажите URL вашего провайдера с плейсхолдерами {VIN} и {KEY}.' ?>
+                    </small>
+                </div>
+
+                <div class="az-form-group">
+                    <label>API ключ</label>
+                    <input type="text" name="catalog_api_key" value="<?= sv2($settings,'catalog_api_key') ?>"
+                           placeholder="вставьте ключ от провайдера">
+                </div>
+
+                <div class="az-form-group">
+                    <label>Таймаут запроса (сек)</label>
+                    <input type="number" name="catalog_api_timeout" min="2" max="30"
+                           value="<?= sv2($settings,'catalog_api_timeout','10') ?>">
+                </div>
+
+                <button type="submit" class="az-btn az-btn-primary">
+                    <i class="fa fa-save"></i> Сохранить каталог
+                </button>
+            </form>
+        </div>
+
+        <!-- Catalog connection test -->
+        <div class="az-card">
+            <h3><i class="fa fa-plug"></i> Проверить соединение</h3>
+            <p style="color:#888;font-size:0.85rem;margin-bottom:14px;">
+                Отправит тестовый запрос к каталогу и покажет результат. Сначала сохраните настройки.
+            </p>
+            <form method="GET">
+                <input type="hidden" name="action" value="settings">
+                <div style="display:flex;gap:8px;">
+                    <input type="text" name="test_catalog" maxlength="17"
+                           value="<?= sanitize($_GET['test_catalog'] ?? '') ?>"
+                           placeholder="VIN (необязательно)"
+                           style="flex:1;font-family:monospace;text-transform:uppercase;padding:8px 12px;border:1px solid #ced4da;border-radius:6px;font-size:0.875rem;outline:none;">
+                    <button type="submit" class="az-btn az-btn-primary az-btn-sm">
+                        <i class="fa fa-plug"></i> Тест
+                    </button>
+                </div>
+            </form>
+
+            <?php if ($catalogTest !== null): ?>
+            <div style="margin-top:16px;background:<?= $catalogTest['ok'] ? '#e8f5e9' : '#fff3cd' ?>;border-radius:8px;padding:14px;font-size:0.85rem;color:<?= $catalogTest['ok'] ? '#1b5e20' : '#856404' ?>;">
+                <div style="font-weight:700;margin-bottom:6px;">
+                    <i class="fa fa-<?= $catalogTest['ok'] ? 'check-circle' : 'exclamation-triangle' ?>"></i>
+                    <?= sanitize($catalogTest['message']) ?>
+                    <?php if ($catalogTest['http']): ?><span style="opacity:0.7;">(HTTP <?= (int)$catalogTest['http'] ?>)</span><?php endif; ?>
+                </div>
+                <?php if (!empty($catalogTest['sample'])): ?>
+                <details style="margin-top:6px;">
+                    <summary style="cursor:pointer;color:#666;">Ответ сервера (фрагмент)</summary>
+                    <pre style="white-space:pre-wrap;word-break:break-all;background:#fff;border-radius:6px;padding:10px;margin-top:6px;font-size:0.72rem;max-height:200px;overflow:auto;"><?= sanitize($catalogTest['sample']) ?></pre>
+                </details>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+
+            <div style="margin-top:16px;font-size:0.8rem;color:#888;line-height:1.6;">
+                <strong>Статус:</strong>
+                каталог <?= $catEnabled ? 'включён' : 'выключен' ?>,
+                URL <?= $catHasUrl ? 'задан' : 'не задан' ?>,
+                ключ <?= $catHasKey ? 'задан' : 'не задан' ?>.
+            </div>
+        </div>
     </div>
     <?php else: ?>
     <div class="az-card">
@@ -628,7 +763,16 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
 <script>
 function toggleCustom() {
     const v = document.getElementById('providerSelect');
-    if (v) document.getElementById('customFields').style.display = v.value === 'custom' ? 'block' : 'none';
+    if (v) document.getElementById('customFields').style.display =
+        (v.value === 'custom' || v.value === 'partsapi') ? 'block' : 'none';
+}
+function toggleCatalogCustom() {
+    const v = document.getElementById('catalogProviderSelect');
+    const box = document.getElementById('catalogUrlHint');
+    if (!v || !box) return;
+    box.textContent = v.value === 'partsapi'
+        ? 'Пример: https://api.partsapi.ru/?method=PartsByVIN&key={KEY}&vin={VIN}&format=json'
+        : 'Укажите URL вашего провайдера с плейсхолдерами {VIN} и {KEY}.';
 }
 </script>
 

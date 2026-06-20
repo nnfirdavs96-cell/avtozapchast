@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/vin_service.php';
+require_once dirname(__DIR__) . '/includes/catalog_api.php';
 
 function getCarImageUrl(string $make, string $model, int $year): string {
     $make  = strtolower(trim($make));
@@ -42,6 +43,7 @@ $vin            = strtoupper(trim($_GET['vin'] ?? $_POST['vin'] ?? ''));
 $filterCat      = (int)($_GET['cat'] ?? 0);
 $result         = null;
 $compatParts    = [];
+$catalogParts   = [];
 $facets         = [];
 $error          = '';
 $searchPerfomed = false;
@@ -66,6 +68,10 @@ if ($vin) {
             if (isLoggedIn()) {
                 VinService::recordSearch((int)$_SESSION['user_id'], $vin, $result);
             }
+        }
+        // External catalog (PartsAPI/TecDoc) — only when admin enabled it.
+        if (CatalogApi::enabled()) {
+            $catalogParts = CatalogApi::searchByVin($vin);
         }
     }
 }
@@ -324,6 +330,61 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 <i class="fa fa-search"></i> Найти в каталоге
             </a>
         </div>
+        <?php endif; ?>
+
+        <!-- ── External catalog parts (PartsAPI/TecDoc), shown only when enabled ── -->
+        <?php if (!empty($catalogParts)): ?>
+        <h2 style="font-size:1.3rem;font-weight:700;margin:8px 0 20px;color:#1a1a2e;">
+            <i class="fa fa-book" style="color:#d32f2f;"></i>
+            Запчасти из каталога TecDoc
+            <span style="color:#888;font-weight:400;font-size:0.9rem;">(<?= count($catalogParts) ?>)</span>
+        </h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;margin-bottom:40px;">
+            <?php foreach ($catalogParts as $cp): ?>
+            <div style="background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.07);overflow:hidden;display:flex;flex-direction:column;">
+                <?php if (!empty($cp['image'])): ?>
+                <img src="<?= sanitize($cp['image']) ?>" alt="<?= sanitize($cp['name']) ?>"
+                     style="width:100%;height:160px;object-fit:contain;background:#fafafa;"
+                     onerror="this.style.display='none';">
+                <?php else: ?>
+                <div style="width:100%;height:120px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;color:#ddd;font-size:2rem;">
+                    <i class="fa fa-cog"></i>
+                </div>
+                <?php endif; ?>
+                <div style="padding:14px 16px;flex:1;display:flex;flex-direction:column;">
+                    <?php if (!empty($cp['brand'])): ?>
+                    <div style="font-size:0.72rem;color:#aaa;margin-bottom:4px;"><?= sanitize($cp['brand']) ?></div>
+                    <?php endif; ?>
+                    <div style="font-weight:600;color:#1a1a2e;font-size:0.9rem;margin-bottom:4px;line-height:1.3;">
+                        <?= sanitize(truncate($cp['name'], 70)) ?>
+                    </div>
+                    <?php if (!empty($cp['part_number'])): ?>
+                    <div style="font-size:0.7rem;color:#bbb;font-family:monospace;margin-bottom:8px;">
+                        <?= sanitize($cp['part_number']) ?>
+                    </div>
+                    <?php endif; ?>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;">
+                        <?php if ($cp['price'] !== null && $cp['price'] !== ''): ?>
+                        <span style="font-size:1.05rem;font-weight:800;color:#d32f2f;">
+                            <?= is_numeric($cp['price']) ? formatPrice((float)$cp['price']) : sanitize((string)$cp['price']) ?>
+                        </span>
+                        <?php else: ?>
+                        <span style="font-size:0.8rem;color:#aaa;">Цена по запросу</span>
+                        <?php endif; ?>
+                        <?php if (!empty($cp['url'])): ?>
+                        <a href="<?= sanitize($cp['url']) ?>" target="_blank" rel="noopener"
+                           style="font-size:0.78rem;color:#d32f2f;font-weight:600;text-decoration:none;">
+                            Подробнее <i class="fa fa-external-link"></i>
+                        </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <p style="text-align:center;color:#bbb;font-size:0.78rem;margin:-20px 0 32px;">
+            <i class="fa fa-plug"></i> Данные предоставлены внешним каталогом (TecDoc / PartsAPI).
+        </p>
         <?php endif; ?>
 
     </div><!-- /max-width -->
