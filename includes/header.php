@@ -24,6 +24,7 @@ if (!getSetting('brands_seed_done', '')) {
     setSetting('brands_seed_done', '1');
 }
 ensurePhoneAuthSchema();
+ensureStaffPinSchema();
 if (!getSetting('banners_seed_done', '')) {
     seedBanners();
     setSetting('banners_seed_done', '1');

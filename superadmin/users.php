@@ -2,6 +2,9 @@
 require_once dirname(__DIR__) . '/config/config.php';
 requireRole('superadmin');
 
+ensurePhoneAuthSchema();
+ensureStaffPinSchema();
+
 $db     = getDB();
 $csrf   = generateCsrfToken();
 $action = $_GET['action'] ?? 'list';
@@ -43,40 +46,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Create or Edit
-    $username = trim($_POST['username'] ?? '');
-    $email    = trim($_POST['email'] ?? '');
-    $phone    = trim($_POST['phone'] ?? '');
-    $role     = in_array($_POST['role'] ?? '', $roles) ? $_POST['role'] : 'buyer';
-    $password = $_POST['password'] ?? '';
-    $uid      = (int)($_POST['id'] ?? 0);
-    $isActive = isset($_POST['is_active']) ? 1 : 0;
+    $username  = trim($_POST['username'] ?? '');
+    $email     = trim($_POST['email'] ?? '');
+    $phone     = trim($_POST['phone'] ?? '');
+    $phoneE164 = normalizePhone($phone);
+    $role      = in_array($_POST['role'] ?? '', $roles) ? $_POST['role'] : 'buyer';
+    $password  = $_POST['password'] ?? '';
+    $pin       = trim($_POST['pin'] ?? '');
+    $clearPin  = isset($_POST['clear_pin']);
+    $uid       = (int)($_POST['id'] ?? 0);
+    $isActive  = isset($_POST['is_active']) ? 1 : 0;
 
-    if (mb_strlen($username) < 3)          $errors[] = 'Имя слишком короткое (мин. 3 символа).';
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Некорректный email.';
-    if (!$uid && mb_strlen($password) < 8) $errors[] = 'Пароль должен быть минимум 8 символов.';
-    if ($uid && $password && mb_strlen($password) < 8) $errors[] = 'Новый пароль должен быть минимум 8 символов.';
+    if (mb_strlen($username) < 3) $errors[] = 'Имя слишком короткое (мин. 3 символа).';
+    // Email optional — но если указан, должен быть корректным
+    if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Некорректный email.';
+    // Телефон опционален — но если указан, должен нормализоваться
+    if ($phone !== '' && $phoneE164 === '') $errors[] = 'Некорректный номер телефона.';
+    // PIN опционален — если указан, 4–6 цифр
+    if ($pin !== '' && !preg_match('/^\d{4,6}$/', $pin)) $errors[] = 'PIN-код должен состоять из 4–6 цифр.';
+    if ($password !== '' && mb_strlen($password) < 8) $errors[] = 'Пароль должен быть минимум 8 символов.';
 
-    if (empty($errors)) {
+    // На создании: нужен способ входа (пароль или PIN) и идентификатор (email или телефон)
+    if (!$uid) {
+        if ($password === '' && $pin === '') $errors[] = 'Задайте пароль или PIN-код для входа.';
+        if ($email === '' && $phoneE164 === '') $errors[] = 'Укажите email или номер телефона.';
+    }
+
+    // Уникальность email
+    if (empty($errors) && $email !== '') {
         $chk = $db->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
         $chk->execute([$email, $uid]);
         if ($chk->fetch()) $errors[] = 'Email уже зарегистрирован.';
     }
+    // Уникальность телефона (по нормализованному ключу)
+    if (empty($errors) && $phoneE164 !== '') {
+        $chk = $db->prepare("SELECT id FROM users WHERE phone_e164 = ? AND id != ?");
+        $chk->execute([$phoneE164, $uid]);
+        if ($chk->fetch()) $errors[] = 'Этот номер телефона уже используется.';
+    }
 
     if (empty($errors)) {
         if ($uid) {
-            if ($password) {
-                $hash = password_hash($password, PASSWORD_DEFAULT);
-                $db->prepare("UPDATE users SET username=?, email=?, phone=?, role=?, is_active=?, password_hash=?, updated_at=NOW() WHERE id=?")
-                   ->execute([$username, $email, $phone ?: null, $role, $isActive, $hash, $uid]);
-            } else {
-                $db->prepare("UPDATE users SET username=?, email=?, phone=?, role=?, is_active=?, updated_at=NOW() WHERE id=?")
-                   ->execute([$username, $email, $phone ?: null, $role, $isActive, $uid]);
-            }
+            $sql    = "UPDATE users SET username=?, email=?, phone=?, phone_e164=?, role=?, is_active=?";
+            $params = [$username, $email ?: null, $phone ?: null, $phoneE164 ?: null, $role, $isActive];
+            if ($password !== '') { $sql .= ", password_hash=?"; $params[] = password_hash($password, PASSWORD_DEFAULT); }
+            if ($clearPin)        { $sql .= ", pin_hash=NULL"; }
+            elseif ($pin !== '')  { $sql .= ", pin_hash=?"; $params[] = password_hash($pin, PASSWORD_DEFAULT); }
+            $sql .= ", updated_at=NOW() WHERE id=?";
+            $params[] = $uid;
+            $db->prepare($sql)->execute($params);
             flashMessage('success', 'Пользователь обновлён.');
         } else {
-            $hash = password_hash($password, PASSWORD_DEFAULT);
-            $db->prepare("INSERT INTO users (username, email, password_hash, role, phone, is_active) VALUES (?,?,?,?,?,?)")
-               ->execute([$username, $email, $hash, $role, $phone ?: null, $isActive]);
+            $passHash = $password !== '' ? password_hash($password, PASSWORD_DEFAULT) : null;
+            $pinHash  = $pin !== ''      ? password_hash($pin, PASSWORD_DEFAULT)      : null;
+            $db->prepare("INSERT INTO users (username, email, password_hash, pin_hash, role, phone, phone_e164, is_active)
+                          VALUES (?,?,?,?,?,?,?,?)")
+               ->execute([$username, $email ?: null, $passHash, $pinHash, $role, $phone ?: null, $phoneE164 ?: null, $isActive]);
             flashMessage('success', 'Пользователь создан.');
         }
         redirect(APP_URL . '/superadmin/users.php');
@@ -169,20 +194,35 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
               </div>
               <div class="col-md-6">
                 <div class="az-form-group">
-                  <label>Email *</label>
-                  <input type="email" name="email" class="form-control" value="<?= sanitize($editUser['email'] ?? $_POST['email'] ?? '') ?>" required>
+                  <label>Email <span style="color:#aaa;font-weight:400;">(необязательно)</span></label>
+                  <input type="email" name="email" class="form-control" value="<?= sanitize($editUser['email'] ?? $_POST['email'] ?? '') ?>">
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="az-form-group">
-                  <label>Телефон</label>
+                  <label>Телефон <span style="color:#aaa;font-weight:400;">(для входа по номеру)</span></label>
                   <input type="tel" name="phone" data-phone="tj" placeholder="+992 (__) ___-__-__" class="form-control" value="<?= sanitize($editUser['phone'] ?? $_POST['phone'] ?? '') ?>">
                 </div>
               </div>
-              <div class="col-12">
+              <div class="col-md-6">
                 <div class="az-form-group">
-                  <label>Пароль <?= $editUser ? '(оставьте пустым чтобы не менять)' : '* (мин. 8 символов)' ?></label>
-                  <input type="password" name="password" class="form-control" placeholder="Минимум 8 символов" <?= !$editUser ? 'required' : '' ?>>
+                  <label>Пароль <?= $editUser ? '(пусто — не менять)' : '(мин. 8 символов)' ?></label>
+                  <input type="password" name="password" class="form-control" placeholder="Минимум 8 символов" autocomplete="new-password">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="az-form-group">
+                  <label>PIN-код сотрудника <span style="color:#aaa;font-weight:400;">(4–6 цифр)</span></label>
+                  <input type="text" name="pin" inputmode="numeric" maxlength="6" class="form-control"
+                         placeholder="<?= !empty($editUser['pin_hash']) ? 'PIN задан — пусто, чтобы не менять' : 'напр. 1234' ?>"
+                         autocomplete="off">
+                  <?php if ($editUser && !empty($editUser['pin_hash'])): ?>
+                  <div class="form-check mt-8">
+                    <input type="checkbox" name="clear_pin" id="clear_pin" class="form-check-input" value="1">
+                    <label for="clear_pin" class="form-check-label" style="font-size:0.85rem;">Удалить PIN (запретить вход по PIN)</label>
+                  </div>
+                  <?php endif; ?>
+                  <small style="color:#888;display:block;margin-top:4px;">Сотрудник входит по номеру телефона + PIN. Для этого задайте телефон и PIN.</small>
                 </div>
               </div>
               <?php if ($editUser): ?>
@@ -233,7 +273,9 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 <?php foreach ($users as $u): ?>
                 <tr>
                   <td><?= (int)$u['id'] ?></td>
-                  <td><strong><?= sanitize($u['username']) ?></strong><br><small class="text-muted"><?= sanitize($u['phone'] ?? '') ?></small></td>
+                  <td><strong><?= sanitize($u['username']) ?></strong>
+                      <?php if (!empty($u['pin_hash'])): ?><span class="badge badge-info" style="font-size:0.62rem;vertical-align:middle;">PIN</span><?php endif; ?>
+                      <br><small class="text-muted"><?= sanitize($u['phone'] ?? '') ?></small></td>
                   <td style="font-size:0.8rem;color:#666;"><?= sanitize($u['email']) ?></td>
                   <td><span class="badge badge-secondary" style="font-size:0.7rem;"><?= sanitize($u['role']) ?></span></td>
                   <td style="text-align:center;"><?= (int)$u['order_count'] ?></td>

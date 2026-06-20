@@ -1110,6 +1110,31 @@ function ensurePhoneAuthSchema(): void {
 }
 
 /**
+ * Add the `pin_hash` column used for staff phone+PIN login.
+ * Separate from ensurePhoneAuthSchema() because that one is guarded by its own
+ * flag that may already be set on existing installs.
+ */
+function ensureStaffPinSchema(): void {
+    if (getSetting('staff_pin_schema_v1', '') === '1') return;
+    try {
+        $db = getDB();
+        dbAddColumnIfMissing($db, 'users', 'pin_hash',
+            "`pin_hash` VARCHAR(255) DEFAULT NULL AFTER `password_hash`");
+        setSetting('staff_pin_schema_v1', '1');
+    } catch (Exception $e) { /* retried next load */ }
+}
+
+/** Is email + password login/registration enabled by the admin? (default: yes) */
+function emailAuthEnabled(): bool {
+    return getSetting('auth_email_enabled', '1') === '1';
+}
+
+/** Roles that count as staff (back-office), as opposed to a buyer. */
+function isStaffRole(?string $role): bool {
+    return in_array($role, ['manager', 'admin', 'superadmin'], true);
+}
+
+/**
  * Normalize a phone to canonical digits with country code (no '+', no separators).
  * Tajik local numbers (9 digits, no country code) are prefixed with 992.
  * Returns '' if there aren't enough digits to be a real number.

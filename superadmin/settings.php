@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'global_markup',
     ];
     // Checkboxes
-    $checkboxes = ['show_language_switcher', 'show_currency_switcher', 'warehouse_api_enabled'];
+    $checkboxes = ['show_language_switcher', 'show_currency_switcher', 'warehouse_api_enabled', 'auth_email_enabled'];
 
     foreach ($fields as $key) {
         $val = trim($_POST[$key] ?? '');
@@ -363,6 +363,26 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Авторизация / вход -->
+        <div class="az-card mb-24">
+          <div class="az-card-header"><h4 class="az-card-title">Авторизация и вход</h4></div>
+          <div class="az-card-body">
+            <div class="az-form-group">
+              <div class="form-check mb-8">
+                <input type="checkbox" name="auth_email_enabled" id="auth_email" class="form-check-input"
+                       value="1" <?= (!isset($settings['auth_email_enabled']) || $settings['auth_email_enabled'] === '1') ? 'checked' : '' ?>>
+                <label for="auth_email" class="form-check-label">Разрешить вход и регистрацию по email + паролю</label>
+              </div>
+              <small style="color:#888;display:block;">
+                Если выключить — покупатели смогут входить и регистрироваться только по номеру телефона
+                (SMS-код). Сотрудники входят по номеру телефона и PIN-коду (задаётся в разделе
+                «Пользователи»). Для сотрудников остаётся резервный вход по email на странице
+                <code><?= APP_URL ?>/auth/login.php?staff=1</code>.
+              </small>
             </div>
           </div>
         </div>
