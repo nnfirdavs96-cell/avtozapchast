@@ -298,6 +298,20 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // ── Auth: «Вход для сотрудников (PIN)» — раскрыть поле PIN
+    document.querySelectorAll('.pin_login_toggle').forEach(function (link) {
+        link.addEventListener('click', function (e) {
+            e.preventDefault();
+            var form = this.closest('form');
+            var wrap = form ? form.querySelector('.pin_login_wrap') : null;
+            if (!wrap) return;
+            var open = wrap.style.display !== 'none';
+            wrap.style.display = open ? 'none' : 'block';
+            this.textContent = open ? 'Вход для сотрудников (PIN)' : 'Скрыть PIN';
+            if (!open) { var i = wrap.querySelector('input'); if (i) i.focus(); }
+        });
+    });
+
     // ── Auth: отправка SMS-кода (AJAX)
     document.querySelectorAll('.sms_send_btn').forEach(function (btn) {
         btn.addEventListener('click', function () {

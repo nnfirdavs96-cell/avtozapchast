@@ -6,12 +6,14 @@ if (isLoggedIn()) {
 }
 
 ensurePhoneAuthSchema();
+ensureStaffPinSchema();
 
-$errors    = [];
-$username  = '';
-$email     = '';
-$regPhone  = '';
-$activeTab = 'phone';   // default tab: quick phone registration
+$errors      = [];
+$username    = '';
+$email       = '';
+$regPhone    = '';
+$activeTab   = 'phone';   // default tab: quick phone registration
+$emailSignup = emailAuthEnabled();   // email registration allowed?
 
 // ── Phone registration (SMS code) ──────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'phone_register') {
@@ -65,6 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') !== 'phone
     $activeTab = 'email';
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
         $errors[] = 'Неверный токен безопасности. Обновите страницу.';
+    } elseif (!emailAuthEnabled()) {
+        $errors[] = 'Регистрация по email отключена. Зарегистрируйтесь по номеру телефона.';
     } else {
         $username        = trim($_POST['username'] ?? '');
         $email           = trim($_POST['email'] ?? '');
@@ -178,9 +182,11 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             <button type="button" class="auth_tab <?= $activeTab==='phone'?'active':'' ?>" data-auth-tab="phone">
                                 <i class="fa fa-mobile"></i> По номеру
                             </button>
+                            <?php if ($emailSignup): ?>
                             <button type="button" class="auth_tab <?= $activeTab==='email'?'active':'' ?>" data-auth-tab="email">
                                 <i class="fa fa-envelope-o"></i> По email
                             </button>
+                            <?php endif; ?>
                         </div>
 
                         <!-- Phone (SMS) registration -->
@@ -218,6 +224,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         </form>
 
                         <!-- Email + password registration -->
+                        <?php if ($emailSignup): ?>
                         <form method="POST" action="<?= APP_URL ?>/auth/register.php"
                               class="auth_pane" data-auth-pane="email" style="<?= $activeTab==='email'?'':'display:none;' ?>">
                             <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
@@ -263,6 +270,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 <button type="submit"><?= t('sign_up') ?></button>
                             </div>
                         </form>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <!--register area end-->
