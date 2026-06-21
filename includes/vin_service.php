@@ -425,8 +425,7 @@ class VinService
     private static function callNhtsa(string $vin, int $timeout = 8): array
     {
         $url = "https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/{$vin}?format=json";
-        $ctx = stream_context_create(['http' => ['timeout' => $timeout, 'ignore_errors' => true]]);
-        $raw = @file_get_contents($url, false, $ctx);
+        $raw = httpGet($url, $timeout)['body'];
         if (!$raw) return [];
         $json = json_decode($raw, true);
         if (empty($json['Results'])) return [];
@@ -469,17 +468,14 @@ class VinService
         // {VIN} and {KEY} placeholders (case-insensitive) — supports both
         // query-param keys (…?key={KEY}&vin={VIN}) and header-based auth below.
         $url  = str_ireplace(['{VIN}', '{KEY}'], [rawurlencode($vin), rawurlencode($key)], $url);
-        $hdrs = array_filter([
+        $hdrs = array_values(array_filter([
             "Accept: application/json",
             $key ? "Authorization: Bearer {$key}" : '',
             $key ? "X-Api-Key: {$key}" : '',
-        ]);
-        $ctx  = stream_context_create(['http' => [
-            'timeout'       => $timeout,
-            'ignore_errors' => true,
-            'header'        => implode("\r\n", $hdrs),
-        ]]);
-        $raw  = @file_get_contents($url, false, $ctx);
+        ]));
+        // Через общий httpGet: cURL приоритетно (file_get_contents по HTTPS на
+        // shared-хостинге часто молча возвращает false — тогда был «источник: local»).
+        $raw = httpGet($url, $timeout, $hdrs)['body'];
         if (!$raw) return [];
         $json = json_decode($raw, true);
         if (!is_array($json)) return [];
@@ -545,7 +541,7 @@ class VinService
 
     /** Версия логики декодирования: смена инвалидирует старый vin_cache
      *  (напр. записи, закэшированные до подключения VINdecodeOE — только страна). */
-    private const DECODE_VER = 2;
+    private const DECODE_VER = 3;
 
     private static function getCache(string $vin): ?array
     {
