@@ -104,6 +104,147 @@ class CatalogApi
     }
 
     /**
+     * Каталог по ОДНОМУ узлу (товарной группе) — getPartsbyVIN(vin, type, cat).
+     * Это реализует «клик по узлу» из дерева МАШИНА → УЗЕЛ → ДЕТАЛЬ: один клик =
+     * один запрос к API (а не перебор десятков групп), что бережёт лимит ключа.
+     * Returns ['items','count','cat','rate_limited','from_cache'].
+     */
+    public static function searchByVinCat(string $vin, int $cat, bool $useCache = true): array
+    {
+        $vin   = strtoupper(trim($vin));
+        $empty = ['items' => [], 'count' => 0, 'cat' => $cat, 'rate_limited' => false, 'from_cache' => false];
+        if (!self::enabled() || $vin === '' || $cat <= 0) return $empty;
+
+        $type     = self::type();
+        $cacheKey = 'g:' . $vin . '#' . $type . '#' . $cat;
+        if ($useCache) {
+            $cached = self::kvGet($cacheKey);
+            if ($cached !== null) { $cached['from_cache'] = true; return $cached; }
+        }
+
+        [$rows, $raw, $err] = self::fetchGroupRaw($vin, $type, $cat);
+        if (self::isRateLimit($raw)) {
+            return ['items' => [], 'count' => 0, 'cat' => $cat, 'rate_limited' => true, 'from_cache' => false];
+        }
+
+        $items = []; $seen = [];
+        foreach ($rows as $r) {
+            $key = mb_strtolower($r['brand'] . '|' . $r['part_number']);
+            if ($r['part_number'] === '' || isset($seen[$key])) continue;
+            $seen[$key] = true;
+            $items[] = $r;
+        }
+        $items  = self::enrichFromWarehouse($items);
+        $result = ['items' => $items, 'count' => count($items), 'cat' => $cat,
+                   'rate_limited' => false, 'type' => $type, 'from_cache' => false, 'v' => self::CACHE_VER];
+
+        if (!$err) self::kvSet($cacheKey, $result); // сбой запроса (сеть/лимит) не кэшируем
+        return $result;
+    }
+
+    /**
+     * МОСТИК цепочки: по номеру детали (№) получить аналоги-кроссы (getCrosses).
+     * Возвращает нормализованный список [['brand','part_number'], …].
+     * Именно по этим номерам потом ищем товар на своём складе (crossesWithWarehouse).
+     */
+    public static function getCrosses(string $article, string $brand = '', bool $useCache = true): array
+    {
+        $article = trim($article);
+        $empty   = ['crosses' => [], 'count' => 0, 'rate_limited' => false, 'from_cache' => false];
+        if (!self::enabled() || $article === '') return $empty;
+
+        $cacheKey = 'cr:' . self::normArt($article);
+        if ($useCache) {
+            $cached = self::kvGet($cacheKey);
+            if ($cached !== null) { $cached['from_cache'] = true; return $cached; }
+        }
+
+        $key = trim(getSetting('catalog_api_key', ''));
+        // Имя параметра номера у getCrosses в доке не зафиксировано — посылаем
+        // распространённые псевдонимы (art/article/number), лишние API игнорирует.
+        $params = ['method' => 'getCrosses', 'key' => $key,
+                   'art' => $article, 'article' => $article, 'number' => $article, 'format' => 'json'];
+        if ($brand !== '') { $params['brand'] = $brand; $params['brend'] = $brand; }
+        $url = self::base() . '?' . http_build_query($params);
+
+        $res = httpGet($url, self::timeout(), ['Accept: application/json']);
+        $raw = (string)$res['body'];
+        if (self::isRateLimit($raw)) return ['crosses' => [], 'count' => 0, 'rate_limited' => true, 'from_cache' => false];
+        if ($res['error'] !== '' || $raw === '' || $res['status'] >= 400) return $empty;
+
+        $crosses = self::parseCrosses($raw);
+        $seen = []; $uniq = [];
+        foreach ($crosses as $c) {
+            $k = self::normArt($c['part_number']);
+            if ($k === '' || isset($seen[$k])) continue;
+            $seen[$k] = true;
+            $uniq[] = $c;
+        }
+        $result = ['crosses' => $uniq, 'count' => count($uniq), 'rate_limited' => false, 'from_cache' => false, 'v' => self::CACHE_VER];
+        self::kvSet($cacheKey, $result);
+        return $result;
+    }
+
+    /**
+     * № → кроссы → МОИ товары: исходный номер + его кроссы, обогащённые складом
+     * (цена/наличие/ссылка там, где артикул совпал). Звено 3 для аналогов.
+     */
+    public static function crossesWithWarehouse(string $article, string $brand = ''): array
+    {
+        $cr    = self::getCrosses($article, $brand);
+        $cands = [['brand' => $brand, 'part_number' => $article, 'is_original' => true]];
+        foreach ($cr['crosses'] as $c) {
+            $cands[] = ['brand' => $c['brand'] ?? '', 'part_number' => $c['part_number'], 'is_original' => false];
+        }
+
+        $items = []; $seen = [];
+        foreach ($cands as $c) {
+            $k = self::normArt($c['part_number']);
+            if ($k === '' || isset($seen[$k])) continue;
+            $seen[$k] = true;
+            $items[] = [
+                'name'        => $c['part_number'],
+                'group'       => '',
+                'brand'       => $c['brand'],
+                'part_number' => $c['part_number'],
+                'is_original' => !empty($c['is_original']),
+                'in_catalog'  => false,
+                'part_id'     => null,
+                'price'       => null,
+                'stock'       => null,
+                'url'         => null,
+            ];
+        }
+        $items = self::enrichFromWarehouse($items);
+        return ['items' => $items, 'count' => count($items),
+                'rate_limited' => $cr['rate_limited'], 'from_cache' => $cr['from_cache'] ?? false];
+    }
+
+    /**
+     * Узлы для дерева каталога (только для оригинала/OEM, где один cat = целый узел).
+     * Подтверждён рабочим примером PartsAPI узел Кузов = cat 1191. Полный список
+     * OEM-узлов запрашивается у поддержки PartsAPI и вносится суперадмином
+     * (Настройка «OEM-узлы», строки вида «1191=Кузов»).
+     * Returns [['cat'=>int,'name'=>string], …].
+     */
+    public static function oemNodes(): array
+    {
+        $raw   = trim(getSetting('catalog_api_oem_nodes', ''));
+        $nodes = [];
+        if ($raw !== '') {
+            foreach (preg_split('/\r\n|\r|\n/', $raw) as $line) {
+                $line = trim($line);
+                if ($line === '' || strpos($line, '=') === false) continue;
+                [$id, $name] = array_map('trim', explode('=', $line, 2));
+                if (ctype_digit($id) && $name !== '') $nodes[] = ['cat' => (int)$id, 'name' => $name];
+            }
+        }
+        if ($nodes) return $nodes;
+        // По умолчанию — единственный подтверждённый узел.
+        return [['cat' => 1191, 'name' => 'Кузов']];
+    }
+
+    /**
      * Тест соединения: декод + перебор небольшого числа групп.
      * ['ok','message','count','sample'].
      */
@@ -291,6 +432,56 @@ class CatalogApi
         return [$items, $raw, false];
     }
 
+    /**
+     * Разбор ответа getCrosses. Формат у PartsAPI документирован нечётко, поэтому
+     * парсим устойчиво: массив строк «БРЕНД|АРТИКУЛ», массив объектов с ключами
+     * бренда/артикула (англ. или транслит), вложенные {data:…}/{array:…}.
+     */
+    private static function parseCrosses(string $raw): array
+    {
+        $json = json_decode($raw, true);
+        if (!is_array($json)) return [];
+        if (isset($json['data'])  && is_array($json['data']))  $json = $json['data'];
+        if (isset($json['array']) && is_array($json['array'])) $json = $json['array'];
+
+        $out = [];
+        foreach ($json as $row) {
+            // Строка «БРЕНД|АРТИКУЛ,БРЕНД|АРТИКУЛ» или просто «АРТИКУЛ».
+            if (is_string($row)) {
+                foreach (explode(',', $row) as $pair) {
+                    $seg = explode('|', $pair);
+                    if (count($seg) >= 2) {
+                        $out[] = ['brand' => trim($seg[0]), 'part_number' => trim($seg[1])];
+                    } elseif (trim($pair) !== '') {
+                        $out[] = ['brand' => '', 'part_number' => trim($pair)];
+                    }
+                }
+                continue;
+            }
+            if (!is_array($row)) continue;
+
+            // Вложенное поле parts:"БРЕНД|АРТИКУЛ" как в getPartsbyVIN.
+            if (isset($row['parts']) && is_string($row['parts']) && $row['parts'] !== '') {
+                foreach (explode(',', $row['parts']) as $pair) {
+                    $seg = explode('|', $pair);
+                    if (count($seg) >= 2) $out[] = ['brand' => trim($seg[0]), 'part_number' => trim($seg[1])];
+                }
+                continue;
+            }
+
+            $brand = '';
+            foreach (['brand', 'brend', 'marka', 'proizvoditel', 'manufacturer', 'make'] as $k) {
+                if (isset($row[$k]) && trim((string)$row[$k]) !== '') { $brand = trim((string)$row[$k]); break; }
+            }
+            $art = '';
+            foreach (['article', 'artikul', 'oe', 'oem', 'code', 'number', 'part_number', 'partnumber', 'nomer', 'kod'] as $k) {
+                if (isset($row[$k]) && trim((string)$row[$k]) !== '') { $art = trim((string)$row[$k]); break; }
+            }
+            if ($art !== '') $out[] = ['brand' => $brand, 'part_number' => $art];
+        }
+        return $out;
+    }
+
     // ── Warehouse enrichment ─────────────────────────────────────────────────
 
     /** Подставить цену/наличие/ссылку из своего склада там, где артикул совпал. */
@@ -404,5 +595,59 @@ class CatalogApi
     public static function clearCache(): void
     {
         try { getDB()->exec("DELETE FROM partsapi_catalog_cache"); } catch (Exception $e) {}
+        try { getDB()->exec("DELETE FROM partsapi_kv_cache"); } catch (Exception $e) {}
+    }
+
+    // ── Generic key→value cache (per-node groups «g:…» и кроссы «cr:…») ───────
+    // Отдельная таблица, т.к. ключ длиннее 20-символьного PK partsapi_catalog_cache.
+
+    private static function ensureKvSchema(): void
+    {
+        static $done = false;
+        if ($done) return;
+        try {
+            getDB()->exec(
+                "CREATE TABLE IF NOT EXISTS partsapi_kv_cache (
+                    k VARCHAR(96) NOT NULL PRIMARY KEY,
+                    result MEDIUMTEXT NOT NULL,
+                    cached_at DATETIME NOT NULL
+                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+            );
+            $done = true;
+        } catch (Exception $e) { /* кэш необязателен */ }
+    }
+
+    private static function kvGet(string $k): ?array
+    {
+        self::ensureKvSchema();
+        try {
+            $st = getDB()->prepare(
+                "SELECT result, cached_at FROM partsapi_kv_cache
+                  WHERE k = ? AND cached_at > DATE_SUB(NOW(), INTERVAL " . self::CACHE_DAYS . " DAY)"
+            );
+            $st->execute([$k]);
+            $row = $st->fetch();
+            if (!$row) return null;
+            $data = json_decode($row['result'], true);
+            if (!is_array($data) || ($data['v'] ?? 0) !== self::CACHE_VER) return null;
+            // Пустой результат держим только EMPTY_TTL (потом пересбор).
+            if ((int)($data['count'] ?? 0) === 0
+                && (time() - strtotime($row['cached_at'])) > self::EMPTY_TTL) {
+                return null;
+            }
+            return $data;
+        } catch (Exception $e) { return null; }
+    }
+
+    private static function kvSet(string $k, array $data): void
+    {
+        self::ensureKvSchema();
+        try {
+            getDB()->prepare(
+                "INSERT INTO partsapi_kv_cache (k, result, cached_at)
+                 VALUES (?,?,NOW())
+                 ON DUPLICATE KEY UPDATE result = VALUES(result), cached_at = NOW()"
+            )->execute([$k, json_encode($data, JSON_UNESCAPED_UNICODE)]);
+        } catch (Exception $e) { /* ignore */ }
     }
 }

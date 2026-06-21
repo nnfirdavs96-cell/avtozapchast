@@ -331,13 +331,43 @@ require_once dirname(__DIR__) . '/includes/header.php';
         <?php endif; ?>
 
         <!-- ── External catalog (PartsAPI), loaded async, shown only when enabled ── -->
-        <?php if ($catalogEnabled): ?>
-        <div id="vinCatalog" data-vin="<?= sanitize($vin) ?>" style="margin-top:8px;">
+        <?php if ($catalogEnabled):
+            $oemNodes = CatalogApi::oemNodes();
+            $catType  = trim(getSetting('catalog_api_type', 'oem'));
+            $showTree = $catType === 'oem' && !empty($oemNodes);
+        ?>
+        <style>
+            .vin-node-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:22px;
+                font-size:0.85rem;font-weight:600;border:1px solid #e3e5ea;background:#fff;color:#1a1a2e;
+                cursor:pointer;transition:all 0.15s;}
+            .vin-node-chip:hover{border-color:#d32f2f;color:#d32f2f;}
+            .vin-node-chip.active{background:#d32f2f;border-color:#d32f2f;color:#fff;}
+        </style>
+        <div id="vinCatalog" data-vin="<?= sanitize($vin) ?>" data-type="<?= sanitize($catType) ?>" style="margin-top:8px;">
             <h2 style="font-size:1.3rem;font-weight:700;margin:8px 0 16px;color:#1a1a2e;">
                 <i class="fa fa-book" style="color:#d32f2f;"></i>
                 Оригинальный каталог по VIN
                 <span id="vinCatalogCount" style="color:#888;font-weight:400;font-size:0.9rem;"></span>
             </h2>
+
+            <?php if ($showTree): ?>
+            <!-- Дерево узлов: клик по узлу → getPartsbyVIN(cat) одним запросом -->
+            <div id="vinNodes" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:18px;">
+                <span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-right:4px;">
+                    <i class="fa fa-sitemap" style="color:#d32f2f;"></i> Узлы:
+                </span>
+                <?php foreach ($oemNodes as $n): ?>
+                <button type="button" class="vin-node-chip" data-cat="<?= (int)$n['cat'] ?>"
+                        onclick="vinLoadNode(<?= (int)$n['cat'] ?>, this)">
+                    <?= sanitize($n['name']) ?>
+                </button>
+                <?php endforeach; ?>
+                <button type="button" class="vin-node-chip" onclick="vinLoadAll(this)" title="Перебрать все группы (дольше, расходует лимит ключа)">
+                    <i class="fa fa-th-large"></i> Все узлы
+                </button>
+            </div>
+            <?php endif; ?>
+
             <div id="vinCatalogStatus" style="background:#fff;border-radius:10px;padding:22px 24px;text-align:center;color:#888;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin-bottom:32px;">
                 <i class="fa fa-spinner fa-spin" style="font-size:1.6rem;color:#d32f2f;"></i>
                 <div style="margin-top:10px;font-size:0.9rem;">Подбираем запчасти по VIN из оригинального каталога…</div>
@@ -505,8 +535,20 @@ function escapeHtml(s) {
         .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-// ── External catalog (PartsAPI) async loader ─────────────────────────────
-(function(){
+// ── External catalog (PartsAPI): per-node loading + crosses bridge ────────
+function jsAttr(s){ return String(s == null ? '' : s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,''); }
+
+function vinSetActiveChip(btn){
+    document.querySelectorAll('.vin-node-chip').forEach(function(c){ c.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+}
+
+// Клик по узлу → один запрос getPartsbyVIN(cat). Бережёт лимит ключа.
+function vinLoadNode(cat, btn){ vinSetActiveChip(btn); vinCatalogFetch('&cat=' + encodeURIComponent(cat)); }
+// «Все узлы» → полный перебор групп (дольше, расходует лимит).
+function vinLoadAll(btn){ vinSetActiveChip(btn); vinCatalogFetch(''); }
+
+function vinCatalogFetch(extra){
     var box = document.getElementById('vinCatalog');
     if (!box) return;
     var vin = box.getAttribute('data-vin') || '';
@@ -516,74 +558,148 @@ function escapeHtml(s) {
     var bodyEl   = document.getElementById('vinCatalogBody');
     var countEl  = document.getElementById('vinCatalogCount');
 
-    fetch('<?= APP_URL ?>/api/vin_catalog.php?vin=' + encodeURIComponent(vin), { credentials:'same-origin' })
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = '<i class="fa fa-spinner fa-spin" style="font-size:1.6rem;color:#d32f2f;"></i>' +
+        '<div style="margin-top:10px;font-size:0.9rem;">Загружаем запчасти из оригинального каталога…</div>';
+    bodyEl.innerHTML = '';
+    countEl.textContent = '';
+
+    fetch('<?= APP_URL ?>/api/vin_catalog.php?vin=' + encodeURIComponent(vin) + extra, { credentials:'same-origin' })
+        .then(function(r){ return r.json(); })
+        .then(vinRenderCatalog)
+        .catch(function(){
+            statusEl.innerHTML = '<div style="font-size:0.9rem;color:#c0392b;">Не удалось загрузить каталог. Попробуйте ещё раз.</div>';
+        });
+}
+
+function vinRenderCatalog(d){
+    var statusEl = document.getElementById('vinCatalogStatus');
+    var bodyEl   = document.getElementById('vinCatalogBody');
+    var countEl  = document.getElementById('vinCatalogCount');
+
+    if (d.rate_limited) {
+        statusEl.style.display = 'block';
+        statusEl.innerHTML = '<div style="font-size:0.9rem;color:#b8860b;">' +
+            '<i class="fa fa-clock-o"></i> Каталог временно недоступен: превышен суточный лимит запросов. ' +
+            'Попробуйте позже.</div>';
+        return;
+    }
+    if (!d.success || !d.items || d.items.length === 0) {
+        statusEl.style.display = 'block';
+        statusEl.innerHTML = '<div style="font-size:0.9rem;">В этом узле по данному VIN запчасти не найдены. ' +
+            'Выберите другой узел или нажмите «Все узлы».</div>';
+        return;
+    }
+    statusEl.style.display = 'none';
+    countEl.textContent = '(' + d.count + ')';
+
+    // Группировка: МАШИНА → УЗЕЛ(группа) → ДЕТАЛЬ → №
+    var groups = {};
+    d.items.forEach(function(it){
+        var g = it.group || 'Прочее';
+        (groups[g] = groups[g] || []).push(it);
+    });
+
+    var html = '', idx = 0;
+    Object.keys(groups).forEach(function(g){
+        html += '<div style="margin-bottom:22px;">';
+        html += '<div style="font-size:0.8rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;border-bottom:2px solid #f0f1f5;padding-bottom:6px;">' + escapeHtml(g) + '</div>';
+        html += '<table style="width:100%;border-collapse:collapse;">';
+        groups[g].forEach(function(it){
+            idx++;
+            var rid = 'vinrow-' + idx;
+            html += '<tr id="' + rid + '" style="border-bottom:1px solid #f5f6f8;">';
+            html += '<td style="padding:9px 8px;">' +
+                      '<div style="font-weight:600;color:#1a1a2e;font-size:0.86rem;">' + escapeHtml(it.name) + '</div>' +
+                      '<div style="font-size:0.72rem;color:#aaa;font-family:monospace;">' + escapeHtml(it.brand) + ' · ' + escapeHtml(it.part_number) + '</div>' +
+                    '</td>';
+            if (it.in_catalog) {
+                html += '<td style="padding:9px 8px;text-align:right;white-space:nowrap;">' +
+                          '<span style="font-weight:800;color:#d32f2f;">' + escapeHtml(it.price) + '</span>' +
+                          (it.stock > 0
+                            ? ' <span style="font-size:0.68rem;color:#4caf50;">в наличии</span>'
+                            : ' <span style="font-size:0.68rem;color:#bbb;">под заказ</span>') +
+                        '</td>';
+            } else {
+                html += '<td style="padding:9px 8px;text-align:right;white-space:nowrap;">' +
+                          '<span style="font-size:0.78rem;color:#999;">под заказ</span>' +
+                        '</td>';
+            }
+            // Действия: корзина / найти + кнопка «кроссы» (аналоги по № — МОСТИК)
+            html += '<td style="padding:9px 8px;text-align:right;white-space:nowrap;">';
+            if (it.in_catalog) {
+                html += '<button type="button" onclick="vinAddToCart(' + it.part_id + ',this)" ' +
+                          (it.stock > 0 ? '' : 'disabled ') +
+                          'style="background:' + (it.stock>0?'#d32f2f':'#ccc') + ';color:#fff;border:none;padding:7px 12px;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:' + (it.stock>0?'pointer':'not-allowed') + ';margin-right:6px;"><i class="fa fa-shopping-cart"></i></button>';
+            } else {
+                html += '<a href="<?= APP_URL ?>/search/index.php?q=' + encodeURIComponent(it.part_number) + '" ' +
+                          'style="font-size:0.76rem;color:#d32f2f;font-weight:600;text-decoration:none;margin-right:8px;">найти <i class="fa fa-search"></i></a>';
+            }
+            html += '<button type="button" title="Аналоги по кроссам" ' +
+                      'onclick="vinCrosses(\'' + jsAttr(it.part_number) + '\',\'' + jsAttr(it.brand) + '\',this,\'' + rid + '\')" ' +
+                      'style="background:#f0f1f5;color:#1a1a2e;border:none;padding:7px 10px;border-radius:6px;font-size:0.78rem;cursor:pointer;"><i class="fa fa-exchange"></i></button>';
+            html += '</td></tr>';
+        });
+        html += '</table></div>';
+    });
+
+    html += '<p style="text-align:center;color:#bbb;font-size:0.76rem;margin:6px 0 32px;">' +
+            '<i class="fa fa-plug"></i> Оригинальный каталог TecDoc / PartsAPI' +
+            (d.from_cache ? ' · из кэша' : '') + '</p>';
+    bodyEl.innerHTML = html;
+}
+
+// МОСТИК: № детали → getCrosses → совпадение со складом (цена/наличие/в корзину).
+function vinCrosses(article, brand, btn, rowId){
+    var existing = document.getElementById('cross-' + rowId);
+    if (existing){ existing.parentNode.removeChild(existing); btn.style.background = '#f0f1f5'; return; }
+    var row = document.getElementById(rowId);
+    if (!row) return;
+    btn.style.background = '#ffe0e0';
+    var colspan = row.children.length;
+    row.insertAdjacentHTML('afterend',
+        '<tr id="cross-' + rowId + '"><td colspan="' + colspan + '" style="background:#fafbfc;padding:10px 16px;">' +
+        '<div style="color:#aaa;font-size:0.8rem;"><i class="fa fa-spinner fa-spin"></i> Поиск аналогов (кроссов)…</div></td></tr>');
+    var cell = document.querySelector('#cross-' + rowId + ' td');
+
+    fetch('<?= APP_URL ?>/api/vin_crosses.php?article=' + encodeURIComponent(article) + '&brand=' + encodeURIComponent(brand), { credentials:'same-origin' })
         .then(function(r){ return r.json(); })
         .then(function(d){
-            if (d.rate_limited) {
-                statusEl.innerHTML = '<div style="font-size:0.9rem;color:#b8860b;">' +
-                    '<i class="fa fa-clock-o"></i> Каталог временно недоступен: превышен суточный лимит запросов. ' +
-                    'Попробуйте позже.</div>';
-                return;
-            }
-            if (!d.success || !d.items || d.items.length === 0) {
-                statusEl.innerHTML = '<div style="font-size:0.9rem;">По этому VIN в оригинальном каталоге запчасти не найдены.</div>';
-                return;
-            }
-            statusEl.style.display = 'none';
-            countEl.textContent = '(' + d.count + ')';
-
-            // Группировка по товарной группе
-            var groups = {};
+            if (d.rate_limited){ cell.innerHTML = '<div style="color:#b8860b;font-size:0.8rem;">Превышен лимит запросов. Попробуйте позже.</div>'; return; }
+            if (!d.success || !d.items || d.items.length === 0){ cell.innerHTML = '<div style="color:#aaa;font-size:0.8rem;">Аналоги (кроссы) не найдены.</div>'; return; }
+            var html = '<div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;"><i class="fa fa-exchange"></i> Аналоги по кроссам (' + d.count + ')</div>';
             d.items.forEach(function(it){
-                var g = it.group || 'Прочее';
-                (groups[g] = groups[g] || []).push(it);
+                html += '<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #f0f1f5;">';
+                html += '<div style="flex:1;font-size:0.8rem;"><span style="font-weight:600;">' + escapeHtml(it.brand || '') + '</span> ' +
+                        '<span style="font-family:monospace;color:#666;">' + escapeHtml(it.part_number) + '</span>' +
+                        (it.is_original ? ' <span style="font-size:0.66rem;color:#aaa;">(исходный)</span>' : '') + '</div>';
+                if (it.in_catalog){
+                    html += '<span style="font-weight:800;color:#d32f2f;white-space:nowrap;">' + escapeHtml(it.price) + '</span>';
+                    html += it.stock > 0
+                        ? '<span style="font-size:0.66rem;color:#4caf50;">в наличии</span>'
+                        : '<span style="font-size:0.66rem;color:#bbb;">под заказ</span>';
+                    html += '<button type="button" onclick="vinAddToCart(' + it.part_id + ',this)" ' + (it.stock>0?'':'disabled ') +
+                            'style="background:' + (it.stock>0?'#d32f2f':'#ccc') + ';color:#fff;border:none;width:30px;height:30px;border-radius:5px;cursor:' + (it.stock>0?'pointer':'not-allowed') + ';"><i class="fa fa-shopping-cart"></i></button>';
+                } else {
+                    html += '<a href="<?= APP_URL ?>/search/index.php?q=' + encodeURIComponent(it.part_number) + '" ' +
+                            'style="font-size:0.76rem;color:#d32f2f;font-weight:600;text-decoration:none;white-space:nowrap;">найти <i class="fa fa-search"></i></a>';
+                }
+                html += '</div>';
             });
-
-            var html = '';
-            Object.keys(groups).forEach(function(g){
-                html += '<div style="margin-bottom:22px;">';
-                html += '<div style="font-size:0.8rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;border-bottom:2px solid #f0f1f5;padding-bottom:6px;">' + escapeHtml(g) + '</div>';
-                html += '<table style="width:100%;border-collapse:collapse;">';
-                groups[g].forEach(function(it){
-                    html += '<tr style="border-bottom:1px solid #f5f6f8;">';
-                    html += '<td style="padding:9px 8px;">' +
-                              '<div style="font-weight:600;color:#1a1a2e;font-size:0.86rem;">' + escapeHtml(it.name) + '</div>' +
-                              '<div style="font-size:0.72rem;color:#aaa;font-family:monospace;">' + escapeHtml(it.brand) + ' · ' + escapeHtml(it.part_number) + '</div>' +
-                            '</td>';
-                    if (it.in_catalog) {
-                        html += '<td style="padding:9px 8px;text-align:right;white-space:nowrap;">' +
-                                  '<span style="font-weight:800;color:#d32f2f;">' + escapeHtml(it.price) + '</span>' +
-                                  (it.stock > 0
-                                    ? ' <span style="font-size:0.68rem;color:#4caf50;">в наличии</span>'
-                                    : ' <span style="font-size:0.68rem;color:#bbb;">под заказ</span>') +
-                                '</td>' +
-                                '<td style="padding:9px 8px;text-align:right;white-space:nowrap;">' +
-                                  '<button type="button" onclick="vinAddToCart(' + it.part_id + ',this)" ' +
-                                  (it.stock > 0 ? '' : 'disabled ') +
-                                  'style="background:' + (it.stock>0?'#d32f2f':'#ccc') + ';color:#fff;border:none;padding:7px 12px;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:' + (it.stock>0?'pointer':'not-allowed') + ';"><i class="fa fa-shopping-cart"></i></button>' +
-                                '</td>';
-                    } else {
-                        html += '<td style="padding:9px 8px;text-align:right;white-space:nowrap;">' +
-                                  '<span style="font-size:0.78rem;color:#999;">под заказ</span>' +
-                                '</td>' +
-                                '<td style="padding:9px 8px;text-align:right;white-space:nowrap;">' +
-                                  '<a href="<?= APP_URL ?>/search/index.php?q=' + encodeURIComponent(it.part_number) + '" ' +
-                                  'style="font-size:0.76rem;color:#d32f2f;font-weight:600;text-decoration:none;">найти <i class="fa fa-search"></i></a>' +
-                                '</td>';
-                    }
-                    html += '</tr>';
-                });
-                html += '</table></div>';
-            });
-
-            html += '<p style="text-align:center;color:#bbb;font-size:0.76rem;margin:6px 0 32px;">' +
-                    '<i class="fa fa-plug"></i> Оригинальный каталог TecDoc / PartsAPI' +
-                    (d.from_cache ? ' · из кэша' : '') + '</p>';
-            bodyEl.innerHTML = html;
+            cell.innerHTML = html;
         })
-        .catch(function(){
-            statusEl.innerHTML = '<div style="font-size:0.9rem;color:#c0392b;">Не удалось загрузить каталог. Попробуйте обновить страницу.</div>';
-        });
+        .catch(function(){ cell.innerHTML = '<div style="color:#c00;font-size:0.8rem;">Ошибка загрузки аналогов.</div>'; });
+}
+
+// Инициализация: авто-загрузка первого узла (1 запрос) или полный перебор для неоригинала.
+(function(){
+    var box = document.getElementById('vinCatalog');
+    if (!box) return;
+    var vin = box.getAttribute('data-vin') || '';
+    if (vin.length !== 17) return;
+    var firstChip = document.querySelector('.vin-node-chip[data-cat]');
+    if (firstChip) { vinLoadNode(firstChip.getAttribute('data-cat'), firstChip); }
+    else           { vinLoadAll(null); }
 })();
 </script>
 
