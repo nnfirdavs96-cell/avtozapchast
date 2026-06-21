@@ -41,6 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach (['catalog_api_key', 'catalog_api_max_groups', 'catalog_api_base', 'catalog_api_timeout'] as $key) {
             setSetting($key, trim($_POST[$key] ?? ''));
         }
+        // OEM-узлы для дерева каталога (строки «1191=Кузов»). Переводы строк сохраняем.
+        setSetting('catalog_api_oem_nodes', trim($_POST['catalog_api_oem_nodes'] ?? ''));
         require_once dirname(__DIR__) . '/includes/catalog_api.php';
         CatalogApi::clearCache(); // settings changed → stale cache out
         flashMessage('success', 'Настройки каталога сохранены.');
@@ -440,6 +442,16 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                            value="<?= sv2($settings,'catalog_api_max_groups','25') ?>">
                     <small style="color:#888;">Каждая группа — отдельный запрос к API. На демо-ключе
                         (≈50 запросов/сутки) ставьте 15–25. На платном тарифе можно больше или 0.</small>
+                </div>
+
+                <div class="az-form-group">
+                    <label>OEM-узлы для дерева <small style="color:#888;">(оригинал — по строке на узел)</small></label>
+                    <textarea name="catalog_api_oem_nodes" rows="5"
+                              placeholder="1191=Кузов&#10;1192=Двигатель&#10;1193=Тормоза"
+                              style="width:100%;font-family:monospace;font-size:0.82rem;padding:8px 12px;border:1px solid #ced4da;border-radius:6px;outline:none;resize:vertical;"><?= sv2($settings,'catalog_api_oem_nodes') ?></textarea>
+                    <small style="color:#888;">Формат: <code>ID=Название</code>, по строке на узел. На странице VIN
+                        они показываются кнопками — клик грузит один узел одним запросом (бережёт лимит ключа).
+                        Подтверждён <code>1191=Кузов</code>; полный список OEM-узлов запросите у поддержки PartsAPI.</small>
                 </div>
 
                 <details style="margin-bottom:14px;">

@@ -26,7 +26,9 @@ if (!VinService::validate($vin)) {
 // Долгий перебор групп — снимем лимит времени на сам запрос.
 @set_time_limit(120);
 
-$data  = CatalogApi::searchByVin($vin);
+// cat>0 → загрузка ОДНОГО узла (1 запрос, бережёт лимит ключа); иначе полный перебор.
+$cat   = (int)($_GET['cat'] ?? 0);
+$data  = $cat > 0 ? CatalogApi::searchByVinCat($vin, $cat) : CatalogApi::searchByVin($vin);
 $items = [];
 foreach ($data['items'] as $it) {
     $items[] = [
@@ -46,7 +48,8 @@ foreach ($data['items'] as $it) {
 echo json_encode([
     'success'        => true,
     'count'          => $data['count'],
-    'groups_scanned' => $data['groups_scanned'],
+    'cat'            => $cat,
+    'groups_scanned' => $data['groups_scanned'] ?? null,
     'errors'         => $data['errors'] ?? 0,
     'rate_limited'   => !empty($data['rate_limited']),
     'type'           => $data['type'] ?? '',
