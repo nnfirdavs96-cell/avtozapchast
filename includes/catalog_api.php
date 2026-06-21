@@ -21,7 +21,13 @@ require_once __DIR__ . '/partsapi_cats.php';
 class CatalogApi
 {
     private const CACHE_DAYS = 30;
-    private const CACHE_VER  = 2;   // bump to invalidate stale cache after parser changes
+    private const CACHE_VER  = 3;     // bump to invalidate stale cache after logic changes
+    private const EMPTY_TTL  = 3600;  // пустой результат держим в кэше только 1 час (потом пересбор)
+
+    // Подтверждённые рабочие OEM-группы (оригинал). Для type=oem опрашиваем их
+    // первыми — у оригинального каталога ID групп частично отличаются от
+    // справочника неоригинала (cat=1191 подтверждён рабочим примером PartsAPI).
+    private const OEM_CATS = [1191, 1192, 1193, 1190, 1200, 1100, 1000, 1300, 1400, 1500];
 
     // ── Public API ─────────────────────────────────────────────────────────
 
@@ -58,14 +64,16 @@ class CatalogApi
 
         $type      = self::type();
         $maxGroups = self::maxGroups();
-        $cats      = self::catList($maxGroups);
+        $cats      = self::catList($maxGroups, $type);
 
         $items   = [];
         $seen    = [];   // brand|article dedupe
         $scanned = 0;
+        $errors  = 0;
         foreach ($cats as $cat) {
-            $rows = self::fetchGroup($vin, $type, $cat);
+            [$rows, , $err] = self::fetchGroupRaw($vin, $type, $cat);
             $scanned++;
+            if ($err) $errors++;
             foreach ($rows as $r) {
                 $key = mb_strtolower($r['brand'] . '|' . $r['part_number']);
                 if ($r['part_number'] === '' || isset($seen[$key])) continue;
@@ -77,9 +85,15 @@ class CatalogApi
 
         $items  = self::enrichFromWarehouse($items);
         $result = ['items' => $items, 'count' => count($items), 'groups_scanned' => $scanned,
-                   'from_cache' => false, 'v' => self::CACHE_VER];
+                   'errors' => $errors, 'type' => $type, 'from_cache' => false, 'v' => self::CACHE_VER];
 
-        self::cacheSet($vin, $result);
+        // Не кэшируем транзиентный сбой (все группы упали — лимит ключа/сеть),
+        // иначе пустой результат «прилипнет». Пустой по факту (деталей нет) кэшируем
+        // ненадолго (EMPTY_TTL), непустой — на 30 дней.
+        $transient = ($scanned > 0 && $errors === $scanned);
+        if (!$transient) {
+            self::cacheSet($vin, $result);
+        }
         return $result;
     }
 
@@ -94,12 +108,12 @@ class CatalogApi
         }
         $vin = strtoupper(trim($vin)) ?: 'Z8TXLCW6WCM902224'; // VIN из доки PartsAPI
 
-        // Пробуем несколько популярных групп, не трогая кэш.
+        // Пробуем несколько первых групп выбранного типа, не трогая кэш.
         $type = self::type();
-        $cats = array_slice(self::catList(0), 0, 8);
+        $cats = array_slice(self::catList(0, $type), 0, 8);
         $hits = []; $rawSample = '';
         foreach ($cats as $cat) {
-            [$rows, $raw] = self::fetchGroupRaw($vin, $type, $cat);
+            [$rows, $raw, ] = self::fetchGroupRaw($vin, $type, $cat);
             if ($rawSample === '' && $raw !== '') $rawSample = $raw;
             foreach ($rows as $r) $hits[] = $r;
             if (count($hits) >= 5) break;
@@ -125,8 +139,11 @@ class CatalogApi
 
     private static function type(): string
     {
-        // 'oem' = оригинал, '' = неоригинал/аналог, 'all' — как задано.
-        return trim(getSetting('catalog_api_type', 'oem'));
+        // PartsAPI getPartsbyVIN принимает только 'oem' (оригинал) или '' (неоригинал).
+        // Значение 'all' (и любое другое) API НЕ поддерживает — отвечает пустым списком,
+        // поэтому жёстко приводим к допустимому: всё некорректное → 'oem'.
+        $t = trim(getSetting('catalog_api_type', 'oem'));
+        return in_array($t, ['oem', ''], true) ? $t : 'oem';
     }
 
     private static function maxGroups(): int
@@ -147,12 +164,16 @@ class CatalogApi
         return ($t < 2 || $t > 30) ? 12 : $t;
     }
 
-    /** Список групп для перебора: популярные первыми, затем остальные; 0 = все. */
-    private static function catList(int $max): array
+    /**
+     * Список групп для перебора. Для оригинала (oem) подтверждённые OEM-группы идут
+     * первыми, затем ходовые и остальные из справочника. 0 = все.
+     */
+    private static function catList(int $max, string $type = 'oem'): array
     {
+        $oem     = ($type === 'oem') ? self::OEM_CATS : [];
         $popular = defined('PARTSAPI_POPULAR') ? PARTSAPI_POPULAR : [];
         $all     = defined('PARTSAPI_CATS') ? array_keys(PARTSAPI_CATS) : [];
-        $ordered = array_values(array_unique(array_merge($popular, $all)));
+        $ordered = array_values(array_unique(array_merge($oem, $popular, $all)));
         if ($max > 0 && count($ordered) > $max) {
             $ordered = array_slice($ordered, 0, $max);
         }
@@ -172,7 +193,12 @@ class CatalogApi
         return self::fetchGroupRaw($vin, $type, $cat)[0];
     }
 
-    /** Как fetchGroup, но также возвращает сырой ответ (для теста). [items, rawBody] */
+    /**
+     * Запрос группы. Возвращает [items, rawBody, isError]:
+     *  - isError=true при сетевой ошибке/таймауте/ошибочной обёртке/лимите ключа.
+     *  Это позволяет отличить «пусто, потому что нет деталей» от «пусто, потому
+     *  что запрос не прошёл» (лимит, сеть) и не кэшировать сбой как факт.
+     */
     private static function fetchGroupRaw(string $vin, string $type, int $cat): array
     {
         $key = trim(getSetting('catalog_api_key', ''));
@@ -191,15 +217,16 @@ class CatalogApi
             'ignore_errors' => true,
             'header'        => "Accept: application/json\r\nUser-Agent: AvtoZapchast/1.0\r\n",
         ]]);
-        $raw = @file_get_contents($url, false, $ctx);
-        if ($raw === false || $raw === '') return [[], ''];
+        $raw  = @file_get_contents($url, false, $ctx);
+        $http = self::statusFromHeaders($http_response_header ?? []);
+        if ($raw === false || $raw === '' || $http >= 400) return [[], (string)$raw, true];
 
         $json = json_decode($raw, true);
-        if (!is_array($json)) return [[], $raw];
+        if (!is_array($json)) return [[], $raw, true];
 
-        // Ошибочные обёртки {"error_code":…} → пусто.
-        if (isset($json['error_code']) || isset($json['status']) && !isset($json[0])) {
-            return [[], $raw];
+        // Ошибочные обёртки {"error_code":…} / {"status":…} → сбой запроса.
+        if (isset($json['error_code']) || (isset($json['status']) && !isset($json[0]))) {
+            return [[], $raw, true];
         }
 
         $catName = self::catName($cat);
@@ -235,7 +262,7 @@ class CatalogApi
                 ];
             }
         }
-        return [$items, $raw];
+        return [$items, $raw, false];
     }
 
     // ── Warehouse enrichment ─────────────────────────────────────────────────
@@ -291,6 +318,14 @@ class CatalogApi
         return strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $s));
     }
 
+    private static function statusFromHeaders(array $headers): int
+    {
+        foreach ($headers as $h) {
+            if (preg_match('#^HTTP/\S+\s+(\d{3})#', $h, $m)) return (int)$m[1];
+        }
+        return 0;
+    }
+
     // ── Cache (runtime-migrated table) ───────────────────────────────────────
 
     private static function ensureCacheSchema(): void
@@ -314,15 +349,24 @@ class CatalogApi
         self::ensureCacheSchema();
         try {
             $st = getDB()->prepare(
-                "SELECT result FROM partsapi_catalog_cache
+                "SELECT result, cached_at FROM partsapi_catalog_cache
                   WHERE vin = ? AND cached_at > DATE_SUB(NOW(), INTERVAL " . self::CACHE_DAYS . " DAY)"
             );
             $st->execute([$vin]);
             $row = $st->fetch();
             if (!$row) return null;
+
             $data = json_decode($row['result'], true);
-            // Ignore cache written by an older parser version.
-            if (!is_array($data) || ($data['v'] ?? 0) !== self::CACHE_VER) return null;
+            if (!is_array($data)) return null;
+            // Игнорируем кэш старой версии логики.
+            if (($data['v'] ?? 0) !== self::CACHE_VER) return null;
+            // Игнорируем кэш, собранный для другого типа запчастей (oem/неоригинал).
+            if (($data['type'] ?? null) !== self::type()) return null;
+            // Пустой результат не считаем «вечным»: держим только EMPTY_TTL, потом пересбор.
+            if ((int)($data['count'] ?? 0) === 0
+                && (time() - strtotime($row['cached_at'])) > self::EMPTY_TTL) {
+                return null;
+            }
             return $data;
         } catch (Exception $e) { return null; }
     }
