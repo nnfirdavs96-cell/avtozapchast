@@ -69,6 +69,18 @@ function requireAdminPort(): void {
         . '</div></html>');
 }
 
+/**
+ * Render the Mazlay-styled 403 page and stop. Used when an authenticated
+ * user lacks rights (role or per-section permission). Must be called before
+ * any page output — all admin gates run at the top of the page, so this is
+ * safe. Replaces the old «flash + redirect to storefront slider».
+ */
+function denyAccess(): void {
+    http_response_code(403);
+    require dirname(__DIR__) . '/pages/403.php';
+    exit;
+}
+
 function requireRole($role): void {
     $roles = is_array($role) ? $role : [$role];
     if (array_intersect($roles, ['admin', 'manager', 'superadmin'])) {
@@ -82,8 +94,7 @@ function requireRole($role): void {
         if ($_SESSION['role'] === 'superadmin') return;
     }
     if (!in_array($_SESSION['role'] ?? '', $roles, true)) {
-        flashMessage('danger', 'Доступ запрещён. Недостаточно прав.');
-        redirect(APP_URL . '/index.php');
+        denyAccess();
     }
 }
 
@@ -194,8 +205,7 @@ function userCan(string $section): bool {
 function requirePermission(string $section): void {
     if (($_SESSION['role'] ?? '') === 'superadmin') return;
     if (userCan($section)) return;
-    flashMessage('danger', 'Доступ к этому разделу ограничён администратором.');
-    redirect(APP_URL . '/index.php');
+    denyAccess();
 }
 
 /**

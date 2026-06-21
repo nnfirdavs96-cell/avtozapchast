@@ -66,7 +66,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
         <div class="col-lg-3 col-md-6 mb-16">
           <div class="az-stat-card">
             <div class="az-stat-card-icon" style="background:#e8f5e9;">
-              <i class="fa fa-ruble" style="color:#388e3c;"></i>
+              <i class="fa fa-money" style="color:#388e3c;"></i>
             </div>
             <div class="az-stat-card-body">
               <div class="az-stat-card-value" style="font-size:1.2rem;"><?= formatPrice($totalRevenue) ?></div>
