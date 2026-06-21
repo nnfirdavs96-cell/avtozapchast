@@ -704,6 +704,86 @@ function setSetting(string $key, string $value): void {
 }
 
 /**
+ * Надёжный HTTP GET. Приоритет — cURL (несёт собственный CA-bundle и работает на
+ * shared-хостинге, где allow_url_fopen выключен либо у stream-обёртки нет CA),
+ * фолбэк — file_get_contents. Именно поэтому интеграции (PartsAPI и др.) должны
+ * ходить через этот хелпер, а не напрямую через file_get_contents: на ряде
+ * хостингов file_get_contents по HTTPS молча возвращает false на КАЖДОМ запросе.
+ *
+ * Возвращает ['body'=>string, 'status'=>int, 'error'=>string, 'transport'=>string].
+ *   status 0 + непустой error  → транспортный сбой (DNS/TLS/таймаут/блокировка);
+ *   status 200 + пустой error   → ответ получен (его уже разбирает вызывающий код).
+ */
+function httpGet(string $url, int $timeout = 12, array $headers = []): array {
+    $timeout = max(2, min(60, $timeout));
+    $headers = $headers ?: ['Accept: application/json'];
+    $curlError = '';
+
+    if (function_exists('curl_init')) {
+        $do = function (bool $verify) use ($url, $timeout, $headers) {
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL            => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => $timeout,
+                CURLOPT_CONNECTTIMEOUT => min($timeout, 10),
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS      => 3,
+                CURLOPT_SSL_VERIFYPEER => $verify,
+                CURLOPT_SSL_VERIFYHOST => $verify ? 2 : 0,
+                CURLOPT_ENCODING       => '',
+                CURLOPT_USERAGENT      => 'AvtoZapchast/1.0',
+                CURLOPT_HTTPHEADER     => $headers,
+            ]);
+            $body   = curl_exec($ch);
+            $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $err    = curl_error($ch);
+            $errno  = curl_errno($ch);
+            curl_close($ch);
+            return [$body, $status, $err, $errno];
+        };
+
+        [$body, $status, $err, $errno] = $do(true);
+        // 60/51/35 = проблемы проверки TLS-сертификата на кривом хостинге → ретрай без проверки.
+        if ($body === false && in_array($errno, [60, 51, 35], true)) {
+            [$body, $status, $err] = $do(false);
+        }
+        if ($body !== false) {
+            return ['body' => (string)$body, 'status' => $status, 'error' => '', 'transport' => 'curl'];
+        }
+        $curlError = $err !== '' ? "cURL: $err" : 'cURL request failed';
+    }
+
+    // Фолбэк: stream-обёртка file_get_contents (если включён allow_url_fopen).
+    if (ini_get('allow_url_fopen')) {
+        $ctx = stream_context_create([
+            'http' => [
+                'method'        => 'GET',
+                'timeout'       => $timeout,
+                'ignore_errors' => true,
+                'header'        => implode("\r\n", $headers) . "\r\nUser-Agent: AvtoZapchast/1.0\r\n",
+            ],
+            'ssl'  => ['verify_peer' => false, 'verify_peer_name' => false],
+        ]);
+        $body   = @file_get_contents($url, false, $ctx);
+        $status = 0;
+        foreach (($http_response_header ?? []) as $h) {
+            if (preg_match('#^HTTP/\S+\s+(\d{3})#', $h, $m)) { $status = (int)$m[1]; break; }
+        }
+        if ($body !== false) {
+            return ['body' => (string)$body, 'status' => $status, 'error' => '', 'transport' => 'fopen'];
+        }
+        return ['body' => '', 'status' => 0,
+                'error' => $curlError !== '' ? $curlError : 'file_get_contents вернул false (allow_url_fopen включён, но запрос не прошёл)',
+                'transport' => 'fopen'];
+    }
+
+    return ['body' => '', 'status' => 0,
+            'error' => $curlError !== '' ? $curlError : 'Нет HTTP-транспорта: cURL отсутствует и allow_url_fopen=Off',
+            'transport' => 'none'];
+}
+
+/**
  * Full catalog of supported phone countries (single source of truth, shared with JS).
  * mask: 'X' = digit placeholder, остальные символы — литералы разделителей.
  */

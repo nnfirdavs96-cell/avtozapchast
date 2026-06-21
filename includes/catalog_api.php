@@ -21,7 +21,7 @@ require_once __DIR__ . '/partsapi_cats.php';
 class CatalogApi
 {
     private const CACHE_DAYS = 30;
-    private const CACHE_VER  = 3;     // bump to invalidate stale cache after logic changes
+    private const CACHE_VER  = 4;     // bump to invalidate stale cache after logic changes (v4: httpGet/cURL транспорт)
     private const EMPTY_TTL  = 3600;  // пустой результат держим в кэше только 1 час (потом пересбор)
 
     // Подтверждённые рабочие OEM-группы (оригинал). Для type=oem опрашиваем их
@@ -211,15 +211,12 @@ class CatalogApi
             'format' => 'json',
         ]);
 
-        $ctx = stream_context_create(['http' => [
-            'method'        => 'GET',
-            'timeout'       => self::timeout(),
-            'ignore_errors' => true,
-            'header'        => "Accept: application/json\r\nUser-Agent: AvtoZapchast/1.0\r\n",
-        ]]);
-        $raw  = @file_get_contents($url, false, $ctx);
-        $http = self::statusFromHeaders($http_response_header ?? []);
-        if ($raw === false || $raw === '' || $http >= 400) return [[], (string)$raw, true];
+        // Через общий httpGet: cURL приоритетно, иначе file_get_contents.
+        // На shared-хостинге прямой file_get_contents по HTTPS часто молча падает.
+        $res  = httpGet($url, self::timeout(), ['Accept: application/json']);
+        $raw  = $res['body'];
+        $http = $res['status'];
+        if ($res['error'] !== '' || $raw === '' || $http >= 400) return [[], (string)$raw, true];
 
         $json = json_decode($raw, true);
         if (!is_array($json)) return [[], $raw, true];
@@ -316,14 +313,6 @@ class CatalogApi
     private static function normArt(string $s): string
     {
         return strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $s));
-    }
-
-    private static function statusFromHeaders(array $headers): int
-    {
-        foreach ($headers as $h) {
-            if (preg_match('#^HTTP/\S+\s+(\d{3})#', $h, $m)) return (int)$m[1];
-        }
-        return 0;
     }
 
     // ── Cache (runtime-migrated table) ───────────────────────────────────────
