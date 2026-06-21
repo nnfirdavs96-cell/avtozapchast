@@ -1,7 +1,7 @@
 <?php
-$sitePhone   = isset($sitePhone) ? $sitePhone : getSetting('site_phone', '+7 (800) 555-35-35');
-$siteEmail   = getSetting('site_email', 'info@avtozapchast.ru');
-$siteAddress = getSetting('site_address', 'г. Москва, ул. Автомобильная, д. 1');
+$sitePhone   = isset($sitePhone) ? $sitePhone : getSetting('site_phone', '+992 XX XXX-XX-XX');
+$siteEmail   = getSetting('site_email', 'info@autodoc.tj');
+$siteAddress = getSetting('site_address', 'г. Худжанд, Таджикистан');
 $siteTg      = getSetting('site_telegram', '');
 $siteWa      = getSetting('site_whatsapp', '');
 ?>

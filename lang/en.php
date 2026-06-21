@@ -143,7 +143,7 @@ return [
     'access_denied'      => 'Access denied',
     // About
     'about_title'        => 'About Our Company',
-    'about_desc'         => 'We are a leading auto parts supplier with years of experience. Our Moscow warehouse holds over 50,000 parts for all car makes and models.',
+    'about_desc'         => 'We are a leading auto parts supplier with years of experience. Our Khujand warehouse holds over 50,000 parts for all car makes and models.',
     'our_team'           => 'Our Team',
     'our_mission'        => 'Our Mission',
     // Contact
@@ -154,7 +154,7 @@ return [
     'send_message'       => 'Send Message',
     'working_hours'      => 'Working Hours',
     // Warehouse
-    'warehouse_stock'    => 'Moscow Warehouse',
+    'warehouse_stock'    => 'Khujand Warehouse',
     'check_availability' => 'Check Availability',
     'warehouse_available'=> 'Available in stock',
     'warehouse_order'    => 'Order (3-7 days)',
@@ -247,7 +247,7 @@ return [
 
     // About / homepage
     'our_history'        => 'Our history',
-    'our_history_text'   => 'Since 2008 we have been supplying original auto parts across Russia. Our Moscow warehouse holds 50,000+ SKUs.',
+    'our_history_text'   => 'Since 2008 we have been supplying original auto parts across Tajikistan. Our Khujand warehouse holds 50,000+ SKUs.',
     'our_mission_text'   => 'We make car repair simple and affordable: original parts, fair prices, fast delivery.',
     'years_in_business'  => 'Years in business',
     'years_in_business_text' => 'Experience and reputation',
@@ -255,7 +255,7 @@ return [
     'what_we_do_for_you' => 'What we do for you',
     'what_we_do_text'    => 'We source original parts by VIN, ship to any region and warranty every order.',
     'fast_delivery'      => 'Fast delivery',
-    'fast_delivery_text' => 'Within Moscow — next day; across Russia — 2 to 7 days.',
+    'fast_delivery_text' => 'Within Khujand — next day; across Tajikistan — 2 to 7 days.',
     'share_post'         => 'Share',
 
     // Testimonials

@@ -101,7 +101,7 @@ return [
     'delivery_info'      => 'Доставка',
     'about_us_link'      => 'О нас',
     'free_delivery'      => 'Бесплатная доставка',
-    'free_delivery_text' => 'При заказе от 5000 ₽',
+    'free_delivery_text' => 'При заказе от 5000 смн',
     'secure_payment'     => 'Безопасная оплата',
     'secure_payment_text'=> '100% защищённые транзакции',
     'returns'            => 'Возврат',
@@ -154,7 +154,7 @@ return [
     'send_message'       => 'Отправить',
     'working_hours'      => 'Режим работы',
     // Warehouse
-    'warehouse_stock'    => 'Склад Москва',
+    'warehouse_stock'    => 'Склад Худжанд',
     'check_availability' => 'Проверить наличие',
     'warehouse_available'=> 'Есть на складе',
     'warehouse_order'    => 'Под заказ (3-7 дней)',
