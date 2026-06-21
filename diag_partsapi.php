@@ -134,11 +134,19 @@ foreach (array_slice($res['items'], 0, 5) as $it) {
 // ── Вывод-вердикт ──────────────────────────────────────────────────────────
 echo $br . "════════ ВЕРДИКТ ════════$br";
 $c = rawCurl($vinUrl); $f = rawFopen($vinUrl);
-if (!empty($c['ok']) && empty($f['ok']) && empty($f['skip'])) {
+$isLimit = function (array $r): bool {
+    $b = $r['body'] ?? '';
+    if (stripos($b, 'Exceeded the number of requests') !== false) return true;
+    $j = json_decode($b, true);
+    return is_array($j) && (int)($j['error_code'] ?? 0) === 5000;
+};
+if ($isLimit($c) || $isLimit($f)) {
+    echo "  → Соединение есть, ключ принят, но ПРЕВЫШЕН ЛИМИТ запросов с IP сервера$br";
+    echo "    (демо-ключ PartsAPI ≈ 50/сутки, error_code 5000). Код исправен.$br";
+    echo "    Решение: дождаться суточного сброса ИЛИ подключить платный тариф PartsAPI.$br";
+} elseif (!empty($c['ok']) && empty($f['ok']) && empty($f['skip'])) {
     echo "  → Транспорт: cURL работает, file_get_contents — нет. Это и была причина$br";
     echo "    «источник: local / ошибок==групп». Фикс httpGet (cURL) уже применён.$br";
-} elseif (!empty($c['ok']) && !empty($c['http']) && $c['http'] === 200 && stripos($c['body'] ?? '', 'limit') !== false) {
-    echo "  → Соединение есть, но ответ про ЛИМИТ ключа. Нужен платный ключ либо ждать сброса.$br";
 } elseif (empty($c['ok']) && empty($f['ok'])) {
     echo "  → Ни cURL, ни fopen не достучались до api.partsapi.ru — сеть/файрвол хостинга.$br";
     echo "    Проверь у хостера исходящие соединения на api.partsapi.ru:443.$br";

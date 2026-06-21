@@ -519,6 +519,12 @@ function escapeHtml(s) {
     fetch('<?= APP_URL ?>/api/vin_catalog.php?vin=' + encodeURIComponent(vin), { credentials:'same-origin' })
         .then(function(r){ return r.json(); })
         .then(function(d){
+            if (d.rate_limited) {
+                statusEl.innerHTML = '<div style="font-size:0.9rem;color:#b8860b;">' +
+                    '<i class="fa fa-clock-o"></i> Каталог временно недоступен: превышен суточный лимит запросов. ' +
+                    'Попробуйте позже.</div>';
+                return;
+            }
             if (!d.success || !d.items || d.items.length === 0) {
                 statusEl.innerHTML = '<div style="font-size:0.9rem;">По этому VIN в оригинальном каталоге запчасти не найдены.</div>';
                 return;

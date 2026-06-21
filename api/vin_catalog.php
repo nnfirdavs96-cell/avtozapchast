@@ -48,6 +48,7 @@ echo json_encode([
     'count'          => $data['count'],
     'groups_scanned' => $data['groups_scanned'],
     'errors'         => $data['errors'] ?? 0,
+    'rate_limited'   => !empty($data['rate_limited']),
     'type'           => $data['type'] ?? '',
     'from_cache'     => $data['from_cache'],
     'items'          => $items,
