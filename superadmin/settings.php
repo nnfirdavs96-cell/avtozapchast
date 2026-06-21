@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
-requireRole('superadmin');
+requireRole(['superadmin', 'admin', 'manager']);
+requirePermission('settings');
 
 $db   = getDB();
 $csrf = generateCsrfToken();
@@ -16,13 +17,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'site_telegram', 'site_whatsapp', 'site_instagram', 'site_facebook',
         'site_youtube', 'site_tiktok',
         'meta_description', 'meta_keywords',
-        'items_per_page', 'default_lang', 'default_currency',
+        'items_per_page', 'default_lang', 'default_currency', 'slider_interval_sec',
         'warehouse_api_url', 'warehouse_api_key',
         'map_lat', 'map_lng', 'map_zoom',
         'global_markup',
     ];
     // Checkboxes
-    $checkboxes = ['show_language_switcher', 'show_currency_switcher', 'warehouse_api_enabled'];
+    $checkboxes = ['show_language_switcher', 'show_currency_switcher', 'warehouse_api_enabled', 'auth_email_enabled'];
 
     foreach ($fields as $key) {
         $val = trim($_POST[$key] ?? '');
@@ -314,6 +315,13 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
               </div>
               <div class="col-md-4">
                 <div class="az-form-group">
+                  <label>Смена слайдов на главной, сек</label>
+                  <input type="number" name="slider_interval_sec" class="form-control" min="2" max="60" step="1" value="<?= sv($settings, 'slider_interval_sec', '5') ?>">
+                  <small class="text-muted">Через сколько секунд главный слайдер меняет слайд (2–60).</small>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="az-form-group">
                   <label>Язык по умолчанию</label>
                   <select name="default_lang" class="form-control">
                     <option value="ru" <?= ($settings['default_lang'] ?? 'ru') === 'ru' ? 'selected' : '' ?>>Русский (ru)</option>
@@ -355,6 +363,26 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Авторизация / вход -->
+        <div class="az-card mb-24">
+          <div class="az-card-header"><h4 class="az-card-title">Авторизация и вход</h4></div>
+          <div class="az-card-body">
+            <div class="az-form-group">
+              <div class="form-check mb-8">
+                <input type="checkbox" name="auth_email_enabled" id="auth_email" class="form-check-input"
+                       value="1" <?= (!isset($settings['auth_email_enabled']) || $settings['auth_email_enabled'] === '1') ? 'checked' : '' ?>>
+                <label for="auth_email" class="form-check-label">Разрешить вход и регистрацию по email + паролю</label>
+              </div>
+              <small style="color:#888;display:block;">
+                Если выключить — покупатели смогут входить и регистрироваться только по номеру телефона
+                (SMS-код). Сотрудники входят по номеру телефона и PIN-коду (задаётся в разделе
+                «Пользователи»). Для сотрудников остаётся резервный вход по email на странице
+                <code><?= APP_URL ?>/auth/login.php?staff=1</code>.
+              </small>
             </div>
           </div>
         </div>

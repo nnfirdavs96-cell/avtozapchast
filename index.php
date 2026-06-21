@@ -37,8 +37,12 @@ $blogPosts = $db->query("SELECT * FROM blog_posts WHERE is_published=1 ORDER BY 
 $sliders = $db->query("SELECT * FROM sliders WHERE is_active=1 ORDER BY sort_order ASC, id ASC")->fetchAll();
 
 try {
-    $banners = $db->query("SELECT * FROM banners WHERE is_active=1 ORDER BY sort_order ASC, id ASC LIMIT 3")->fetchAll();
-} catch (Exception $e) { $banners = []; }
+    $banners = $db->query("SELECT * FROM banners WHERE is_active=1 AND placement='home' ORDER BY sort_order ASC, id ASC LIMIT 3")->fetchAll();
+} catch (Exception $e) {
+    // placement column not migrated yet — fall back to all active banners
+    try { $banners = $db->query("SELECT * FROM banners WHERE is_active=1 ORDER BY sort_order ASC, id ASC LIMIT 3")->fetchAll(); }
+    catch (Exception $e2) { $banners = []; }
+}
 
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -359,17 +363,21 @@ require_once __DIR__ . '/includes/header.php';
     <!--sale products area start-->
     <?php if (!empty($saleParts)):
         $featDeal   = $saleParts[0];                 // самая большая скидка — крупная карточка
-        $smallDeals = array_slice($saleParts, 1, 4); // следующие — мелкие карточки
+        $smallDeals = array_slice($saleParts, 1);    // остальные — в карусель со стрелками
         $featImg    = productImageUrl($featDeal['images']);
     ?>
     <div class="product_area sale_product_area" style="padding-top:0;">
         <div class="container">
-            <div class="section_title title_style2" style="display:flex;align-items:baseline;gap:14px;border-bottom:1px solid #eee;padding-bottom:16px;margin-bottom:26px;">
-                <div class="title_content" style="padding:0;background:none;">
-                    <h2 style="margin:0;"><span><?= t('discount_title_1') ?></span> <?= t('discount_title_2') ?></h2>
+            <div class="section_title sale_head" style="display:flex;align-items:center;margin-bottom:26px;">
+                <div class="title_content">
+                    <h2 style="margin:0;font-size:24px;line-height:24px;"><span><?= t('discount_title_1') ?></span> <?= t('discount_title_2') ?></h2>
                 </div>
-                <p style="margin:0;color:#888;font-size:14px;"><?= t('discount_subtitle') ?></p>
-                <a href="<?= APP_URL ?>/catalog/index.php?sale=1" style="margin-left:auto;font-size:13px;font-weight:600;color:#C70909;white-space:nowrap;"><?= t('discount') ?> →</a>
+                <p style="margin:0 0 0 14px;color:#888;font-size:14px;line-height:24px;"><?= t('discount_subtitle') ?></p>
+                <span class="sale_head_line"></span>
+                <div class="deal_nav">
+                    <button type="button" class="deal_prev" aria-label="Назад"><i class="fa fa-angle-left"></i></button>
+                    <button type="button" class="deal_next" aria-label="Вперёд"><i class="fa fa-angle-right"></i></button>
+                </div>
             </div>
 
             <div class="row">
@@ -394,25 +402,21 @@ require_once __DIR__ . '/includes/header.php';
                             <?php endif; ?>
                             <div class="action_links">
                                 <ul>
-                                    <?php if (isLoggedIn()): ?>
                                     <li class="add_to_cart"><a href="javascript:void(0)" onclick="addToCart(<?= (int)$featDeal['id'] ?>)" title="<?= t('add_to_cart') ?>"><?= t('add_to_cart') ?></a></li>
                                     <li class="wishlist"><a href="javascript:void(0)" onclick="addToWishlist(<?= (int)$featDeal['id'] ?>)" title="<?= t('add_to_wishlist') ?>"><i class="icon-heart"></i></a></li>
-                                    <?php else: ?>
-                                    <li class="add_to_cart"><a href="<?= APP_URL ?>/auth/login.php"><?= t('login') ?></a></li>
-                                    <?php endif; ?>
                                 </ul>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Мелкие карточки -->
+                <!-- Мелкие карточки — карусель со стрелками (видно 3, остальные листаются) -->
                 <div class="col-lg-7 col-md-6">
-                    <div class="row shop_wrapper">
+                    <div class="product_carousel product_column3 owl-carousel">
                         <?php foreach ($smallDeals as $part):
                             $sImg = productImageUrl($part['images']);
                         ?>
-                        <div class="col-lg-3 col-md-6 col-6 mb-30">
+                        <div class="col-lg-3 mb-30">
                             <article class="single_product">
                                 <figure>
                                     <div class="product_thumb">
@@ -433,12 +437,8 @@ require_once __DIR__ . '/includes/header.php';
                                         </div>
                                         <div class="action_links">
                                             <ul>
-                                                <?php if (isLoggedIn()): ?>
                                                 <li class="add_to_cart"><a href="javascript:void(0)" onclick="addToCart(<?= (int)$part['id'] ?>)" title="<?= t('add_to_cart') ?>"><?= t('add_to_cart') ?></a></li>
                                                 <li class="wishlist"><a href="javascript:void(0)" onclick="addToWishlist(<?= (int)$part['id'] ?>)" title="<?= t('add_to_wishlist') ?>"><i class="icon-heart"></i></a></li>
-                                                <?php else: ?>
-                                                <li class="add_to_cart"><a href="<?= APP_URL ?>/auth/login.php"><?= t('login') ?></a></li>
-                                                <?php endif; ?>
                                             </ul>
                                         </div>
                                     </div>

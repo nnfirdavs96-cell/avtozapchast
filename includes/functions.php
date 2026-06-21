@@ -96,17 +96,23 @@ function permissionSections(): array {
     return [
         'products'   => 'Товары / Запчасти',
         'markup'     => 'Себестоимость и наценка',
-        'sliders'    => 'Слайдер / Баннеры',
-        'orders'     => 'Заказы',
-        'users'      => 'Пользователи',
         'categories' => 'Категории',
         'brands'     => 'Бренды',
+        'warehouse'  => 'Склад API',
+        'vin'        => 'VIN-поиск',
+        'orders'     => 'Заказы',
+        'delivery'   => 'Доставка',
+        'sliders'    => 'Слайдер / Баннеры',
         'blog'       => 'Блог',
         'pages'      => 'Страницы (CMS)',
         'reviews'    => 'Отзывы',
-        'warehouse'  => 'Склад API',
-        'vin'        => 'VIN-поиск',
+        'users'      => 'Пользователи',
+        'settings'   => 'Настройки сайта',
+        'currencies' => 'Валюты',
+        'languages'  => 'Языки',
     ];
+    // NOTE: 'permissions' (Права доступа) and 'backup' (Бэкапы) are intentionally
+    // NOT delegatable — they stay superadmin-only for security.
 }
 
 /**
@@ -227,71 +233,85 @@ function renderRoleSidebar(string $active = ''): void {
     $role = $user['role'] ?? '';
     $url  = APP_URL;
 
-    if ($role === 'superadmin') {
-        $items = [
-            ['key' => 'dashboard',  'href' => "$url/superadmin/index.php",   'icon' => 'fa-tachometer',   'label' => 'Панель'],
-            ['key' => 'users',      'href' => "$url/superadmin/users.php",   'icon' => 'fa-users',        'label' => 'Пользователи'],
-            ['key' => 'permissions','href' => "$url/superadmin/permissions.php",'icon' => 'fa-shield',     'label' => 'Права доступа'],
-            ['key' => 'orders',     'href' => "$url/admin/orders.php",       'icon' => 'fa-shopping-bag', 'label' => 'Заказы'],
-            ['key' => 'delivery',   'href' => "$url/superadmin/delivery.php",'icon' => 'fa-truck',        'label' => 'Доставка'],
-            ['key' => 'products',   'href' => "$url/admin/products.php",     'icon' => 'fa-cogs',         'label' => 'Товары'],
-            ['key' => 'sliders',    'href' => "$url/admin/sliders.php",      'icon' => 'fa-picture-o',    'label' => 'Слайдер'],
-            ['key' => 'banners',    'href' => "$url/admin/banners.php",      'icon' => 'fa-clone',        'label' => 'Баннеры'],
-            ['key' => 'settings',   'href' => "$url/superadmin/settings.php",'icon' => 'fa-cog',          'label' => 'Настройки'],
-            ['key' => 'currencies', 'href' => "$url/superadmin/currencies.php", 'icon' => 'fa-money',     'label' => 'Валюты'],
-            ['key' => 'languages',  'href' => "$url/superadmin/languages.php",  'icon' => 'fa-language',  'label' => 'Языки'],
-            ['key' => 'warehouse',  'href' => "$url/superadmin/warehouse.php",  'icon' => 'fa-database',  'label' => 'Склад API'],
-            ['key' => 'vin',        'href' => "$url/superadmin/vin.php",        'icon' => 'fa-search',    'label' => 'VIN-поиск'],
-            ['key' => 'blog',       'href' => "$url/superadmin/blog.php",       'icon' => 'fa-newspaper-o', 'label' => 'Блог'],
-            ['key' => 'partners',   'href' => "$url/manager/brands.php",        'icon' => 'fa-handshake-o', 'label' => 'Партнёры'],
-            ['key' => 'pages',      'href' => "$url/manager/pages.php",         'icon' => 'fa-file-text-o', 'label' => 'Страницы'],
-            ['key' => 'reviews',    'href' => "$url/manager/reviews.php",       'icon' => 'fa-comments-o',  'label' => 'Отзывы'],
-            ['key' => 'categories', 'href' => "$url/manager/categories.php",    'icon' => 'fa-sitemap',     'label' => 'Категории'],
-            ['key' => 'backup',     'href' => "$url/superadmin/backup.php",     'icon' => 'fa-archive',   'label' => 'Бэкапы'],
-            ['key' => 'manual',     'href' => "$url/superadmin/manual.php",     'icon' => 'fa-book',      'label' => 'Руководство'],
-        ];
-        $logoHtml = '<div class="az-sidebar-logo"><span style="color:#fcb700;">★</span> СУПЕР<span>АДМИН</span></div>';
-        $asideStyle = '';
-    } elseif ($role === 'admin') {
-        $items = [
-            ['key' => 'dashboard', 'href' => "$url/admin/index.php",     'icon' => 'fa-tachometer',   'label' => 'Панель'],
-            ['key' => 'products',  'href' => "$url/admin/products.php",  'icon' => 'fa-cogs',         'label' => 'Товары'],
-            ['key' => 'sliders',   'href' => "$url/admin/sliders.php",   'icon' => 'fa-picture-o',    'label' => 'Слайдер'],
-            ['key' => 'banners',   'href' => "$url/admin/banners.php",   'icon' => 'fa-clone',        'label' => 'Баннеры'],
-            ['key' => 'orders',    'href' => "$url/admin/orders.php",    'icon' => 'fa-shopping-bag', 'label' => 'Заказы'],
-            ['key' => 'users',     'href' => "$url/admin/users.php",     'icon' => 'fa-users',        'label' => 'Пользователи'],
-            ['key' => 'vin',       'href' => "$url/superadmin/vin.php",  'icon' => 'fa-search',       'label' => 'VIN-поиск'],
-        ];
-        $logoHtml = '<div class="az-sidebar-logo">ADMIN<span>PANEL</span></div>';
-        $asideStyle = '';
-    } elseif ($role === 'manager') {
-        $items = [
-            ['key' => 'dashboard',  'href' => "$url/manager/index.php",      'icon' => 'fa-dashboard',    'label' => 'Панель'],
-            ['key' => 'parts',      'href' => "$url/manager/parts.php",      'icon' => 'fa-cogs',         'label' => 'Запчасти'],
-            ['key' => 'categories', 'href' => "$url/manager/categories.php", 'icon' => 'fa-sitemap',      'label' => 'Категории'],
-            ['key' => 'brands',     'href' => "$url/manager/brands.php",     'icon' => 'fa-tag',          'label' => 'Бренды'],
-            ['key' => 'blog',       'href' => "$url/manager/blog.php",       'icon' => 'fa-newspaper-o',  'label' => 'Блог'],
-        ];
-        $logoHtml = '<div class="az-sidebar-logo">AUTO<span>PARTS</span></div>';
-        $asideStyle = '';
-    } else {
-        return;
-    }
+    if (!in_array($role, ['admin', 'manager', 'superadmin'], true)) return;
 
-    echo '<aside class="az-sidebar"' . ($asideStyle ? ' style="' . $asideStyle . '"' : '') . '>';
+    // Role-dependent destinations (the rest are shared pages that allow all admin roles).
+    $dashHref     = $role === 'superadmin' ? "$url/superadmin/index.php"
+                  : ($role === 'admin' ? "$url/admin/index.php" : "$url/manager/index.php");
+    $productsHref = $role === 'manager' ? "$url/manager/parts.php" : "$url/admin/products.php";
+    $usersHref    = $role === 'superadmin' ? "$url/superadmin/users.php" : "$url/admin/users.php";
+
+    // Single grouped catalog, rendered for every admin role and filtered by
+    // userCan() — superadmin sees all; admin/manager see their granted sections.
+    $groups = [
+        ['label' => '', 'items' => [
+            ['key' => 'dashboard',  'href' => $dashHref,                       'icon' => 'fa-tachometer',  'label' => 'Панель'],
+        ]],
+        ['label' => 'Каталог', 'items' => [
+            ['key' => 'products',   'href' => $productsHref,                    'icon' => 'fa-cogs',        'label' => 'Товары'],
+            ['key' => 'categories', 'href' => "$url/manager/categories.php",   'icon' => 'fa-sitemap',     'label' => 'Категории'],
+            ['key' => 'brands',     'href' => "$url/manager/brands.php",       'icon' => 'fa-tag',         'label' => 'Бренды'],
+            ['key' => 'warehouse',  'href' => "$url/superadmin/warehouse.php", 'icon' => 'fa-database',    'label' => 'Склад API'],
+            ['key' => 'vin',        'href' => "$url/superadmin/vin.php",       'icon' => 'fa-search',      'label' => 'VIN-поиск'],
+        ]],
+        ['label' => 'Продажи', 'items' => [
+            ['key' => 'orders',     'href' => "$url/admin/orders.php",         'icon' => 'fa-shopping-bag','label' => 'Заказы'],
+            ['key' => 'delivery',   'href' => "$url/superadmin/delivery.php",  'icon' => 'fa-truck',       'label' => 'Доставка'],
+        ]],
+        ['label' => 'Контент', 'items' => [
+            ['key' => 'sliders',    'href' => "$url/admin/sliders.php",        'icon' => 'fa-picture-o',   'label' => 'Слайдер'],
+            ['key' => 'banners',    'href' => "$url/admin/banners.php",        'icon' => 'fa-clone',       'label' => 'Баннеры'],
+            ['key' => 'blog',       'href' => "$url/manager/blog.php",         'icon' => 'fa-newspaper-o', 'label' => 'Блог'],
+            ['key' => 'pages',      'href' => "$url/manager/pages.php",        'icon' => 'fa-file-text-o', 'label' => 'Страницы'],
+            ['key' => 'reviews',    'href' => "$url/manager/reviews.php",      'icon' => 'fa-comments-o',  'label' => 'Отзывы'],
+        ]],
+        ['label' => 'Доступ', 'items' => [
+            ['key' => 'users',      'href' => $usersHref,                      'icon' => 'fa-users',       'label' => 'Пользователи'],
+            ['key' => 'permissions','href' => "$url/superadmin/permissions.php",'icon' => 'fa-shield',     'label' => 'Права доступа'],
+        ]],
+        ['label' => 'Система', 'items' => [
+            ['key' => 'settings',   'href' => "$url/superadmin/settings.php",  'icon' => 'fa-cog',         'label' => 'Настройки'],
+            ['key' => 'currencies', 'href' => "$url/superadmin/currencies.php",'icon' => 'fa-money',       'label' => 'Валюты'],
+            ['key' => 'languages',  'href' => "$url/superadmin/languages.php", 'icon' => 'fa-language',    'label' => 'Языки'],
+            ['key' => 'backup',     'href' => "$url/superadmin/backup.php",    'icon' => 'fa-archive',     'label' => 'Бэкапы'],
+            ['key' => 'manual',     'href' => "$url/superadmin/manual.php",    'icon' => 'fa-book',        'label' => 'Руководство'],
+        ]],
+    ];
+
+    $logoHtml = $role === 'superadmin'
+        ? '<div class="az-sidebar-logo"><span style="color:#fcb700;">★</span> СУПЕР<span>АДМИН</span></div>'
+        : ($role === 'admin'
+            ? '<div class="az-sidebar-logo">ADMIN<span>PANEL</span></div>'
+            : '<div class="az-sidebar-logo">AUTO<span>PARTS</span></div>');
+
+    // 'parts'/'partners' are legacy active-keys; normalize to the canonical item key.
+    $activeKey = $active === 'parts' ? 'products' : ($active === 'partners' ? 'brands' : $active);
+
+    // Visibility: dashboard always; permissions/backup/manual are superadmin-only;
+    // everything else by userCan() (superadmin always passes).
+    $canSee = function (string $key) use ($role): bool {
+        if ($key === 'dashboard') return true;
+        if ($role === 'superadmin') return true;
+        if (in_array($key, ['permissions', 'backup', 'manual'], true)) return false;
+        return userCan(permissionAlias($key));
+    };
+
+    echo '<aside class="az-sidebar">';
     echo $logoHtml;
     echo '<nav><ul>';
-    foreach ($items as $it) {
-        // Hide links the superadmin has restricted for this user.
-        // 'dashboard' is always visible (entry point).
-        if ($it['key'] !== 'dashboard' && !userCan(permissionAlias($it['key']))) {
-            continue;
+    foreach ($groups as $g) {
+        $visible = array_values(array_filter($g['items'], fn($it) => $canSee($it['key'])));
+        if (!$visible) continue;
+        if ($g['label'] !== '') {
+            echo '<li class="az-sidebar-group">' . sanitize($g['label']) . '</li>';
         }
-        $cls = $it['key'] === $active ? ' class="active"' : '';
-        echo '<li><a href="' . sanitize($it['href']) . '"' . $cls . '><i class="fa ' . sanitize($it['icon']) . '"></i> ' . sanitize($it['label']) . '</a></li>';
+        foreach ($visible as $it) {
+            $cls = $it['key'] === $activeKey ? ' class="active"' : '';
+            echo '<li><a href="' . sanitize($it['href']) . '"' . $cls . '><i class="fa ' . sanitize($it['icon']) . '"></i> ' . sanitize($it['label']) . '</a></li>';
+        }
     }
-    echo '<li style="border-top:1px solid rgba(255,255,255,0.1);margin-top:12px;">';
-    echo '<a href="' . $url . '/index.php"><i class="fa fa-home"></i> На сайт</a></li>';
+    echo '<li class="az-sidebar-group">Аккаунт</li>';
+    echo '<li><a href="' . $url . '/index.php"><i class="fa fa-home"></i> На сайт</a></li>';
     echo '<li><a href="' . $url . '/auth/logout.php" style="color:rgba(255,100,100,0.85)!important;"><i class="fa fa-sign-out"></i> Выйти</a></li>';
     echo '</ul></nav></aside>';
 }
@@ -684,6 +704,86 @@ function setSetting(string $key, string $value): void {
 }
 
 /**
+ * Надёжный HTTP GET. Приоритет — cURL (несёт собственный CA-bundle и работает на
+ * shared-хостинге, где allow_url_fopen выключен либо у stream-обёртки нет CA),
+ * фолбэк — file_get_contents. Именно поэтому интеграции (PartsAPI и др.) должны
+ * ходить через этот хелпер, а не напрямую через file_get_contents: на ряде
+ * хостингов file_get_contents по HTTPS молча возвращает false на КАЖДОМ запросе.
+ *
+ * Возвращает ['body'=>string, 'status'=>int, 'error'=>string, 'transport'=>string].
+ *   status 0 + непустой error  → транспортный сбой (DNS/TLS/таймаут/блокировка);
+ *   status 200 + пустой error   → ответ получен (его уже разбирает вызывающий код).
+ */
+function httpGet(string $url, int $timeout = 12, array $headers = []): array {
+    $timeout = max(2, min(60, $timeout));
+    $headers = $headers ?: ['Accept: application/json'];
+    $curlError = '';
+
+    if (function_exists('curl_init')) {
+        $do = function (bool $verify) use ($url, $timeout, $headers) {
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL            => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => $timeout,
+                CURLOPT_CONNECTTIMEOUT => min($timeout, 10),
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS      => 3,
+                CURLOPT_SSL_VERIFYPEER => $verify,
+                CURLOPT_SSL_VERIFYHOST => $verify ? 2 : 0,
+                CURLOPT_ENCODING       => '',
+                CURLOPT_USERAGENT      => 'AvtoZapchast/1.0',
+                CURLOPT_HTTPHEADER     => $headers,
+            ]);
+            $body   = curl_exec($ch);
+            $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $err    = curl_error($ch);
+            $errno  = curl_errno($ch);
+            curl_close($ch);
+            return [$body, $status, $err, $errno];
+        };
+
+        [$body, $status, $err, $errno] = $do(true);
+        // 60/51/35 = проблемы проверки TLS-сертификата на кривом хостинге → ретрай без проверки.
+        if ($body === false && in_array($errno, [60, 51, 35], true)) {
+            [$body, $status, $err] = $do(false);
+        }
+        if ($body !== false) {
+            return ['body' => (string)$body, 'status' => $status, 'error' => '', 'transport' => 'curl'];
+        }
+        $curlError = $err !== '' ? "cURL: $err" : 'cURL request failed';
+    }
+
+    // Фолбэк: stream-обёртка file_get_contents (если включён allow_url_fopen).
+    if (ini_get('allow_url_fopen')) {
+        $ctx = stream_context_create([
+            'http' => [
+                'method'        => 'GET',
+                'timeout'       => $timeout,
+                'ignore_errors' => true,
+                'header'        => implode("\r\n", $headers) . "\r\nUser-Agent: AvtoZapchast/1.0\r\n",
+            ],
+            'ssl'  => ['verify_peer' => false, 'verify_peer_name' => false],
+        ]);
+        $body   = @file_get_contents($url, false, $ctx);
+        $status = 0;
+        foreach (($http_response_header ?? []) as $h) {
+            if (preg_match('#^HTTP/\S+\s+(\d{3})#', $h, $m)) { $status = (int)$m[1]; break; }
+        }
+        if ($body !== false) {
+            return ['body' => (string)$body, 'status' => $status, 'error' => '', 'transport' => 'fopen'];
+        }
+        return ['body' => '', 'status' => 0,
+                'error' => $curlError !== '' ? $curlError : 'file_get_contents вернул false (allow_url_fopen включён, но запрос не прошёл)',
+                'transport' => 'fopen'];
+    }
+
+    return ['body' => '', 'status' => 0,
+            'error' => $curlError !== '' ? $curlError : 'Нет HTTP-транспорта: cURL отсутствует и allow_url_fopen=Off',
+            'transport' => 'none'];
+}
+
+/**
  * Full catalog of supported phone countries (single source of truth, shared with JS).
  * mask: 'X' = digit placeholder, остальные символы — литералы разделителей.
  */
@@ -1039,6 +1139,204 @@ function seedBrands(): int {
     }
 }
 
+/* ───────────────────────── Phone / SMS authentication ───────────────────────── */
+
+/**
+ * Ensure the DB schema supports phone-based (SMS) registration.
+ * Idempotent, runs once per deploy (guarded by a settings flag):
+ *  - email / password_hash become NULLable (phone-only accounts have neither)
+ *  - phone_e164 column added (normalized digits, the canonical login key)
+ *  - phone_otp table created (one-time SMS codes)
+ */
+function ensurePhoneAuthSchema(): void {
+    if (getSetting('phone_auth_schema_v1', '') === '1') return;
+    try {
+        $db = getDB();
+        // email: drop NOT NULL (keep the unique index — MySQL allows multiple NULLs)
+        $col = $db->query("SELECT IS_NULLABLE FROM information_schema.COLUMNS
+                           WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'email'")
+                  ->fetchColumn();
+        if ($col === 'NO') {
+            $db->exec("ALTER TABLE `users` MODIFY `email` VARCHAR(180) NULL");
+        }
+        // password_hash: drop NOT NULL
+        $col = $db->query("SELECT IS_NULLABLE FROM information_schema.COLUMNS
+                           WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'password_hash'")
+                  ->fetchColumn();
+        if ($col === 'NO') {
+            $db->exec("ALTER TABLE `users` MODIFY `password_hash` VARCHAR(255) NULL");
+        }
+        // phone_e164: canonical normalized phone for reliable lookup
+        dbAddColumnIfMissing($db, 'users', 'phone_e164',
+            "`phone_e164` VARCHAR(20) DEFAULT NULL AFTER `phone`");
+        try { $db->exec("CREATE INDEX `idx_phone_e164` ON `users` (`phone_e164`)"); } catch (Exception $e) {}
+        // OTP table
+        $db->exec(
+            "CREATE TABLE IF NOT EXISTS `phone_otp` (
+                `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `phone`       VARCHAR(20)  NOT NULL,
+                `code_hash`   VARCHAR(255) NOT NULL,
+                `purpose`     VARCHAR(20)  NOT NULL DEFAULT 'login',
+                `attempts`    TINYINT      NOT NULL DEFAULT 0,
+                `expires_at`  DATETIME     NOT NULL,
+                `consumed_at` DATETIME     DEFAULT NULL,
+                `created_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                KEY `idx_phone` (`phone`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        setSetting('phone_auth_schema_v1', '1');
+    } catch (Exception $e) { /* leave flag unset → retried next load */ }
+}
+
+/**
+ * Add the `pin_hash` column used for staff phone+PIN login.
+ * Separate from ensurePhoneAuthSchema() because that one is guarded by its own
+ * flag that may already be set on existing installs.
+ */
+function ensureStaffPinSchema(): void {
+    if (getSetting('staff_pin_schema_v1', '') === '1') return;
+    try {
+        $db = getDB();
+        dbAddColumnIfMissing($db, 'users', 'pin_hash',
+            "`pin_hash` VARCHAR(255) DEFAULT NULL AFTER `password_hash`");
+        setSetting('staff_pin_schema_v1', '1');
+    } catch (Exception $e) { /* retried next load */ }
+}
+
+/** Is email + password login/registration enabled by the admin? (default: yes) */
+function emailAuthEnabled(): bool {
+    return getSetting('auth_email_enabled', '1') === '1';
+}
+
+/** Roles that count as staff (back-office), as opposed to a buyer. */
+function isStaffRole(?string $role): bool {
+    return in_array($role, ['manager', 'admin', 'superadmin'], true);
+}
+
+/**
+ * Normalize a phone to canonical digits with country code (no '+', no separators).
+ * Tajik local numbers (9 digits, no country code) are prefixed with 992.
+ * Returns '' if there aren't enough digits to be a real number.
+ */
+function normalizePhone(string $raw): string {
+    $d = preg_replace('/\D+/', '', $raw);
+    if ($d === '') return '';
+    // 8XXXXXXXXXX (RU-style trunk) → 7XXXXXXXXXX
+    if (strlen($d) === 11 && $d[0] === '8') $d = '7' . substr($d, 1);
+    // Local Tajik number without country code (e.g. 92 123 45 67) → prefix 992
+    if (strlen($d) === 9) $d = '992' . $d;
+    return strlen($d) >= 9 ? $d : '';
+}
+
+/** Is a real SMS provider configured? When false, codes are shown on screen (test mode). */
+function smsConfigured(): bool {
+    return getSetting('sms_provider', '') !== '';
+}
+
+/**
+ * Send an SMS. In test mode (no provider configured) the message is written to
+ * storage/sms.log and the function returns true so the flow keeps working.
+ * Real providers can be wired in here later (config in superadmin settings).
+ */
+function sendSms(string $phone, string $message): bool {
+    $provider = getSetting('sms_provider', '');
+    if ($provider === '') {
+        $line = '[' . date('Y-m-d H:i:s') . '] +' . $phone . ' :: ' . $message . "\n";
+        @file_put_contents(APP_ROOT . '/storage/sms.log', $line, FILE_APPEND | LOCK_EX);
+        return true;
+    }
+    // Extension point: implement provider HTTP calls here (OSON SMS / SMSC / Twilio …)
+    return false;
+}
+
+/**
+ * Create and send a one-time code for a phone.
+ * Rate-limited: one code per 60s, max 5 per hour.
+ * Returns ['ok'=>bool, 'error'=>?string, 'dev_code'=>?string] (dev_code only in test mode).
+ */
+function createPhoneOtp(string $phone, string $purpose = 'login'): array {
+    $phone = normalizePhone($phone);
+    if ($phone === '') return ['ok' => false, 'error' => 'Введите корректный номер телефона.'];
+    try {
+        $db = getDB();
+        // Rate limit
+        $last = $db->prepare("SELECT created_at FROM phone_otp WHERE phone = ? ORDER BY id DESC LIMIT 1");
+        $last->execute([$phone]);
+        $lastAt = $last->fetchColumn();
+        if ($lastAt && (time() - strtotime($lastAt)) < 60) {
+            return ['ok' => false, 'error' => 'Код уже отправлен. Подождите минуту перед повторной отправкой.'];
+        }
+        $hr = $db->prepare("SELECT COUNT(*) FROM phone_otp WHERE phone = ? AND created_at > (NOW() - INTERVAL 1 HOUR)");
+        $hr->execute([$phone]);
+        if ((int)$hr->fetchColumn() >= 5) {
+            return ['ok' => false, 'error' => 'Слишком много запросов. Попробуйте через час.'];
+        }
+        $code = str_pad((string)random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+        $db->prepare(
+            "INSERT INTO phone_otp (phone, code_hash, purpose, expires_at)
+             VALUES (?, ?, ?, (NOW() + INTERVAL 5 MINUTE))"
+        )->execute([$phone, password_hash($code, PASSWORD_DEFAULT), $purpose]);
+        sendSms($phone, 'Ваш код для входа на ' . getSetting('site_name', 'сайт') . ': ' . $code);
+        return ['ok' => true, 'error' => null, 'dev_code' => smsConfigured() ? null : $code];
+    } catch (Exception $e) {
+        return ['ok' => false, 'error' => 'Не удалось отправить код. Попробуйте позже.'];
+    }
+}
+
+/**
+ * Verify a one-time code. On success the code is consumed (single-use).
+ * Returns true only for a valid, unexpired, unconsumed code.
+ */
+function verifyPhoneOtp(string $phone, string $code, string $purpose = 'login'): bool {
+    $phone = normalizePhone($phone);
+    $code  = preg_replace('/\D+/', '', $code);
+    if ($phone === '' || $code === '') return false;
+    try {
+        $db  = getDB();
+        $row = $db->prepare(
+            "SELECT * FROM phone_otp
+             WHERE phone = ? AND purpose = ? AND consumed_at IS NULL AND expires_at > NOW()
+             ORDER BY id DESC LIMIT 1"
+        );
+        $row->execute([$phone, $purpose]);
+        $otp = $row->fetch();
+        if (!$otp) return false;
+        if ((int)$otp['attempts'] >= 5) return false;
+        if (!password_verify($code, $otp['code_hash'])) {
+            $db->prepare("UPDATE phone_otp SET attempts = attempts + 1 WHERE id = ?")->execute([$otp['id']]);
+            return false;
+        }
+        $db->prepare("UPDATE phone_otp SET consumed_at = NOW() WHERE id = ?")->execute([$otp['id']]);
+        return true;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+/** Find an active user by phone (matches the normalized phone_e164 key). */
+function findUserByPhone(string $phone): ?array {
+    $norm = normalizePhone($phone);
+    if ($norm === '') return null;
+    try {
+        $db   = getDB();
+        $stmt = $db->prepare("SELECT * FROM users WHERE phone_e164 = ? AND is_active = 1 LIMIT 1");
+        $stmt->execute([$norm]);
+        return $stmt->fetch() ?: null;
+    } catch (Exception $e) {
+        return null;
+    }
+}
+
+/** Establish a login session for a user row (shared by all auth flows). */
+function loginUser(array $user): void {
+    session_regenerate_id(true);
+    $_SESSION['user_id']  = $user['id'];
+    $_SESSION['role']     = $user['role'];
+    $_SESSION['username'] = $user['username'];
+    unset($_SESSION['user_data']);
+}
+
 /**
  * Slider text-block fonts available to admins. Key = font family stored in DB
  * ('' = the site default Rubik); value = human label for the dropdown.
@@ -1124,6 +1422,93 @@ function normalizeSliderBlocks(array $raw): array {
         ];
     }
     return $out;
+}
+
+/**
+ * Swap ONLY the slider photos to the real Mazlay template hero images (one-time).
+ *
+ * The user's slides keep ALL their text — we touch only the image columns. The old
+ * demo had a wrong photo (a blue Lamborghini placeholder); we replace it with the
+ * genuine 1920×500 template images:
+ *   hero1.jpg — салон/интерьер · hero2.jpg — тягач · hero3.jpg — Fidanza спорткар
+ *
+ * Each existing slide is matched to the most fitting photo by keywords in its text
+ * (Fidanza / тягач / салон); anything else falls back to position order.
+ *
+ * Self-guarded by the 'slider_photos_template_v1' setting so it runs once.
+ */
+function seedSliderTemplate(): void {
+    if (getSetting('slider_photos_template_v1', '')) return;
+    $db = getDB();
+
+    $fidanza  = '/assets/img/slider/hero3.jpg'; // спорткар Fidanza
+    $truck    = '/assets/img/slider/hero2.jpg'; // тягач с прицепом
+    $interior = '/assets/img/slider/hero1.jpg'; // салон автомобиля
+    $byOrder  = [$interior, $truck, $fidanza];  // дефолтный порядок шаблона
+
+    try {
+        $slides = $db->query("SELECT id, title, text_blocks, text_blocks_mobile FROM sliders ORDER BY sort_order ASC, id ASC")->fetchAll();
+        if (!$slides) { setSetting('slider_photos_template_v1', '1'); return; } // нет слайдов — менять нечего
+
+        // Pick the best photo for a slide from the words in its text.
+        $pick = function (array $row) use ($fidanza, $truck, $interior): ?string {
+            $hay = mb_strtolower(($row['title'] ?? '') . ' ' . ($row['text_blocks'] ?? '') . ' ' . ($row['text_blocks_mobile'] ?? ''));
+            if (preg_match('/fidanza|фиданза/u', $hay))               return $fidanza;
+            if (preg_match('/тягач|прицеп|грузов|truck/u', $hay))     return $truck;
+            if (preg_match('/салон|интерьер|interior|cabin/u', $hay)) return $interior;
+            return null;
+        };
+
+        // Update only the image columns; text is left untouched.
+        $upd = $db->prepare("UPDATE sliders SET image_url = ?, image_url_mobile = '' WHERE id = ?");
+        foreach ($slides as $i => $row) {
+            $img = $pick($row) ?? $byOrder[$i % 3];
+            $upd->execute([$img, $row['id']]);
+        }
+        setSetting('slider_photos_template_v1', '1');
+    } catch (Exception $e) { /* leave flag unset → retried next load */ }
+}
+
+/**
+ * Seed the banners table with the 3 Mazlay template slider images (one-time).
+ * Only runs when the banners table is empty; call is guarded by 'banners_seed_done' setting.
+ */
+function seedBanners(): void {
+    $db = getDB();
+    // Ensure table & columns exist before seeding
+    $db->exec("CREATE TABLE IF NOT EXISTS `banners` (
+      `id`               INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+      `title`            VARCHAR(255)  NOT NULL DEFAULT '',
+      `image_url`        VARCHAR(500)  NOT NULL DEFAULT '',
+      `image_url_mobile` VARCHAR(500)  NOT NULL DEFAULT '',
+      `link_url`         VARCHAR(500)  NOT NULL DEFAULT '',
+      `sort_order`       SMALLINT      NOT NULL DEFAULT 0,
+      `is_active`        TINYINT(1)    NOT NULL DEFAULT 1,
+      `created_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    dbAddColumnIfMissing($db, 'banners', 'image_url_mobile',
+        "`image_url_mobile` VARCHAR(500) NOT NULL DEFAULT '' AFTER `image_url`");
+    dbAddColumnIfMissing($db, 'banners', 'placement',
+        "`placement` VARCHAR(20) NOT NULL DEFAULT 'home' AFTER `link_url`");
+
+    // Skip if already has banners
+    $count = (int)$db->query("SELECT COUNT(*) FROM banners")->fetchColumn();
+    if ($count > 0) return;
+
+    $catalogUrl = defined('APP_URL') ? APP_URL . '/catalog/index.php' : '/catalog/index.php';
+    $seeds = [
+        ['Авто запчасти — выгодные цены',  '/assets/img/slider/slider1.jpg', 1],
+        ['Надёжные детали для грузовиков', '/assets/img/slider/slider2.jpg', 2],
+        ['Спортивные и тюнинг запчасти',   '/assets/img/slider/slider3.jpg', 3],
+    ];
+    $stmt = $db->prepare(
+        "INSERT INTO banners (title, image_url, image_url_mobile, link_url, placement, sort_order, is_active)
+         VALUES (?, ?, '', ?, 'home', ?, 1)"
+    );
+    foreach ($seeds as [$title, $img, $sort]) {
+        $stmt->execute([$title, $img, $catalogUrl, $sort]);
+    }
 }
 
 /**

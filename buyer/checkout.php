@@ -115,7 +115,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validate
     if (empty($firstName)) $errors[] = t('first_name') . ' — обязательное поле.';
     if (empty($lastName))  $errors[] = t('last_name')  . ' — обязательное поле.';
-    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL))
+    // Email is optional (phone-registered buyers may not have one); validate only when provided.
+    if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL))
         $errors[] = 'Укажите корректный email.';
     if (empty($phone))   $errors[] = t('phone')   . ' — обязательное поле.';
     if (empty($address)) $errors[] = t('address') . ' — обязательное поле.';
@@ -277,11 +278,10 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                required>
                                     </div>
                                     <div class="col-lg-6 mb-20">
-                                        <label><?= t('email') ?> <span>*</span></label>
+                                        <label><?= t('email') ?></label>
                                         <input type="email" name="email"
                                                value="<?= sanitize($prefillEmail) ?>"
-                                               placeholder="email@example.com"
-                                               required>
+                                               placeholder="email@example.com">
                                     </div>
                                     <div class="col-lg-6 mb-20">
                                         <label><?= t('phone') ?> <span>*</span></label>

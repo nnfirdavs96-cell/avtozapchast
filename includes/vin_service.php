@@ -102,7 +102,11 @@ class VinService
         $vin = strtoupper(trim($vin));
         if (strlen($vin) !== 17) return false;
         if (!preg_match('/^[A-HJ-NPR-Z0-9]{17}$/', $vin)) return false;
-        return self::verifyCheckDigit($vin);
+        // Контрольную цифру (9-я позиция) НЕ требуем: её обязаны соблюдать только
+        // производители Северной Америки. Японские, корейские и многие европейские
+        // VIN (напр. Mitsubishi Z8TXLCW6WCM902224) валидны, но check digit не проходят.
+        // verifyCheckDigit() оставлен как вспомогательный метод для справки.
+        return true;
     }
 
     public static function decode(string $vin): array
@@ -128,6 +132,7 @@ class VinService
         $result['vin']        = $vin;
         $result['from_cache'] = false;
         $result['source']     = empty($remote) ? 'local' : getSetting('vin_api_provider', 'nhtsa');
+        $result['cv']         = self::DECODE_VER;
 
         self::setCache($vin, $result);
         return $result;
@@ -410,7 +415,9 @@ class VinService
     {
         $provider = getSetting('vin_api_provider', 'nhtsa');
         $timeout  = (int)getSetting('vin_api_timeout', '8');
-        return $provider === 'custom'
+        // 'custom' and 'partsapi' both use the admin-configured URL+key template;
+        // 'partsapi' is just a labelled preset of the same mechanism.
+        return ($provider === 'custom' || $provider === 'partsapi')
             ? self::callCustomApi($vin, $timeout)
             : self::callNhtsa($vin, $timeout);
     }
@@ -418,8 +425,7 @@ class VinService
     private static function callNhtsa(string $vin, int $timeout = 8): array
     {
         $url = "https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/{$vin}?format=json";
-        $ctx = stream_context_create(['http' => ['timeout' => $timeout, 'ignore_errors' => true]]);
-        $raw = @file_get_contents($url, false, $ctx);
+        $raw = httpGet($url, $timeout)['body'];
         if (!$raw) return [];
         $json = json_decode($raw, true);
         if (empty($json['Results'])) return [];
@@ -459,34 +465,83 @@ class VinService
         $key = getSetting('vin_api_key', '');
         if (!$url) return [];
 
-        $url  = str_replace(['{VIN}', '{vin}'], $vin, $url);
-        $hdrs = array_filter([
+        // {VIN} and {KEY} placeholders (case-insensitive) — supports both
+        // query-param keys (…?key={KEY}&vin={VIN}) and header-based auth below.
+        $url  = str_ireplace(['{VIN}', '{KEY}'], [rawurlencode($vin), rawurlencode($key)], $url);
+        $hdrs = array_values(array_filter([
             "Accept: application/json",
             $key ? "Authorization: Bearer {$key}" : '',
             $key ? "X-Api-Key: {$key}" : '',
-        ]);
-        $ctx  = stream_context_create(['http' => [
-            'timeout'       => $timeout,
-            'ignore_errors' => true,
-            'header'        => implode("\r\n", $hdrs),
-        ]]);
-        $raw  = @file_get_contents($url, false, $ctx);
+        ]));
+        // Через общий httpGet: cURL приоритетно (file_get_contents по HTTPS на
+        // shared-хостинге часто молча возвращает false — тогда был «источник: local»).
+        $raw = httpGet($url, $timeout, $hdrs)['body'];
         if (!$raw) return [];
         $json = json_decode($raw, true);
         if (!is_array($json)) return [];
 
-        return [
-            'make'      => $json['make']      ?? $json['brand']     ?? '',
-            'model'     => $json['model']      ?? '',
-            'year'      => (int)($json['year'] ?? $json['modelYear'] ?? 0),
-            'body_type' => $json['bodyType']   ?? $json['body']      ?? '',
-            'engine'    => $json['engine']     ?? '',
-            'fuel_type' => $json['fuelType']   ?? $json['fuel']      ?? '',
-            'drive_type'=> $json['driveType']  ?? $json['drive']     ?? '',
-        ];
+        // Unwrap common PartsAPI envelopes: {"data":{"array":{…}}} / {"data":[…]} / [ … ].
+        $n = $json;
+        if (isset($n['data'])  && is_array($n['data']))  $n = $n['data'];
+        if (isset($n['array']) && is_array($n['array'])) $n = $n['array'];
+        if (isset($n[0])       && is_array($n[0]))       $n = $n[0];
+
+        // PartsAPI VINdecodeOE returns transliterated/Russian keys (brend, naimenovanie,
+        // modely, modifikaciya, data, rynok…). We accept both those and the English
+        // names from the docs, so the parser is robust to either response language.
+        $pick = function (array ...$keys) use ($n): string {
+            foreach ($keys as $group) {
+                foreach ($group as $k) {
+                    if (isset($n[$k]) && trim((string)$n[$k]) !== '') return trim((string)$n[$k]);
+                }
+            }
+            return '';
+        };
+
+        $make    = $pick(['make', 'brand', 'brend']);
+        $modelNm = $pick(['model', 'naimenovanie']);
+        $chassis = $pick(['modely', 'chassis']);
+        $model   = $modelNm;
+        if ($chassis !== '' && strcasecmp($chassis, $modelNm) !== 0) {
+            $model = $modelNm !== '' ? "{$modelNm} ({$chassis})" : $chassis;
+        }
+
+        // Year: first explicit numeric field, else dig a 19xx/20xx out of any date field.
+        $year = (int)($n['year'] ?? $n['modelYear'] ?? $n['modelyearfrom'] ?? 0);
+        if ($year === 0) {
+            $dateBlob = implode(' ', array_map('strval', [
+                $n['data'] ?? '', $n['date'] ?? '', $n['data_vypuska'] ?? '',
+                $n['modely_vypuskaetsya_s'] ?? '',
+            ]));
+            if (preg_match('/(19|20)\d{2}/', $dateBlob, $mm)) $year = (int)$mm[0];
+        }
+
+        // Engine: prefer an explicit engine, otherwise show the modification string
+        // (PartsAPI packs displacement/trim into "modifikaciya").
+        $engine = $pick(['engine']);
+        $modif  = $pick(['modification', 'modifikaciya']);
+        if ($engine === '') $engine = $modif;
+        elseif ($modif !== '' && stripos($engine, $modif) === false) $engine = trim("$engine $modif");
+
+        // Keep only non-empty values so they don't overwrite local WMI data on merge.
+        return array_filter([
+            'make'          => $make,
+            'model'         => $model,
+            'year'          => $year,
+            'body_type'     => $pick(['bodyType', 'body', 'bodystyle', 'kuzova']),
+            'engine'        => $engine,
+            'fuel_type'     => $pick(['fuelType', 'fuel']),
+            'drive_type'    => $pick(['driveType', 'drive']),
+            'country'       => $pick(['market', 'rynok']),
+            'plant_country' => $pick(['plant', 'kod_zavoda_izgotovitelya']),
+        ], fn($v) => $v !== '' && $v !== 0 && $v !== null);
     }
 
     // ── Private: cache ────────────────────────────────────────────────────
+
+    /** Версия логики декодирования: смена инвалидирует старый vin_cache
+     *  (напр. записи, закэшированные до подключения VINdecodeOE — только страна). */
+    private const DECODE_VER = 3;
 
     private static function getCache(string $vin): ?array
     {
@@ -498,7 +553,10 @@ class VinService
             );
             $stmt->execute([$vin]);
             $row = $stmt->fetch();
-            return $row ? json_decode($row['result'], true) : null;
+            if (!$row) return null;
+            $data = json_decode($row['result'], true);
+            if (!is_array($data) || ($data['cv'] ?? 0) !== self::DECODE_VER) return null;
+            return $data;
         } catch (Exception $e) { return null; }
     }
 

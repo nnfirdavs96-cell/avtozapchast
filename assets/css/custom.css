@@ -1,5 +1,10 @@
 /* АвтоЗапчасть — custom overrides for Mazlay template */
 
+/* Оверлей закрывает боковые панели — курсор-указатель, не крестик */
+.off_canvars_overlay { cursor: pointer !important; z-index: 9998 !important; }
+/* Панель мини-корзины (вынесена JS на уровень body) — выше оверлея, чтобы кнопки нажимались */
+.mini_cart { z-index: 10000 !important; }
+
 /* Валюта в цене — мелкими строчными буквами после суммы (650.00 смн) */
 .cur-sym {
     font-size: 0.72em;
@@ -51,6 +56,13 @@
     color: #fff; border-left-color: var(--az-red);
 }
 .az-sidebar nav ul li a i { width: 18px; text-align: center; opacity: 0.85; }
+.az-sidebar-group {
+    padding: 16px 22px 6px;
+    font-size: 0.68rem; font-weight: 800; letter-spacing: 1.2px;
+    text-transform: uppercase; color: rgba(255,255,255,0.34);
+    pointer-events: none; user-select: none;
+}
+.az-sidebar-group:first-of-type { padding-top: 8px; }
 
 .az-main { flex: 1; background: var(--az-bg); min-width: 0; }
 .az-topbar {
@@ -359,33 +371,83 @@
 }
 
 /* Телефон с выбором страны (кастомный дропдаун с флагами) */
-.phone-wrap { display: flex; align-items: stretch; gap: 6px; }
+.phone-wrap { display: flex; align-items: stretch; gap: 8px; }
 .phone-wrap > input { flex: 1 1 auto; min-width: 0; }
 .phone-cc { position: relative; flex: 0 0 auto; }
-.phone-cc-btn {
-    display: flex; align-items: center; gap: 6px; height: 100%;
-    padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px;
-    background: #fff; cursor: pointer; font-size: 0.9rem; color: #333;
+
+/* Кнопка выбора страны — нейтральная, перебивает красную кнопку темы (.account_form button) */
+.phone-cc-btn,
+.account_form .phone-cc-btn {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    height: 100%;
+    min-height: 46px;
+    padding: 0 12px !important;
+    margin: 0 !important;
+    border: 1px solid #dcdfe4 !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+    color: #222 !important;
+    cursor: pointer;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    line-height: 1 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    width: auto !important;
+    transition: border-color .15s, box-shadow .15s;
 }
-.phone-cc-btn:hover { border-color: #999; }
-.phone-cc-btn img { display: block; border-radius: 2px; object-fit: cover; }
-.phone-cc-btn .cc-caret { color: #888; font-style: normal; font-size: 0.8em; }
+.phone-cc-btn:hover,
+.account_form .phone-cc-btn:hover {
+    border-color: #d32f2f !important;
+    background: #fff !important;
+}
+.phone-cc-btn img { display: block; border-radius: 3px; object-fit: cover; width: 24px; height: 17px; box-shadow: 0 0 0 1px rgba(0,0,0,.06); }
+.phone-cc-btn .cc-d { color: #222; }
+.phone-cc-btn .cc-caret { color: #aaa; font-style: normal; font-size: 11px; margin-left: 2px; }
+.phone-cc.open .phone-cc-btn { border-color: #d32f2f !important; box-shadow: 0 0 0 3px rgba(211,47,47,.12) !important; }
+
+/* Выпадающая панель */
 .phone-cc-panel {
-    display: none; position: absolute; z-index: 50; top: calc(100% + 4px); left: 0;
-    width: 260px; max-height: 280px; overflow-y: auto;
-    background: #fff; border: 1px solid #ccd2da; border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0,0,0,.14); padding: 6px;
+    display: none; position: absolute; z-index: 60; top: calc(100% + 6px); left: 0;
+    width: 280px; max-height: 320px; overflow-y: auto;
+    background: #fff; border: 1px solid #e3e6ea; border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.16); padding: 6px;
 }
 .phone-cc.open .phone-cc-panel { display: block; }
-.phone-cc-opt {
-    display: flex; align-items: center; gap: 8px; width: 100%;
-    padding: 7px 8px; border: 0; background: transparent; border-radius: 6px;
-    cursor: pointer; font-size: 0.88rem; color: #333; text-align: left;
+.phone-cc-panel::-webkit-scrollbar { width: 8px; }
+.phone-cc-panel::-webkit-scrollbar-thumb { background: #d9dde2; border-radius: 4px; border: 2px solid #fff; }
+
+/* Опция страны — белая строка, флаг | название | код, без красного фона темы */
+.phone-cc-opt,
+.account_form .phone-cc-opt {
+    display: flex !important;
+    align-items: center;
+    gap: 11px;
+    width: 100% !important;
+    padding: 9px 12px !important;
+    margin: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    border-radius: 8px !important;
+    cursor: pointer;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    line-height: 1.25 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    color: #2a2a2a !important;
+    text-align: left;
 }
-.phone-cc-opt:hover { background: #f4f6f9; }
-.phone-cc-opt img { display: block; border-radius: 2px; object-fit: cover; flex: 0 0 auto; }
-.phone-cc-opt .cc-name { flex: 1 1 auto; }
-.phone-cc-opt .cc-dial { color: #888; font-size: 0.85rem; }
+.phone-cc-opt:hover,
+.account_form .phone-cc-opt:hover { background: #fdeaea !important; color: #d32f2f !important; }
+.phone-cc-opt img { display: block; border-radius: 3px; object-fit: cover; width: 24px; height: 17px; flex: 0 0 auto; box-shadow: 0 0 0 1px rgba(0,0,0,.06); }
+.phone-cc-opt .cc-name { flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.phone-cc-opt .cc-dial { color: #9aa0a6; font-size: 13px; font-weight: 600; flex: 0 0 auto; }
+.phone-cc-opt:hover .cc-dial { color: #d32f2f; }
 
 /* Поле пароля с кнопкой показать/скрыть */
 .pwd-field { position: relative; display: block; }
@@ -477,6 +539,31 @@
 
 .product_carousel:not(.owl-loaded)        { display: flex; flex-wrap: wrap; }
 .product_carousel:not(.owl-loaded) > div  { flex: 0 0 25%; max-width: 25%; padding: 0 8px; }
+
+/* ── Блок «Товары со скидкой»: карусель со стрелками (как в шаблоне) ───────── */
+/* Прячем авто-стрелки owl — используем свои в заголовке секции */
+.sale_product_area .product_carousel .owl-nav { display: none !important; }
+/* До инициализации owl показываем 3 карточки в ряд, а не 4 */
+.sale_product_area .product_carousel:not(.owl-loaded) > div { flex: 0 0 33.333%; max-width: 33.333%; }
+/* Аккуратные стрелки ‹ › в заголовке, выровненные по строке заголовка */
+.deal_nav { display: inline-flex; align-items: center; gap: 6px; }
+.deal_nav button {
+    width: 34px; height: 34px;
+    border: 1px solid #e5e5e5; background: #fff; color: #555;
+    border-radius: 3px; font-size: 18px; line-height: 1; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background .2s, color .2s, border-color .2s;
+}
+.deal_nav button:hover { background: #C70909; border-color: #C70909; color: #fff; }
+/* Тонкая линия в зазоре между подзаголовком и стрелками (как в шаблоне).
+   Это растягивающийся flex-элемент — без белых масок, поэтому фона за текстом нет. */
+.sale_head .sale_head_line { flex: 1 1 auto; height: 1px; background: #ebebeb; margin: 0 18px; }
+.sale_head .deal_nav { flex: 0 0 auto; }
+@media (max-width: 575px) {
+    .sale_head { flex-wrap: wrap; }
+    .sale_head .sale_head_line { flex-basis: 100%; margin: 10px 0 0; }
+    .sale_head .deal_nav { margin-top: 8px; }
+}
 
 .categories_product_inner:not(.owl-loaded) { display: flex; flex-wrap: wrap; }
 .categories_product_inner:not(.owl-loaded) > .single_categories_product { flex: 0 0 14.28%; max-width: 14.28%; }
@@ -992,7 +1079,7 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
     width: 0;
     background: #ffffff;
     border-radius: 20px;
-    animation: sliderDotProgress 15s linear forwards;
+    animation: sliderDotProgress 5s linear forwards; /* длительность переопределяется инлайн из настроек */
     pointer-events: none;
 }
 
@@ -2149,3 +2236,67 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
 .avail_toggle input:checked + .avail_switch { background: #d32f2f; }
 .avail_toggle input:checked + .avail_switch::after { transform: translateX(18px); }
 .avail_text { font-size: 14px; color: #333; }
+
+/* ─── Авторизация: вкладки «По номеру» / «По email» ─── */
+.auth_tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 22px;
+}
+.auth_tabs .auth_tab {
+    flex: 1;
+    padding: 11px 10px;
+    border: 1px solid #e3e3e3;
+    background: #f7f7f7;
+    color: #777;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+}
+.auth_tabs .auth_tab i { font-size: 15px; }
+.auth_tabs .auth_tab:hover { color: #d32f2f; border-color: #f0c0c0; }
+.auth_tabs .auth_tab.active {
+    background: #d32f2f;
+    border-color: #d32f2f;
+    color: #fff;
+}
+
+/* SMS: строка отправки кода и статус */
+.sms_send_row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 4px 0 14px;
+}
+.sms_send_btn {
+    background: #222;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+.sms_send_btn:hover:not(:disabled) { background: #000; }
+.sms_send_btn:disabled { opacity: 0.55; cursor: default; }
+.sms_send_status { font-size: 13px; font-weight: 600; }
+
+.auth_hint {
+    font-size: 12.5px !important;
+    color: #999 !important;
+    line-height: 1.5;
+    margin-top: 14px !important;
+}
+.pwd_login_toggle { font-size: 13px; }

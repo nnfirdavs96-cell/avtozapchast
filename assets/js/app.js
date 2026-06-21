@@ -1,6 +1,19 @@
 /* АвтоЗапчасть — app.js */
 
 // Add to cart via AJAX
+function refreshMiniCart() {
+    fetch('/api/cart.php?action=mini')
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            document.querySelectorAll('.cart_count').forEach(function(el) { el.textContent = d.cart_count; });
+            document.querySelectorAll('.cart_amount').forEach(function(el) { el.innerHTML = d.cart_total_html; });
+            document.querySelectorAll('.cart_subtotal').forEach(function(el) { el.innerHTML = d.cart_total_html; });
+            var items = document.querySelector('.mini_cart_items');
+            if (items) items.innerHTML = d.items_html;
+        })
+        .catch(function() {});
+}
+
 function addToCart(partId, qty) {
     qty = qty || 1;
     fetch('/api/cart.php', {
@@ -8,17 +21,22 @@ function addToCart(partId, qty) {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({action:'add', part_id: partId, quantity: qty, _csrf: window._csrf})
     })
-    .then(r => r.json())
-    .then(d => {
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
         if (d.success) {
             showToast(d.message || 'Добавлено в корзину', 'success');
-            document.querySelectorAll('.cart_count').forEach(el => el.textContent = d.cart_count);
+            document.querySelectorAll('.cart_count').forEach(function(el) { el.textContent = d.cart_count; });
+            if (d.cart_total_html) {
+                document.querySelectorAll('.cart_amount').forEach(function(el) { el.innerHTML = d.cart_total_html; });
+                document.querySelectorAll('.cart_subtotal').forEach(function(el) { el.innerHTML = d.cart_total_html; });
+            }
+            refreshMiniCart();
         } else {
             if (d.redirect) { window.location = d.redirect; }
             else showToast(d.message || 'Ошибка', 'danger');
         }
     })
-    .catch(() => showToast('Ошибка соединения', 'danger'));
+    .catch(function() { showToast('Ошибка соединения', 'danger'); });
 }
 
 // Add to wishlist via AJAX
@@ -69,6 +87,13 @@ function applyResponsiveBg() {
 // Mazlay main.js re-applies data-bgimg on window 'load'; run after it so the mobile variant wins.
 window.addEventListener('load', applyResponsiveBg);
 document.addEventListener('DOMContentLoaded', function () {
+    // Вынести панель мини-корзины на уровень body — иначе она «заперта»
+    // в стэкинг-контексте .main_header (z-index:100) и серый оверлей перекрывает её кнопки.
+    var _mc = document.querySelector('.mini_cart');
+    if (_mc && _mc.parentElement !== document.body) {
+        document.body.appendChild(_mc);
+    }
+
     applyResponsiveBg();
     var _bgResizeT;
     window.addEventListener('resize', function () {
@@ -245,6 +270,110 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.setAttribute('aria-label', show ? 'Скрыть пароль' : 'Показать пароль');
     });
 
+    // ── Auth: переключение вкладок «По номеру» / «По email»
+    document.querySelectorAll('.auth_tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            var which = this.getAttribute('data-auth-tab');
+            var root  = this.closest('.account_form');
+            if (!root) return;
+            root.querySelectorAll('.auth_tab').forEach(function (t) {
+                t.classList.toggle('active', t.getAttribute('data-auth-tab') === which);
+            });
+            root.querySelectorAll('.auth_pane').forEach(function (p) {
+                p.style.display = (p.getAttribute('data-auth-pane') === which) ? '' : 'none';
+            });
+        });
+    });
+
+    // ── Auth: «Войти по паролю» (раскрыть поле пароля во вкладке номера)
+    document.querySelectorAll('.pwd_login_toggle').forEach(function (link) {
+        link.addEventListener('click', function (e) {
+            e.preventDefault();
+            var form = this.closest('form');
+            var wrap = form ? form.querySelector('.pwd_login_wrap') : null;
+            if (!wrap) return;
+            var open = wrap.style.display !== 'none';
+            wrap.style.display = open ? 'none' : 'block';
+            this.textContent = open ? 'Войти по паролю' : 'Войти по SMS-коду';
+        });
+    });
+
+    // ── Auth: «Вход для сотрудников (PIN)» — раскрыть поле PIN
+    document.querySelectorAll('.pin_login_toggle').forEach(function (link) {
+        link.addEventListener('click', function (e) {
+            e.preventDefault();
+            var form = this.closest('form');
+            var wrap = form ? form.querySelector('.pin_login_wrap') : null;
+            if (!wrap) return;
+            var open = wrap.style.display !== 'none';
+            wrap.style.display = open ? 'none' : 'block';
+            this.textContent = open ? 'Вход для сотрудников (PIN)' : 'Скрыть PIN';
+            if (!open) { var i = wrap.querySelector('input'); if (i) i.focus(); }
+        });
+    });
+
+    // ── Auth: отправка SMS-кода (AJAX)
+    document.querySelectorAll('.sms_send_btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var form   = this.closest('form');
+            if (!form) return;
+            var phone  = (form.querySelector('input[name="phone"]') || {}).value || '';
+            var mode   = form.getAttribute('data-sms-mode') || 'login';
+            var csrf   = (form.querySelector('input[name="csrf_token"]') || {}).value || '';
+            var status = form.querySelector('.sms_send_status');
+            var wrap   = form.querySelector('.sms_code_wrap');
+            var self   = this;
+
+            if (phone.replace(/\D+/g, '').length < 9) {
+                if (status) { status.style.color = '#c0392b'; status.textContent = 'Введите номер'; }
+                return;
+            }
+            self.disabled = true;
+            if (status) { status.style.color = '#888'; status.textContent = 'Отправка…'; }
+
+            var fd = new FormData();
+            fd.append('phone', phone);
+            fd.append('mode', mode);
+            fd.append('csrf_token', csrf);
+
+            fetch((window.APP_URL || '') + '/api/sms_auth.php', { method: 'POST', body: fd })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.ok) {
+                        if (wrap) wrap.style.display = 'block';
+                        var codeInput = form.querySelector('input[name="code"]');
+                        if (codeInput) codeInput.focus();
+                        if (status) {
+                            status.style.color = '#0a7';
+                            status.textContent = data.dev_code
+                                ? ('Код (тест-режим): ' + data.dev_code)
+                                : 'Код отправлен по SMS';
+                        }
+                        // Кулдаун 60с
+                        var left = 60;
+                        self.textContent = 'Повторить (' + left + ')';
+                        var timer = setInterval(function () {
+                            left--;
+                            if (left <= 0) {
+                                clearInterval(timer);
+                                self.disabled = false;
+                                self.innerHTML = '<i class="fa fa-paper-plane-o"></i> Отправить код снова';
+                            } else {
+                                self.textContent = 'Повторить (' + left + ')';
+                            }
+                        }, 1000);
+                    } else {
+                        self.disabled = false;
+                        if (status) { status.style.color = '#c0392b'; status.textContent = data.error || 'Ошибка'; }
+                    }
+                })
+                .catch(function () {
+                    self.disabled = false;
+                    if (status) { status.style.color = '#c0392b'; status.textContent = 'Ошибка сети'; }
+                });
+        });
+    });
+
     // ── Cart icon: на мобиле — прямая ссылка на /buyer/cart.php, не открывать панель
     document.querySelectorAll('.mini_cart_wrapper > a').forEach(function (a) {
         a.addEventListener('click', function (e) {
@@ -254,6 +383,28 @@ document.addEventListener('DOMContentLoaded', function () {
                 window.location.href = (window.APP_URL || '') + '/buyer/cart.php';
             }
         }, true);
+    });
+
+    // ── Надёжное закрытие мини-корзины (оверлей / крестик / Escape).
+    function closeMiniCart() {
+        var els = document.querySelectorAll('.mini_cart, .off_canvars_overlay, .offcanvas_menu_wrapper');
+        els.forEach(function (el) { el.classList.remove('active'); });
+        // также через jQuery чтобы перекрыть обработчики темы
+        if (window.jQuery) {
+            jQuery('.mini_cart,.off_canvars_overlay,.offcanvas_menu_wrapper').removeClass('active');
+        }
+    }
+    // Вешаем на capture-фазу — сработает раньше, чем jQuery-обработчики темы
+    document.addEventListener('click', function (e) {
+        var tgt = e.target;
+        if (tgt.classList.contains('off_canvars_overlay') ||
+            tgt.closest('.mini_cart_close') ||
+            tgt.closest('.mini_cart_wrapper .mini_cart_close')) {
+            closeMiniCart();
+        }
+    }, true);
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' || e.keyCode === 27) closeMiniCart();
     });
 
     // ── Filter sidebar accordion: на мобиле каждый widget_list — collapsible
