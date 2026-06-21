@@ -49,34 +49,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'phone
         $pin        = trim($_POST['pin'] ?? '');
         $password   = $_POST['password'] ?? '';
         $user       = findUserByPhone($loginPhone);
+        $lock       = loginThrottleStatus($loginPhone);
 
-        if (!$user) {
+        if ($lock['locked']) {
+            $errors[] = loginLockMessage($lock['seconds']);
+        } elseif (!$user) {
             $errors[] = 'Номер не найден. Зарегистрируйтесь по номеру.';
         } elseif ($pin !== '') {
             // Staff PIN path (only users who have a PIN set, i.e. staff)
             if (!empty($user['pin_hash']) && password_verify($pin, $user['pin_hash'])) {
+                clearLoginAttempts($loginPhone);
                 loginUser($user);
                 flashMessage('success', 'Добро пожаловать, ' . $user['username'] . '!');
                 $redirectAfterLogin($user);
             } else {
+                registerFailedLogin($loginPhone);
                 $errors[] = 'Неверный PIN-код.';
             }
         } elseif ($code !== '') {
             // SMS code path
             if (verifyPhoneOtp($loginPhone, $code, 'login')) {
+                clearLoginAttempts($loginPhone);
                 loginUser($user);
                 flashMessage('success', 'Добро пожаловать!');
                 $redirectAfterLogin($user);
             } else {
+                registerFailedLogin($loginPhone);
                 $errors[] = 'Неверный или просроченный код. Запросите новый.';
             }
         } elseif ($password !== '') {
             // Password path (only if the user has set a password)
             if (!empty($user['password_hash']) && password_verify($password, $user['password_hash'])) {
+                clearLoginAttempts($loginPhone);
                 loginUser($user);
                 flashMessage('success', 'Добро пожаловать, ' . $user['username'] . '!');
                 $redirectAfterLogin($user);
             } else {
+                registerFailedLogin($loginPhone);
                 $errors[] = 'Неверный пароль, либо пароль не задан — войдите по SMS-коду.';
             }
         } else {
@@ -106,6 +115,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') !== 'phone
             $errors[] = 'Введите пароль.';
         }
 
+        if (empty($errors) && ($lock = loginThrottleStatus($email))['locked']) {
+            $errors[] = loginLockMessage($lock['seconds']);
+        }
+
         if (empty($errors)) {
             try {
                 $db   = getDB();
@@ -117,6 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') !== 'phone
                 if ($user && !emailAuthEnabled() && !isStaffRole($user['role'] ?? '')) {
                     $errors[] = 'Вход по email отключён. Войдите по номеру телефона.';
                 } elseif ($user && password_verify($password, $user['password_hash'])) {
+                    clearLoginAttempts($email);
                     session_regenerate_id(true);
 
                     $_SESSION['user_id']  = $user['id'];
@@ -162,6 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') !== 'phone
                     redirect($redirectMap[$user['role']] ?? APP_URL . '/index.php');
 
                 } else {
+                    registerFailedLogin($email);
                     $errors[] = 'Неверный email или пароль.';
                 }
             } catch (Exception $e) {

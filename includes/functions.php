@@ -288,11 +288,14 @@ function renderRoleSidebar(string $active = ''): void {
         ]],
     ];
 
-    $logoHtml = $role === 'superadmin'
-        ? '<div class="az-sidebar-logo"><span style="color:#fcb700;">★</span> СУПЕР<span>АДМИН</span></div>'
-        : ($role === 'admin'
-            ? '<div class="az-sidebar-logo">ADMIN<span>PANEL</span></div>'
-            : '<div class="az-sidebar-logo">AUTO<span>PARTS</span></div>');
+    // Unified staff branding: one panel identity for every back-office role
+    // (superadmin / admin / manager). The role is shown as a small sub-label so
+    // the layout стays identical while still telling staff who they are.
+    $siteBrand = getSetting('site_name', 'AutoDoc');
+    $roleLabel = $role === 'superadmin' ? 'Суперадмин'
+               : ($role === 'admin' ? 'Администратор' : 'Менеджер');
+    $logoHtml = '<div class="az-sidebar-logo">' . sanitize($siteBrand) . '<span>&nbsp;Панель</span></div>'
+              . '<div class="az-sidebar-role"><i class="fa fa-id-badge"></i> ' . sanitize($roleLabel) . '</div>';
 
     // 'parts'/'partners' are legacy active-keys; normalize to the canonical item key.
     $activeKey = $active === 'parts' ? 'products' : ($active === 'partners' ? 'brands' : $active);
@@ -1015,6 +1018,26 @@ function categorySlugify(string $name): string {
 }
 
 /**
+ * Build an SEO-friendly product URL: /product/{id}-{slug}.
+ * Accepts a part row (array with id/name) or a plain numeric id. The slug part is
+ * purely cosmetic — routing matches on the numeric id (see .htaccess), so the old
+ * /catalog/part.php?id=N links keep working forever. Falls back to the catalog
+ * listing when the id is missing.
+ */
+function partUrl($part, string $name = ''): string {
+    if (is_array($part)) {
+        $id   = (int)($part['id'] ?? 0);
+        $name = $name !== '' ? $name : (string)($part['name'] ?? '');
+    } else {
+        $id = (int)$part;
+    }
+    if ($id <= 0) return APP_URL . '/catalog/index.php';
+    $slug = $name !== '' ? categorySlugify(mb_substr($name, 0, 80)) : '';
+    if (strlen($slug) > 60) $slug = trim(substr($slug, 0, 60), '-');
+    return APP_URL . '/product/' . $id . ($slug !== '' ? '-' . $slug : '');
+}
+
+/**
  * Seed subcategories under the existing top-level categories so the
  * "ВСЕ КАТЕГОРИИ" mega-menu and catalog look populated. Idempotent: matches
  * parents by name, skips subcategories that already exist. Returns count added.
@@ -1518,6 +1541,315 @@ function seedBanners(): void {
     );
     foreach ($seeds as [$title, $img, $sort]) {
         $stmt->execute([$title, $img, $catalogUrl, $sort]);
+    }
+}
+
+/* ───────────────────────── Login brute-force throttle (C2) ───────────────────────── */
+
+const LOGIN_MAX_ATTEMPTS   = 5;    // consecutive failures before a lockout
+const LOGIN_LOCK_SECONDS   = 900;  // lockout length (15 min)
+const LOGIN_WINDOW_SECONDS = 900;  // window for counting consecutive failures
+
+/**
+ * Ensure the login_attempts table exists (one-time, guarded by a settings flag).
+ * Failures are counted per (client IP + login identifier) so a brute-force run
+ * against one account/IP gets locked out without affecting other users.
+ */
+function ensureLoginThrottleSchema(): void {
+    if (getSetting('login_throttle_schema_v1', '') === '1') return;
+    try {
+        getDB()->exec(
+            "CREATE TABLE IF NOT EXISTS `login_attempts` (
+                `attempt_key`  VARCHAR(190) NOT NULL,
+                `attempts`     INT          NOT NULL DEFAULT 0,
+                `last_attempt` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `locked_until` DATETIME     DEFAULT NULL,
+                PRIMARY KEY (`attempt_key`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        setSetting('login_throttle_schema_v1', '1');
+    } catch (Exception $e) { /* retried next load */ }
+}
+
+/** Throttle key for the current client + a login identifier (email/phone). */
+function loginThrottleKey(string $identifier): string {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'cli';
+    return substr(hash('sha256', $ip . '|' . mb_strtolower(trim($identifier))), 0, 180);
+}
+
+/**
+ * Current lockout status for an identifier.
+ * @return array{locked:bool, seconds:int} seconds = time left on the lock.
+ */
+function loginThrottleStatus(string $identifier): array {
+    ensureLoginThrottleSchema();
+    try {
+        $st = getDB()->prepare("SELECT locked_until FROM login_attempts WHERE attempt_key = ? LIMIT 1");
+        $st->execute([loginThrottleKey($identifier)]);
+        $until = $st->fetchColumn();
+        if ($until) {
+            $left = strtotime($until) - time();
+            if ($left > 0) return ['locked' => true, 'seconds' => $left];
+        }
+    } catch (Exception $e) { /* fail open */ }
+    return ['locked' => false, 'seconds' => 0];
+}
+
+/**
+ * Record a failed login. After LOGIN_MAX_ATTEMPTS consecutive failures within the
+ * window the (IP+identifier) is locked for LOGIN_LOCK_SECONDS.
+ */
+function registerFailedLogin(string $identifier): void {
+    ensureLoginThrottleSchema();
+    try {
+        $db  = getDB();
+        $key = loginThrottleKey($identifier);
+        $st  = $db->prepare("SELECT attempts, last_attempt FROM login_attempts WHERE attempt_key = ? LIMIT 1");
+        $st->execute([$key]);
+        $row = $st->fetch();
+        if (!$row) {
+            $db->prepare("INSERT INTO login_attempts (attempt_key, attempts, last_attempt) VALUES (?, 1, NOW())")
+               ->execute([$key]);
+            return;
+        }
+        $attempts = (int)$row['attempts'];
+        if ($row['last_attempt'] && (time() - strtotime($row['last_attempt'])) > LOGIN_WINDOW_SECONDS) {
+            $attempts = 0; // stale — start a fresh streak
+        }
+        $attempts++;
+        if ($attempts >= LOGIN_MAX_ATTEMPTS) {
+            $db->prepare("UPDATE login_attempts SET attempts = 0, last_attempt = NOW(), locked_until = (NOW() + INTERVAL " . LOGIN_LOCK_SECONDS . " SECOND) WHERE attempt_key = ?")
+               ->execute([$key]);
+        } else {
+            $db->prepare("UPDATE login_attempts SET attempts = ?, last_attempt = NOW() WHERE attempt_key = ?")
+               ->execute([$attempts, $key]);
+        }
+    } catch (Exception $e) { /* ignore */ }
+}
+
+/** Clear throttle state after a successful login. */
+function clearLoginAttempts(string $identifier): void {
+    try {
+        getDB()->prepare("DELETE FROM login_attempts WHERE attempt_key = ?")
+               ->execute([loginThrottleKey($identifier)]);
+    } catch (Exception $e) { /* ignore */ }
+}
+
+/** User-facing lockout message. */
+function loginLockMessage(int $seconds): string {
+    return 'Слишком много неудачных попыток входа. Повторите через ' . max(1, (int)ceil($seconds / 60)) . ' мин.';
+}
+
+/* ───────────────────────── Online-payment discount (checkout) ───────────────────────── */
+
+/** Admin-configured online-payment incentive (read from site_settings). */
+function onlinePaymentSettings(): array {
+    return [
+        'enabled'   => getSetting('online_payment_enabled', '0') === '1',
+        'type'      => getSetting('online_discount_type', 'percent'), // 'percent' | 'fixed'
+        'value'     => (float)getSetting('online_discount_value', '0'),
+        'free_ship' => getSetting('online_free_shipping', '0') === '1',
+    ];
+}
+
+/** Is paying online enabled by the admin? */
+function onlinePaymentEnabled(): bool {
+    return onlinePaymentSettings()['enabled'];
+}
+
+/**
+ * Money discount (in base currency) for paying online, from the order subtotal.
+ * Returns 0 when online payment is disabled or the discount is not configured.
+ */
+function onlinePaymentDiscount(float $subtotal): float {
+    $s = onlinePaymentSettings();
+    if (!$s['enabled'] || $subtotal <= 0) return 0.0;
+    if ($s['type'] === 'fixed') {
+        return round(min($subtotal, max(0.0, $s['value'])), 2);
+    }
+    $pct = max(0.0, min(100.0, $s['value']));
+    return round($subtotal * $pct / 100, 2);
+}
+
+/** Short label of the active online-payment incentive (for the checkout UI). */
+function onlinePaymentIncentiveLabel(): string {
+    $s = onlinePaymentSettings();
+    if (!$s['enabled']) return '';
+    $parts = [];
+    if ($s['value'] > 0) {
+        $parts[] = $s['type'] === 'fixed'
+            ? ('−' . formatPrice($s['value']))
+            : ('−' . rtrim(rtrim(number_format($s['value'], 2, '.', ''), '0'), '.') . '%');
+    }
+    if ($s['free_ship']) $parts[] = t('online_free_shipping_short');
+    return $parts ? implode(' · ', $parts) : '';
+}
+
+/**
+ * Give the template slider slides presentable marketing copy (one-time).
+ * Runs after seedSliderTemplate() (which sets the hero photos); here we match each
+ * slide to copy by its image and write Russian headline/subtitle blocks + a button
+ * — but ONLY for slides still showing demo/empty text, so admin-customised slides
+ * are never overwritten. Self-guarded by 'slider_text_v1'.
+ */
+function seedSliderText(): void {
+    if (getSetting('slider_text_v1', '') === '1') return;
+    try {
+        $db = getDB();
+        $slides = $db->query("SELECT id, image_url, text_blocks FROM sliders ORDER BY sort_order ASC, id ASC")->fetchAll();
+        if (!$slides) { setSetting('slider_text_v1', '1'); return; }
+
+        $blk = fn(string $text, int $size, string $weight, int $mb): array =>
+            ['text' => $text, 'size' => $size, 'size_mobile' => 0, 'weight' => $weight, 'color' => '#ffffff', 'font' => '', 'mb' => $mb];
+
+        $copy = [
+            'hero2' => ['button' => 'Подобрать по VIN', 'link' => '/pages/vin.php', 'blocks' => [
+                $blk('Для легковых и грузовых авто', 28, '400', 8),
+                $blk('Надёжность в каждой детали', 50, '800', 16),
+                $blk('Подбор по VIN-коду за минуту', 20, '400', 26),
+            ]],
+            'hero3' => ['button' => 'Смотреть товары', 'link' => '/catalog/index.php', 'blocks' => [
+                $blk('Тюнинг и спортивные компоненты', 28, '400', 8),
+                $blk('Качество, проверенное дорогой', 50, '800', 16),
+                $blk('Гарантия на все запчасти', 20, '400', 26),
+            ]],
+            'default' => ['button' => 'Перейти в каталог', 'link' => '/catalog/index.php', 'blocks' => [
+                $blk('Автозапчасти для вашего авто', 28, '400', 8),
+                $blk('Оригинальные детали по честной цене', 46, '800', 16),
+                $blk('Доставка по всему Таджикистану', 20, '400', 26),
+            ]],
+        ];
+
+        // A slide is "demo/empty" when it has no blocks or still uses template words.
+        $isDemo = function (?string $json): bool {
+            $s = trim((string)$json);
+            if ($s === '' || $s === '[]' || $s === 'null') return true;
+            return (bool)preg_match('/fidanza|фиданза|lorem|demo|пример|слайд\s*\d/iu', $s);
+        };
+        // Scale a desktop block set down for phones.
+        $toMobile = function (array $blocks): array {
+            foreach ($blocks as &$b) {
+                $b['size'] = max(14, (int)round($b['size'] * 0.62));
+                $b['mb']   = max(4,  (int)round($b['mb']   * 0.7));
+            }
+            return $blocks;
+        };
+
+        $upd = $db->prepare(
+            "UPDATE sliders SET text_blocks = ?, text_blocks_mobile = ?, text_pos = 'left-center', text_pos_mobile = 'left-center', button_text = ?, link_url = ? WHERE id = ?"
+        );
+        foreach ($slides as $row) {
+            if (!$isDemo($row['text_blocks'] ?? '')) continue; // keep customised slides
+            $img = (string)($row['image_url'] ?? '');
+            $key = strpos($img, 'hero2') !== false ? 'hero2'
+                 : (strpos($img, 'hero3') !== false ? 'hero3' : 'default');
+            $c       = $copy[$key];
+            $jsonD   = json_encode(normalizeSliderBlocks($c['blocks']), JSON_UNESCAPED_UNICODE);
+            $jsonM   = json_encode(normalizeSliderBlocks($toMobile($c['blocks'])), JSON_UNESCAPED_UNICODE);
+            $upd->execute([$jsonD, $jsonM, $c['button'], $c['link'], $row['id']]);
+        }
+        setSetting('slider_text_v1', '1');
+    } catch (Exception $e) { /* leave flag unset → retried next load */ }
+}
+
+/**
+ * Seed a demonstration catalogue of real-looking auto parts (one-time, idempotent).
+ * Each item is placed in an existing sub-category (matched by name) with a real
+ * brand and a theme photo, so the shop looks stocked and the owner can edit/delete
+ * every product from the admin panel. Skips an item when its part number already
+ * exists or the sub-category/brand is missing. Guarded by 'demo_products_v1'.
+ */
+function seedDemoProducts(): int {
+    if (getSetting('demo_products_v1', '') === '1') return 0;
+    // [part_number, name, description, brand, sub-category, price, old_price|null, stock, weight(kg), dimensions]
+    $items = [
+        // — Двигатель —
+        ['PR-92112','Поршень STD 81.0 мм Mahle','Поршень стандартного размера с пальцем и стопорными кольцами. Точная геометрия, термостойкий сплав.','Mahle','Поршни и кольца',420,null,60,0.400,'81x81x70'],
+        ['RK-30418','Кольца поршневые, комплект Mahle','Комплект поршневых колец на 4 цилиндра. Хром-молибденовое покрытие, низкий расход масла.','Mahle','Поршни и кольца',1850,2300,40,0.350,'90x90x40'],
+        ['VL-1042','Клапан впускной Febi','Впускной клапан из жаропрочной стали. Точная посадка, увеличенный ресурс.','Febi','Клапаны',180,null,120,0.080,'110x33'],
+        ['VL-1043','Клапан выпускной Febi','Выпускной клапан, биметаллический, для высоких температур.','Febi','Клапаны',220,null,110,0.085,'112x33'],
+        ['GK-5521','Прокладка ГБЦ Febi','Многослойная металлическая прокладка головки блока. Надёжная герметизация.','Febi','Прокладки ГБЦ',1450,null,25,0.300,'450x150x2'],
+        ['OP-7781','Масляный насос Febi','Масляный насос в сборе. Стабильное давление в системе смазки.','Febi','Масляный насос',3200,null,18,1.600,'140x120x90'],
+        ['K015561','Ремень ГРМ Gates PowerGrip','Ремень ГРМ из арамидного волокна для двигателей 1.6–2.0 TDI.','Gates','Ремни ГРМ',2350,null,45,0.320,'870x25'],
+        ['T1019','Ремень ГРМ Continental CT','Зубчатый ремень ГРМ, износостойкий профиль зуба.','Continental','Ремни ГРМ',1750,2100,55,0.300,'1100x25'],
+        ['OF-7707','Масляный фильтр Bosch','Масляный фильтр с клапаном обратного тока. Эффективная фильтрация.','Bosch','Масляные фильтры',380,null,150,0.120,'76x66'],
+        ['W71225','Масляный фильтр Mann-Filter','Оригинальный масляный фильтр Mann. Надёжная защита двигателя.','Mann-Filter','Масляные фильтры',420,null,140,0.130,'76x79'],
+        // — Тормозная система —
+        ['P85020','Тормозные колодки перед. Brembo','Передние тормозные колодки. Низкий уровень пыли и шума, стабильное торможение.','Brembo','Тормозные колодки',3200,3900,35,0.580,'155x65x18'],
+        ['GDB1330','Тормозные колодки TRW','Комплект тормозных колодок с износостойким составом.','TRW','Тормозные колодки',1650,null,60,0.550,'150x60x18'],
+        ['09A73111','Тормозной диск Brembo','Вентилируемый тормозной диск, точная балансировка.','Brembo','Тормозные диски',2800,null,30,6.500,'300x28'],
+        ['DF4318','Тормозной диск TRW','Тормозной диск с антикоррозийным покрытием.','TRW','Тормозные диски',2100,null,28,6.200,'280x25'],
+        ['24-3654','Суппорт тормозной ATE','Тормозной суппорт в сборе, восстановлен по стандарту OE.','ATE','Суппорты',5400,null,12,3.200,'180x120x90'],
+        ['BH-2201','Тормозной шланг Febi','Армированный тормозной шланг, устойчив к давлению и температуре.','Febi','Тормозные шланги',320,null,90,0.150,'350x15'],
+        ['LM-DOT4','Тормозная жидкость DOT4 Liqui Moly 1 л','Синтетическая тормозная жидкость DOT4, высокая температура кипения.','Liqui Moly','Тормозная жидкость',95,null,200,1.050,'90x60x180'],
+        // — Подвеска —
+        ['G8-3401','Амортизатор перед. KYB Excel-G','Газомасляный амортизатор. Восстанавливает заводские характеристики.','KYB','Амортизаторы',2400,2900,40,1.900,'520x60'],
+        ['E1100','Амортизатор Monroe OESpectrum','Технология Reflex для оптимального контроля кузова.','Monroe','Амортизаторы',2900,null,30,1.950,'540x60'],
+        ['SP-7745','Пружина подвески Febi','Пружина подвески с антикоррозийным покрытием.','Febi','Пружины',1250,null,50,2.100,'380x140'],
+        ['CTR-1188','Рычаг подвески Lemförder','Рычаг передней подвески в сборе с шарниром.','Lemförder','Рычаги',3600,null,20,3.400,'420x180x90'],
+        ['BJ-2031','Шаровая опора TRW','Шаровая опора с пыльником, точная посадка.','TRW','Шаровые опоры',680,null,80,0.450,'90x90x80'],
+        ['SB-5510','Сайлентблок рычага Febi','Сайлентблок из износостойкой резины с усиленным корпусом.','Febi','Сайлентблоки',280,null,150,0.100,'55x42x38'],
+        ['SL-9921','Стойка стабилизатора Optimal','Стойка стабилизатора с шарнирами, снижает крены.','Optimal','Стойки стабилизатора',340,null,120,0.300,'280x15'],
+        // — Электрика —
+        ['BAT-60R','Аккумулятор 60 Ач Bosch S4','Аккумулятор 60 Ач, 540 A. Технология Power Frame.','Bosch','Аккумуляторы',4200,null,25,14.500,'242x175x190'],
+        ['BAT-74R','Аккумулятор 74 Ач Bosch S5','Аккумулятор 74 Ач, 680 A. Долгий срок службы.','Bosch','Аккумуляторы',5100,5800,18,17.200,'278x175x190'],
+        ['ST-0986','Стартер Bosch 12В','Стартер в сборе, высокий пусковой момент.','Bosch','Стартеры',6800,null,10,4.200,'200x150x150'],
+        ['DN-100A','Генератор Denso 100A','Генератор 100 A со встроенным регулятором напряжения.','Denso','Генераторы',12500,null,8,4.200,'170x135x85'],
+        ['BKR6E-K','Свеча зажигания NGK','Никелевая свеча зажигания с увеличенным ресурсом.','NGK','Свечи зажигания',180,null,300,0.045,'19x19x55'],
+        ['NGK-IK20','Свеча NGK Iridium IX','Иридиевая свеча, улучшенное воспламенение и экономия топлива.','NGK','Свечи зажигания',260,null,250,0.042,'19x19x55'],
+        ['MAF-0280','Датчик расхода воздуха Bosch','Датчик массового расхода воздуха (MAF), точное измерение потока.','Bosch','Датчики',4850,null,15,0.180,'90x45x38'],
+        ['RL-4410','Реле Hella 12В 40A','Реле коммутации 12 В 40 A, надёжный контакт.','Hella','Реле и предохранители',140,null,200,0.050,'30x30x30'],
+        // — Кузов —
+        ['BMP-F01','Бампер передний (под покраску)','Передний бампер под покраску, точная геометрия.','Blue Print','Бамперы',3800,null,12,4.500,'1800x500x200'],
+        ['HD-2201','Капот стальной','Капот в сборе, оцинкованная сталь, под покраску.','Blue Print','Капоты',7200,null,6,12.000,'1500x1200x100'],
+        ['FN-3301','Крыло переднее левое','Переднее крыло, оцинковка, под покраску.','Blue Print','Крылья',2600,null,14,3.800,'1000x600x200'],
+        ['MR-1102','Зеркало боковое правое','Боковое зеркало с электроприводом и обогревом.','Hella','Зеркала',2100,null,20,0.900,'250x180x120'],
+        ['HL-7788','Фара передняя правая Hella','Передняя фара с регулировкой, прозрачный рассеиватель.','Hella','Фары',4600,5400,16,1.800,'600x350x250'],
+        ['GR-5502','Решётка радиатора','Решётка радиатора, чёрный глянец.','Blue Print','Решётки радиатора',1400,null,30,0.700,'1100x200x60'],
+        // — Трансмиссия —
+        ['620301400','Комплект сцепления LuK RepSet','Комплект сцепления: диск, корзина, выжимной подшипник.','LuK','Сцепление',5600,6500,18,7.500,'240x240x120'],
+        ['3000951','Комплект сцепления Sachs','Сцепление в сборе, плавное включение.','Sachs','Сцепление',5200,null,16,7.200,'228x228x110'],
+        ['FW-4410','Маховик демпферный LuK','Двухмассовый маховик, снижает вибрации.','LuK','Маховики',11800,null,6,9.500,'260x260x60'],
+        ['CV-3320','ШРУС наружный Febi','ШРУС наружный в комплекте с пыльником и смазкой.','Febi','ШРУСы',1900,null,40,1.500,'90x90x180'],
+        ['HB-6101','Подшипник ступицы SKF','Комплект подшипника ступицы, полный узел.','SKF','Подшипники ступицы',2300,null,30,1.450,'85x42'],
+        ['VKBA-3648','Подшипник ступицы перед. SKF','Двухрядный подшипник ступицы передней оси.','SKF','Подшипники ступицы',2600,null,22,1.500,'85x42'],
+    ];
+    try {
+        $db = getDB();
+        $catId = function (string $name) use ($db): int {
+            $st = $db->prepare("SELECT id FROM categories WHERE name = ? ORDER BY (parent_id IS NULL) ASC, id ASC LIMIT 1");
+            $st->execute([$name]);
+            return (int)($st->fetchColumn() ?: 0);
+        };
+        $brandId = function (string $name) use ($db): int {
+            $st = $db->prepare("SELECT id FROM brands WHERE name = ? LIMIT 1");
+            $st->execute([$name]);
+            return (int)($st->fetchColumn() ?: 0);
+        };
+        $has = $db->prepare("SELECT 1 FROM parts WHERE part_number = ? LIMIT 1");
+        $ins = $db->prepare(
+            "INSERT INTO parts (part_number, name, description, brand_id, category_id, price, old_price, stock, weight, dimensions, images, is_active, created_by)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,1,NULL)"
+        );
+        $n = 0; $i = 0;
+        foreach ($items as $it) {
+            [$pn, $name, $desc, $brand, $subcat, $price, $old, $stock, $weight, $dims] = $it;
+            $has->execute([$pn]);
+            if ($has->fetchColumn()) continue;        // already present — never duplicate
+            $cid = $catId($subcat);
+            $bid = $brandId($brand);
+            if (!$cid || !$bid) continue;             // structure missing — skip safely
+            $imgN = ($i % 13) + 1; $i++;
+            $img  = json_encode(['/assets/img/product/product' . $imgN . '.jpg']);
+            try {
+                $ins->execute([$pn, $name, $desc, $bid, $cid, $price, $old, $stock, $weight, $dims, $img]);
+                $n++;
+            } catch (Exception $e) { /* skip on any constraint, keep going */ }
+        }
+        setSetting('demo_products_v1', '1');
+        return $n;
+    } catch (Exception $e) {
+        return 0;
     }
 }
 

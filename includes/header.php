@@ -30,6 +30,8 @@ if (!getSetting('banners_seed_done', '')) {
     setSetting('banners_seed_done', '1');
 }
 seedSliderTemplate(); // swaps only slider photos to template images (self-guarded, one-time)
+seedSliderText();     // presentable copy for demo slides only (self-guarded, one-time)
+seedDemoProducts();   // stocks the catalogue with editable demo products (self-guarded, one-time)
 
 $categories  = getCategories();
 $catTree     = getCategoryTree($categories);

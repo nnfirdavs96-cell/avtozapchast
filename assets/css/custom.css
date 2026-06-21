@@ -34,12 +34,18 @@
     border-right: 1px solid rgba(255,255,255,0.04);
 }
 .az-sidebar-logo {
-    padding: 26px 22px 18px;
+    padding: 26px 22px 4px;
     font-size: 1.15rem; font-weight: 900;
     color: var(--az-red); letter-spacing: 0.5px; text-transform: uppercase;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 .az-sidebar-logo span { color: #fff; }
+.az-sidebar-role {
+    padding: 0 22px 18px;
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+    color: rgba(255,255,255,0.42);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.az-sidebar-role i { margin-right: 6px; opacity: 0.8; }
 .az-sidebar nav ul { list-style: none; margin: 0; padding: 14px 0; }
 .az-sidebar nav ul li a {
     display: flex; align-items: center; gap: 11px;
