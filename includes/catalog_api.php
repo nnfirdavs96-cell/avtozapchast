@@ -66,14 +66,19 @@ class CatalogApi
         $maxGroups = self::maxGroups();
         $cats      = self::catList($maxGroups, $type);
 
-        $items   = [];
-        $seen    = [];   // brand|article dedupe
-        $scanned = 0;
-        $errors  = 0;
+        $items       = [];
+        $seen        = [];   // brand|article dedupe
+        $scanned     = 0;
+        $errors      = 0;
+        $rateLimited = false;
         foreach ($cats as $cat) {
-            [$rows, , $err] = self::fetchGroupRaw($vin, $type, $cat);
+            [$rows, $raw, $err] = self::fetchGroupRaw($vin, $type, $cat);
             $scanned++;
             if ($err) $errors++;
+            // Лимит запросов с IP (демо-ключ PartsAPI, error_code 5000 / HTTP 401):
+            // дальше перебирать бессмысленно — каждый запрос тоже упрётся в лимит.
+            // Прерываемся сразу, чтобы не жечь и без того исчерпанную квоту.
+            if (self::isRateLimit($raw)) { $rateLimited = true; break; }
             foreach ($rows as $r) {
                 $key = mb_strtolower($r['brand'] . '|' . $r['part_number']);
                 if ($r['part_number'] === '' || isset($seen[$key])) continue;
@@ -85,12 +90,13 @@ class CatalogApi
 
         $items  = self::enrichFromWarehouse($items);
         $result = ['items' => $items, 'count' => count($items), 'groups_scanned' => $scanned,
-                   'errors' => $errors, 'type' => $type, 'from_cache' => false, 'v' => self::CACHE_VER];
+                   'errors' => $errors, 'rate_limited' => $rateLimited,
+                   'type' => $type, 'from_cache' => false, 'v' => self::CACHE_VER];
 
         // Не кэшируем транзиентный сбой (все группы упали — лимит ключа/сеть),
         // иначе пустой результат «прилипнет». Пустой по факту (деталей нет) кэшируем
         // ненадолго (EMPTY_TTL), непустой — на 30 дней.
-        $transient = ($scanned > 0 && $errors === $scanned);
+        $transient = $rateLimited || ($scanned > 0 && $errors === $scanned);
         if (!$transient) {
             self::cacheSet($vin, $result);
         }
@@ -111,10 +117,11 @@ class CatalogApi
         // Пробуем несколько первых групп выбранного типа, не трогая кэш.
         $type = self::type();
         $cats = array_slice(self::catList(0, $type), 0, 8);
-        $hits = []; $rawSample = '';
+        $hits = []; $rawSample = ''; $rateLimited = false;
         foreach ($cats as $cat) {
             [$rows, $raw, ] = self::fetchGroupRaw($vin, $type, $cat);
             if ($rawSample === '' && $raw !== '') $rawSample = $raw;
+            if (self::isRateLimit($raw)) { $rateLimited = true; break; }
             foreach ($rows as $r) $hits[] = $r;
             if (count($hits) >= 5) break;
         }
@@ -127,12 +134,34 @@ class CatalogApi
                 'sample'  => mb_substr($rawSample, 0, 600),
             ];
         }
+        if ($rateLimited) {
+            return [
+                'ok'      => false,
+                'message' => 'Соединение есть, ключ принят, но превышен лимит запросов с IP сервера '
+                           . '(демо-ключ PartsAPI ≈ 50/сутки). Дождитесь сброса или подключите платный тариф.',
+                'count'   => 0,
+                'sample'  => mb_substr($rawSample, 0, 600),
+            ];
+        }
         return [
             'ok'      => false,
             'message' => 'Ключ принят, но запчасти не вернулись. Проверьте тариф/лимит ключа или попробуйте другой VIN.',
             'count'   => 0,
             'sample'  => mb_substr($rawSample, 0, 600),
         ];
+    }
+
+    /**
+     * Лимит запросов PartsAPI: error_code 5000 / HTTP 401
+     * («Exceeded the number of requests from the current IP address»).
+     * Демо-ключ ограничен ≈50 запросами в сутки на IP.
+     */
+    private static function isRateLimit(string $raw): bool
+    {
+        if ($raw === '') return false;
+        if (stripos($raw, 'Exceeded the number of requests') !== false) return true;
+        $j = json_decode($raw, true);
+        return is_array($j) && (int)($j['error_code'] ?? 0) === 5000;
     }
 
     // ── Settings helpers ────────────────────────────────────────────────────
