@@ -1416,11 +1416,12 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
     .offcanvas_main_menu .sub-menu li a { font-size: 0.85rem; }
 
     /* ── Top tags (категории strip) ── */
-    .top_tags_area { padding: 8px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .top_tags_area { padding: 10px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .top_tags_area::-webkit-scrollbar { display: none; }
     .top_tags_area .container { padding: 0 16px; }
     .top_tags_area ul {
         flex-wrap: nowrap; gap: 10px;
-        padding-bottom: 4px; font-size: 0.78rem;
+        padding-bottom: 2px; font-size: 0.78rem;
     }
     .top_tags_area li { white-space: nowrap; flex-shrink: 0; }
 
@@ -1445,8 +1446,11 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
     }
     .slider_content p { font-size: 0.78rem !important; margin-bottom: 10px; }
     .slider_content .button {
-        padding: 7px 14px !important;
-        font-size: 0.74rem !important;
+        display: inline-flex !important;
+        align-items: center; justify-content: center;
+        min-height: 48px !important;
+        padding: 12px 22px !important;
+        font-size: 0.85rem !important;
     }
 
     /* ── Баннеры — горизонтальный скролл ── */
@@ -1618,16 +1622,18 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
     .single_product .action_links ul li { margin: 0 !important; display: block !important; }
     .single_product .action_links ul li.add_to_cart { flex: 1 1 auto !important; }
     .single_product .action_links ul li.add_to_cart a {
-        display: block !important;
+        display: flex !important;
+        align-items: center; justify-content: center;
+        min-height: 44px !important;
         text-align: center !important;
         font-size: 0.78rem !important;
-        padding: 9px 10px !important;
+        padding: 10px 12px !important;
         border-radius: 4px !important;
         white-space: nowrap !important;
     }
     .single_product .action_links ul li.wishlist a {
         display: flex !important; align-items: center; justify-content: center;
-        width: 38px; height: 38px;
+        width: 44px; height: 44px;
         border: 1px solid #e3e3e3; border-radius: 4px;
     }
     /* На мобильном «быстрый просмотр» (глаз) поверх фото не нужен */
@@ -2300,3 +2306,73 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
     margin-top: 14px !important;
 }
 .pwd_login_toggle { font-size: 13px; }
+
+/* ============================================================
+ * === RESPONSIVE AUDIT FIXES === (адаптивность по UX-аудиту 06.2026)
+ * Доводка планшета, тач-таргетов и якорей под sticky-шапку.
+ * Десктоп-вид не меняется; правки добавочные.
+ * ============================================================ */
+
+/* ── Hero-CTA: гарантированный тач-таргет ≥48px на всех размерах ── */
+.slider_content .button {
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── Якоря секций не должны прятаться под фиксированную шапку ── */
+:target { scroll-margin-top: 90px; }
+section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-top: 90px; }
+
+/* ─────────────────────────────────────────
+   TABLET  768 – 991 px — добавляем «воздух» и выносим поиск
+───────────────────────────────────────── */
+@media (min-width: 768px) and (max-width: 991px) {
+    /* Боковые поля контейнера: 16 → 28px (просили 24–32) */
+    .container { padding-left: 28px; padding-right: 28px; }
+
+    /* Поиск — отдельной строкой во всю ширину (на планшете прятался) */
+    .header_middle .search_container {
+        flex: 1 0 100%; order: 99; width: 100%; margin-top: 10px;
+    }
+    .header_middle .search_container form { display: flex; width: 100%; }
+    .header_middle .hover_category { display: none !important; }
+    .header_middle .search_box { flex: 1; display: flex; min-width: 0; }
+    .header_middle .search_box input {
+        flex: 1; min-width: 0; height: 44px; padding: 8px 14px;
+        font-size: 0.95rem; border: none; border-radius: 4px 0 0 4px;
+    }
+    .header_middle .search_box button {
+        height: 44px; padding: 0 18px; white-space: nowrap;
+        border-radius: 0 4px 4px 0; background: #d32f2f; color: #fff; border: none;
+    }
+    .header_right_box {
+        display: flex; align-items: center; justify-content: flex-end;
+        gap: 4px; flex-wrap: wrap;
+    }
+
+    /* Тач-иконки шапки до 44px */
+    .header_wishlist a,
+    .mini_cart_wrapper > a,
+    .header_auth_mobile .auth-link-mobile {
+        display: inline-flex; align-items: center; justify-content: center;
+        min-width: 44px; min-height: 44px;
+    }
+
+    /* Hero-CTA на планшете тоже крупная */
+    .slider_content .button { min-height: 48px; padding: 12px 24px; }
+}
+
+/* ─────────────────────────────────────────
+   Узкие Android ≤ 360 px — комфортный «подгляд» первой карточки
+───────────────────────────────────────── */
+@media (max-width: 360px) {
+    .product_carousel.owl-loaded .single_product,
+    .product_carousel:not(.owl-loaded) .single_product {
+        flex-basis: 78vw !important;
+        width: 78vw !important;
+        max-width: 78vw !important;
+    }
+    .slider_content { max-width: 82% !important; }
+}

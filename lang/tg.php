@@ -101,7 +101,7 @@ return [
     'delivery_info'      => 'Таҳвил',
     'about_us_link'      => 'Дар бораи мо',
     'free_delivery'      => 'Таҳвили ройгон',
-    'free_delivery_text' => 'Барои фармоишҳо аз 5000 ₽',
+    'free_delivery_text' => 'Барои фармоишҳо аз 5000 смн',
     'secure_payment'     => 'Пардохти бехатар',
     'secure_payment_text'=> 'Амалиётҳои 100% ҳифзшуда',
     'returns'            => 'Баргардонидан',
@@ -154,7 +154,7 @@ return [
     'send_message'       => 'Фиристодан',
     'working_hours'      => 'Соатҳои корӣ',
     // Warehouse
-    'warehouse_stock'    => 'Анбори Маскав',
+    'warehouse_stock'    => 'Анбори Хуҷанд',
     'check_availability' => 'Санҷидани мавҷудият',
     'warehouse_available'=> 'Дар анбор мавҷуд аст',
     'warehouse_order'    => 'Таҳти фармоиш (3-7 рӯз)',
