@@ -485,29 +485,54 @@ class VinService
         if (isset($n['array']) && is_array($n['array'])) $n = $n['array'];
         if (isset($n[0])       && is_array($n[0]))       $n = $n[0];
 
-        // Year: explicit field, else "model year from", else dig a 19xx/20xx out of date.
-        $year = (int)($n['year'] ?? $n['modelYear'] ?? $n['modelyearfrom'] ?? 0);
-        if ($year === 0 && !empty($n['date']) && preg_match('/(19|20)\d{2}/', (string)$n['date'], $mm)) {
-            $year = (int)$mm[0];
+        // PartsAPI VINdecodeOE returns transliterated/Russian keys (brend, naimenovanie,
+        // modely, modifikaciya, data, rynok…). We accept both those and the English
+        // names from the docs, so the parser is robust to either response language.
+        $pick = function (array ...$keys) use ($n): string {
+            foreach ($keys as $group) {
+                foreach ($group as $k) {
+                    if (isset($n[$k]) && trim((string)$n[$k]) !== '') return trim((string)$n[$k]);
+                }
+            }
+            return '';
+        };
+
+        $make    = $pick(['make', 'brand', 'brend']);
+        $modelNm = $pick(['model', 'naimenovanie']);
+        $chassis = $pick(['modely', 'chassis']);
+        $model   = $modelNm;
+        if ($chassis !== '' && strcasecmp($chassis, $modelNm) !== 0) {
+            $model = $modelNm !== '' ? "{$modelNm} ({$chassis})" : $chassis;
         }
 
-        // Engine string: combine engine + modification when both present.
-        $engine = trim((string)($n['engine'] ?? ''));
-        $modif  = trim((string)($n['modification'] ?? ''));
-        if ($modif !== '' && stripos($engine, $modif) === false) {
-            $engine = trim($engine . ' ' . $modif);
+        // Year: first explicit numeric field, else dig a 19xx/20xx out of any date field.
+        $year = (int)($n['year'] ?? $n['modelYear'] ?? $n['modelyearfrom'] ?? 0);
+        if ($year === 0) {
+            $dateBlob = implode(' ', array_map('strval', [
+                $n['data'] ?? '', $n['date'] ?? '', $n['data_vypuska'] ?? '',
+                $n['modely_vypuskaetsya_s'] ?? '',
+            ]));
+            if (preg_match('/(19|20)\d{2}/', $dateBlob, $mm)) $year = (int)$mm[0];
         }
+
+        // Engine: prefer an explicit engine, otherwise show the modification string
+        // (PartsAPI packs displacement/trim into "modifikaciya").
+        $engine = $pick(['engine']);
+        $modif  = $pick(['modification', 'modifikaciya']);
+        if ($engine === '') $engine = $modif;
+        elseif ($modif !== '' && stripos($engine, $modif) === false) $engine = trim("$engine $modif");
 
         // Keep only non-empty values so they don't overwrite local WMI data on merge.
         return array_filter([
-            'make'          => $n['make']       ?? $n['brand']    ?? '',
-            'model'         => $n['model']      ?? '',
+            'make'          => $make,
+            'model'         => $model,
             'year'          => $year,
-            'body_type'     => $n['bodyType']   ?? $n['body']     ?? $n['bodystyle'] ?? '',
+            'body_type'     => $pick(['bodyType', 'body', 'bodystyle', 'kuzova']),
             'engine'        => $engine,
-            'fuel_type'     => $n['fuelType']   ?? $n['fuel']     ?? '',
-            'drive_type'    => $n['driveType']  ?? $n['drive']    ?? '',
-            'plant_country' => $n['plant']      ?? '',
+            'fuel_type'     => $pick(['fuelType', 'fuel']),
+            'drive_type'    => $pick(['driveType', 'drive']),
+            'country'       => $pick(['market', 'rynok']),
+            'plant_country' => $pick(['plant', 'kod_zavoda_izgotovitelya']),
         ], fn($v) => $v !== '' && $v !== 0 && $v !== null);
     }
 
