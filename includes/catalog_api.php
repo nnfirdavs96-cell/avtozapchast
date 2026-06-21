@@ -21,6 +21,7 @@ require_once __DIR__ . '/partsapi_cats.php';
 class CatalogApi
 {
     private const CACHE_DAYS = 30;
+    private const CACHE_VER  = 2;   // bump to invalidate stale cache after parser changes
 
     // ── Public API ─────────────────────────────────────────────────────────
 
@@ -75,7 +76,8 @@ class CatalogApi
         }
 
         $items  = self::enrichFromWarehouse($items);
-        $result = ['items' => $items, 'count' => count($items), 'groups_scanned' => $scanned, 'from_cache' => false];
+        $result = ['items' => $items, 'count' => count($items), 'groups_scanned' => $scanned,
+                   'from_cache' => false, 'v' => self::CACHE_VER];
 
         self::cacheSet($vin, $result);
         return $result;
@@ -207,23 +209,31 @@ class CatalogApi
             $partsStr = (string)($row['parts'] ?? '');
             if ($partsStr === '') continue;
 
-            // "БРЕНД|АРТИКУЛ" (иногда несколько сегментов) → берём бренд + первый артикул.
-            $seg     = array_values(array_filter(array_map('trim', explode('|', $partsStr)), fn($s) => $s !== ''));
-            if (count($seg) < 2) continue;
-            $brand   = $seg[0];
-            $article = $seg[1];
+            $name  = trim((string)($row['shortname'] ?? $row['name'] ?? ''));
+            $group = trim((string)($row['group'] ?? $catName));
 
-            $items[] = [
-                'name'        => trim((string)($row['shortname'] ?? $row['name'] ?? $article)),
-                'group'       => trim((string)($row['group'] ?? $catName)),
-                'brand'       => $brand,
-                'part_number' => $article,
-                'in_catalog'  => false,
-                'part_id'     => null,
-                'price'       => null,
-                'stock'       => null,
-                'url'         => null,
-            ];
+            // Реальный формат PartsAPI: "БРЕНД|АРТИКУЛ,БРЕНД|АРТИКУЛ,…" —
+            // несколько вариантов (бренд+артикул) одной детали через запятую,
+            // внутри пары разделитель «|». Разворачиваем в отдельные позиции.
+            foreach (explode(',', $partsStr) as $pair) {
+                $seg = explode('|', $pair);
+                if (count($seg) < 2) continue;
+                $brand   = trim($seg[0]);
+                $article = trim($seg[1]);
+                if ($brand === '' || $article === '') continue;
+
+                $items[] = [
+                    'name'        => $name !== '' ? $name : $article,
+                    'group'       => $group,
+                    'brand'       => $brand,
+                    'part_number' => $article,
+                    'in_catalog'  => false,
+                    'part_id'     => null,
+                    'price'       => null,
+                    'stock'       => null,
+                    'url'         => null,
+                ];
+            }
         }
         return [$items, $raw];
     }
@@ -311,7 +321,9 @@ class CatalogApi
             $row = $st->fetch();
             if (!$row) return null;
             $data = json_decode($row['result'], true);
-            return is_array($data) ? $data : null;
+            // Ignore cache written by an older parser version.
+            if (!is_array($data) || ($data['v'] ?? 0) !== self::CACHE_VER) return null;
+            return $data;
         } catch (Exception $e) { return null; }
     }
 
