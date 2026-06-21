@@ -1,246 +1,334 @@
 <?php
 /**
- * External Catalog / VIN API integration (turnkey-ready).
+ * Внешний каталог запчастей PartsAPI (метод getPartsbyVIN) — turnkey-ready.
  *
- * Goal: ship a site that ALREADY contains a working integration layer for an
- * external parts catalog + VIN decoder (e.g. PartsAPI / TecDoc). The client
- * buys a subscription later, pastes the API key in the admin panel, flips the
- * toggle — and the catalog goes live. Until then every method is inert and the
- * site behaves exactly as before (free local + NHTSA decode, own catalog).
+ * Как устроен PartsAPI:
+ *   • Единого «дай все запчасти по VIN» нет. Запчасти выдаются по ТОВАРНЫМ
+ *     ГРУППАМ: getPartsbyVIN(vin, type, cat) → запчасти одной группы `cat`.
+ *   • Чтобы собрать каталог — перебираем группы (справочник в partsapi_cats.php).
+ *   • Ответ группы: [{group, name, parts:"БРЕНД|АРТИКУЛ", shortname}, …] — без цен.
  *
- * Design notes
- * ────────────
- *  • Provider-agnostic. The request URL is an admin-editable TEMPLATE with
- *    {VIN} and {KEY} placeholders, so the exact endpoint can be tuned from the
- *    panel without touching code (different providers differ in URL shape).
- *  • The key is ALSO sent as Authorization / X-Api-Key headers, covering both
- *    query-param and header auth styles.
- *  • Response parsing is defensive: it scans common field names used by
- *    PartsAPI / TecDoc / generic JSON catalogs and normalises to one shape.
- *  • Every public method degrades gracefully (returns [] / ok=false) and never
- *    throws into the page.
+ * Поэтому здесь:
+ *   • перебор групп с ограничением catalog_api_max_groups (демо-лимит ключа);
+ *   • агрессивный серверный кэш по VIN (таблица partsapi_catalog_cache, 30 дней);
+ *   • обогащение: если артикул есть в своём складе — подставляем цену/наличие/ссылку.
  *
- * Settings keys (site_settings):
- *   catalog_api_enabled   '0' | '1'      master toggle
- *   catalog_api_provider  'partsapi' | 'custom'
- *   catalog_api_url       template, e.g. https://api.partsapi.ru/?method=PartsByVIN&key={KEY}&vin={VIN}&format=json
- *   catalog_api_key       the secret key
- *   catalog_api_timeout   seconds (default 10)
+ * Всё инертно, пока catalog_api_enabled=0 — сайт работает как прежде.
  */
+
+require_once __DIR__ . '/partsapi_cats.php';
+
 class CatalogApi
 {
-    /** Master switch: only true when toggled on AND a URL template exists. */
+    private const CACHE_DAYS = 30;
+
+    // ── Public API ─────────────────────────────────────────────────────────
+
     public static function enabled(): bool
     {
         return getSetting('catalog_api_enabled', '0') === '1'
-            && trim(getSetting('catalog_api_url', '')) !== '';
+            && trim(getSetting('catalog_api_key', '')) !== '';
     }
 
-    /** Whether a key has been supplied (used for status badges in admin). */
     public static function hasKey(): bool
     {
         return trim(getSetting('catalog_api_key', '')) !== '';
     }
 
     /**
-     * Search the external catalog for parts matching a VIN.
-     * Returns a list of normalised items or [] on any problem.
+     * Полный каталог по VIN: перебор групп → нормализация → обогащение складом.
+     * Returns ['items'=>[…], 'count'=>int, 'groups_scanned'=>int, 'from_cache'=>bool].
      *
-     * Item shape: [
-     *   'name' => string, 'part_number' => string, 'brand' => string,
-     *   'price' => string|float|null, 'image' => string|null, 'url' => string|null,
+     * Item: [
+     *   'name','group','brand','part_number',
+     *   'in_catalog'(bool),'part_id'(?int),'price'(?float),'stock'(?int),'url'(?string)
      * ]
      */
-    public static function searchByVin(string $vin): array
+    public static function searchByVin(string $vin, bool $useCache = true): array
     {
-        if (!self::enabled()) return [];
         $vin = strtoupper(trim($vin));
-        if ($vin === '') return [];
+        $empty = ['items' => [], 'count' => 0, 'groups_scanned' => 0, 'from_cache' => false];
+        if (!self::enabled() || $vin === '') return $empty;
 
-        $resp = self::request($vin);
-        if (!$resp['ok']) return [];
+        if ($useCache) {
+            $cached = self::cacheGet($vin);
+            if ($cached !== null) { $cached['from_cache'] = true; return $cached; }
+        }
 
-        $json = json_decode($resp['body'], true);
-        if (!is_array($json)) return [];
+        $type      = self::type();
+        $maxGroups = self::maxGroups();
+        $cats      = self::catList($maxGroups);
 
-        return self::normalizeParts($json);
+        $items   = [];
+        $seen    = [];   // brand|article dedupe
+        $scanned = 0;
+        foreach ($cats as $cat) {
+            $rows = self::fetchGroup($vin, $type, $cat);
+            $scanned++;
+            foreach ($rows as $r) {
+                $key = mb_strtolower($r['brand'] . '|' . $r['part_number']);
+                if ($r['part_number'] === '' || isset($seen[$key])) continue;
+                $seen[$key] = true;
+                $items[] = $r;
+            }
+            if (count($items) >= 300) break; // hard safety cap
+        }
+
+        $items  = self::enrichFromWarehouse($items);
+        $result = ['items' => $items, 'count' => count($items), 'groups_scanned' => $scanned, 'from_cache' => false];
+
+        self::cacheSet($vin, $result);
+        return $result;
     }
 
     /**
-     * Test the configured endpoint with a sample/real VIN.
-     * Returns ['ok'=>bool, 'http'=>int, 'message'=>string, 'count'=>int, 'sample'=>string].
-     * Used by the admin "Проверить соединение" button.
+     * Тест соединения: декод + перебор небольшого числа групп.
+     * ['ok','message','count','sample'].
      */
     public static function testConnection(string $vin = ''): array
     {
-        $url = trim(getSetting('catalog_api_url', ''));
-        if ($url === '') {
-            return ['ok' => false, 'http' => 0, 'message' => 'URL каталога не задан.', 'count' => 0, 'sample' => ''];
+        if (!self::hasKey()) {
+            return ['ok' => false, 'message' => 'API-ключ каталога не задан.', 'count' => 0, 'sample' => ''];
         }
-        $vin  = strtoupper(trim($vin)) ?: 'WBAWX31060PK42218'; // valid sample VIN
-        $resp = self::request($vin);
+        $vin = strtoupper(trim($vin)) ?: 'Z8TXLCW6WCM902224'; // VIN из доки PartsAPI
 
-        if (!$resp['ok']) {
-            $msg = $resp['error'] !== ''
-                ? $resp['error']
-                : ('Сервер вернул HTTP ' . $resp['http'] . '.');
-            return ['ok' => false, 'http' => $resp['http'], 'message' => $msg, 'count' => 0,
-                    'sample' => mb_substr($resp['body'], 0, 600)];
+        // Пробуем несколько популярных групп, не трогая кэш.
+        $type = self::type();
+        $cats = array_slice(self::catList(0), 0, 8);
+        $hits = []; $rawSample = '';
+        foreach ($cats as $cat) {
+            [$rows, $raw] = self::fetchGroupRaw($vin, $type, $cat);
+            if ($rawSample === '' && $raw !== '') $rawSample = $raw;
+            foreach ($rows as $r) $hits[] = $r;
+            if (count($hits) >= 5) break;
         }
 
-        $json  = json_decode($resp['body'], true);
-        $items = is_array($json) ? self::normalizeParts($json) : [];
-        $ok    = is_array($json);
-
+        if ($hits) {
+            return [
+                'ok'      => true,
+                'message' => 'Соединение успешно. Пример: найдено ' . count($hits) . ' позиций в первых группах.',
+                'count'   => count($hits),
+                'sample'  => mb_substr($rawSample, 0, 600),
+            ];
+        }
         return [
-            'ok'      => $ok,
-            'http'    => $resp['http'],
-            'message' => $ok
-                ? ('Соединение успешно. Найдено позиций: ' . count($items) . '.')
-                : 'Ответ получен, но это не JSON. Проверьте URL-шаблон и параметр format=json.',
-            'count'   => count($items),
-            'sample'  => mb_substr($resp['body'], 0, 600),
+            'ok'      => false,
+            'message' => 'Ключ принят, но запчасти не вернулись. Проверьте тариф/лимит ключа или попробуйте другой VIN.',
+            'count'   => 0,
+            'sample'  => mb_substr($rawSample, 0, 600),
         ];
     }
 
-    // ── Internal: HTTP ─────────────────────────────────────────────────────
+    // ── Settings helpers ────────────────────────────────────────────────────
 
-    /**
-     * Perform the catalog request for a VIN.
-     * Returns ['ok'=>bool, 'http'=>int, 'body'=>string, 'error'=>string].
-     */
-    private static function request(string $vin): array
+    private static function type(): string
     {
-        $template = trim(getSetting('catalog_api_url', ''));
-        $key      = trim(getSetting('catalog_api_key', ''));
-        $timeout  = (int)getSetting('catalog_api_timeout', '10');
-        if ($timeout < 2 || $timeout > 30) $timeout = 10;
-        if ($template === '') {
-            return ['ok' => false, 'http' => 0, 'body' => '', 'error' => 'URL не задан.'];
+        // 'oem' = оригинал, '' = неоригинал/аналог, 'all' — как задано.
+        return trim(getSetting('catalog_api_type', 'oem'));
+    }
+
+    private static function maxGroups(): int
+    {
+        $v = (int)getSetting('catalog_api_max_groups', '25');
+        return $v < 0 ? 25 : $v; // 0 = все
+    }
+
+    private static function base(): string
+    {
+        $b = trim(getSetting('catalog_api_base', 'https://api.partsapi.ru/'));
+        return $b !== '' ? $b : 'https://api.partsapi.ru/';
+    }
+
+    private static function timeout(): int
+    {
+        $t = (int)getSetting('catalog_api_timeout', '12');
+        return ($t < 2 || $t > 30) ? 12 : $t;
+    }
+
+    /** Список групп для перебора: популярные первыми, затем остальные; 0 = все. */
+    private static function catList(int $max): array
+    {
+        $popular = defined('PARTSAPI_POPULAR') ? PARTSAPI_POPULAR : [];
+        $all     = defined('PARTSAPI_CATS') ? array_keys(PARTSAPI_CATS) : [];
+        $ordered = array_values(array_unique(array_merge($popular, $all)));
+        if ($max > 0 && count($ordered) > $max) {
+            $ordered = array_slice($ordered, 0, $max);
         }
+        return $ordered;
+    }
 
-        $url = self::buildUrl($template, $vin, $key);
+    private static function catName(int $cat): string
+    {
+        return (defined('PARTSAPI_CATS') && isset(PARTSAPI_CATS[$cat])) ? PARTSAPI_CATS[$cat] : '';
+    }
 
-        $hdrs = array_filter([
-            'Accept: application/json',
-            $key !== '' ? "Authorization: Bearer {$key}" : '',
-            $key !== '' ? "X-Api-Key: {$key}" : '',
+    // ── HTTP + parsing ───────────────────────────────────────────────────────
+
+    /** Один запрос группы → нормализованные позиции. */
+    private static function fetchGroup(string $vin, string $type, int $cat): array
+    {
+        return self::fetchGroupRaw($vin, $type, $cat)[0];
+    }
+
+    /** Как fetchGroup, но также возвращает сырой ответ (для теста). [items, rawBody] */
+    private static function fetchGroupRaw(string $vin, string $type, int $cat): array
+    {
+        $key = trim(getSetting('catalog_api_key', ''));
+        $url = self::base() . '?' . http_build_query([
+            'method' => 'getPartsbyVIN',
+            'key'    => $key,
+            'vin'    => $vin,
+            'type'   => $type,
+            'cat'    => $cat,
+            'format' => 'json',
         ]);
 
         $ctx = stream_context_create(['http' => [
             'method'        => 'GET',
-            'timeout'       => $timeout,
+            'timeout'       => self::timeout(),
             'ignore_errors' => true,
-            'header'        => implode("\r\n", $hdrs),
+            'header'        => "Accept: application/json\r\nUser-Agent: AvtoZapchast/1.0\r\n",
         ]]);
+        $raw = @file_get_contents($url, false, $ctx);
+        if ($raw === false || $raw === '') return [[], ''];
 
-        $body = @file_get_contents($url, false, $ctx);
-        $http = self::statusFromHeaders($http_response_header ?? []);
+        $json = json_decode($raw, true);
+        if (!is_array($json)) return [[], $raw];
 
-        if ($body === false) {
-            return ['ok' => false, 'http' => $http, 'body' => '', 'error' => 'Не удалось соединиться с сервером каталога (таймаут или сеть).'];
+        // Ошибочные обёртки {"error_code":…} → пусто.
+        if (isset($json['error_code']) || isset($json['status']) && !isset($json[0])) {
+            return [[], $raw];
         }
-        if ($http >= 400) {
-            return ['ok' => false, 'http' => $http, 'body' => (string)$body, 'error' => ''];
-        }
-        return ['ok' => true, 'http' => $http ?: 200, 'body' => (string)$body, 'error' => ''];
-    }
 
-    /** Replace {VIN}/{KEY} placeholders (case-insensitive) and URL-encode the VIN. */
-    private static function buildUrl(string $template, string $vin, string $key): string
-    {
-        return str_ireplace(
-            ['{VIN}', '{KEY}'],
-            [rawurlencode($vin), rawurlencode($key)],
-            $template
-        );
-    }
-
-    /** Extract HTTP status code from $http_response_header. */
-    private static function statusFromHeaders(array $headers): int
-    {
-        foreach ($headers as $h) {
-            if (preg_match('#^HTTP/\S+\s+(\d{3})#', $h, $m)) {
-                return (int)$m[1];
-            }
-        }
-        return 0;
-    }
-
-    // ── Internal: response normalisation ───────────────────────────────────
-
-    /**
-     * Defensively pull a list of parts out of an arbitrary JSON catalog
-     * response and normalise field names. Handles the common shapes used by
-     * PartsAPI / TecDoc and generic catalogs.
-     */
-    private static function normalizeParts(array $json): array
-    {
-        $list = self::locatePartsList($json);
-        if (!$list) return [];
-
-        $out = [];
-        foreach ($list as $row) {
+        $catName = self::catName($cat);
+        $items = [];
+        foreach ($json as $row) {
             if (!is_array($row)) continue;
-            $name  = self::firstField($row, ['name', 'title', 'description', 'articleName',
-                                             'genericArticleDescription', 'productName', 'partName']);
-            $num   = self::firstField($row, ['part_number', 'articleNumber', 'number', 'oem',
-                                             'code', 'partNumber', 'article', 'sku']);
-            $brand = self::firstField($row, ['brand', 'brandName', 'supplier', 'mfrName',
-                                             'manufacturer', 'brand_name']);
-            $price = self::firstField($row, ['price', 'cost', 'amount', 'retailPrice']);
-            $img   = self::firstField($row, ['image', 'img', 'imageUrl', 'picture', 'thumbnail']);
-            $url   = self::firstField($row, ['url', 'link', 'href']);
+            $partsStr = (string)($row['parts'] ?? '');
+            if ($partsStr === '') continue;
 
-            // Skip rows with no usable identity at all.
-            if ($name === '' && $num === '') continue;
+            // "БРЕНД|АРТИКУЛ" (иногда несколько сегментов) → берём бренд + первый артикул.
+            $seg     = array_values(array_filter(array_map('trim', explode('|', $partsStr)), fn($s) => $s !== ''));
+            if (count($seg) < 2) continue;
+            $brand   = $seg[0];
+            $article = $seg[1];
 
-            $out[] = [
-                'name'        => $name !== '' ? $name : $num,
-                'part_number' => $num,
+            $items[] = [
+                'name'        => trim((string)($row['shortname'] ?? $row['name'] ?? $article)),
+                'group'       => trim((string)($row['group'] ?? $catName)),
                 'brand'       => $brand,
-                'price'       => $price !== '' ? $price : null,
-                'image'       => $img !== '' ? $img : null,
-                'url'         => $url !== '' ? $url : null,
+                'part_number' => $article,
+                'in_catalog'  => false,
+                'part_id'     => null,
+                'price'       => null,
+                'stock'       => null,
+                'url'         => null,
             ];
-            if (count($out) >= 60) break; // safety cap
         }
-        return $out;
+        return [$items, $raw];
     }
 
-    /** Find the array of part rows inside the response, trying common wrappers. */
-    private static function locatePartsList(array $json): array
-    {
-        // Already a plain list of objects?
-        if (isset($json[0]) && is_array($json[0])) return $json;
+    // ── Warehouse enrichment ─────────────────────────────────────────────────
 
-        foreach (['parts', 'articles', 'data', 'result', 'results', 'items', 'list', 'rows'] as $k) {
-            if (isset($json[$k]) && is_array($json[$k])) {
-                $cand = $json[$k];
-                if (isset($cand[0]) && is_array($cand[0])) return $cand;
-                // Nested one level (e.g. data.parts)
-                foreach ($cand as $v) {
-                    if (is_array($v) && isset($v[0]) && is_array($v[0])) return $v;
+    /** Подставить цену/наличие/ссылку из своего склада там, где артикул совпал. */
+    private static function enrichFromWarehouse(array $items): array
+    {
+        if (!$items) return $items;
+        try {
+            $db = getDB();
+
+            // Соберём оригинальные и нормализованные артикулы для поиска.
+            $articles = [];
+            foreach ($items as $it) {
+                $a = $it['part_number'];
+                if ($a !== '') { $articles[$a] = true; }
+            }
+            if (!$articles) return $items;
+
+            $list = array_keys($articles);
+            $ph   = implode(',', array_fill(0, count($list), '?'));
+            $stmt = $db->prepare(
+                "SELECT id, part_number, price, stock, images
+                   FROM parts
+                  WHERE is_active = 1 AND part_number IN ($ph)"
+            );
+            $stmt->execute($list);
+
+            // Индекс по нормализованному номеру.
+            $map = [];
+            foreach ($stmt->fetchAll() as $p) {
+                $map[self::normArt($p['part_number'])] = $p;
+            }
+            if (!$map) return $items;
+
+            foreach ($items as &$it) {
+                $hit = $map[self::normArt($it['part_number'])] ?? null;
+                if ($hit) {
+                    $it['in_catalog'] = true;
+                    $it['part_id']    = (int)$hit['id'];
+                    $it['price']      = (float)$hit['price'];
+                    $it['stock']      = (int)$hit['stock'];
+                    $it['url']        = APP_URL . '/catalog/part.php?id=' . (int)$hit['id'];
                 }
             }
-        }
-        return [];
+            unset($it);
+        } catch (Exception $e) { /* без обогащения — не критично */ }
+        return $items;
     }
 
-    /** Return the first non-empty value among candidate keys (case-insensitive). */
-    private static function firstField(array $row, array $keys): string
+    private static function normArt(string $s): string
     {
-        // Build a lower-cased lookup once.
-        $lower = [];
-        foreach ($row as $k => $v) {
-            if (is_scalar($v)) $lower[strtolower((string)$k)] = (string)$v;
-        }
-        foreach ($keys as $k) {
-            $lk = strtolower($k);
-            if (isset($lower[$lk]) && trim($lower[$lk]) !== '') {
-                return trim($lower[$lk]);
-            }
-        }
-        return '';
+        return strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $s));
+    }
+
+    // ── Cache (runtime-migrated table) ───────────────────────────────────────
+
+    private static function ensureCacheSchema(): void
+    {
+        static $done = false;
+        if ($done) return;
+        try {
+            getDB()->exec(
+                "CREATE TABLE IF NOT EXISTS partsapi_catalog_cache (
+                    vin VARCHAR(20) NOT NULL PRIMARY KEY,
+                    result MEDIUMTEXT NOT NULL,
+                    cached_at DATETIME NOT NULL
+                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+            );
+            $done = true;
+        } catch (Exception $e) { /* кэш необязателен */ }
+    }
+
+    private static function cacheGet(string $vin): ?array
+    {
+        self::ensureCacheSchema();
+        try {
+            $st = getDB()->prepare(
+                "SELECT result FROM partsapi_catalog_cache
+                  WHERE vin = ? AND cached_at > DATE_SUB(NOW(), INTERVAL " . self::CACHE_DAYS . " DAY)"
+            );
+            $st->execute([$vin]);
+            $row = $st->fetch();
+            if (!$row) return null;
+            $data = json_decode($row['result'], true);
+            return is_array($data) ? $data : null;
+        } catch (Exception $e) { return null; }
+    }
+
+    private static function cacheSet(string $vin, array $data): void
+    {
+        self::ensureCacheSchema();
+        try {
+            getDB()->prepare(
+                "INSERT INTO partsapi_catalog_cache (vin, result, cached_at)
+                 VALUES (?,?,NOW())
+                 ON DUPLICATE KEY UPDATE result = VALUES(result), cached_at = NOW()"
+            )->execute([$vin, json_encode($data, JSON_UNESCAPED_UNICODE)]);
+        } catch (Exception $e) { /* ignore */ }
+    }
+
+    public static function clearCache(): void
+    {
+        try { getDB()->exec("DELETE FROM partsapi_catalog_cache"); } catch (Exception $e) {}
     }
 }

@@ -36,9 +36,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($postAction === 'save_catalog_settings' && $role === 'superadmin') {
         // Checkbox → explicit '0'/'1'
         setSetting('catalog_api_enabled', isset($_POST['catalog_api_enabled']) ? '1' : '0');
-        foreach (['catalog_api_provider', 'catalog_api_url', 'catalog_api_key', 'catalog_api_timeout'] as $key) {
+        // type may legitimately be '' (неоригинал) — save as-is.
+        setSetting('catalog_api_type', trim($_POST['catalog_api_type'] ?? 'oem'));
+        foreach (['catalog_api_key', 'catalog_api_max_groups', 'catalog_api_base', 'catalog_api_timeout'] as $key) {
             setSetting($key, trim($_POST[$key] ?? ''));
         }
+        require_once dirname(__DIR__) . '/includes/catalog_api.php';
+        CatalogApi::clearCache(); // settings changed → stale cache out
         flashMessage('success', 'Настройки каталога сохранены.');
         redirect(APP_URL . '/superadmin/vin.php?action=settings');
     }
@@ -389,9 +393,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
     <?php
         $catEnabled  = ($settings['catalog_api_enabled'] ?? '0') === '1';
         $catHasKey   = trim($settings['catalog_api_key'] ?? '') !== '';
-        $catHasUrl   = trim($settings['catalog_api_url'] ?? '') !== '';
-        $catLive     = $catEnabled && $catHasUrl;
-        $catProvider = $settings['catalog_api_provider'] ?? 'partsapi';
+        $catLive     = $catEnabled && $catHasKey;
     ?>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;margin-top:24px;">
         <div class="az-card">
@@ -417,35 +419,42 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 </div>
 
                 <div class="az-form-group">
-                    <label>Провайдер каталога</label>
-                    <select name="catalog_api_provider" id="catalogProviderSelect" onchange="toggleCatalogCustom()">
-                        <option value="partsapi" <?= $catProvider==='partsapi'?'selected':'' ?>>PartsAPI / TecDoc — СНГ/Россия</option>
-                        <option value="custom"   <?= $catProvider==='custom'?'selected':'' ?>>Другой / собственный API</option>
+                    <label>API ключ <small style="color:#888;">(метод getPartsbyVIN)</small></label>
+                    <input type="text" name="catalog_api_key" value="<?= sv2($settings,'catalog_api_key') ?>"
+                           placeholder="ключ getPartsbyVIN от PartsAPI">
+                </div>
+
+                <div class="az-form-group">
+                    <label>Вид запчастей</label>
+                    <select name="catalog_api_type">
+                        <?php $ct = $settings['catalog_api_type'] ?? 'oem'; ?>
+                        <option value="oem" <?= $ct==='oem'?'selected':'' ?>>Оригинал (OEM)</option>
+                        <option value=""    <?= $ct===''?'selected':'' ?>>Неоригинал / аналоги</option>
                     </select>
                 </div>
 
                 <div class="az-form-group">
-                    <label>URL запроса <small style="color:#888;">(плейсхолдеры {VIN} и {KEY})</small></label>
-                    <input type="text" name="catalog_api_url" value="<?= sv2($settings,'catalog_api_url') ?>"
-                           placeholder="https://api.partsapi.ru/?method=PartsByVIN&key={KEY}&vin={VIN}&format=json">
-                    <small id="catalogUrlHint" style="color:#888;">
-                        <?= $catProvider==='partsapi'
-                            ? 'Пример: https://api.partsapi.ru/?method=PartsByVIN&key={KEY}&vin={VIN}&format=json'
-                            : 'Укажите URL вашего провайдера с плейсхолдерами {VIN} и {KEY}.' ?>
-                    </small>
+                    <label>Сколько товарных групп опрашивать
+                        <small style="color:#888;">(0 = все 751)</small></label>
+                    <input type="number" name="catalog_api_max_groups" min="0" max="751"
+                           value="<?= sv2($settings,'catalog_api_max_groups','25') ?>">
+                    <small style="color:#888;">Каждая группа — отдельный запрос к API. На демо-ключе
+                        (≈50 запросов/сутки) ставьте 15–25. На платном тарифе можно больше или 0.</small>
                 </div>
 
-                <div class="az-form-group">
-                    <label>API ключ</label>
-                    <input type="text" name="catalog_api_key" value="<?= sv2($settings,'catalog_api_key') ?>"
-                           placeholder="вставьте ключ от провайдера">
-                </div>
-
-                <div class="az-form-group">
-                    <label>Таймаут запроса (сек)</label>
-                    <input type="number" name="catalog_api_timeout" min="2" max="30"
-                           value="<?= sv2($settings,'catalog_api_timeout','10') ?>">
-                </div>
+                <details style="margin-bottom:14px;">
+                    <summary style="cursor:pointer;color:#666;font-size:0.85rem;">Дополнительно</summary>
+                    <div class="az-form-group" style="margin-top:10px;">
+                        <label>Базовый URL API</label>
+                        <input type="text" name="catalog_api_base" value="<?= sv2($settings,'catalog_api_base','https://api.partsapi.ru/') ?>"
+                               placeholder="https://api.partsapi.ru/">
+                    </div>
+                    <div class="az-form-group">
+                        <label>Таймаут запроса (сек)</label>
+                        <input type="number" name="catalog_api_timeout" min="2" max="30"
+                               value="<?= sv2($settings,'catalog_api_timeout','12') ?>">
+                    </div>
+                </details>
 
                 <button type="submit" class="az-btn az-btn-primary">
                     <i class="fa fa-save"></i> Сохранить каталог
@@ -477,7 +486,6 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 <div style="font-weight:700;margin-bottom:6px;">
                     <i class="fa fa-<?= $catalogTest['ok'] ? 'check-circle' : 'exclamation-triangle' ?>"></i>
                     <?= sanitize($catalogTest['message']) ?>
-                    <?php if ($catalogTest['http']): ?><span style="opacity:0.7;">(HTTP <?= (int)$catalogTest['http'] ?>)</span><?php endif; ?>
                 </div>
                 <?php if (!empty($catalogTest['sample'])): ?>
                 <details style="margin-top:6px;">
@@ -491,7 +499,6 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
             <div style="margin-top:16px;font-size:0.8rem;color:#888;line-height:1.6;">
                 <strong>Статус:</strong>
                 каталог <?= $catEnabled ? 'включён' : 'выключен' ?>,
-                URL <?= $catHasUrl ? 'задан' : 'не задан' ?>,
                 ключ <?= $catHasKey ? 'задан' : 'не задан' ?>.
             </div>
         </div>
@@ -765,14 +772,6 @@ function toggleCustom() {
     const v = document.getElementById('providerSelect');
     if (v) document.getElementById('customFields').style.display =
         (v.value === 'custom' || v.value === 'partsapi') ? 'block' : 'none';
-}
-function toggleCatalogCustom() {
-    const v = document.getElementById('catalogProviderSelect');
-    const box = document.getElementById('catalogUrlHint');
-    if (!v || !box) return;
-    box.textContent = v.value === 'partsapi'
-        ? 'Пример: https://api.partsapi.ru/?method=PartsByVIN&key={KEY}&vin={VIN}&format=json'
-        : 'Укажите URL вашего провайдера с плейсхолдерами {VIN} и {KEY}.';
 }
 </script>
 
