@@ -47,6 +47,8 @@ echo json_encode([
     'success'        => true,
     'count'          => $data['count'],
     'groups_scanned' => $data['groups_scanned'],
+    'errors'         => $data['errors'] ?? 0,
+    'type'           => $data['type'] ?? '',
     'from_cache'     => $data['from_cache'],
     'items'          => $items,
 ], JSON_UNESCAPED_UNICODE);

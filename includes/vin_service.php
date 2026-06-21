@@ -132,6 +132,7 @@ class VinService
         $result['vin']        = $vin;
         $result['from_cache'] = false;
         $result['source']     = empty($remote) ? 'local' : getSetting('vin_api_provider', 'nhtsa');
+        $result['cv']         = self::DECODE_VER;
 
         self::setCache($vin, $result);
         return $result;
@@ -542,6 +543,10 @@ class VinService
 
     // ── Private: cache ────────────────────────────────────────────────────
 
+    /** Версия логики декодирования: смена инвалидирует старый vin_cache
+     *  (напр. записи, закэшированные до подключения VINdecodeOE — только страна). */
+    private const DECODE_VER = 2;
+
     private static function getCache(string $vin): ?array
     {
         try {
@@ -552,7 +557,10 @@ class VinService
             );
             $stmt->execute([$vin]);
             $row = $stmt->fetch();
-            return $row ? json_decode($row['result'], true) : null;
+            if (!$row) return null;
+            $data = json_decode($row['result'], true);
+            if (!is_array($data) || ($data['cv'] ?? 0) !== self::DECODE_VER) return null;
+            return $data;
         } catch (Exception $e) { return null; }
     }
 
