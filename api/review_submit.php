@@ -7,7 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $partId = (int)($_POST['part_id'] ?? 0);
-$back   = APP_URL . '/catalog/part.php?id=' . $partId . '#reviews';
+$back   = partUrl((int)$partId) . '#reviews';
 
 if (!isLoggedIn()) {
     flashMessage('danger', t('login_to_review'));

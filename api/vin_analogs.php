@@ -28,7 +28,7 @@ foreach ($analogs as $a) {
         'stock_label'   => $st['label'],
         'stock_class'   => $st['class'],
         'thumb'         => $thumb,
-        'url'           => APP_URL . '/catalog/part.php?id=' . (int)$a['id'],
+        'url'           => partUrl((int)$a['id'], $a['name'] ?? ''),
         'confidence'    => $a['analog_confidence'] ?? 'high',
         'source'        => $a['analog_source'] ?? 'auto',
     ];

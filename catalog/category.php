@@ -360,12 +360,12 @@ $bcItems[] = ['label' => $catName];
                         <article class="single_product">
                             <figure>
                                 <div class="product_thumb">
-                                    <a class="primary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
+                                    <a class="primary_img" href="<?= partUrl($part) ?>">
                                         <img src="<?= sanitize($imgUrl) ?>" alt="<?= sanitize($part['name']) ?>">
                                     </a>
                                     <?= productBadges($part) ?>
                                     <div class="quick_button">
-                                        <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>" title="<?= t('quick_view') ?>">
+                                        <a href="<?= partUrl($part) ?>" title="<?= t('quick_view') ?>">
                                             <i class="icon-eye"></i>
                                         </a>
                                     </div>
@@ -378,7 +378,7 @@ $bcItems[] = ['label' => $catName];
                                             </a>
                                         </p>
                                         <h4 class="product_name">
-                                            <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
+                                            <a href="<?= partUrl($part) ?>">
                                                 <?= sanitize($part['name']) ?>
                                             </a>
                                         </h4>
@@ -414,7 +414,7 @@ $bcItems[] = ['label' => $catName];
                                             </a>
                                         </p>
                                         <h4 class="product_name">
-                                            <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
+                                            <a href="<?= partUrl($part) ?>">
                                                 <?= sanitize($part['name']) ?>
                                             </a>
                                         </h4>
@@ -466,15 +466,15 @@ $bcItems[] = ['label' => $catName];
                         <article class="single_product">
                             <figure>
                                 <div class="product_thumb">
-                                    <a class="primary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
+                                    <a class="primary_img" href="<?= partUrl($part) ?>">
                                         <img src="<?= sanitize($imgUrl) ?>" alt="<?= sanitize($part['name']) ?>">
                                     </a>
-                                    <a class="secondary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
+                                    <a class="secondary_img" href="<?= partUrl($part) ?>">
                                         <img src="<?= sanitize($imgUrl) ?>" alt="<?= sanitize($part['name']) ?>">
                                     </a>
                                     <?= productBadges($part) ?>
                                     <div class="quick_button">
-                                        <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>" title="<?= t('quick_view') ?>">
+                                        <a href="<?= partUrl($part) ?>" title="<?= t('quick_view') ?>">
                                             <i class="icon-eye"></i>
                                         </a>
                                     </div>
@@ -487,7 +487,7 @@ $bcItems[] = ['label' => $catName];
                                             </a>
                                         </p>
                                         <h4 class="product_name">
-                                            <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
+                                            <a href="<?= partUrl($part) ?>">
                                                 <?= sanitize(truncate($part['name'], 55)) ?>
                                             </a>
                                         </h4>
@@ -523,7 +523,7 @@ $bcItems[] = ['label' => $catName];
                                             </a>
                                         </p>
                                         <h4 class="product_name">
-                                            <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
+                                            <a href="<?= partUrl($part) ?>">
                                                 <?= sanitize($part['name']) ?>
                                             </a>
                                         </h4>

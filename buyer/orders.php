@@ -138,7 +138,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 <tr>
                                     <td><code style="font-size:0.8rem;"><?= sanitize($item['part_number']) ?></code></td>
                                     <td>
-                                        <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$item['part_id'] ?>"
+                                        <a href="<?= partUrl((int)$item['part_id'], $item['name'] ?? '') ?>"
                                            style="color:#333;text-decoration:none;font-size:0.875rem;">
                                             <?= sanitize($item['part_name']) ?>
                                         </a>

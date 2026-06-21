@@ -24,6 +24,15 @@ if (!$part) {
     redirect(APP_URL . '/catalog/index.php');
 }
 
+// Canonicalise the legacy /catalog/part.php?id=N address to the pretty
+// /product/{id}-{slug} URL with a 301, so links and search engines consolidate on
+// one URL. Requests that already arrived via /product/… are served as-is.
+$prettyUrl = partUrl($part);
+if (strpos($_SERVER['REQUEST_URI'] ?? '', '/catalog/part.php') !== false) {
+    header('Location: ' . $prettyUrl, true, 301);
+    exit;
+}
+
 // Related products (same category)
 $relStmt = $db->prepare(
     "SELECT p.*, b.name AS brand_name
@@ -82,7 +91,7 @@ $pageDescription = $cleanDesc !== ''
     ? $cleanDesc
     : trim($part['name'] . (!empty($part['brand_name']) ? ', ' . $part['brand_name'] : '') . '. ' . ($part['category_name'] ?? ''));
 
-$canonical = APP_URL . '/catalog/part.php?id=' . $id;
+$canonical = $prettyUrl;
 $ogType    = 'product';
 
 // Absolute image URL for og:image / schema
@@ -195,7 +204,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             <input type="hidden" name="_csrf"   value="<?= sanitize($csrf) ?>">
 
                             <h3>
-                                <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
+                                <a href="<?= partUrl($part) ?>">
                                     <?= sanitize($part['name']) ?>
                                 </a>
                             </h3>
@@ -531,15 +540,15 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <article class="single_product">
                             <figure>
                                 <div class="product_thumb">
-                                    <a class="primary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$rel['id'] ?>">
+                                    <a class="primary_img" href="<?= partUrl($rel) ?>">
                                         <img src="<?= sanitize($relImg) ?>" alt="<?= sanitize($rel['name']) ?>">
                                     </a>
-                                    <a class="secondary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$rel['id'] ?>">
+                                    <a class="secondary_img" href="<?= partUrl($rel) ?>">
                                         <img src="<?= sanitize($relImg) ?>" alt="<?= sanitize($rel['name']) ?>">
                                     </a>
                                     <?= productBadges($rel) ?>
                                     <div class="quick_button">
-                                        <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$rel['id'] ?>" title="<?= t('quick_view') ?>">
+                                        <a href="<?= partUrl($rel) ?>" title="<?= t('quick_view') ?>">
                                             <i class="icon-eye"></i>
                                         </a>
                                     </div>
@@ -552,7 +561,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                             </a>
                                         </p>
                                         <h4 class="product_name">
-                                            <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$rel['id'] ?>">
+                                            <a href="<?= partUrl($rel) ?>">
                                                 <?= sanitize(truncate($rel['name'], 55)) ?>
                                             </a>
                                         </h4>

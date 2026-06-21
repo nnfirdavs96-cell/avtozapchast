@@ -105,13 +105,13 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                         ?>
                                         <tr data-part-id="<?= (int)$item['part_id'] ?>">
                                             <td class="product_thumb">
-                                                <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$item['part_id'] ?>">
+                                                <a href="<?= partUrl((int)$item['part_id'], $item['name'] ?? '') ?>">
                                                     <img src="<?= sanitize($imgUrl) ?>"
                                                          alt="<?= sanitize($item['name']) ?>">
                                                 </a>
                                             </td>
                                             <td class="product_name">
-                                                <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$item['part_id'] ?>">
+                                                <a href="<?= partUrl((int)$item['part_id'], $item['name'] ?? '') ?>">
                                                     <?= sanitize(truncate($item['name'], 50)) ?>
                                                 </a>
                                                 <p><?= sanitize($item['brand_name']) ?> &middot; <?= t('part_number') ?>: <?= sanitize($item['part_number']) ?></p>

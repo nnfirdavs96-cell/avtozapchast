@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         } else {
             foreach ($rows as $row) {
                 $img = productImageUrl($row['images']);
-                $url = APP_URL . '/catalog/part.php?id=' . (int)$row['id'];
+                $url = partUrl((int)$row['id'], $row['name'] ?? '');
                 echo '<div class="cart_item">'
                    . '<div class="cart_img"><a href="' . $url . '"><img src="' . sanitize($img) . '" alt="' . sanitize($row['name']) . '" style="width:60px;height:60px;object-fit:cover"></a></div>'
                    . '<div class="cart_info"><a href="' . $url . '">' . sanitize(truncate($row['name'], 40)) . '</a>'

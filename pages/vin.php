@@ -265,7 +265,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 $inStock = (int)$p['stock'] > 0;
             ?>
             <div class="vin-part-card" data-part-id="<?= (int)$p['id'] ?>" style="background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.07);overflow:hidden;transition:box-shadow 0.2s;display:flex;flex-direction:column;">
-                <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$p['id'] ?>">
+                <a href="<?= partUrl($p) ?>">
                     <?php if ($thumb): ?>
                     <img src="<?= sanitize($thumb) ?>" alt="<?= sanitize($p['name']) ?>"
                          style="width:100%;height:160px;object-fit:cover;">
@@ -280,7 +280,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <?= sanitize($p['brand_name'] ?? '') ?>
                         <?= sanitize(!empty($p['category_name']) ? ' · ' . $p['category_name'] : '') ?>
                     </div>
-                    <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$p['id'] ?>"
+                    <a href="<?= partUrl($p) ?>"
                        style="font-weight:600;color:#1a1a2e;font-size:0.9rem;display:block;margin-bottom:4px;text-decoration:none;line-height:1.3;">
                         <?= sanitize(truncate($p['name'], 60)) ?>
                     </a>

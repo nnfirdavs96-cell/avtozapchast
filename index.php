@@ -1,5 +1,15 @@
 <?php
 require_once __DIR__ . '/config/config.php';
+
+// Front-controller fallback for pretty product URLs (/product/123-slug). On Apache
+// the .htaccess rewrite handles this directly; on servers that route unknown paths
+// to index.php (nginx try_files) we dispatch to the product page here.
+if (preg_match('#/product/([0-9]+)#', strtok($_SERVER['REQUEST_URI'] ?? '', '?'), $m)) {
+    $_GET['id'] = (int)$m[1];
+    require __DIR__ . '/catalog/part.php';
+    exit;
+}
+
 $pageTitle = t('home') . ' — ' . getSetting('site_name', t('site_name'));
 
 $db = getDB();
@@ -321,18 +331,18 @@ require_once __DIR__ . '/includes/header.php';
                                 <article class="single_product">
                                     <figure>
                                         <div class="product_thumb">
-                                            <a class="primary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
+                                            <a class="primary_img" href="<?= partUrl($part) ?>">
                                                 <img src="<?= $img ?>" alt="<?= sanitize($part['name']) ?>" onerror="this.src='<?= $fallbackImg ?>'">
                                             </a>
                                             <?= productBadges($part) ?>
                                             <div class="quick_button">
-                                                <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>" title="<?= t('quick_view') ?>"><i class="icon-eye"></i></a>
+                                                <a href="<?= partUrl($part) ?>" title="<?= t('quick_view') ?>"><i class="icon-eye"></i></a>
                                             </div>
                                         </div>
                                         <div class="product_content">
                                             <div class="product_content_inner">
                                                 <p class="manufacture_product"><a href="<?= APP_URL ?>/catalog/index.php?brand=<?= (int)$part['brand_id'] ?>"><?= sanitize($part['brand_name'] ?? '') ?></a></p>
-                                                <h4 class="product_name"><a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>"><?= sanitize(truncate($part['name'],45)) ?></a></h4>
+                                                <h4 class="product_name"><a href="<?= partUrl($part) ?>"><?= sanitize(truncate($part['name'],45)) ?></a></h4>
                                                 <?= priceBox($part) ?>
                                                 <?= productStarsInline((int)$part['id'], $ratings) ?>
                                             </div>
@@ -385,14 +395,14 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="col-lg-5 col-md-6 mb-30">
                     <div class="single_product" style="border:1px solid #eee;border-radius:6px;padding:22px;height:100%;display:flex;flex-wrap:wrap;align-items:center;">
                         <div class="product_thumb" style="position:relative;flex:0 0 45%;max-width:45%;">
-                            <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$featDeal['id'] ?>">
+                            <a href="<?= partUrl($featDeal) ?>">
                                 <img src="<?= sanitize($featImg) ?>" alt="<?= sanitize($featDeal['name']) ?>" style="width:100%;">
                             </a>
                             <?= productBadges($featDeal) ?>
                         </div>
                         <div class="product_content" style="flex:1;padding-left:20px;min-width:200px;">
                             <p class="manufacture_product"><a href="<?= APP_URL ?>/catalog/index.php?brand=<?= (int)$featDeal['brand_id'] ?>"><?= sanitize($featDeal['brand_name'] ?? '') ?></a></p>
-                            <h4 class="product_name"><a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$featDeal['id'] ?>"><?= sanitize(truncate($featDeal['name'], 50)) ?></a></h4>
+                            <h4 class="product_name"><a href="<?= partUrl($featDeal) ?>"><?= sanitize(truncate($featDeal['name'], 50)) ?></a></h4>
                             <?= productStarsInline((int)$featDeal['id'], $ratings) ?>
                             <?= priceBox($featDeal) ?>
                             <?php if (!empty($featDeal['description'])): ?>
@@ -420,18 +430,18 @@ require_once __DIR__ . '/includes/header.php';
                             <article class="single_product">
                                 <figure>
                                     <div class="product_thumb">
-                                        <a class="primary_img" href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>">
+                                        <a class="primary_img" href="<?= partUrl($part) ?>">
                                             <img src="<?= sanitize($sImg) ?>" alt="<?= sanitize($part['name']) ?>">
                                         </a>
                                         <?= productBadges($part) ?>
                                         <div class="quick_button">
-                                            <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>" title="<?= t('quick_view') ?>"><i class="icon-eye"></i></a>
+                                            <a href="<?= partUrl($part) ?>" title="<?= t('quick_view') ?>"><i class="icon-eye"></i></a>
                                         </div>
                                     </div>
                                     <div class="product_content grid_content">
                                         <div class="product_content_inner">
                                             <p class="manufacture_product"><a href="<?= APP_URL ?>/catalog/index.php?brand=<?= (int)$part['brand_id'] ?>"><?= sanitize($part['brand_name'] ?? '') ?></a></p>
-                                            <h4 class="product_name"><a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$part['id'] ?>"><?= sanitize(truncate($part['name'], 40)) ?></a></h4>
+                                            <h4 class="product_name"><a href="<?= partUrl($part) ?>"><?= sanitize(truncate($part['name'], 40)) ?></a></h4>
                                             <?= priceBox($part) ?>
                                             <?= productStarsInline((int)$part['id'], $ratings) ?>
                                         </div>

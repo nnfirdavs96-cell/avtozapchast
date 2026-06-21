@@ -291,12 +291,12 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
                                             <?php else: foreach ($miniCart as $item): ?>
                                             <div class="cart_item">
                                                 <div class="cart_img">
-                                                    <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$item['id'] ?>">
+                                                    <a href="<?= partUrl($item) ?>">
                                                         <img src="<?= productImageUrl($item['images']) ?>" alt="<?= sanitize($item['name']) ?>" style="width:60px;height:60px;object-fit:cover">
                                                     </a>
                                                 </div>
                                                 <div class="cart_info">
-                                                    <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$item['id'] ?>"><?= sanitize(truncate($item['name'],40)) ?></a>
+                                                    <a href="<?= partUrl($item) ?>"><?= sanitize(truncate($item['name'],40)) ?></a>
                                                     <p><?= t('quantity') ?>: <?= (int)$item['quantity'] ?> &times; <span><?= formatPrice($item['price']) ?></span></p>
                                                 </div>
                                                 <div class="cart_remove">

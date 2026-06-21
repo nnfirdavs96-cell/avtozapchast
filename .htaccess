@@ -14,6 +14,10 @@ RewriteRule ^\.git/ - [F,L]
 # SEO: serve the dynamic sitemap at the conventional /sitemap.xml
 RewriteRule ^sitemap\.xml$ sitemap.php [L]
 
+# SEO-friendly product URLs: /product/123-slug → catalog/part.php?id=123
+# (slug is optional and cosmetic; routing matches on the numeric id)
+RewriteRule ^product/([0-9]+)(?:-[^/]*)?/?$ catalog/part.php?id=$1 [L,QSA]
+
 # Route all requests through index.php (same as nginx try_files)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
