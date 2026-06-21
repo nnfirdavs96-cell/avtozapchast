@@ -75,7 +75,7 @@ $sections = $db->query(
 )->fetchAll();
 
 $pageTitle = 'Страницы — Менеджер';
-require_once dirname(__DIR__) . '/includes/header.php';
+require_once dirname(__DIR__) . '/includes/admin-header.php';
 ?>
 
 <div class="az-panel">
@@ -379,4 +379,4 @@ require_once dirname(__DIR__) . '/includes/header.php';
     </main>
 </div>
 
-<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
+<?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>

@@ -138,7 +138,7 @@ $partsStmt->execute($params);
 $parts = $partsStmt->fetchAll();
 
 $pageTitle = 'Товары — Администратор';
-require_once dirname(__DIR__) . '/includes/header.php';
+require_once dirname(__DIR__) . '/includes/admin-header.php';
 
 ?>
 
@@ -535,4 +535,4 @@ require_once dirname(__DIR__) . '/includes/header.php';
     </main>
 </div><!-- /.az-panel -->
 
-<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
+<?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>

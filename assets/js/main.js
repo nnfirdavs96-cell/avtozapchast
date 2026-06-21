@@ -24,7 +24,7 @@
       const html = results.map(r => {
         const hl = highlightText(escHtml(r.part_number), escHtml(query));
         return `
-          <a href="/catalog/part.php?id=${r.id}" class="search-result-item">
+          <a href="/product/${r.id}" class="search-result-item">
             <span class="search-result-num">${hl}</span>
             <span class="search-result-name">${escHtml(r.name)}</span>
             <span class="search-result-price">${formatPrice(r.price)}</span>

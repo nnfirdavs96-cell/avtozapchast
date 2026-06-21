@@ -126,7 +126,7 @@ usort($backups, fn($a, $b) => $b['mtime'] <=> $a['mtime']);
 $totalSize = array_sum(array_column($backups, 'size'));
 
 $pageTitle = 'Резервные копии — ' . getSetting('site_name');
-require_once dirname(__DIR__) . '/includes/header.php';
+require_once dirname(__DIR__) . '/includes/admin-header.php';
 ?>
 
 <div class="az-panel">
@@ -245,4 +245,4 @@ require_once dirname(__DIR__) . '/includes/header.php';
   </div>
 </div>
 
-<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
+<?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>

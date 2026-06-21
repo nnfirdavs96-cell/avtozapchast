@@ -70,13 +70,13 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                        title="<?= t('remove') ?>">X</a>
                                                 </td>
                                                 <td class="product_thumb">
-                                                    <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$item['part_id'] ?>">
+                                                    <a href="<?= partUrl((int)$item['part_id'], $item['name'] ?? '') ?>">
                                                         <img src="<?= sanitize($img) ?>"
                                                              alt="<?= sanitize($item['name']) ?>">
                                                     </a>
                                                 </td>
                                                 <td class="product_name">
-                                                    <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$item['part_id'] ?>">
+                                                    <a href="<?= partUrl((int)$item['part_id'], $item['name'] ?? '') ?>">
                                                         <?= sanitize(truncate($item['name'], 55)) ?>
                                                     </a>
                                                     <p><?= sanitize($item['brand_name']) ?> &bull; <?= sanitize($item['part_number']) ?></p>

@@ -91,7 +91,7 @@ if (($_GET['action'] ?? '') === 'new') $action = 'new';
 $banners = $db->query("SELECT * FROM banners ORDER BY sort_order ASC, id ASC")->fetchAll();
 
 $pageTitle = 'Баннеры — Администратор';
-require_once dirname(__DIR__) . '/includes/header.php';
+require_once dirname(__DIR__) . '/includes/admin-header.php';
 ?>
 
 <div class="az-panel">
@@ -399,4 +399,4 @@ require_once dirname(__DIR__) . '/includes/header.php';
     </main>
 </div><!-- /.az-panel -->
 
-<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
+<?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>

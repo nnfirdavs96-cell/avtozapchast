@@ -35,9 +35,11 @@ try {
         }
     }
 
-    foreach ($db->query("SELECT id, updated_at FROM parts WHERE is_active = 1 ORDER BY id")->fetchAll() as $p) {
+    foreach ($db->query("SELECT id, name, updated_at FROM parts WHERE is_active = 1 ORDER BY id")->fetchAll() as $p) {
         $lastmod = !empty($p['updated_at']) ? date('Y-m-d', strtotime($p['updated_at'])) : null;
-        $add('/catalog/part.php?id=' . (int)$p['id'], 'weekly', '0.6', $lastmod);
+        $slug = categorySlugify(mb_substr((string)($p['name'] ?? ''), 0, 80));
+        if (strlen($slug) > 60) $slug = trim(substr($slug, 0, 60), '-');
+        $add('/product/' . (int)$p['id'] . ($slug !== '' ? '-' . $slug : ''), 'weekly', '0.6', $lastmod);
     }
 
     try {

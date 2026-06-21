@@ -522,7 +522,7 @@ class CatalogApi
                     $it['part_id']    = (int)$hit['id'];
                     $it['price']      = (float)$hit['price'];
                     $it['stock']      = (int)$hit['stock'];
-                    $it['url']        = APP_URL . '/catalog/part.php?id=' . (int)$hit['id'];
+                    $it['url']        = partUrl((int)$hit['id'], $hit['name'] ?? '');
                 }
             }
             unset($it);

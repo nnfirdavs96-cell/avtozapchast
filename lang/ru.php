@@ -248,6 +248,9 @@ return [
     'order_notes_placeholder' => 'Примечания к заказу (например, специальные пожелания по доставке).',
     'cash_on_delivery'   => 'Оплата при получении',
     'bank_transfer'      => 'Банковский перевод',
+    'online_payment'     => 'Оплата онлайн',
+    'online_discount'    => 'Скидка за онлайн-оплату',
+    'online_free_shipping_short' => 'бесплатная доставка',
 
     // About / homepage
     'our_history'        => 'Наша история',

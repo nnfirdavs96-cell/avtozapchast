@@ -248,6 +248,9 @@ return [
     'order_notes_placeholder' => 'Notes about your order, e.g. special delivery instructions.',
     'cash_on_delivery'   => 'Cash on delivery',
     'bank_transfer'      => 'Bank transfer',
+    'online_payment'     => 'Pay online',
+    'online_discount'    => 'Online payment discount',
+    'online_free_shipping_short' => 'free delivery',
 
     // About / homepage
     'our_history'        => 'Our history',

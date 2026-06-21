@@ -57,12 +57,18 @@ $activeZonesForCountry  = $zonesByCountry[$selectedCountryForPost] ?? [];
 $zoneCostByCity = [];
 foreach ($activeZonesForCountry as $z) { $zoneCostByCity[$z['city']] = (float)$z['cost']; }
 
-// Whether the orders table already has the shipping_cost column (migration applied).
+// Whether the orders table already has the shipping_cost / discount_amount columns
+// (migrations applied). Inserts include each column only when it exists.
 $hasShippingCostCol = false;
+$hasDiscountCol     = false;
 try {
     $hasShippingCostCol = (bool)$db->query(
         "SELECT COUNT(*) FROM information_schema.COLUMNS
          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'shipping_cost'"
+    )->fetchColumn();
+    $hasDiscountCol = (bool)$db->query(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'discount_amount'"
     )->fetchColumn();
 } catch (Throwable $e) {
     $hasShippingCostCol = false;
@@ -108,7 +114,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $zipCode     = trim($_POST['zip_code']     ?? '');
     $country     = trim($_POST['country']      ?? '');
     $orderNotes  = trim($_POST['order_notes']  ?? '');
-    $payMethod   = in_array($_POST['payment_method'] ?? '', ['bank_transfer', 'cash_on_delivery'])
+    $allowedMethods = ['bank_transfer', 'cash_on_delivery'];
+    if (onlinePaymentEnabled()) $allowedMethods[] = 'online_payment';
+    $payMethod   = in_array($_POST['payment_method'] ?? '', $allowedMethods, true)
                    ? $_POST['payment_method']
                    : 'cash_on_delivery';
 
@@ -134,7 +142,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Delivery cost: use zone price if found, otherwise 0 (уточняется).
     $shippingCost = isset($postZoneCosts[$city]) ? $postZoneCosts[$city] : 0.0;
-    $grandTotal = $cartTotal + $shippingCost;
+
+    // Online-payment incentive (admin-configured): money discount and/or free delivery.
+    $discount = 0.0;
+    if ($payMethod === 'online_payment' && onlinePaymentEnabled()) {
+        $discount = onlinePaymentDiscount($cartTotal);
+        if (onlinePaymentSettings()['free_ship']) $shippingCost = 0.0;
+    }
+    $grandTotal = max(0.0, $cartTotal + $shippingCost - $discount);
 
     if (empty($errors)) {
         // Build shipping address JSON
@@ -151,34 +166,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $db->beginTransaction();
         try {
-            // Insert order. total_amount includes delivery; shipping_cost stored
-            // separately when the column exists (migration applied).
-            if ($hasShippingCostCol) {
-                $ordStmt = $db->prepare(
-                    "INSERT INTO orders (user_id, status, total_amount, shipping_cost, shipping_address, notes, payment_method, created_at, updated_at)
-                     VALUES (?, 'pending', ?, ?, ?, ?, ?, NOW(), NOW())"
-                );
-                $ordStmt->execute([
-                    $user['id'],
-                    $grandTotal,
-                    $shippingCost,
-                    $shippingData,
-                    $orderNotes ?: null,
-                    $payMethod,
-                ]);
-            } else {
-                $ordStmt = $db->prepare(
-                    "INSERT INTO orders (user_id, status, total_amount, shipping_address, notes, payment_method, created_at, updated_at)
-                     VALUES (?, 'pending', ?, ?, ?, ?, NOW(), NOW())"
-                );
-                $ordStmt->execute([
-                    $user['id'],
-                    $grandTotal,
-                    $shippingData,
-                    $orderNotes ?: null,
-                    $payMethod,
-                ]);
-            }
+            // Insert order. total_amount includes delivery minus any discount;
+            // shipping_cost / discount_amount are stored separately when those
+            // columns exist (migrations applied).
+            $extraCols = '';
+            $extraPlace = '';
+            $extraVals = [];
+            if ($hasShippingCostCol) { $extraCols .= ', shipping_cost';    $extraPlace .= ', ?'; $extraVals[] = $shippingCost; }
+            if ($hasDiscountCol)     { $extraCols .= ', discount_amount'; $extraPlace .= ', ?'; $extraVals[] = $discount; }
+
+            $ordStmt = $db->prepare(
+                "INSERT INTO orders (user_id, status, total_amount{$extraCols}, shipping_address, notes, payment_method, created_at, updated_at)
+                 VALUES (?, 'pending', ?{$extraPlace}, ?, ?, ?, NOW(), NOW())"
+            );
+            $ordStmt->execute(array_merge(
+                [$user['id'], $grandTotal],
+                $extraVals,
+                [$shippingData, $orderNotes ?: null, $payMethod]
+            ));
             $orderId = (int)$db->lastInsertId();
 
             // Insert order items
@@ -390,6 +395,10 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                 <th><?= t('shipping') ?></th>
                                                 <td id="summary-shipping"><strong><?= !empty($deliveryZones) ? '—' : t('free') ?></strong></td>
                                             </tr>
+                                            <tr id="summary-discount-row" style="display:none;color:#2e7d32;">
+                                                <th><?= t('online_discount') ?></th>
+                                                <td id="summary-discount"><strong>−<?= formatPrice(0) ?></strong></td>
+                                            </tr>
                                             <tr class="order_total">
                                                 <th><?= t('total') ?></th>
                                                 <td id="summary-total"><strong><?= formatPrice($cartTotal) ?></strong></td>
@@ -399,6 +408,17 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 </div>
 
                                 <div class="payment_method">
+                                    <?php if (onlinePaymentEnabled()): $opLabel = onlinePaymentIncentiveLabel(); ?>
+                                    <div class="panel-default">
+                                        <input id="payment_online" name="payment_method" type="radio"
+                                               value="online_payment"
+                                               <?= ($_POST['payment_method'] ?? '') === 'online_payment' ? 'checked' : '' ?>>
+                                        <label for="payment_online">
+                                            <?= t('online_payment') ?>
+                                            <?php if ($opLabel !== ''): ?><span style="display:inline-block;margin-left:6px;padding:1px 8px;border-radius:10px;background:#e8f5e9;color:#2e7d32;font-size:0.78rem;font-weight:600;"><?= sanitize($opLabel) ?></span><?php endif; ?>
+                                        </label>
+                                    </div>
+                                    <?php endif; ?>
                                     <div class="panel-default">
                                         <input id="payment_bank" name="payment_method" type="radio"
                                                value="bank_transfer"
@@ -427,11 +447,20 @@ require_once dirname(__DIR__) . '/includes/header.php';
 </div>
 <!--Checkout page section end-->
 
-<?php if (!empty($deliveryZones)): ?>
+<?php $opJs = onlinePaymentSettings(); if (!empty($deliveryZones) || $opJs['enabled']): ?>
 <script>
 (function () {
-    var subtotal      = <?= json_encode(round(convertPrice($cartTotal), 2)) ?>;
-    var symbol        = <?= json_encode(getCurrencySymbol()) ?>;
+    var subtotal = <?= json_encode(round(convertPrice($cartTotal), 2)) ?>;
+    var symbol   = <?= json_encode(getCurrencySymbol()) ?>;
+    var FREE     = <?= json_encode(t('free')) ?>;
+    var hasZones = <?= !empty($deliveryZones) ? 'true' : 'false' ?>;
+    var OP = {
+        enabled:  <?= $opJs['enabled'] ? 'true' : 'false' ?>,
+        type:     <?= json_encode($opJs['type']) ?>,
+        pct:      <?= json_encode($opJs['type'] === 'percent' ? (float)$opJs['value'] : 0) ?>,
+        fixed:    <?= json_encode($opJs['type'] === 'fixed' ? round(convertPrice((float)$opJs['value']), 2) : 0) ?>,
+        freeShip: <?= $opJs['free_ship'] ? 'true' : 'false' ?>
+    };
     var zonesByCountry = <?php
         $jsZones = [];
         foreach ($zonesByCountry as $cn => $czones) {
@@ -451,26 +480,48 @@ require_once dirname(__DIR__) . '/includes/header.php';
     var countrySel = document.getElementById('checkout-country');
     var shipCell   = document.getElementById('summary-shipping');
     var totalCell  = document.getElementById('summary-total');
+    var discRow    = document.getElementById('summary-discount-row');
+    var discCell   = document.getElementById('summary-discount');
 
     function fmt(n) {
         return n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ' + symbol;
     }
-
-    function updateShipping() {
-        var cost = 0, label;
+    function selectedMethod() {
+        var r = document.querySelector('input[name="payment_method"]:checked');
+        return r ? r.value : '';
+    }
+    function discountFor(m) {
+        if (!OP.enabled || m !== 'online_payment') return 0;
+        var d = OP.type === 'fixed' ? OP.fixed : subtotal * OP.pct / 100;
+        return Math.min(subtotal, Math.max(0, d));
+    }
+    // Current delivery selection → {cost, label}
+    function shipInfo() {
+        if (!hasZones) return { cost: 0, label: FREE };
         if (citySelect && !citySelect.disabled && citySelect.value) {
-            var opt = citySelect.options[citySelect.selectedIndex];
-            cost = parseFloat(opt.getAttribute('data-cost')) || 0;
+            var opt  = citySelect.options[citySelect.selectedIndex];
+            var cost = parseFloat(opt.getAttribute('data-cost')) || 0;
             var days = opt.getAttribute('data-days') || '';
-            label = cost > 0 ? fmt(cost) : 'Уточняется';
+            var label = cost > 0 ? fmt(cost) : 'Уточняется';
             if (days) label += ' <small style="color:#888;">(' + days + ')</small>';
-        } else if (cityText && !cityText.disabled) {
-            label = 'Уточняется';
-        } else {
-            label = 'Выберите город';
+            return { cost: cost, label: label };
         }
-        if (shipCell)  shipCell.innerHTML  = '<strong>' + label + '</strong>';
-        if (totalCell) totalCell.innerHTML = '<strong>' + fmt(subtotal + cost) + '</strong>';
+        if (cityText && !cityText.disabled) return { cost: 0, label: 'Уточняется' };
+        return { cost: 0, label: 'Выберите город' };
+    }
+
+    function recalc() {
+        var m = selectedMethod();
+        var info = shipInfo();
+        var cost = info.cost, shipLabel = info.label;
+        if (OP.enabled && m === 'online_payment' && OP.freeShip) { cost = 0; shipLabel = FREE; }
+        var discount = discountFor(m);
+        if (shipCell) shipCell.innerHTML = '<strong>' + shipLabel + '</strong>';
+        if (discRow && discCell) {
+            if (discount > 0) { discRow.style.display = ''; discCell.innerHTML = '<strong>−' + fmt(discount) + '</strong>'; }
+            else discRow.style.display = 'none';
+        }
+        if (totalCell) totalCell.innerHTML = '<strong>' + fmt(Math.max(0, subtotal + cost - discount)) + '</strong>';
     }
 
     function rebuildCitySelect(zones, prefill) {
@@ -486,37 +537,28 @@ require_once dirname(__DIR__) . '/includes/header.php';
             citySelect.appendChild(opt);
         });
     }
-
     function switchCountry(prefill) {
-        if (!citySelect || !cityText || !countrySel) return;
-        var country = countrySel.value;
-        var zones   = zonesByCountry[country] || [];
+        if (!citySelect || !cityText || !countrySel) { recalc(); return; }
+        var zones = zonesByCountry[countrySel.value] || [];
         if (zones.length > 0) {
             rebuildCitySelect(zones, prefill || null);
-            citySelect.style.display = '';
-            citySelect.disabled = false;
-            citySelect.required = true;
-            cityText.style.display = 'none';
-            cityText.disabled = true;
-            cityText.required = false;
-            cityText.value = '';
+            citySelect.style.display = ''; citySelect.disabled = false; citySelect.required = true;
+            cityText.style.display = 'none'; cityText.disabled = true; cityText.required = false; cityText.value = '';
         } else {
-            citySelect.style.display = 'none';
-            citySelect.disabled = true;
-            citySelect.required = false;
-            cityText.style.display = '';
-            cityText.disabled = false;
-            cityText.required = true;
-            citySelect.value = '';
+            citySelect.style.display = 'none'; citySelect.disabled = true; citySelect.required = false;
+            cityText.style.display = ''; cityText.disabled = false; cityText.required = true; citySelect.value = '';
         }
-        updateShipping();
+        recalc();
     }
 
-    if (citySelect)  citySelect.addEventListener('change', updateShipping);
-    if (countrySel)  countrySel.addEventListener('change', function() { switchCountry(); });
+    if (citySelect) citySelect.addEventListener('change', recalc);
+    if (countrySel) countrySel.addEventListener('change', function () { switchCountry(); });
+    document.querySelectorAll('input[name="payment_method"]').forEach(function (r) {
+        r.addEventListener('change', recalc);
+    });
 
-    // Init: pass current prefill city so it gets pre-selected
-    switchCountry(<?= json_encode($prefillCity) ?>);
+    if (hasZones) switchCountry(<?= json_encode($prefillCity) ?>);
+    else recalc();
 })();
 </script>
 <?php endif; ?>

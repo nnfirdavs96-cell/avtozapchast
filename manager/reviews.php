@@ -85,7 +85,7 @@ $pendingShop    = (int)$db->query("SELECT COUNT(*) FROM shop_reviews WHERE statu
 $pendingTotal   = $pendingProduct + $pendingShop;
 
 $pageTitle = 'Отзывы — Менеджер';
-require_once dirname(__DIR__) . '/includes/header.php';
+require_once dirname(__DIR__) . '/includes/admin-header.php';
 ?>
 
 <div class="az-panel">
@@ -214,7 +214,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <tr>
                             <?php if ($type === 'product'): ?>
                             <td style="font-size:0.85rem;font-weight:600;max-width:170px;">
-                                <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$r['part_id'] ?>" target="_blank"
+                                <a href="<?= partUrl((int)$r['part_id']) ?>" target="_blank"
                                    style="color:#1565c0;text-decoration:none;"><?= sanitize(truncate($r['part_name'], 45)) ?></a>
                             </td>
                             <?php endif; ?>
@@ -286,4 +286,4 @@ require_once dirname(__DIR__) . '/includes/header.php';
     </main>
 </div>
 
-<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
+<?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>

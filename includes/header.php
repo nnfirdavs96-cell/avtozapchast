@@ -25,11 +25,17 @@ if (!getSetting('brands_seed_done', '')) {
 }
 ensurePhoneAuthSchema();
 ensureStaffPinSchema();
+if (!getSetting('order_discount_col_v1', '')) {
+    try { dbAddColumnIfMissing(getDB(), 'orders', 'discount_amount', "`discount_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER `total_amount`"); } catch (Exception $e) {}
+    setSetting('order_discount_col_v1', '1');
+}
 if (!getSetting('banners_seed_done', '')) {
     seedBanners();
     setSetting('banners_seed_done', '1');
 }
 seedSliderTemplate(); // swaps only slider photos to template images (self-guarded, one-time)
+seedSliderText();     // presentable copy for demo slides only (self-guarded, one-time)
+seedDemoProducts();   // stocks the catalogue with editable demo products (self-guarded, one-time)
 
 $categories  = getCategories();
 $catTree     = getCategoryTree($categories);
@@ -289,12 +295,12 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
                                             <?php else: foreach ($miniCart as $item): ?>
                                             <div class="cart_item">
                                                 <div class="cart_img">
-                                                    <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$item['id'] ?>">
+                                                    <a href="<?= partUrl($item) ?>">
                                                         <img src="<?= productImageUrl($item['images']) ?>" alt="<?= sanitize($item['name']) ?>" style="width:60px;height:60px;object-fit:cover">
                                                     </a>
                                                 </div>
                                                 <div class="cart_info">
-                                                    <a href="<?= APP_URL ?>/catalog/part.php?id=<?= (int)$item['id'] ?>"><?= sanitize(truncate($item['name'],40)) ?></a>
+                                                    <a href="<?= partUrl($item) ?>"><?= sanitize(truncate($item['name'],40)) ?></a>
                                                     <p><?= t('quantity') ?>: <?= (int)$item['quantity'] ?> &times; <span><?= formatPrice($item['price']) ?></span></p>
                                                 </div>
                                                 <div class="cart_remove">

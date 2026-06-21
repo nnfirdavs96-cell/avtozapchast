@@ -54,7 +54,7 @@ $size   = $exists ? round(filesize($MANUAL_FILE) / 1024) : 0;
 $built  = $exists ? date('d.m.Y H:i', filemtime($MANUAL_FILE)) : '—';
 
 $pageTitle = 'Руководство — Суперадмин';
-require_once dirname(__DIR__) . '/includes/header.php';
+require_once dirname(__DIR__) . '/includes/admin-header.php';
 ?>
 
 <div class="az-panel">
@@ -123,4 +123,4 @@ require_once dirname(__DIR__) . '/includes/header.php';
   </div>
 </div>
 
-<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
+<?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>
