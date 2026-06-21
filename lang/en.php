@@ -42,6 +42,9 @@ return [
     'weight'             => 'Weight',
     'dimensions'         => 'Dimensions',
     'quantity'           => 'Quantity',
+    'pcs'                => 'pcs',
+    'unit_kg'            => 'kg',
+    'unit_mm'            => 'mm',
     'price'              => 'Price',
     'total'              => 'Total',
     'subtotal'           => 'Subtotal',
@@ -141,6 +144,7 @@ return [
     'order_placed'       => 'Order placed successfully',
     'login_required'     => 'Please login to continue',
     'access_denied'      => 'Access denied',
+    'access_denied_desc' => 'You do not have sufficient permissions to access this page.',
     // About
     'about_title'        => 'About Our Company',
     'about_desc'         => 'We are a leading auto parts supplier with years of experience. Our Khujand warehouse holds over 50,000 parts for all car makes and models.',

@@ -34,7 +34,7 @@ seedSliderTemplate(); // swaps only slider photos to template images (self-guard
 $categories  = getCategories();
 $catTree     = getCategoryTree($categories);
 $siteName    = getSetting('site_name', t('site_name'));
-$sitePhone   = getSetting('site_phone', '+7 (800) 555-35-35');
+$sitePhone   = getSetting('site_phone', '+992 92 646-46-46');
 $pageTitle   = isset($pageTitle) ? $pageTitle : $siteName;
 
 $langs = [

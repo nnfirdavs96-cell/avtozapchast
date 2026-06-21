@@ -243,7 +243,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                         <?= $stock['label'] ?>
                                     </span>
                                     <?php if ($part['stock'] > 0): ?>
-                                    <small style="color:#888;margin-left:8px;">(<?= (int)$part['stock'] ?> <?= t('quantity') ?>)</small>
+                                    <small style="color:#888;margin-left:8px;">(<?= (int)$part['stock'] ?> <?= t('pcs') ?>)</small>
                                     <?php endif; ?>
                                 </p>
                             </div>
@@ -369,13 +369,13 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                 <?php if (!empty($part['weight'])): ?>
                                                 <tr>
                                                     <td class="first_child"><?= t('weight') ?></td>
-                                                    <td><?= sanitize($part['weight']) ?></td>
+                                                    <td><?= sanitize($part['weight']) ?> <?= t('unit_kg') ?></td>
                                                 </tr>
                                                 <?php endif; ?>
                                                 <?php if (!empty($part['dimensions'])): ?>
                                                 <tr>
                                                     <td class="first_child"><?= t('dimensions') ?></td>
-                                                    <td><?= sanitize($part['dimensions']) ?></td>
+                                                    <td><?= sanitize($part['dimensions']) ?> <?= t('unit_mm') ?></td>
                                                 </tr>
                                                 <?php endif; ?>
                                                 <tr>
@@ -516,7 +516,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 <div class="col-12">
                     <div class="section_title title_style2">
                         <div class="title_content">
-                            <h2><span><?= t('related') ?? 'Related' ?></span> <?= t('products') ?? 'Products' ?></h2>
+                            <h2><span><?= t('related') ?? 'Related' ?></span></h2>
                         </div>
                     </div>
                 </div>
