@@ -102,7 +102,11 @@ class VinService
         $vin = strtoupper(trim($vin));
         if (strlen($vin) !== 17) return false;
         if (!preg_match('/^[A-HJ-NPR-Z0-9]{17}$/', $vin)) return false;
-        return self::verifyCheckDigit($vin);
+        // Контрольную цифру (9-я позиция) НЕ требуем: её обязаны соблюдать только
+        // производители Северной Америки. Японские, корейские и многие европейские
+        // VIN (напр. Mitsubishi Z8TXLCW6WCM902224) валидны, но check digit не проходят.
+        // verifyCheckDigit() оставлен как вспомогательный метод для справки.
+        return true;
     }
 
     public static function decode(string $vin): array
