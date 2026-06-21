@@ -25,6 +25,10 @@ if (!getSetting('brands_seed_done', '')) {
 }
 ensurePhoneAuthSchema();
 ensureStaffPinSchema();
+if (!getSetting('order_discount_col_v1', '')) {
+    try { dbAddColumnIfMissing(getDB(), 'orders', 'discount_amount', "`discount_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER `total_amount`"); } catch (Exception $e) {}
+    setSetting('order_discount_col_v1', '1');
+}
 if (!getSetting('banners_seed_done', '')) {
     seedBanners();
     setSetting('banners_seed_done', '1');

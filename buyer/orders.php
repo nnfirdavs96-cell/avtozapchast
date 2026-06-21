@@ -154,10 +154,17 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         </tbody>
                         <tfoot>
                             <?php $shipCost = (float)($orderDetail['shipping_cost'] ?? 0); ?>
+                            <?php $discAmt  = (float)($orderDetail['discount_amount'] ?? 0); ?>
                             <?php if ($shipCost > 0): ?>
                             <tr>
                                 <td colspan="5" style="text-align:right;color:#666;padding-top:12px;">Доставка:</td>
                                 <td style="text-align:right;color:#666;padding-top:12px;"><?= formatPrice($shipCost) ?></td>
+                            </tr>
+                            <?php endif; ?>
+                            <?php if ($discAmt > 0): ?>
+                            <tr>
+                                <td colspan="5" style="text-align:right;color:#2e7d32;<?= $shipCost > 0 ? '' : 'padding-top:12px;' ?>"><?= t('online_discount') ?>:</td>
+                                <td style="text-align:right;color:#2e7d32;<?= $shipCost > 0 ? '' : 'padding-top:12px;' ?>">−<?= formatPrice($discAmt) ?></td>
                             </tr>
                             <?php endif; ?>
                             <tr>

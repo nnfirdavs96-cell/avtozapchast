@@ -248,6 +248,9 @@ return [
     'order_notes_placeholder' => 'Эзоҳҳо ба фармоиш — масалан, дархостҳои махсус.',
     'cash_on_delivery'   => 'Пардохт ҳангоми гирифтан',
     'bank_transfer'      => 'Интиқоли бонкӣ',
+    'online_payment'     => 'Пардохти онлайн',
+    'online_discount'    => 'Тахфиф барои пардохти онлайн',
+    'online_free_shipping_short' => 'расонидани ройгон',
 
     // About / homepage
     'our_history'        => 'Таърихи мо',

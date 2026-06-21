@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `user_id`          INT UNSIGNED  NOT NULL,
   `status`           ENUM('pending','processing','shipped','delivered','cancelled') NOT NULL DEFAULT 'pending',
   `total_amount`     DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `discount_amount`  DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   `shipping_cost`    DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   `shipping_address` TEXT          NOT NULL,
   `notes`            TEXT          DEFAULT NULL,
@@ -241,4 +242,8 @@ INSERT INTO `site_settings` (`key`, `value`) VALUES
 ('site_phone',    '+992 92 646-46-46'),
 ('site_address',  'г. Худжанд, 19 мкр, дом 30'),
 ('site_currency', 'SM'),
-('items_per_page','12');
+('items_per_page','12'),
+('online_payment_enabled','0'),
+('online_discount_type','percent'),
+('online_discount_value','0'),
+('online_free_shipping','0');

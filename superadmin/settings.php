@@ -21,9 +21,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'warehouse_api_url', 'warehouse_api_key',
         'map_lat', 'map_lng', 'map_zoom',
         'global_markup',
+        'online_discount_type', 'online_discount_value',
     ];
     // Checkboxes
-    $checkboxes = ['show_language_switcher', 'show_currency_switcher', 'warehouse_api_enabled', 'auth_email_enabled'];
+    $checkboxes = ['show_language_switcher', 'show_currency_switcher', 'warehouse_api_enabled', 'auth_email_enabled',
+                   'online_payment_enabled', 'online_free_shipping'];
 
     foreach ($fields as $key) {
         $val = trim($_POST[$key] ?? '');
@@ -360,6 +362,50 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                     <input type="checkbox" name="show_currency_switcher" id="show_cur" class="form-check-input"
                            value="1" <?= !empty($settings['show_currency_switcher']) && $settings['show_currency_switcher'] === '1' ? 'checked' : '' ?>>
                     <label for="show_cur" class="form-check-label">Показывать переключатель валюты</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Оплата онлайн -->
+        <div class="az-card mb-24">
+          <div class="az-card-header"><h4 class="az-card-title">Оплата онлайн и скидка</h4></div>
+          <div class="az-card-body">
+            <div class="az-form-group">
+              <div class="form-check mb-8">
+                <input type="checkbox" name="online_payment_enabled" id="online_pay" class="form-check-input"
+                       value="1" <?= ($settings['online_payment_enabled'] ?? '') === '1' ? 'checked' : '' ?>>
+                <label for="online_pay" class="form-check-label">Включить «Оплату онлайн» со скидкой за предоплату</label>
+              </div>
+              <small class="text-muted">Покупатель сможет выбрать «Оплата онлайн» при оформлении и получить скидку — это мотивирует платить заранее.</small>
+            </div>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="az-form-group">
+                  <label>Тип скидки</label>
+                  <select name="online_discount_type" class="form-control">
+                    <option value="percent" <?= ($settings['online_discount_type'] ?? 'percent') === 'percent' ? 'selected' : '' ?>>Процент (%)</option>
+                    <option value="fixed" <?= ($settings['online_discount_type'] ?? '') === 'fixed' ? 'selected' : '' ?>>Фиксированная сумма</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="az-form-group">
+                  <label>Размер скидки</label>
+                  <input type="number" name="online_discount_value" class="form-control" min="0" step="0.01"
+                         value="<?= sv($settings, 'online_discount_value', '0') ?>">
+                  <small class="text-muted">Процент от суммы заказа, либо сумма в базовой валюте (для «фиксированной»).</small>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="az-form-group">
+                  <label>Доставка</label>
+                  <div class="form-check" style="padding-top:8px;">
+                    <input type="checkbox" name="online_free_shipping" id="online_freeship" class="form-check-input"
+                           value="1" <?= ($settings['online_free_shipping'] ?? '') === '1' ? 'checked' : '' ?>>
+                    <label for="online_freeship" class="form-check-label">Бесплатная доставка при оплате онлайн</label>
                   </div>
                 </div>
               </div>
