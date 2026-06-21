@@ -479,15 +479,36 @@ class VinService
         $json = json_decode($raw, true);
         if (!is_array($json)) return [];
 
-        return [
-            'make'      => $json['make']      ?? $json['brand']     ?? '',
-            'model'     => $json['model']      ?? '',
-            'year'      => (int)($json['year'] ?? $json['modelYear'] ?? 0),
-            'body_type' => $json['bodyType']   ?? $json['body']      ?? '',
-            'engine'    => $json['engine']     ?? '',
-            'fuel_type' => $json['fuelType']   ?? $json['fuel']      ?? '',
-            'drive_type'=> $json['driveType']  ?? $json['drive']     ?? '',
-        ];
+        // Unwrap common PartsAPI envelopes: {"data":{"array":{…}}} / {"data":[…]} / [ … ].
+        $n = $json;
+        if (isset($n['data'])  && is_array($n['data']))  $n = $n['data'];
+        if (isset($n['array']) && is_array($n['array'])) $n = $n['array'];
+        if (isset($n[0])       && is_array($n[0]))       $n = $n[0];
+
+        // Year: explicit field, else "model year from", else dig a 19xx/20xx out of date.
+        $year = (int)($n['year'] ?? $n['modelYear'] ?? $n['modelyearfrom'] ?? 0);
+        if ($year === 0 && !empty($n['date']) && preg_match('/(19|20)\d{2}/', (string)$n['date'], $mm)) {
+            $year = (int)$mm[0];
+        }
+
+        // Engine string: combine engine + modification when both present.
+        $engine = trim((string)($n['engine'] ?? ''));
+        $modif  = trim((string)($n['modification'] ?? ''));
+        if ($modif !== '' && stripos($engine, $modif) === false) {
+            $engine = trim($engine . ' ' . $modif);
+        }
+
+        // Keep only non-empty values so they don't overwrite local WMI data on merge.
+        return array_filter([
+            'make'          => $n['make']       ?? $n['brand']    ?? '',
+            'model'         => $n['model']      ?? '',
+            'year'          => $year,
+            'body_type'     => $n['bodyType']   ?? $n['body']     ?? $n['bodystyle'] ?? '',
+            'engine'        => $engine,
+            'fuel_type'     => $n['fuelType']   ?? $n['fuel']     ?? '',
+            'drive_type'    => $n['driveType']  ?? $n['drive']    ?? '',
+            'plant_country' => $n['plant']      ?? '',
+        ], fn($v) => $v !== '' && $v !== 0 && $v !== null);
     }
 
     // ── Private: cache ────────────────────────────────────────────────────
