@@ -1,26 +1,13 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 
-if (!isLoggedIn()) {
-    redirect(APP_URL . '/auth/login.php?redirect=' . urlencode($_SERVER['REQUEST_URI']));
-}
-
-$user = getCurrentUser();
+// Оформление доступно и гостю (login-wall снят): заказ привяжем к аккаунту по телефону.
+$user = getCurrentUser() ?: [];   // [] для гостя
 $db   = getDB();
 $csrf = generateCsrfToken();
 
-// Load cart
-$cartStmt = $db->prepare(
-    "SELECT c.part_id, c.quantity, p.name, p.price, p.images, p.stock, p.part_number,
-            b.name AS brand_name
-     FROM cart c
-     JOIN parts p ON p.id = c.part_id
-     LEFT JOIN brands b ON b.id = p.brand_id
-     WHERE c.user_id = ? AND p.is_active = 1
-     ORDER BY c.added_at DESC"
-);
-$cartStmt->execute([$user['id']]);
-$cartItems = $cartStmt->fetchAll();
+// Load cart (гость → сессия, авторизованный → БД)
+$cartItems = cartDetailedItems($db);
 
 if (empty($cartItems)) {
     flashMessage('warning', 'Ваша корзина пуста. Добавьте товары перед оформлением заказа.');
@@ -74,16 +61,19 @@ try {
     $hasShippingCostCol = false;
 }
 
-// Load user profile for prefilling
-try {
-    $profileStmt = $db->prepare("SELECT email, phone, first_name, last_name, address, city, zip_code, country FROM users WHERE id = ? LIMIT 1");
-    $profileStmt->execute([$user['id']]);
-    $profile = $profileStmt->fetch() ?: [];
-} catch (PDOException $e) {
-    // Profile address columns may not exist yet (migration not run)
-    $profileStmt = $db->prepare("SELECT email, phone FROM users WHERE id = ? LIMIT 1");
-    $profileStmt->execute([$user['id']]);
-    $profile = $profileStmt->fetch() ?: [];
+// Load user profile for prefilling (только для авторизованного; гость — пустые поля)
+$profile = [];
+if (!empty($user['id'])) {
+    try {
+        $profileStmt = $db->prepare("SELECT email, phone, first_name, last_name, address, city, zip_code, country FROM users WHERE id = ? LIMIT 1");
+        $profileStmt->execute([$user['id']]);
+        $profile = $profileStmt->fetch() ?: [];
+    } catch (PDOException $e) {
+        // Profile address columns may not exist yet (migration not run)
+        $profileStmt = $db->prepare("SELECT email, phone FROM users WHERE id = ? LIMIT 1");
+        $profileStmt->execute([$user['id']]);
+        $profile = $profileStmt->fetch() ?: [];
+    }
 }
 
 // Prefill from saved profile, fallback to session user data
@@ -151,6 +141,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $grandTotal = max(0.0, $cartTotal + $shippingCost - $discount);
 
+    // Заказ гостя привязываем к аккаунту по телефону (создаём/находим). Авторизованный — свой id.
+    $orderUserId = !empty($user['id']) ? (int)$user['id'] : guestOrderUserId($db, $phone, $firstName, $lastName);
+    if (empty($errors) && $orderUserId <= 0) {
+        $errors[] = 'Не удалось оформить заказ по указанному телефону. Проверьте номер.';
+    }
+
     if (empty($errors)) {
         // Build shipping address JSON
         $shippingData = json_encode([
@@ -180,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  VALUES (?, 'pending', ?{$extraPlace}, ?, ?, ?, NOW(), NOW())"
             );
             $ordStmt->execute(array_merge(
-                [$user['id'], $grandTotal],
+                [$orderUserId, $grandTotal],
                 $extraVals,
                 [$shippingData, $orderNotes ?: null, $payMethod]
             ));
@@ -200,13 +196,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
             }
 
-            // Clear cart
-            $db->prepare("DELETE FROM cart WHERE user_id = ?")->execute([$user['id']]);
+            // Clear cart (гость → сессия, авторизованный → БД)
+            cartClearAny($db);
 
             $db->commit();
 
             flashMessage('success', t('order_placed') . " (#$orderId). Мы свяжемся с вами для подтверждения.");
-            redirect(APP_URL . '/buyer/orders.php?id=' . $orderId);
+            // Авторизованный видит детали заказа; гость не залогинен — на главную.
+            redirect(isLoggedIn() ? APP_URL . '/buyer/orders.php?id=' . $orderId : APP_URL . '/index.php');
 
         } catch (Exception $e) {
             $db->rollBack();
