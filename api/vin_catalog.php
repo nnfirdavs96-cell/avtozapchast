@@ -8,11 +8,12 @@
  */
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/vin_service.php';
-require_once dirname(__DIR__) . '/includes/catalog_api.php';
+require_once dirname(__DIR__) . '/includes/catalog.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-if (!CatalogApi::enabled()) {
+$provider = Catalog::provider();
+if (!$provider->enabled()) {
     echo json_encode(['success' => false, 'error' => 'disabled', 'items' => []]);
     exit;
 }
@@ -28,7 +29,7 @@ if (!VinService::validate($vin)) {
 
 // cat>0 → загрузка ОДНОГО узла (1 запрос, бережёт лимит ключа); иначе полный перебор.
 $cat   = (int)($_GET['cat'] ?? 0);
-$data  = $cat > 0 ? CatalogApi::searchByVinCat($vin, $cat) : CatalogApi::searchByVin($vin);
+$data  = $cat > 0 ? $provider->searchByVinCat($vin, $cat) : $provider->searchByVin($vin);
 $items = [];
 foreach ($data['items'] as $it) {
     $items[] = [

@@ -484,6 +484,16 @@ class CatalogApi
 
     // ── Warehouse enrichment ─────────────────────────────────────────────────
 
+    /**
+     * Публичная обёртка обогащения складом — чтобы другие адаптеры (Mock, будущий
+     * UMAPI/Laximo) использовали ТУ ЖЕ логику сопоставления артикулов со своим
+     * складом. На Этапе 3 вынесется в отдельный PriceProvider.
+     */
+    public static function enrichItemsFromWarehouse(array $items): array
+    {
+        return self::enrichFromWarehouse($items);
+    }
+
     /** Подставить цену/наличие/ссылку из своего склада там, где артикул совпал. */
     private static function enrichFromWarehouse(array $items): array
     {

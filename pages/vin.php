@@ -1,7 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/vin_service.php';
-require_once dirname(__DIR__) . '/includes/catalog_api.php';
+require_once dirname(__DIR__) . '/includes/catalog.php';
 
 function getCarImageUrl(string $make, string $model, int $year): string {
     $make  = strtolower(trim($make));
@@ -43,7 +43,7 @@ $vin            = strtoupper(trim($_GET['vin'] ?? $_POST['vin'] ?? ''));
 $filterCat      = (int)($_GET['cat'] ?? 0);
 $result         = null;
 $compatParts    = [];
-$catalogEnabled = CatalogApi::enabled();
+$catalogEnabled = Catalog::provider()->enabled();
 $facets         = [];
 $error          = '';
 $searchPerfomed = false;
@@ -457,9 +457,9 @@ require_once dirname(__DIR__) . '/includes/header.php';
 
         <!-- ── External catalog (PartsAPI): nodes + crosses bridge ─────── -->
         <?php if ($catalogEnabled):
-            $oemNodes = CatalogApi::oemNodes();
+            $oemNodes = Catalog::provider()->oemNodes();
             $catType  = trim(getSetting('catalog_api_type', 'oem'));
-            $showTree = $catType === 'oem' && !empty($oemNodes);
+            $showTree = !empty($oemNodes) && ($catType === 'oem' || Catalog::provider()->id() === 'mock');
         ?>
         <style>
             .vin-node-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:22px;font-size:0.85rem;font-weight:600;border:1px solid #e4e7ec;background:#fff;color:#1d2129;cursor:pointer;transition:all 0.15s;}

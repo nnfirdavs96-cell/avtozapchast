@@ -9,11 +9,12 @@
  * складом: совпавший артикул → своя цена/наличие/«В корзину», иначе «под заказ».
  */
 require_once dirname(__DIR__) . '/config/config.php';
-require_once dirname(__DIR__) . '/includes/catalog_api.php';
+require_once dirname(__DIR__) . '/includes/catalog.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-if (!CatalogApi::enabled()) {
+$provider = Catalog::provider();
+if (!$provider->enabled()) {
     echo json_encode(['success' => false, 'error' => 'disabled', 'items' => []]);
     exit;
 }
@@ -27,7 +28,7 @@ if ($article === '') {
 
 @set_time_limit(60);
 
-$data  = CatalogApi::crossesWithWarehouse($article, $brand);
+$data  = $provider->crossesWithWarehouse($article, $brand);
 $items = [];
 foreach ($data['items'] as $it) {
     $items[] = [
