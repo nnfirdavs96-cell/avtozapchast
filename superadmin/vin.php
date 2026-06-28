@@ -47,6 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         // OEM-узлы для дерева каталога (строки «1191=Кузов»). Переводы строк сохраняем.
         setSetting('catalog_api_oem_nodes', trim($_POST['catalog_api_oem_nodes'] ?? ''));
+        // Слой цен: подтягивать цену по OEM из AutoEuro, когда детали нет на своём складе.
+        setSetting('catalog_price_autoeuro', isset($_POST['catalog_price_autoeuro']) ? '1' : '0');
         // Пользовательские профили REST-провайдеров (JSON) — ядро универсальности.
         $profilesJson = trim($_POST['catalog_profiles'] ?? '');
         [$pok, $perr] = CatalogProfiles::validateJson($profilesJson);
@@ -454,6 +456,19 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                     <label>API ключ <small style="color:#888;">(метод getPartsbyVIN)</small></label>
                     <input type="text" name="catalog_api_key" value="<?= sv2($settings,'catalog_api_key') ?>"
                            placeholder="ключ getPartsbyVIN от PartsAPI">
+                </div>
+
+                <div class="az-form-group">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                        <input type="checkbox" name="catalog_price_autoeuro" value="1"
+                               <?= ($settings['catalog_price_autoeuro'] ?? '0') === '1' ? 'checked' : '' ?>>
+                        Цены из AutoEuro для деталей не со склада
+                    </label>
+                    <small style="color:#888;display:block;margin-top:4px;">
+                        Если артикул из каталога есть на своём складе — показываем свою цену. Иначе (при включённой
+                        галочке и настроенном <a href="<?= APP_URL ?>/superadmin/warehouse.php">AutoEuro</a>)
+                        подтягиваем цену поставщика по OEM-номеру (+ общая наценка, в сомони). Кэшируется на 6 ч.
+                    </small>
                 </div>
 
                 <div class="az-form-group">
