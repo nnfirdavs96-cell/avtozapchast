@@ -3,7 +3,7 @@ require_once dirname(__DIR__) . '/config/config.php';
 requireRole(['admin', 'manager', 'superadmin']);
 requirePermission('vin');
 require_once dirname(__DIR__) . '/includes/vin_service.php';
-require_once dirname(__DIR__) . '/includes/catalog_api.php';
+require_once dirname(__DIR__) . '/includes/catalog.php';
 
 $db     = getDB();
 $csrf   = generateCsrfToken();
@@ -34,6 +34,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Save external CATALOG API settings (superadmin only)
     if ($postAction === 'save_catalog_settings' && $role === 'superadmin') {
+        // Провайдер каталога (partsapi | mock | …) — ядро универсальности.
+        $provId = trim($_POST['catalog_provider'] ?? 'partsapi');
+        if (!array_key_exists($provId, Catalog::available())) $provId = 'partsapi';
+        setSetting('catalog_provider', $provId);
         // Checkbox → explicit '0'/'1'
         setSetting('catalog_api_enabled', isset($_POST['catalog_api_enabled']) ? '1' : '0');
         // type may legitimately be '' (неоригинал) — save as-is.
@@ -43,8 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         // OEM-узлы для дерева каталога (строки «1191=Кузов»). Переводы строк сохраняем.
         setSetting('catalog_api_oem_nodes', trim($_POST['catalog_api_oem_nodes'] ?? ''));
-        require_once dirname(__DIR__) . '/includes/catalog_api.php';
-        CatalogApi::clearCache(); // settings changed → stale cache out
+        Catalog::reset();
+        Catalog::provider()->clearCache(); // settings changed → stale cache out
         flashMessage('success', 'Настройки каталога сохранены.');
         redirect(APP_URL . '/superadmin/vin.php?action=settings');
     }
@@ -196,7 +200,7 @@ if ($action === 'settings' && isset($_GET['test_vin'])) {
 // Test external CATALOG connection (via GET)
 $catalogTest = null;
 if ($action === 'settings' && isset($_GET['test_catalog']) && $role === 'superadmin') {
-    $catalogTest = CatalogApi::testConnection(trim($_GET['test_catalog']));
+    $catalogTest = Catalog::provider()->testConnection(trim($_GET['test_catalog']));
 }
 
 $pageTitle = 'VIN-поиск — Администрирование';
@@ -395,7 +399,9 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
     <?php
         $catEnabled  = ($settings['catalog_api_enabled'] ?? '0') === '1';
         $catHasKey   = trim($settings['catalog_api_key'] ?? '') !== '';
-        $catLive     = $catEnabled && $catHasKey;
+        // «Подключён» = активный провайдер реально готов отдавать каталог
+        // (для демо ключ не нужен, для боевого — нужен ключ + тумблер).
+        $catLive     = Catalog::provider()->enabled();
     ?>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;margin-top:24px;">
         <div class="az-card">
@@ -414,9 +420,25 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 <input type="hidden" name="action" value="save_catalog_settings">
 
                 <div class="az-form-group">
+                    <label>Провайдер каталога</label>
+                    <select name="catalog_provider">
+                        <?php $curProv = $settings['catalog_provider'] ?? 'partsapi'; ?>
+                        <?php foreach (Catalog::available() as $pid => $ptitle): ?>
+                        <option value="<?= sanitize($pid) ?>" <?= $curProv === $pid ? 'selected' : '' ?>>
+                            <?= sanitize($ptitle) ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small style="color:#888;display:block;margin-top:4px;">
+                        «Демо» показывает примерный каталог без ключа. Купив подписку — выберите
+                        провайдера, вставьте ключ ниже и нажмите «Проверить».
+                    </small>
+                </div>
+
+                <div class="az-form-group">
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                         <input type="checkbox" name="catalog_api_enabled" value="1" <?= $catEnabled ? 'checked' : '' ?>>
-                        Включить каталог по API
+                        Включить каталог
                     </label>
                 </div>
 
