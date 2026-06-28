@@ -590,6 +590,7 @@ window.VX_MAKES = <?= json_encode($vinMakes, JSON_UNESCAPED_UNICODE) ?>;
 window.VX_SEARCH_URL = <?= json_encode(APP_URL . '/search/index.php') ?>;
 window.VX_WA = <?= json_encode($exWa) ?>;
 window.VX_TG = <?= json_encode(ltrim($exTg, '@')) ?>;
+window.VX_PRICE_LAZY = <?= getSetting('catalog_price_autoeuro', '0') === '1' ? 'true' : 'false' ?>;
 
 /* ── Tabs ─────────────────────────────────────────────────────────── */
 function vxTab(t){
@@ -750,7 +751,7 @@ function vinRenderCatalog(d){
             if (it.in_catalog) {
                 html += '<td style="padding:9px 8px;text-align:right;white-space:nowrap;"><span style="font-weight:800;color:#C70909;">' + escapeHtml(it.price) + '</span>' + (it.stock > 0 ? ' <span style="font-size:0.68rem;color:#4caf50;">в наличии</span>' : ' <span style="font-size:0.68rem;color:#bbb;">под заказ</span>') + '</td>';
             } else {
-                html += '<td style="padding:9px 8px;text-align:right;white-space:nowrap;"><span style="font-size:0.78rem;color:#999;">под заказ</span></td>';
+                html += '<td style="padding:9px 8px;text-align:right;white-space:nowrap;"><span class="vin-price-ph" data-oem="' + escapeHtml(it.part_number) + '" data-brand="' + escapeHtml(it.brand || '') + '" style="font-size:0.78rem;color:#999;">под заказ</span></td>';
             }
             html += '<td style="padding:9px 8px;text-align:right;white-space:nowrap;">';
             if (it.in_catalog) {
@@ -765,6 +766,28 @@ function vinRenderCatalog(d){
     });
     html += '<p style="text-align:center;color:#bbb;font-size:0.76rem;margin:6px 0 32px;"><i class="fa fa-plug"></i> Оригинальный каталог TecDoc / PartsAPI' + (d.from_cache ? ' · из кэша' : '') + '</p>';
     bodyEl.innerHTML = html;
+    if (window.VX_PRICE_LAZY) vinFillPrices(bodyEl);
+}
+
+/* Ленивая подгрузка цен для деталей не со склада (свой склад → AutoEuro). */
+function vinFillPrices(scope){
+    var phs = (scope || document).querySelectorAll('.vin-price-ph');
+    Array.prototype.forEach.call(phs, function(ph){
+        if (ph.getAttribute('data-done')) return;
+        ph.setAttribute('data-done', '1');
+        var oem = ph.getAttribute('data-oem') || '', brand = ph.getAttribute('data-brand') || '';
+        if (!oem) return;
+        fetch('<?= APP_URL ?>/api/vin_price.php?oem=' + encodeURIComponent(oem) + '&brand=' + encodeURIComponent(brand), { credentials:'same-origin' })
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                if (!d || !d.found) return;
+                var dlv = d.delivery ? ' · ' + escapeHtml(String(d.delivery)) + ' дн' : '';
+                var src = d.source === 'warehouse' ? 'склад' : 'поставщик';
+                ph.innerHTML = '<span style="font-weight:800;color:#C70909;">' + escapeHtml(d.price) + '</span> ' +
+                               '<span style="font-size:0.66rem;color:#888;">' + src + dlv + '</span>';
+            })
+            .catch(function(){});
+    });
 }
 function vinCrosses(article, brand, btn, rowId){
     var existing = document.getElementById('cross-' + rowId);
@@ -788,11 +811,13 @@ function vinCrosses(article, brand, btn, rowId){
                     html += it.stock > 0 ? '<span style="font-size:0.66rem;color:#4caf50;">в наличии</span>' : '<span style="font-size:0.66rem;color:#bbb;">под заказ</span>';
                     html += '<button type="button" onclick="vinAddToCart(' + it.part_id + ',this)" ' + (it.stock>0?'':'disabled ') + 'style="background:' + (it.stock>0?'#C70909':'#ccc') + ';color:#fff;border:none;width:30px;height:30px;border-radius:5px;cursor:' + (it.stock>0?'pointer':'not-allowed') + ';"><i class="fa fa-shopping-cart"></i></button>';
                 } else {
+                    html += '<span class="vin-price-ph" data-oem="' + escapeHtml(it.part_number) + '" data-brand="' + escapeHtml(it.brand || '') + '" style="font-size:0.72rem;color:#999;white-space:nowrap;"></span>';
                     html += '<a href="<?= APP_URL ?>/search/index.php?q=' + encodeURIComponent(it.part_number) + '" style="font-size:0.76rem;color:#C70909;font-weight:600;white-space:nowrap;">найти <i class="fa fa-search"></i></a>';
                 }
                 html += '</div>';
             });
             cell.innerHTML = html;
+            if (window.VX_PRICE_LAZY) vinFillPrices(cell);
         })
         .catch(function(){ cell.innerHTML = '<div style="color:#c00;font-size:0.8rem;">Ошибка загрузки аналогов.</div>'; });
 }

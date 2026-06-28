@@ -55,6 +55,13 @@ class Catalog
         self::$current = null;
     }
 
+    /** Слой цен (свой склад → AutoEuro). Каталог и цены независимы. */
+    public static function price(): PriceProvider
+    {
+        require_once __DIR__ . '/PriceAggregator.php';
+        return new PriceAggregator();
+    }
+
     /**
      * Построить провайдер по id:
      *   • код-адаптеры (mock/partsapi) — особая логика;
