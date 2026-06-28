@@ -42,7 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         setSetting('catalog_api_enabled', isset($_POST['catalog_api_enabled']) ? '1' : '0');
         // type may legitimately be '' (неоригинал) — save as-is.
         setSetting('catalog_api_type', trim($_POST['catalog_api_type'] ?? 'oem'));
-        foreach (['catalog_api_key', 'catalog_api_max_groups', 'catalog_api_base', 'catalog_api_timeout'] as $key) {
+        foreach (['catalog_api_key', 'catalog_api_max_groups', 'catalog_api_base', 'catalog_api_timeout',
+                  'catalog_laximo_login', 'catalog_laximo_secret'] as $key) {
             setSetting($key, trim($_POST[$key] ?? ''));
         }
         // OEM-узлы для дерева каталога (строки «1191=Кузов»). Переводы строк сохраняем.
@@ -453,9 +454,19 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 </div>
 
                 <div class="az-form-group">
-                    <label>API ключ <small style="color:#888;">(метод getPartsbyVIN)</small></label>
+                    <label>API ключ <small style="color:#888;">(REST-провайдеры: PartsAPI/UMAPI/профиль)</small></label>
                     <input type="text" name="catalog_api_key" value="<?= sv2($settings,'catalog_api_key') ?>"
-                           placeholder="ключ getPartsbyVIN от PartsAPI">
+                           placeholder="ключ REST-каталога (getPartsbyVIN и т.п.)">
+                </div>
+
+                <div class="az-form-group" style="background:#fafbfc;border:1px solid #eef0f3;border-radius:8px;padding:10px 12px;">
+                    <label style="font-weight:600;">Laximo <small style="color:#888;font-weight:400;">(оригинальные каталоги — логин + секрет)</small></label>
+                    <input type="text" name="catalog_laximo_login" value="<?= sv2($settings,'catalog_laximo_login') ?>"
+                           placeholder="OEM-логин Laximo" style="margin-bottom:6px;">
+                    <input type="text" name="catalog_laximo_secret" value="<?= sv2($settings,'catalog_laximo_secret') ?>"
+                           placeholder="секретный ключ Laximo">
+                    <small style="color:#888;display:block;margin-top:4px;">Нужны только если выбран провайдер
+                        «Laximo». Каркас готов; на боевом аккаунте жмите «Проверить» — увидите ответ Laximo.</small>
                 </div>
 
                 <div class="az-form-group">
