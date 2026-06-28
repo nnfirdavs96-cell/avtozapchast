@@ -41,5 +41,6 @@ if (!headers_sent()) {
 
 require_once APP_ROOT . '/config/database.php';
 require_once APP_ROOT . '/includes/functions.php';
+require_once APP_ROOT . '/includes/cart_lib.php';
 require_once APP_ROOT . '/includes/i18n.php';
 require_once APP_ROOT . '/includes/currency.php';

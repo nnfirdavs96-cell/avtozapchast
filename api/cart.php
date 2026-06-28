@@ -3,58 +3,27 @@ require_once dirname(__DIR__) . '/config/config.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function cartCount(PDO $db, int $userId): int {
-    $stmt = $db->prepare("SELECT COALESCE(SUM(quantity), 0) FROM cart WHERE user_id = ?");
-    $stmt->execute([$userId]);
-    return (int)$stmt->fetchColumn();
-}
-
-function cartTotal(PDO $db, int $userId): float {
-    $stmt = $db->prepare(
-        "SELECT COALESCE(SUM(c.quantity * p.price), 0)
-         FROM cart c JOIN parts p ON p.id = c.part_id WHERE c.user_id = ?"
-    );
-    $stmt->execute([$userId]);
-    return (float)$stmt->fetchColumn();
-}
+// Корзина работает и для гостя (сессия), и для авторизованного (БД) — через cart_lib.
+$db = getDB();
 
 // ── GET ───────────────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $action = $_GET['action'] ?? 'count';
 
-    // GET remove (mini-cart link with CSRF in query string)
+    // GET remove (ссылка из мини-корзины с CSRF в query)
     if ($action === 'remove') {
-        header('Content-Type: text/html'); // redirect response
-        if (!isLoggedIn()) { redirect(APP_URL . '/auth/login.php'); }
+        header('Content-Type: text/html'); // редирект-ответ
         if (!verifyCsrfToken($_GET['_csrf'] ?? '')) {
             flashMessage('danger', 'CSRF ошибка.');
             redirect($_SERVER['HTTP_REFERER'] ?? APP_URL . '/buyer/cart.php');
         }
-        $partId = (int)($_GET['part_id'] ?? 0);
-        $db     = getDB();
-        $db->prepare("DELETE FROM cart WHERE user_id = ? AND part_id = ?")->execute([(int)$_SESSION['user_id'], $partId]);
+        cartRemove($db, (int)($_GET['part_id'] ?? 0));
         redirect($_SERVER['HTTP_REFERER'] ?? APP_URL . '/buyer/cart.php');
     }
 
-    // count
-    if (!isLoggedIn()) {
-        echo json_encode(['cart_count' => 0]);
-        exit;
-    }
-    $db = getDB();
-
-    // mini — returns cart_count + cart_total_html + items HTML for live update
+    // mini — cart_count + cart_total_html + items HTML для живого обновления
     if ($action === 'mini') {
-        $userId = (int)$_SESSION['user_id'];
-        $cnt    = cartCount($db, $userId);
-        $total  = cartTotal($db, $userId);
-        $items  = $db->prepare(
-            "SELECT p.id, p.name, p.price, p.images, c.quantity
-             FROM cart c JOIN parts p ON p.id = c.part_id WHERE c.user_id = ? ORDER BY c.added_at DESC"
-        );
-        $items->execute([$userId]);
-        $rows = $items->fetchAll();
+        $rows = cartDetailedItems($db);
         $csrf = generateCsrfToken();
         ob_start();
         if (empty($rows)) {
@@ -73,14 +42,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
         $itemsHtml = ob_get_clean();
         echo json_encode([
-            'cart_count'     => $cnt,
-            'cart_total_html'=> formatPrice($total),
+            'cart_count'     => cartCountAny($db),
+            'cart_total_html'=> formatPrice(cartTotalAny($db)),
             'items_html'     => $itemsHtml,
         ]);
         exit;
     }
 
-    echo json_encode(['cart_count' => cartCount($db, (int)$_SESSION['user_id'])]);
+    echo json_encode(['cart_count' => cartCountAny($db)]);
     exit;
 }
 
@@ -98,18 +67,6 @@ if (!is_array($data)) {
 }
 
 $action = $data['action'] ?? '';
-
-if (!isLoggedIn()) {
-    echo json_encode([
-        'success'  => false,
-        'redirect' => APP_URL . '/auth/login.php',
-        'message'  => 'Для этого действия необходимо войти в аккаунт.',
-    ]);
-    exit;
-}
-
-$userId = (int)$_SESSION['user_id'];
-$db     = getDB();
 
 switch ($action) {
 
@@ -135,16 +92,12 @@ switch ($action) {
             exit;
         }
 
-        $db->prepare(
-            "INSERT INTO cart (user_id, part_id, quantity)
-             VALUES (?, ?, ?)
-             ON DUPLICATE KEY UPDATE quantity = LEAST(quantity + VALUES(quantity), 99), added_at = NOW()"
-        )->execute([$userId, $partId, $qty]);
+        cartAdd($db, $partId, $qty);
 
-        $newTotal = cartTotal($db, $userId);
+        $newTotal = cartTotalAny($db);
         echo json_encode([
             'success'         => true,
-            'cart_count'      => cartCount($db, $userId),
+            'cart_count'      => cartCountAny($db),
             'cart_total'      => $newTotal,
             'cart_total_html' => formatPrice($newTotal),
             'message'         => 'Товар добавлен в корзину.',
@@ -161,24 +114,23 @@ switch ($action) {
             exit;
         }
 
-        $db->prepare("DELETE FROM cart WHERE user_id = ? AND part_id = ?")->execute([$userId, $partId]);
+        cartRemove($db, $partId);
 
         echo json_encode([
             'success'    => true,
-            'cart_count' => cartCount($db, $userId),
-            'cart_total' => cartTotal($db, $userId),
+            'cart_count' => cartCountAny($db),
+            'cart_total' => cartTotalAny($db),
             'message'    => 'Товар удалён из корзины.',
         ]);
         break;
     }
 
     case 'update': {
-        // Update multiple: {action:'update', items:[{part_id:X, quantity:Y}]}
+        // {action:'update', items:[{part_id:X, quantity:Y}]}
         $items = $data['items'] ?? [];
         if (empty($items) && isset($data['part_id'])) {
             $items = [['part_id' => $data['part_id'], 'quantity' => $data['quantity'] ?? 1]];
         }
-
         if (!is_array($items)) {
             echo json_encode(['success' => false, 'message' => 'Некорректные данные.']);
             exit;
@@ -187,26 +139,21 @@ switch ($action) {
         foreach ($items as $item) {
             $partId = (int)($item['part_id'] ?? 0);
             $qty    = max(1, min(99, (int)($item['quantity'] ?? 1)));
-            if ($partId) {
-                $db->prepare("UPDATE cart SET quantity = ? WHERE user_id = ? AND part_id = ?")
-                   ->execute([$qty, $userId, $partId]);
-            }
+            if ($partId) cartSetQty($db, $partId, $qty);
         }
 
-        $rowSub = 0;
+        $rowSub = 0.0;
         if (count($items) === 1) {
-            $subStmt = $db->prepare(
-                "SELECT c.quantity * p.price FROM cart c JOIN parts p ON p.id = c.part_id
-                 WHERE c.user_id = ? AND c.part_id = ?"
-            );
-            $subStmt->execute([$userId, (int)($items[0]['part_id'] ?? 0)]);
-            $rowSub = (float)$subStmt->fetchColumn();
+            $pid = (int)($items[0]['part_id'] ?? 0);
+            foreach (cartDetailedItems($db) as $it) {
+                if ((int)$it['part_id'] === $pid) { $rowSub = (float)$it['price'] * (int)$it['quantity']; break; }
+            }
         }
 
         echo json_encode([
             'success'      => true,
-            'cart_count'   => cartCount($db, $userId),
-            'cart_total'   => cartTotal($db, $userId),
+            'cart_count'   => cartCountAny($db),
+            'cart_total'   => cartTotalAny($db),
             'row_subtotal' => $rowSub,
             'message'      => 'Корзина обновлена.',
         ]);
@@ -214,7 +161,7 @@ switch ($action) {
     }
 
     case 'count': {
-        echo json_encode(['cart_count' => cartCount($db, $userId)]);
+        echo json_encode(['cart_count' => cartCountAny($db)]);
         break;
     }
 

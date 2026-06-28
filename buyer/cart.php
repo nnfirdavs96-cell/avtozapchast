@@ -1,11 +1,8 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 
-if (!isLoggedIn()) {
-    redirect(APP_URL . '/auth/login.php?redirect=' . urlencode($_SERVER['REQUEST_URI']));
-}
-
-$user = getCurrentUser();
+// Корзина доступна и гостю (login-wall снят): подбирает и оформляет без входа.
+$user = getCurrentUser();   // null для гостя
 $db   = getDB();
 $csrf = generateCsrfToken();
 
@@ -17,34 +14,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'upda
     }
     $quantities = $_POST['quantity'] ?? [];
     if (is_array($quantities)) {
-        $upd = $db->prepare(
-            "UPDATE cart SET quantity = ? WHERE user_id = ? AND part_id = ?"
-        );
         foreach ($quantities as $partId => $qty) {
-            $partId = (int)$partId;
-            $qty    = max(1, min(99, (int)$qty));
-            if ($partId > 0) {
-                $upd->execute([$qty, $user['id'], $partId]);
-            }
+            cartSetQty($db, (int)$partId, max(1, min(99, (int)$qty)));
         }
     }
     flashMessage('success', 'Корзина обновлена.');
     redirect(APP_URL . '/buyer/cart.php');
 }
 
-// Load cart items
-$cartStmt = $db->prepare(
-    "SELECT c.id AS cart_id, c.part_id, c.quantity,
-            p.name, p.part_number, p.price, p.stock, p.images,
-            b.name AS brand_name
-     FROM cart c
-     JOIN parts p ON p.id = c.part_id
-     LEFT JOIN brands b ON b.id = p.brand_id
-     WHERE c.user_id = ? AND p.is_active = 1
-     ORDER BY c.added_at DESC"
-);
-$cartStmt->execute([$user['id']]);
-$cartItems = $cartStmt->fetchAll();
+// Load cart items (гость → сессия, авторизованный → БД)
+$cartItems = cartDetailedItems($db);
 
 $cartSubtotal = 0.0;
 foreach ($cartItems as $item) {
@@ -65,7 +44,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
 <!--shopping cart area start -->
 <div class="cart_page_bg">
     <div class="container">
-        <?= renderBuyerAccountNav('cart') ?>
+        <?= isLoggedIn() ? renderBuyerAccountNav('cart') : '' ?>
         <div class="shopping_cart_area">
             <?php if (empty($cartItems)): ?>
             <div class="row">
