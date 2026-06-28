@@ -14,20 +14,30 @@
 require_once __DIR__ . '/Provider.php';
 require_once __DIR__ . '/PartsApiAdapter.php';
 require_once __DIR__ . '/MockAdapter.php';
+require_once __DIR__ . '/CatalogProfiles.php';
+require_once __DIR__ . '/GenericRestAdapter.php';
 
 class Catalog
 {
     private static ?CatalogProvider $current = null;
 
-    /** Список провайдеров для выпадающего списка в админке: id => название. */
-    public static function available(): array
+    /** Код-адаптеры (особая логика). Профили REST-сервисов добавляются отдельно. */
+    private static function codeProviders(): array
     {
         return [
             'partsapi' => 'PartsAPI.ru',
             'mock'     => 'Демо (без ключа)',
-            // 'umapi'  => 'UMAPI',   // Этап 2/3 — через профиль GenericRestAdapter
             // 'laximo' => 'Laximo',  // Этап 4 — код-адаптер
         ];
+    }
+
+    /**
+     * Список провайдеров для выпадающего списка: код-адаптеры + профили из реестра.
+     * Профили (REST-сервисы) подключаются БЕЗ кода — через CatalogProfiles.
+     */
+    public static function available(): array
+    {
+        return self::codeProviders() + CatalogProfiles::options();
     }
 
     /** Активный провайдер (кэшируется в пределах запроса). */
@@ -45,13 +55,18 @@ class Catalog
         self::$current = null;
     }
 
-    /** Построить провайдер по id. Неизвестный id → безопасный дефолт (PartsAPI). */
+    /**
+     * Построить провайдер по id:
+     *   • код-адаптеры (mock/partsapi) — особая логика;
+     *   • иначе ищем профиль в реестре → универсальный GenericRestAdapter;
+     *   • неизвестный id → безопасный дефолт (PartsAPI).
+     */
     public static function make(string $id): CatalogProvider
     {
-        switch ($id) {
-            case 'mock':     return new MockAdapter();
-            case 'partsapi': return new PartsApiAdapter();
-            default:         return new PartsApiAdapter();
-        }
+        if ($id === 'mock')     return new MockAdapter();
+        if ($id === 'partsapi') return new PartsApiAdapter();
+        $profile = CatalogProfiles::get($id);
+        if ($profile !== null)  return new GenericRestAdapter($profile);
+        return new PartsApiAdapter();
     }
 }
