@@ -459,19 +459,19 @@ require_once dirname(__DIR__) . '/includes/header.php';
         <?php if ($catalogEnabled):
             $oemNodes = Catalog::provider()->oemNodes();
             $catType  = trim(getSetting('catalog_api_type', 'oem'));
-            $showTree = !empty($oemNodes) && ($catType === 'oem' || Catalog::provider()->id() === 'mock');
+            $showTree = !empty($oemNodes);
         ?>
         <style>
             /* ── Дерево узлов: боковая панель «Узлы» + сетка карточек (как на макете) ── */
             .vin-tree{display:flex;gap:18px;align-items:flex-start;margin-bottom:26px;flex-wrap:wrap;}
-            .vin-tree-side{flex:0 0 210px;background:#eef0f3;border-radius:14px;padding:16px;}
+            .vin-tree-side{flex:0 0 190px;background:#eef0f3;border-radius:14px;padding:16px;align-self:stretch;}
             .vin-tree-pill{display:inline-flex;align-items:center;gap:6px;background:var(--vx-red,#C70909);color:#fff;font-size:0.76rem;font-weight:700;padding:6px 16px;border-radius:16px;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;}
             .vin-tree-side ul{list-style:none;margin:0;padding:0;}
             .vin-tree-side li{position:relative;padding:7px 8px 7px 18px;font-size:0.88rem;color:#39414d;cursor:pointer;border-radius:7px;transition:.12s;}
             .vin-tree-side li:before{content:'';position:absolute;left:5px;top:14px;width:5px;height:5px;border-radius:50%;background:#9aa3af;}
             .vin-tree-side li:hover{color:var(--vx-red,#C70909);background:#fff;}
-            .vin-tree-cards{flex:1;min-width:240px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;align-content:start;}
-            .vin-node-card{text-align:left;background:#fff;border:1px solid #e7e9ee;border-radius:12px;padding:16px;min-height:92px;font-size:0.92rem;font-weight:700;color:#1d2129;cursor:pointer;transition:.15s;display:flex;align-items:flex-start;}
+            .vin-tree-cards{flex:1;min-width:200px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,158px));gap:10px;align-content:start;justify-content:start;}
+            .vin-node-card{text-align:left;background:#fff;border:1px solid #e7e9ee;border-radius:12px;padding:13px 14px;min-height:58px;font-size:0.86rem;font-weight:700;color:#1d2129;cursor:pointer;transition:.15s;display:flex;align-items:center;}
             .vin-node-card:hover{border-color:var(--vx-red,#C70909);box-shadow:0 4px 14px rgba(199,9,9,.10);transform:translateY(-1px);}
             .vin-node-card.active{border-color:var(--vx-red,#C70909);background:#fff5f5;color:var(--vx-red,#C70909);}
             .vin-node-card.all{align-items:center;justify-content:center;color:#fff;background:var(--vx-ink,#181a1f);border-color:var(--vx-ink,#181a1f);gap:6px;}
