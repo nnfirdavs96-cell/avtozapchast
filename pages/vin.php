@@ -1,7 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/vin_service.php';
-require_once dirname(__DIR__) . '/includes/catalog_api.php';
+require_once dirname(__DIR__) . '/includes/catalog.php';
 
 function getCarImageUrl(string $make, string $model, int $year): string {
     $make  = strtolower(trim($make));
@@ -43,7 +43,7 @@ $vin            = strtoupper(trim($_GET['vin'] ?? $_POST['vin'] ?? ''));
 $filterCat      = (int)($_GET['cat'] ?? 0);
 $result         = null;
 $compatParts    = [];
-$catalogEnabled = CatalogApi::enabled();
+$catalogEnabled = Catalog::provider()->enabled();
 $facets         = [];
 $error          = '';
 $searchPerfomed = false;
@@ -457,14 +457,54 @@ require_once dirname(__DIR__) . '/includes/header.php';
 
         <!-- ── External catalog (PartsAPI): nodes + crosses bridge ─────── -->
         <?php if ($catalogEnabled):
-            $oemNodes = CatalogApi::oemNodes();
+            $oemNodes = Catalog::provider()->oemNodes();
             $catType  = trim(getSetting('catalog_api_type', 'oem'));
-            $showTree = $catType === 'oem' && !empty($oemNodes);
+            $showTree = !empty($oemNodes);
         ?>
         <style>
-            .vin-node-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:22px;font-size:0.85rem;font-weight:600;border:1px solid #e4e7ec;background:#fff;color:#1d2129;cursor:pointer;transition:all 0.15s;}
-            .vin-node-chip:hover{border-color:#C70909;color:#C70909;}
-            .vin-node-chip.active{background:#C70909;border-color:#C70909;color:#fff;}
+            /* ── Дерево узлов: боковая панель «Узлы» + сетка карточек (как на макете) ── */
+            .vin-tree{display:flex;gap:18px;align-items:flex-start;margin-bottom:26px;flex-wrap:wrap;}
+            .vin-tree-side{flex:0 0 190px;background:#eef0f3;border-radius:14px;padding:16px;align-self:stretch;}
+            .vin-tree-pill{display:inline-flex;align-items:center;gap:6px;background:var(--vx-red,#C70909);color:#fff;font-size:0.76rem;font-weight:700;padding:6px 16px;border-radius:16px;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;}
+            .vin-tree-side ul{list-style:none;margin:0;padding:0;}
+            .vin-tree-side li{position:relative;padding:7px 8px 7px 18px;font-size:0.88rem;color:#39414d;cursor:pointer;border-radius:7px;transition:.12s;}
+            .vin-tree-side li:before{content:'';position:absolute;left:5px;top:14px;width:5px;height:5px;border-radius:50%;background:#9aa3af;}
+            .vin-tree-side li:hover{color:var(--vx-red,#C70909);background:#fff;}
+            .vin-tree-cards{flex:1;min-width:200px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,158px));gap:10px;align-content:start;justify-content:start;}
+            .vin-node-card{text-align:left;background:#fff;border:1px solid #e7e9ee;border-radius:12px;padding:13px 14px;min-height:58px;font-size:0.86rem;font-weight:700;color:#1d2129;cursor:pointer;transition:.15s;display:flex;align-items:center;}
+            .vin-node-card:hover{border-color:var(--vx-red,#C70909);box-shadow:0 4px 14px rgba(199,9,9,.10);transform:translateY(-1px);}
+            .vin-node-card.active{border-color:var(--vx-red,#C70909);background:#fff5f5;color:var(--vx-red,#C70909);}
+            .vin-node-card.all{align-items:center;justify-content:center;color:#fff;background:var(--vx-ink,#181a1f);border-color:var(--vx-ink,#181a1f);gap:6px;}
+            .vin-node-card.all:hover{filter:brightness(1.15);color:#fff;}
+            /* ── Карточки деталей (фото + крупная цена + «В корзину», как на макете) ── */
+            .vin-grp{font-size:0.8rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin:0 0 12px;border-bottom:2px solid #f0f1f5;padding-bottom:6px;}
+            .vin-pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;}
+            .vin-pcard{background:#fff;border:1px solid #e7e9ee;border-radius:14px;padding:16px;display:flex;flex-direction:column;}
+            .vin-pcard-t{font-weight:700;color:#1d2129;font-size:0.9rem;line-height:1.3;}
+            .vin-pcard-t span{display:block;font-weight:400;font-size:0.72rem;color:#9aa3af;font-family:monospace;margin-top:3px;}
+            .vin-pcard-b{display:flex;gap:12px;margin-top:12px;align-items:stretch;}
+            .vin-pcard-ph{flex:0 0 84px;background:#eef0f3;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#b6bcc6;font-size:0.72rem;min-height:84px;}
+            .vin-pcard-buy{flex:1;display:flex;flex-direction:column;gap:8px;}
+            .vin-price{background:var(--vx-red,#C70909);color:#fff;font-weight:800;font-size:1.1rem;text-align:center;border-radius:10px;padding:14px 8px;line-height:1;}
+            .vin-price.ph{background:#f3f4f6;color:#9aa3af;font-size:0.85rem;font-weight:600;padding:16px 8px;}
+            .vin-stock{font-size:0.72rem;color:#9aa3af;text-align:center;}
+            .vin-stock.ok{color:#2e9e44;}
+            .vin-cart{display:block;width:100%;background:var(--vx-ink,#181a1f);color:#fff;border:none;border-radius:9px;padding:11px;font-size:0.82rem;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;transition:.15s;}
+            .vin-cart:hover{filter:brightness(1.2);color:#fff;}
+            .vin-cart[disabled]{background:#ccc;cursor:not-allowed;}
+            .vin-cart.ghost{background:#fff;color:var(--vx-red,#C70909);border:1px solid #e7e9ee;}
+            .vin-cart.ghost:hover{border-color:var(--vx-red,#C70909);filter:none;}
+            .vin-cart.sm{width:auto;padding:7px 12px;font-size:0.75rem;}
+            .vin-cross-btn{align-self:center;background:none;border:none;color:#9aa3af;font-size:0.74rem;cursor:pointer;padding:2px 6px;}
+            .vin-cross-btn:hover,.vin-cross-btn.on{color:var(--vx-red,#C70909);}
+            .vin-cross-box{}
+            .vin-cross-h{font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin:10px 0 4px;}
+            .vin-cross-row{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:5px 0;border-top:1px dashed #eef0f3;font-size:0.8rem;}
+            .vin-cross-row .ci span{font-family:monospace;color:#666;}
+            .vin-cross-row .ci em{font-size:0.66rem;color:#aaa;font-style:normal;}
+            .vin-cross-row .cp{font-weight:800;color:var(--vx-red,#C70909);white-space:nowrap;}
+            .vin-cross-row .cu{font-size:0.7rem;color:#bbb;}
+            .vin-cross-row .cl{color:var(--vx-red,#C70909);font-weight:600;white-space:nowrap;}
         </style>
         <div id="vinCatalog" data-vin="<?= sanitize($vin) ?>" data-type="<?= sanitize($catType) ?>" style="margin-top:8px;">
             <h2 style="font-size:1.3rem;font-weight:700;margin:8px 0 16px;color:var(--vx-ink);">
@@ -472,12 +512,21 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 <span id="vinCatalogCount" style="color:#888;font-weight:400;font-size:0.9rem;"></span>
             </h2>
             <?php if ($showTree): ?>
-            <div id="vinNodes" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:18px;">
-                <span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-right:4px;"><i class="fa fa-sitemap" style="color:#C70909;"></i> Узлы:</span>
-                <?php foreach ($oemNodes as $n): ?>
-                <button type="button" class="vin-node-chip" data-cat="<?= (int)$n['cat'] ?>" onclick="vinLoadNode(<?= (int)$n['cat'] ?>, this)"><?= sanitize($n['name']) ?></button>
-                <?php endforeach; ?>
-                <button type="button" class="vin-node-chip" onclick="vinLoadAll(this)" title="Перебрать все группы (дольше, расходует лимит ключа)"><i class="fa fa-th-large"></i> Все узлы</button>
+            <div class="vin-tree">
+                <aside class="vin-tree-side">
+                    <span class="vin-tree-pill"><i class="fa fa-sitemap"></i> Узлы</span>
+                    <ul>
+                        <?php foreach ($oemNodes as $n): ?>
+                        <li onclick="vinPickNode(<?= (int)$n['cat'] ?>)"><?= sanitize($n['name']) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </aside>
+                <div class="vin-tree-cards">
+                    <?php foreach ($oemNodes as $n): ?>
+                    <button type="button" class="vin-node-card" data-cat="<?= (int)$n['cat'] ?>" onclick="vinLoadNode(<?= (int)$n['cat'] ?>, this)"><?= sanitize($n['name']) ?></button>
+                    <?php endforeach; ?>
+                    <button type="button" class="vin-node-card all" onclick="vinLoadAll(this)" title="Перебрать все группы (дольше, расходует лимит ключа)"><i class="fa fa-th-large"></i> Все узлы</button>
+                </div>
             </div>
             <?php endif; ?>
             <div id="vinCatalogStatus" style="background:#fff;border-radius:10px;padding:22px 24px;text-align:center;color:#888;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin-bottom:32px;">
@@ -590,6 +639,7 @@ window.VX_MAKES = <?= json_encode($vinMakes, JSON_UNESCAPED_UNICODE) ?>;
 window.VX_SEARCH_URL = <?= json_encode(APP_URL . '/search/index.php') ?>;
 window.VX_WA = <?= json_encode($exWa) ?>;
 window.VX_TG = <?= json_encode(ltrim($exTg, '@')) ?>;
+window.VX_PRICE_LAZY = <?= getSetting('catalog_price_autoeuro', '0') === '1' ? 'true' : 'false' ?>;
 
 /* ── Tabs ─────────────────────────────────────────────────────────── */
 function vxTab(t){
@@ -719,9 +769,11 @@ function escapeHtml(s) {
 
 /* ── External catalog (PartsAPI): per-node loading + crosses bridge ── */
 function jsAttr(s){ return String(s == null ? '' : s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,''); }
-function vinSetActiveChip(btn){ document.querySelectorAll('.vin-node-chip').forEach(function(c){ c.classList.remove('active'); }); if (btn) btn.classList.add('active'); }
+function vinSetActiveChip(btn){ document.querySelectorAll('.vin-node-card').forEach(function(c){ c.classList.remove('active'); }); if (btn) btn.classList.add('active'); }
 function vinLoadNode(cat, btn){ vinSetActiveChip(btn); vinCatalogFetch('&cat=' + encodeURIComponent(cat)); }
 function vinLoadAll(btn){ vinSetActiveChip(btn); vinCatalogFetch(''); }
+/* Клик по узлу в боковом списке → имитируем клик по соответствующей карточке. */
+function vinPickNode(cat){ var c = document.querySelector('.vin-node-card[data-cat="' + cat + '"]'); if (c) c.click(); }
 function vinCatalogFetch(extra){
     var box = document.getElementById('vinCatalog'); if (!box) return;
     var vin = box.getAttribute('data-vin') || ''; if (vin.length !== 17) return;
@@ -742,67 +794,94 @@ function vinRenderCatalog(d){
     d.items.forEach(function(it){ var g = it.group || 'Прочее'; (groups[g] = groups[g] || []).push(it); });
     var html = '', idx = 0;
     Object.keys(groups).forEach(function(g){
-        html += '<div style="margin-bottom:22px;"><div style="font-size:0.8rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;border-bottom:2px solid #f0f1f5;padding-bottom:6px;">' + escapeHtml(g) + '</div><table style="width:100%;border-collapse:collapse;">';
+        html += '<div style="margin-bottom:26px;"><div class="vin-grp">' + escapeHtml(g) + '</div><div class="vin-pgrid">';
         groups[g].forEach(function(it){
-            idx++; var rid = 'vinrow-' + idx;
-            html += '<tr id="' + rid + '" style="border-bottom:1px solid #f5f6f8;">';
-            html += '<td style="padding:9px 8px;"><div style="font-weight:600;color:#1d2129;font-size:0.86rem;">' + escapeHtml(it.name) + '</div><div style="font-size:0.72rem;color:#aaa;font-family:monospace;">' + escapeHtml(it.brand) + ' · ' + escapeHtml(it.part_number) + '</div></td>';
+            idx++; var cid = 'vinc-' + idx;
+            html += '<div class="vin-pcard" id="' + cid + '">';
+            html += '<div class="vin-pcard-t">' + escapeHtml(it.name) + '<span>' + escapeHtml(it.brand || '') + ' · ' + escapeHtml(it.part_number) + '</span></div>';
+            html += '<div class="vin-pcard-b"><div class="vin-pcard-ph">фото</div><div class="vin-pcard-buy">';
             if (it.in_catalog) {
-                html += '<td style="padding:9px 8px;text-align:right;white-space:nowrap;"><span style="font-weight:800;color:#C70909;">' + escapeHtml(it.price) + '</span>' + (it.stock > 0 ? ' <span style="font-size:0.68rem;color:#4caf50;">в наличии</span>' : ' <span style="font-size:0.68rem;color:#bbb;">под заказ</span>') + '</td>';
+                html += '<div class="vin-price">' + escapeHtml(it.price) + '</div>';
+                html += '<div class="vin-stock' + (it.stock > 0 ? ' ok' : '') + '">' + (it.stock > 0 ? 'в наличии · доставка Худжанд' : 'под заказ') + '</div>';
+                html += '<button type="button" class="vin-cart" onclick="vinAddToCart(' + it.part_id + ',this)"' + (it.stock > 0 ? '' : ' disabled') + '>В корзину</button>';
             } else {
-                html += '<td style="padding:9px 8px;text-align:right;white-space:nowrap;"><span style="font-size:0.78rem;color:#999;">под заказ</span></td>';
+                html += '<div class="vin-price ph vin-price-ph" data-oem="' + escapeHtml(it.part_number) + '" data-brand="' + escapeHtml(it.brand || '') + '">под заказ</div>';
+                html += '<div class="vin-stock">цена уточняется</div>';
+                html += '<a class="vin-cart ghost" href="<?= APP_URL ?>/search/index.php?q=' + encodeURIComponent(it.part_number) + '">Найти в каталоге</a>';
             }
-            html += '<td style="padding:9px 8px;text-align:right;white-space:nowrap;">';
-            if (it.in_catalog) {
-                html += '<button type="button" onclick="vinAddToCart(' + it.part_id + ',this)" ' + (it.stock > 0 ? '' : 'disabled ') + 'style="background:' + (it.stock>0?'#C70909':'#ccc') + ';color:#fff;border:none;padding:7px 12px;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:' + (it.stock>0?'pointer':'not-allowed') + ';margin-right:6px;"><i class="fa fa-shopping-cart"></i></button>';
-            } else {
-                html += '<a href="<?= APP_URL ?>/search/index.php?q=' + encodeURIComponent(it.part_number) + '" style="font-size:0.76rem;color:#C70909;font-weight:600;margin-right:8px;">найти <i class="fa fa-search"></i></a>';
-            }
-            html += '<button type="button" title="Аналоги по кроссам" onclick="vinCrosses(\'' + jsAttr(it.part_number) + '\',\'' + jsAttr(it.brand) + '\',this,\'' + rid + '\')" style="background:#f0f1f5;color:#1d2129;border:none;padding:7px 10px;border-radius:6px;font-size:0.78rem;cursor:pointer;"><i class="fa fa-exchange"></i></button>';
-            html += '</td></tr>';
+            html += '<button type="button" class="vin-cross-btn" onclick="vinCrosses(\'' + jsAttr(it.part_number) + '\',\'' + jsAttr(it.brand) + '\',this,\'' + cid + '\')"><i class="fa fa-exchange"></i> аналоги по кроссам</button>';
+            html += '</div></div><div class="vin-cross-box" id="cross-' + cid + '"></div></div>';
         });
-        html += '</table></div>';
+        html += '</div></div>';
     });
     html += '<p style="text-align:center;color:#bbb;font-size:0.76rem;margin:6px 0 32px;"><i class="fa fa-plug"></i> Оригинальный каталог TecDoc / PartsAPI' + (d.from_cache ? ' · из кэша' : '') + '</p>';
     bodyEl.innerHTML = html;
+    if (window.VX_PRICE_LAZY) vinFillPrices(bodyEl);
 }
-function vinCrosses(article, brand, btn, rowId){
-    var existing = document.getElementById('cross-' + rowId);
-    if (existing){ existing.parentNode.removeChild(existing); btn.style.background = '#f0f1f5'; return; }
-    var row = document.getElementById(rowId); if (!row) return;
-    btn.style.background = '#f6dada';
-    var colspan = row.children.length;
-    row.insertAdjacentHTML('afterend', '<tr id="cross-' + rowId + '"><td colspan="' + colspan + '" style="background:#fafbfc;padding:10px 16px;"><div style="color:#aaa;font-size:0.8rem;"><i class="fa fa-spinner fa-spin"></i> Поиск аналогов (кроссов)…</div></td></tr>');
-    var cell = document.querySelector('#cross-' + rowId + ' td');
+
+/* Ленивая подгрузка цен для деталей не со склада (свой склад → AutoEuro). */
+function vinFillPrices(scope){
+    var phs = (scope || document).querySelectorAll('.vin-price-ph');
+    Array.prototype.forEach.call(phs, function(ph){
+        if (ph.getAttribute('data-done')) return;
+        ph.setAttribute('data-done', '1');
+        var oem = ph.getAttribute('data-oem') || '', brand = ph.getAttribute('data-brand') || '';
+        if (!oem) return;
+        fetch('<?= APP_URL ?>/api/vin_price.php?oem=' + encodeURIComponent(oem) + '&brand=' + encodeURIComponent(brand), { credentials:'same-origin' })
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                if (!d || !d.found) return;
+                var dlv = d.delivery ? ' · ' + escapeHtml(String(d.delivery)) + ' дн' : '';
+                var src = d.source === 'warehouse' ? 'склад' : 'поставщик';
+                ph.classList.remove('ph');         // превратить плашку «под заказ» в красный ценник
+                ph.innerHTML = escapeHtml(d.price);
+                var buy = ph.closest('.vin-pcard-buy');
+                if (buy) {
+                    var st = buy.querySelector('.vin-stock');
+                    if (st) { st.textContent = src + dlv; st.classList.add('ok'); }
+                } else {
+                    ph.innerHTML = escapeHtml(d.price) + ' <span style="font-size:0.66rem;color:#888;">' + src + dlv + '</span>';
+                }
+            })
+            .catch(function(){});
+    });
+}
+function vinCrosses(article, brand, btn, cid){
+    var box = document.getElementById('cross-' + cid); if (!box) return;
+    if (box.getAttribute('data-open')) { box.innerHTML = ''; box.removeAttribute('data-open'); btn.classList.remove('on'); return; }
+    box.setAttribute('data-open', '1'); btn.classList.add('on');
+    box.innerHTML = '<div style="color:#aaa;font-size:0.8rem;padding:8px 0;"><i class="fa fa-spinner fa-spin"></i> Поиск аналогов (кроссов)…</div>';
     fetch('<?= APP_URL ?>/api/vin_crosses.php?article=' + encodeURIComponent(article) + '&brand=' + encodeURIComponent(brand), { credentials:'same-origin' })
         .then(function(r){ return r.json(); })
         .then(function(d){
-            if (d.rate_limited){ cell.innerHTML = '<div style="color:#b8860b;font-size:0.8rem;">Превышен лимит запросов. Попробуйте позже.</div>'; return; }
-            if (!d.success || !d.items || d.items.length === 0){ cell.innerHTML = '<div style="color:#aaa;font-size:0.8rem;">Аналоги (кроссы) не найдены.</div>'; return; }
-            var html = '<div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;"><i class="fa fa-exchange"></i> Аналоги по кроссам (' + d.count + ')</div>';
+            if (d.rate_limited){ box.innerHTML = '<div style="color:#b8860b;font-size:0.8rem;">Превышен лимит запросов. Попробуйте позже.</div>'; return; }
+            if (!d.success || !d.items || d.items.length === 0){ box.innerHTML = '<div style="color:#aaa;font-size:0.8rem;">Аналоги (кроссы) не найдены.</div>'; return; }
+            var html = '<div class="vin-cross-h"><i class="fa fa-exchange"></i> Аналоги по кроссам (' + d.count + ')</div>';
             d.items.forEach(function(it){
-                html += '<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #f0f1f5;">';
-                html += '<div style="flex:1;font-size:0.8rem;"><span style="font-weight:600;">' + escapeHtml(it.brand || '') + '</span> <span style="font-family:monospace;color:#666;">' + escapeHtml(it.part_number) + '</span>' + (it.is_original ? ' <span style="font-size:0.66rem;color:#aaa;">(исходный)</span>' : '') + '</div>';
+                html += '<div class="vin-cross-row"><div class="ci"><b>' + escapeHtml(it.brand || '') + '</b> <span>' + escapeHtml(it.part_number) + '</span>' + (it.is_original ? ' <em>(исходный)</em>' : '') + '</div>';
                 if (it.in_catalog){
-                    html += '<span style="font-weight:800;color:#C70909;white-space:nowrap;">' + escapeHtml(it.price) + '</span>';
-                    html += it.stock > 0 ? '<span style="font-size:0.66rem;color:#4caf50;">в наличии</span>' : '<span style="font-size:0.66rem;color:#bbb;">под заказ</span>';
-                    html += '<button type="button" onclick="vinAddToCart(' + it.part_id + ',this)" ' + (it.stock>0?'':'disabled ') + 'style="background:' + (it.stock>0?'#C70909':'#ccc') + ';color:#fff;border:none;width:30px;height:30px;border-radius:5px;cursor:' + (it.stock>0?'pointer':'not-allowed') + ';"><i class="fa fa-shopping-cart"></i></button>';
+                    html += '<span class="cp">' + escapeHtml(it.price) + '</span>';
+                    html += it.stock > 0
+                        ? '<button type="button" class="vin-cart sm" onclick="vinAddToCart(' + it.part_id + ',this)">В корзину</button>'
+                        : '<span class="cu">под заказ</span>';
                 } else {
-                    html += '<a href="<?= APP_URL ?>/search/index.php?q=' + encodeURIComponent(it.part_number) + '" style="font-size:0.76rem;color:#C70909;font-weight:600;white-space:nowrap;">найти <i class="fa fa-search"></i></a>';
+                    html += '<span class="vin-price-ph" data-oem="' + escapeHtml(it.part_number) + '" data-brand="' + escapeHtml(it.brand || '') + '"></span>';
+                    html += '<a class="cl" href="<?= APP_URL ?>/search/index.php?q=' + encodeURIComponent(it.part_number) + '">найти</a>';
                 }
                 html += '</div>';
             });
-            cell.innerHTML = html;
+            box.innerHTML = html;
+            if (window.VX_PRICE_LAZY) vinFillPrices(box);
         })
-        .catch(function(){ cell.innerHTML = '<div style="color:#c00;font-size:0.8rem;">Ошибка загрузки аналогов.</div>'; });
+        .catch(function(){ box.innerHTML = '<div style="color:#c00;font-size:0.8rem;">Ошибка загрузки аналогов.</div>'; });
 }
 
 /* Init: auto-load first node (1 request) or full scan for non-original. */
 (function(){
     var box = document.getElementById('vinCatalog'); if (!box) return;
     var vin = box.getAttribute('data-vin') || ''; if (vin.length !== 17) return;
-    var firstChip = document.querySelector('.vin-node-chip[data-cat]');
-    if (firstChip) { vinLoadNode(firstChip.getAttribute('data-cat'), firstChip); }
+    var firstCard = document.querySelector('.vin-node-card[data-cat]');
+    if (firstCard) { vinLoadNode(firstCard.getAttribute('data-cat'), firstCard); }
     else           { vinLoadAll(null); }
 })();
 </script>

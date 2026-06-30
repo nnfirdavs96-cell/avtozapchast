@@ -3,7 +3,7 @@ require_once dirname(__DIR__) . '/config/config.php';
 requireRole(['admin', 'manager', 'superadmin']);
 requirePermission('vin');
 require_once dirname(__DIR__) . '/includes/vin_service.php';
-require_once dirname(__DIR__) . '/includes/catalog_api.php';
+require_once dirname(__DIR__) . '/includes/catalog.php';
 
 $db     = getDB();
 $csrf   = generateCsrfToken();
@@ -34,17 +34,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Save external CATALOG API settings (superadmin only)
     if ($postAction === 'save_catalog_settings' && $role === 'superadmin') {
+        // Провайдер каталога (partsapi | mock | …) — ядро универсальности.
+        $provId = trim($_POST['catalog_provider'] ?? 'partsapi');
+        if (!array_key_exists($provId, Catalog::available())) $provId = 'partsapi';
+        setSetting('catalog_provider', $provId);
         // Checkbox → explicit '0'/'1'
         setSetting('catalog_api_enabled', isset($_POST['catalog_api_enabled']) ? '1' : '0');
         // type may legitimately be '' (неоригинал) — save as-is.
         setSetting('catalog_api_type', trim($_POST['catalog_api_type'] ?? 'oem'));
-        foreach (['catalog_api_key', 'catalog_api_max_groups', 'catalog_api_base', 'catalog_api_timeout'] as $key) {
+        foreach (['catalog_api_key', 'catalog_api_max_groups', 'catalog_api_base', 'catalog_api_timeout',
+                  'catalog_laximo_login', 'catalog_laximo_secret'] as $key) {
             setSetting($key, trim($_POST[$key] ?? ''));
         }
         // OEM-узлы для дерева каталога (строки «1191=Кузов»). Переводы строк сохраняем.
         setSetting('catalog_api_oem_nodes', trim($_POST['catalog_api_oem_nodes'] ?? ''));
-        require_once dirname(__DIR__) . '/includes/catalog_api.php';
-        CatalogApi::clearCache(); // settings changed → stale cache out
+        // Слой цен: подтягивать цену по OEM из AutoEuro, когда детали нет на своём складе.
+        setSetting('catalog_price_autoeuro', isset($_POST['catalog_price_autoeuro']) ? '1' : '0');
+        // Пользовательские профили REST-провайдеров (JSON) — ядро универсальности.
+        $profilesJson = trim($_POST['catalog_profiles'] ?? '');
+        [$pok, $perr] = CatalogProfiles::validateJson($profilesJson);
+        if ($pok) {
+            setSetting('catalog_profiles', $profilesJson);
+        } else {
+            flashMessage('warning', 'Профили не сохранены: ' . $perr);
+        }
+        Catalog::reset();
+        Catalog::provider()->clearCache(); // settings changed → stale cache out
         flashMessage('success', 'Настройки каталога сохранены.');
         redirect(APP_URL . '/superadmin/vin.php?action=settings');
     }
@@ -196,7 +211,7 @@ if ($action === 'settings' && isset($_GET['test_vin'])) {
 // Test external CATALOG connection (via GET)
 $catalogTest = null;
 if ($action === 'settings' && isset($_GET['test_catalog']) && $role === 'superadmin') {
-    $catalogTest = CatalogApi::testConnection(trim($_GET['test_catalog']));
+    $catalogTest = Catalog::provider()->testConnection(trim($_GET['test_catalog']));
 }
 
 $pageTitle = 'VIN-поиск — Администрирование';
@@ -395,7 +410,9 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
     <?php
         $catEnabled  = ($settings['catalog_api_enabled'] ?? '0') === '1';
         $catHasKey   = trim($settings['catalog_api_key'] ?? '') !== '';
-        $catLive     = $catEnabled && $catHasKey;
+        // «Подключён» = активный провайдер реально готов отдавать каталог
+        // (для демо ключ не нужен, для боевого — нужен ключ + тумблер).
+        $catLive     = Catalog::provider()->enabled();
     ?>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;margin-top:24px;">
         <div class="az-card">
@@ -414,16 +431,55 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 <input type="hidden" name="action" value="save_catalog_settings">
 
                 <div class="az-form-group">
+                    <label>Провайдер каталога</label>
+                    <select name="catalog_provider">
+                        <?php $curProv = $settings['catalog_provider'] ?? 'partsapi'; ?>
+                        <?php foreach (Catalog::available() as $pid => $ptitle): ?>
+                        <option value="<?= sanitize($pid) ?>" <?= $curProv === $pid ? 'selected' : '' ?>>
+                            <?= sanitize($ptitle) ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small style="color:#888;display:block;margin-top:4px;">
+                        «Демо» показывает примерный каталог без ключа. Купив подписку — выберите
+                        провайдера, вставьте ключ ниже и нажмите «Проверить».
+                    </small>
+                </div>
+
+                <div class="az-form-group">
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                         <input type="checkbox" name="catalog_api_enabled" value="1" <?= $catEnabled ? 'checked' : '' ?>>
-                        Включить каталог по API
+                        Включить каталог
                     </label>
                 </div>
 
                 <div class="az-form-group">
-                    <label>API ключ <small style="color:#888;">(метод getPartsbyVIN)</small></label>
+                    <label>API ключ <small style="color:#888;">(REST-провайдеры: PartsAPI/UMAPI/профиль)</small></label>
                     <input type="text" name="catalog_api_key" value="<?= sv2($settings,'catalog_api_key') ?>"
-                           placeholder="ключ getPartsbyVIN от PartsAPI">
+                           placeholder="ключ REST-каталога (getPartsbyVIN и т.п.)">
+                </div>
+
+                <div class="az-form-group" style="background:#fafbfc;border:1px solid #eef0f3;border-radius:8px;padding:10px 12px;">
+                    <label style="font-weight:600;">Laximo <small style="color:#888;font-weight:400;">(оригинальные каталоги — логин + секрет)</small></label>
+                    <input type="text" name="catalog_laximo_login" value="<?= sv2($settings,'catalog_laximo_login') ?>"
+                           placeholder="OEM-логин Laximo" style="margin-bottom:6px;">
+                    <input type="text" name="catalog_laximo_secret" value="<?= sv2($settings,'catalog_laximo_secret') ?>"
+                           placeholder="секретный ключ Laximo">
+                    <small style="color:#888;display:block;margin-top:4px;">Нужны только если выбран провайдер
+                        «Laximo». Каркас готов; на боевом аккаунте жмите «Проверить» — увидите ответ Laximo.</small>
+                </div>
+
+                <div class="az-form-group">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                        <input type="checkbox" name="catalog_price_autoeuro" value="1"
+                               <?= ($settings['catalog_price_autoeuro'] ?? '0') === '1' ? 'checked' : '' ?>>
+                        Цены из AutoEuro для деталей не со склада
+                    </label>
+                    <small style="color:#888;display:block;margin-top:4px;">
+                        Если артикул из каталога есть на своём складе — показываем свою цену. Иначе (при включённой
+                        галочке и настроенном <a href="<?= APP_URL ?>/superadmin/warehouse.php">AutoEuro</a>)
+                        подтягиваем цену поставщика по OEM-номеру (+ общая наценка, в сомони). Кэшируется на 6 ч.
+                    </small>
                 </div>
 
                 <div class="az-form-group">
@@ -465,6 +521,17 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                         <label>Таймаут запроса (сек)</label>
                         <input type="number" name="catalog_api_timeout" min="2" max="30"
                                value="<?= sv2($settings,'catalog_api_timeout','12') ?>">
+                    </div>
+                    <div class="az-form-group">
+                        <label>Профили провайдеров (JSON)
+                            <small style="color:#888;">— подключение REST-сервиса без кода</small></label>
+                        <textarea name="catalog_profiles" rows="8"
+                                  placeholder='{"umapi":{"title":"UMAPI","base_url":"https://api.umapi.ru/","auth":"query","endpoints":{"parts":"?method=getParts&vin={VIN}&cat={CAT}&key={KEY}&format=json","crosses":"?method=getCrosses&art={ART}&key={KEY}&format=json"},"parse":{"mode":"objects","brand_field":"brand","article_field":"article","name_field":"name"},"nodes":["1=Двигатель","2=Тормоза"]}}'
+                                  style="width:100%;font-family:monospace;font-size:0.78rem;padding:8px 12px;border:1px solid #ced4da;border-radius:6px;outline:none;resize:vertical;"><?= sv2($settings,'catalog_profiles') ?></textarea>
+                        <small style="color:#888;">JSON-объект <code>id → профиль</code>. Описывает любой REST/JSON
+                            каталог (URL, авторизация, шаблоны эндпоинтов с <code>{VIN}{KEY}{CAT}{ART}</code>,
+                            маппинг полей ответа). Добавленные профили появляются в списке «Провайдер каталога»
+                            выше — выбираете и вставляете ключ, без правок кода. Подробности — в <code>CATALOG_PLAN.md</code>.</small>
                     </div>
                 </details>
 

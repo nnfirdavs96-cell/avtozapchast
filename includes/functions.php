@@ -370,15 +370,9 @@ function getFlashMessage(): ?array {
  * Get cart item count for logged-in user
  */
 function getCartCount(): int {
-    if (!isLoggedIn()) return 0;
-    try {
-        $db = getDB();
-        $stmt = $db->prepare("SELECT COALESCE(SUM(quantity), 0) FROM cart WHERE user_id = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        return (int)$stmt->fetchColumn();
-    } catch (Exception $e) {
-        return 0;
-    }
+    // Гость и авторизованный — через единое хранилище корзины (cart_lib).
+    try { return cartCountAny(getDB()); }
+    catch (Exception $e) { return 0; }
 }
 
 /**
@@ -865,19 +859,10 @@ function enabledPhoneCountries(): array {
  * Get mini cart items for logged-in user
  */
 function getMiniCart(): array {
-    if (!isLoggedIn()) return [];
+    // Гость и авторизованный — через единое хранилище корзины (cart_lib).
     try {
-        $db   = getDB();
-        $stmt = $db->prepare(
-            "SELECT c.quantity, p.id, p.name, p.price, p.images, b.name AS brand_name
-             FROM cart c
-             JOIN parts p ON p.id = c.part_id
-             LEFT JOIN brands b ON b.id = p.brand_id
-             WHERE c.user_id = ?
-             ORDER BY c.added_at DESC LIMIT 5"
-        );
-        $stmt->execute([$_SESSION['user_id']]);
-        return $stmt->fetchAll();
+        $items = cartDetailedItems(getDB());
+        return array_slice($items, 0, 5);
     } catch (Exception $e) { return []; }
 }
 
@@ -885,16 +870,9 @@ function getMiniCart(): array {
  * Get mini cart total in RUB
  */
 function getMiniCartTotal(): float {
-    if (!isLoggedIn()) return 0;
-    try {
-        $db   = getDB();
-        $stmt = $db->prepare(
-            "SELECT COALESCE(SUM(c.quantity * p.price), 0)
-             FROM cart c JOIN parts p ON p.id = c.part_id WHERE c.user_id = ?"
-        );
-        $stmt->execute([$_SESSION['user_id']]);
-        return (float)$stmt->fetchColumn();
-    } catch (Exception $e) { return 0; }
+    // Гость и авторизованный — через единое хранилище корзины (cart_lib).
+    try { return cartTotalAny(getDB()); }
+    catch (Exception $e) { return 0; }
 }
 
 /**
@@ -1368,6 +1346,10 @@ function loginUser(array $user): void {
     $_SESSION['role']     = $user['role'];
     $_SESSION['username'] = $user['username'];
     unset($_SESSION['user_data']);
+    // Слить гостевую корзину (если была) в БД-корзину пользователя.
+    if (function_exists('cartMergeGuestIntoUser')) {
+        try { cartMergeGuestIntoUser(getDB(), (int)$user['id']); } catch (Exception $e) {}
+    }
 }
 
 /**
