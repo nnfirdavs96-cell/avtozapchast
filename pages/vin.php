@@ -44,6 +44,9 @@ $filterCat      = (int)($_GET['cat'] ?? 0);
 $result         = null;
 $compatParts    = [];
 $catalogEnabled = Catalog::provider()->enabled();
+// Provider-specific: Parts-Catalogs даёт визуальные взрыв-схемы и car-specific узлы.
+$pcProvider = (getSetting('catalog_provider', 'partsapi') === 'partspc');
+$pcSchema   = $pcProvider && getSetting('catalog_pc_schema', '1') === '1';
 $facets         = [];
 $error          = '';
 $searchPerfomed = false;
@@ -459,7 +462,9 @@ require_once dirname(__DIR__) . '/includes/header.php';
         <?php if ($catalogEnabled):
             $oemNodes = Catalog::provider()->oemNodes();
             $catType  = trim(getSetting('catalog_api_type', 'oem'));
-            $showTree = !empty($oemNodes);
+            // Для Parts-Catalogs дерево строится по VIN на клиенте (api/vin_nodes.php),
+            // поэтому каркас показываем даже при пустом справочнике узлов.
+            $showTree = !empty($oemNodes) || $pcProvider;
         ?>
         <style>
             /* ── Дерево узлов: боковая панель «Узлы» + сетка карточек (как на макете) ── */
@@ -505,6 +510,15 @@ require_once dirname(__DIR__) . '/includes/header.php';
             .vin-cross-row .cp{font-weight:800;color:var(--vx-red,#C70909);white-space:nowrap;}
             .vin-cross-row .cu{font-size:0.7rem;color:#bbb;}
             .vin-cross-row .cl{color:var(--vx-red,#C70909);font-weight:600;white-space:nowrap;}
+            /* ── Визуальная взрыв-схема (Parts-Catalogs): картинка + кликабельные хотспоты ── */
+            .vin-scheme-wrap{margin-bottom:22px;}
+            .vin-scheme-cap{font-size:0.82rem;color:#888;margin-bottom:8px;text-align:center;}
+            .vin-scheme-box{position:relative;width:100%;max-width:720px;margin:0 auto;background:#fff;border:1px solid #e7e9ee;border-radius:12px;overflow:hidden;}
+            .vin-scheme-box img{width:100%;display:block;}
+            .vin-hot{position:absolute;border:2px solid transparent;border-radius:3px;cursor:pointer;transition:.1s;box-sizing:border-box;}
+            .vin-hot:hover,.vin-hot.hot{border-color:var(--vx-red,#C70909);background:rgba(199,9,9,.16);}
+            .vin-pcard.hot{border-color:var(--vx-red,#C70909);box-shadow:0 0 0 2px rgba(199,9,9,.18);}
+            .vin-pos-badge{display:inline-block;min-width:18px;text-align:center;background:#eef0f3;color:#39414d;border-radius:5px;font-size:0.66rem;padding:1px 5px;margin-right:5px;}
         </style>
         <div id="vinCatalog" data-vin="<?= sanitize($vin) ?>" data-type="<?= sanitize($catType) ?>" style="margin-top:8px;">
             <h2 style="font-size:1.3rem;font-weight:700;margin:8px 0 16px;color:var(--vx-ink);">
@@ -526,6 +540,15 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     <button type="button" class="vin-node-card" data-cat="<?= (int)$n['cat'] ?>" onclick="vinLoadNode(<?= (int)$n['cat'] ?>, this)"><?= sanitize($n['name']) ?></button>
                     <?php endforeach; ?>
                     <button type="button" class="vin-node-card all" onclick="vinLoadAll(this)" title="Перебрать все группы (дольше, расходует лимит ключа)"><i class="fa fa-th-large"></i> Все узлы</button>
+                </div>
+            </div>
+            <?php endif; ?>
+            <?php if ($pcSchema): ?>
+            <div id="vinSchemePanel" class="vin-scheme-wrap" style="display:none;">
+                <div id="vinSchemeCap" class="vin-scheme-cap"></div>
+                <div id="vinSchemeBox" class="vin-scheme-box">
+                    <img id="vinSchemeImg" alt="">
+                    <div id="vinSchemeHot"></div>
                 </div>
             </div>
             <?php endif; ?>
@@ -767,13 +790,74 @@ function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-/* ── External catalog (PartsAPI): per-node loading + crosses bridge ── */
+/* ── External catalog: per-node loading + visual scheme (Parts-Catalogs) + crosses ── */
+window.VX_PC = <?= $pcProvider ? 'true' : 'false' ?>;
+window.VX_PC_SCHEMA = <?= $pcSchema ? 'true' : 'false' ?>;
 function jsAttr(s){ return String(s == null ? '' : s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,''); }
+function vinCssEsc(s){ return (window.CSS && CSS.escape) ? CSS.escape(String(s)) : String(s); }
 function vinSetActiveChip(btn){ document.querySelectorAll('.vin-node-card').forEach(function(c){ c.classList.remove('active'); }); if (btn) btn.classList.add('active'); }
-function vinLoadNode(cat, btn){ vinSetActiveChip(btn); vinCatalogFetch('&cat=' + encodeURIComponent(cat)); }
-function vinLoadAll(btn){ vinSetActiveChip(btn); vinCatalogFetch(''); }
+function vinLoadNode(cat, btn){ vinSetActiveChip(btn); if (window.VX_PC_SCHEMA) { vinLoadScheme(cat); } else { vinCatalogFetch('&cat=' + encodeURIComponent(cat)); } }
+function vinLoadAll(btn){ vinSetActiveChip(btn); var p = document.getElementById('vinSchemePanel'); if (p) p.style.display = 'none'; vinCatalogFetch(''); }
 /* Клик по узлу в боковом списке → имитируем клик по соответствующей карточке. */
-function vinPickNode(cat){ var c = document.querySelector('.vin-node-card[data-cat="' + cat + '"]'); if (c) c.click(); }
+function vinPickNode(cat){ var c = document.querySelector('.vin-node-card[data-cat="' + vinCssEsc(cat) + '"]'); if (c) c.click(); }
+
+/* Подсветка «хотспот ↔ карточка детали» по номеру выноски. */
+function vinHi(pos, on){ if (pos === '' || pos == null) return; document.querySelectorAll('[data-pos="' + vinCssEsc(pos) + '"]').forEach(function(el){ el.classList.toggle('hot', on); }); }
+
+/* ── Визуальная взрыв-схема узла (Parts-Catalogs): картинка + кликабельные хотспоты ── */
+function vinLoadScheme(cat){
+    var box = document.getElementById('vinCatalog'); if (!box) return;
+    var vin = box.getAttribute('data-vin') || ''; if (vin.length !== 17) return;
+    var statusEl = document.getElementById('vinCatalogStatus'), bodyEl = document.getElementById('vinCatalogBody'), countEl = document.getElementById('vinCatalogCount');
+    var panel = document.getElementById('vinSchemePanel');
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = '<i class="fa fa-spinner fa-spin" style="font-size:1.6rem;color:#C70909;"></i><div style="margin-top:10px;font-size:0.9rem;">Загружаем схему и детали…</div>';
+    bodyEl.innerHTML = ''; countEl.textContent = '';
+    if (panel) panel.style.display = 'none';
+    fetch('<?= APP_URL ?>/api/vin_scheme.php?vin=' + encodeURIComponent(vin) + '&cat=' + encodeURIComponent(cat), { credentials:'same-origin' })
+        .then(function(r){ return r.json(); }).then(vinRenderScheme)
+        .catch(function(){ statusEl.innerHTML = '<div style="font-size:0.9rem;color:#c0392b;">Не удалось загрузить схему. Попробуйте ещё раз.</div>'; });
+}
+function vinScaleHot(img, hot){
+    if (hot.dataset.scaled === '1') return;
+    var W = img.naturalWidth, H = img.naturalHeight; if (!W || !H) return;
+    hot.dataset.scaled = '1';
+    hot.querySelectorAll('.vin-hot').forEach(function(n){
+        n.style.left   = (parseFloat(n.style.left)   / W * 100) + '%';
+        n.style.top    = (parseFloat(n.style.top)    / H * 100) + '%';
+        n.style.width  = (parseFloat(n.style.width)  / W * 100) + '%';
+        n.style.height = (parseFloat(n.style.height) / H * 100) + '%';
+    });
+}
+function vinRenderScheme(d){
+    var statusEl = document.getElementById('vinCatalogStatus'), bodyEl = document.getElementById('vinCatalogBody'), countEl = document.getElementById('vinCatalogCount');
+    var panel = document.getElementById('vinSchemePanel');
+    if (d.rate_limited) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;color:#b8860b;"><i class="fa fa-clock-o"></i> Превышен суточный лимит запросов. Попробуйте позже.</div>'; return; }
+    var parts = d.parts || [];
+    // Диаграмма (если картинка есть)
+    if (panel && d.img) {
+        var cap = document.getElementById('vinSchemeCap'), img = document.getElementById('vinSchemeImg'), hot = document.getElementById('vinSchemeHot');
+        cap.textContent = d.caption || '';
+        hot.innerHTML = ''; hot.dataset.scaled = '';
+        (d.hotspots || []).forEach(function(h){
+            var a = document.createElement('a'); a.className = 'vin-hot'; a.href = '#'; a.setAttribute('data-pos', h.n); a.title = '№ ' + h.n;
+            a.style.left = h.x + 'px'; a.style.top = h.y + 'px'; a.style.width = h.w + 'px'; a.style.height = h.h + 'px';
+            a.addEventListener('mouseenter', function(){ vinHi(h.n, true); });
+            a.addEventListener('mouseleave', function(){ vinHi(h.n, false); });
+            a.addEventListener('click', function(e){ e.preventDefault(); var c = document.querySelector('.vin-pcard[data-pos="' + vinCssEsc(h.n) + '"]'); if (c) c.scrollIntoView({behavior:'smooth', block:'center'}); });
+            hot.appendChild(a);
+        });
+        img.onload = function(){ vinScaleHot(img, hot); };
+        img.src = d.img;
+        if (img.complete && img.naturalWidth) vinScaleHot(img, hot);
+        panel.style.display = 'block';
+    } else if (panel) { panel.style.display = 'none'; }
+    // Детали узла (список под схемой)
+    if (!parts.length) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;">В этом узле деталей не найдено. Выберите другой узел.</div>'; return; }
+    statusEl.style.display = 'none'; countEl.textContent = '(' + parts.length + ')';
+    bodyEl.innerHTML = vinBuildPartsHtml(parts) + '<p style="text-align:center;color:#bbb;font-size:0.76rem;margin:6px 0 32px;"><i class="fa fa-plug"></i> Оригинальный каталог Parts-Catalogs' + (d.from_cache ? ' · из кэша' : '') + '</p>';
+    if (window.VX_PRICE_LAZY) vinFillPrices(bodyEl);
+}
 function vinCatalogFetch(extra){
     var box = document.getElementById('vinCatalog'); if (!box) return;
     var vin = box.getAttribute('data-vin') || ''; if (vin.length !== 17) return;
@@ -785,20 +869,21 @@ function vinCatalogFetch(extra){
         .then(function(r){ return r.json(); }).then(vinRenderCatalog)
         .catch(function(){ statusEl.innerHTML = '<div style="font-size:0.9rem;color:#c0392b;">Не удалось загрузить каталог. Попробуйте ещё раз.</div>'; });
 }
-function vinRenderCatalog(d){
-    var statusEl = document.getElementById('vinCatalogStatus'), bodyEl = document.getElementById('vinCatalogBody'), countEl = document.getElementById('vinCatalogCount');
-    if (d.rate_limited) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;color:#b8860b;"><i class="fa fa-clock-o"></i> Каталог временно недоступен: превышен суточный лимит запросов. Попробуйте позже.</div>'; return; }
-    if (!d.success || !d.items || d.items.length === 0) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;">В этом узле по данному VIN запчасти не найдены. Выберите другой узел или нажмите «Все узлы».</div>'; return; }
-    statusEl.style.display = 'none'; countEl.textContent = '(' + d.count + ')';
+/* Построить HTML карточек деталей (сгруппировано по узлу). data-pos = номер выноски
+   (для связи со схемой). Общий для каталога (PartsAPI) и схемы (Parts-Catalogs). */
+function vinBuildPartsHtml(items){
     var groups = {};
-    d.items.forEach(function(it){ var g = it.group || 'Прочее'; (groups[g] = groups[g] || []).push(it); });
+    items.forEach(function(it){ var g = it.group || 'Прочее'; (groups[g] = groups[g] || []).push(it); });
     var html = '', idx = 0;
     Object.keys(groups).forEach(function(g){
         html += '<div style="margin-bottom:26px;"><div class="vin-grp">' + escapeHtml(g) + '</div><div class="vin-pgrid">';
         groups[g].forEach(function(it){
             idx++; var cid = 'vinc-' + idx;
-            html += '<div class="vin-pcard" id="' + cid + '">';
-            html += '<div class="vin-pcard-t">' + escapeHtml(it.name) + '<span>' + escapeHtml(it.brand || '') + ' · ' + escapeHtml(it.part_number) + '</span></div>';
+            var pos = it.pos ? String(it.pos) : '';
+            var posAttr  = pos ? ' data-pos="' + escapeHtml(pos) + '" onmouseover="vinHi(\'' + jsAttr(pos) + '\',true)" onmouseout="vinHi(\'' + jsAttr(pos) + '\',false)"' : '';
+            var posBadge = pos ? '<span class="vin-pos-badge">№' + escapeHtml(pos) + '</span>' : '';
+            html += '<div class="vin-pcard" id="' + cid + '"' + posAttr + '>';
+            html += '<div class="vin-pcard-t">' + posBadge + escapeHtml(it.name) + '<span>' + escapeHtml(it.brand || '') + ' · ' + escapeHtml(it.part_number) + '</span></div>';
             html += '<div class="vin-pcard-b"><div class="vin-pcard-ph">фото</div><div class="vin-pcard-buy">';
             if (it.in_catalog) {
                 html += '<div class="vin-price">' + escapeHtml(it.price) + '</div>';
@@ -814,8 +899,14 @@ function vinRenderCatalog(d){
         });
         html += '</div></div>';
     });
-    html += '<p style="text-align:center;color:#bbb;font-size:0.76rem;margin:6px 0 32px;"><i class="fa fa-plug"></i> Оригинальный каталог TecDoc / PartsAPI' + (d.from_cache ? ' · из кэша' : '') + '</p>';
-    bodyEl.innerHTML = html;
+    return html;
+}
+function vinRenderCatalog(d){
+    var statusEl = document.getElementById('vinCatalogStatus'), bodyEl = document.getElementById('vinCatalogBody'), countEl = document.getElementById('vinCatalogCount');
+    if (d.rate_limited) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;color:#b8860b;"><i class="fa fa-clock-o"></i> Каталог временно недоступен: превышен суточный лимит запросов. Попробуйте позже.</div>'; return; }
+    if (!d.success || !d.items || d.items.length === 0) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;">В этом узле по данному VIN запчасти не найдены. Выберите другой узел или нажмите «Все узлы».</div>'; return; }
+    statusEl.style.display = 'none'; countEl.textContent = '(' + d.count + ')';
+    bodyEl.innerHTML = vinBuildPartsHtml(d.items) + '<p style="text-align:center;color:#bbb;font-size:0.76rem;margin:6px 0 32px;"><i class="fa fa-plug"></i> Оригинальный каталог TecDoc / PartsAPI' + (d.from_cache ? ' · из кэша' : '') + '</p>';
     if (window.VX_PRICE_LAZY) vinFillPrices(bodyEl);
 }
 
@@ -876,10 +967,41 @@ function vinCrosses(article, brand, btn, cid){
         .catch(function(){ box.innerHTML = '<div style="color:#c00;font-size:0.8rem;">Ошибка загрузки аналогов.</div>'; });
 }
 
+/* Parts-Catalogs: узлы зависят от конкретного авто → тянем реальное дерево по VIN. */
+function vinLoadPcNodes(vin){
+    var cards = document.querySelector('.vin-tree-cards'), side = document.querySelector('.vin-tree-side ul');
+    var statusEl = document.getElementById('vinCatalogStatus');
+    if (cards) cards.innerHTML = '<div style="grid-column:1/-1;color:#999;font-size:0.85rem;padding:8px;"><i class="fa fa-spinner fa-spin"></i> Загружаем узлы автомобиля…</div>';
+    fetch('<?= APP_URL ?>/api/vin_nodes.php?vin=' + encodeURIComponent(vin), { credentials:'same-origin' })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+            if (!d.success || !d.nodes || !d.nodes.length) {
+                if (cards) cards.innerHTML = '';
+                if (statusEl) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;">Узлы для этого VIN не найдены. Проверьте VIN или ключ Parts-Catalogs.</div>'; }
+                return;
+            }
+            var ch = '', sh = '';
+            d.nodes.forEach(function(n){
+                var cat = jsAttr(n.cat);
+                ch += '<button type="button" class="vin-node-card" data-cat="' + escapeHtml(n.cat) + '" onclick="vinLoadNode(\'' + cat + '\', this)">' + escapeHtml(n.name) + '</button>';
+                sh += '<li data-cat="' + escapeHtml(n.cat) + '" onclick="vinPickNode(\'' + cat + '\')">' + escapeHtml(n.name) + '</li>';
+            });
+            ch += '<button type="button" class="vin-node-card all" onclick="vinLoadAll(this)" title="Все узлы (полный перебор)"><i class="fa fa-th-large"></i> Все узлы</button>';
+            if (cards) cards.innerHTML = ch;
+            if (side)  side.innerHTML  = sh;
+            var first = document.querySelector('.vin-node-card[data-cat]');
+            if (first) vinLoadNode(first.getAttribute('data-cat'), first);
+        })
+        .catch(function(){
+            if (cards) cards.innerHTML = '';
+            if (statusEl) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;color:#c0392b;">Не удалось загрузить узлы. Попробуйте обновить страницу.</div>'; }
+        });
+}
 /* Init: auto-load first node (1 request) or full scan for non-original. */
 (function(){
     var box = document.getElementById('vinCatalog'); if (!box) return;
     var vin = box.getAttribute('data-vin') || ''; if (vin.length !== 17) return;
+    if (window.VX_PC) { vinLoadPcNodes(vin); return; }
     var firstCard = document.querySelector('.vin-node-card[data-cat]');
     if (firstCard) { vinLoadNode(firstCard.getAttribute('data-cat'), firstCard); }
     else           { vinLoadAll(null); }

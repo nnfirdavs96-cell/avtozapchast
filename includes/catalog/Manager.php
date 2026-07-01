@@ -26,6 +26,7 @@ class Catalog
     {
         return [
             'partsapi' => 'PartsAPI.ru',
+            'partspc'  => 'Parts-Catalogs (OEM + схемы)',
             'laximo'   => 'Laximo (оригинал)',
             'mock'     => 'Демо (без ключа)',
         ];
@@ -72,6 +73,7 @@ class Catalog
     {
         if ($id === 'mock')     return new MockAdapter();
         if ($id === 'partsapi') return new PartsApiAdapter();
+        if ($id === 'partspc')  { require_once __DIR__ . '/PartsCatalogsAdapter.php'; return new PartsCatalogsAdapter(); }
         if ($id === 'laximo')   { require_once __DIR__ . '/LaximoAdapter.php'; return new LaximoAdapter(); }
         $profile = CatalogProfiles::get($id);
         if ($profile !== null)  return new GenericRestAdapter($profile);
