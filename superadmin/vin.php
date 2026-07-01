@@ -43,13 +43,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // type may legitimately be '' (неоригинал) — save as-is.
         setSetting('catalog_api_type', trim($_POST['catalog_api_type'] ?? 'oem'));
         foreach (['catalog_api_key', 'catalog_api_max_groups', 'catalog_api_base', 'catalog_api_timeout',
-                  'catalog_laximo_login', 'catalog_laximo_secret'] as $key) {
+                  'catalog_laximo_login', 'catalog_laximo_secret',
+                  'catalog_pc_key', 'catalog_pc_base', 'catalog_pc_timeout'] as $key) {
             setSetting($key, trim($_POST[$key] ?? ''));
         }
         // OEM-узлы для дерева каталога (строки «1191=Кузов»). Переводы строк сохраняем.
         setSetting('catalog_api_oem_nodes', trim($_POST['catalog_api_oem_nodes'] ?? ''));
         // Слой цен: подтягивать цену по OEM из AutoEuro, когда детали нет на своём складе.
         setSetting('catalog_price_autoeuro', isset($_POST['catalog_price_autoeuro']) ? '1' : '0');
+        setSetting('catalog_pc_schema', isset($_POST['catalog_pc_schema']) ? '1' : '0');
         // Пользовательские профили REST-провайдеров (JSON) — ядро универсальности.
         $profilesJson = trim($_POST['catalog_profiles'] ?? '');
         [$pok, $perr] = CatalogProfiles::validateJson($profilesJson);
@@ -467,6 +469,26 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                            placeholder="секретный ключ Laximo">
                     <small style="color:#888;display:block;margin-top:4px;">Нужны только если выбран провайдер
                         «Laximo». Каркас готов; на боевом аккаунте жмите «Проверить» — увидите ответ Laximo.</small>
+                </div>
+
+                <div class="az-form-group" style="background:#fafbfc;border:1px solid #eef0f3;border-radius:8px;padding:10px 12px;">
+                    <label style="font-weight:600;">Parts-Catalogs <small style="color:#888;font-weight:400;">(OEM-каталоги + визуальные схемы — один ключ)</small></label>
+                    <input type="text" name="catalog_pc_key" value="<?= sv2($settings,'catalog_pc_key') ?>"
+                           placeholder="API-ключ Parts-Catalogs (заголовок Authorization)" style="margin-bottom:6px;">
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <input type="text" name="catalog_pc_base" value="<?= sv2($settings,'catalog_pc_base','https://api.parts-catalogs.com/') ?>"
+                               placeholder="https://api.parts-catalogs.com/" style="flex:1;min-width:220px;">
+                        <input type="number" name="catalog_pc_timeout" min="2" max="60"
+                               value="<?= sv2($settings,'catalog_pc_timeout','20') ?>" style="width:110px;" title="Таймаут, сек">
+                    </div>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px;">
+                        <input type="checkbox" name="catalog_pc_schema" value="1"
+                               <?= ($settings['catalog_pc_schema'] ?? '1') === '1' ? 'checked' : '' ?>>
+                        Показывать визуальные взрыв-схемы
+                    </label>
+                    <small style="color:#888;display:block;margin-top:4px;">Нужен только если выбран провайдер
+                        «Parts-Catalogs». Вставьте ключ, включите «Каталог» и жмите «Проверить» — должен прийти
+                        список каталогов. Кликабельные схемы появятся на странице VIN.</small>
                 </div>
 
                 <div class="az-form-group">
