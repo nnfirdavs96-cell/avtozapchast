@@ -20,7 +20,7 @@ class PartsApiAdapter implements CatalogProvider
         return CatalogApi::searchByVin($vin, $useCache);
     }
 
-    public function searchByVinCat(string $vin, int $cat, bool $useCache = true): array
+    public function searchByVinCat(string $vin, $cat, bool $useCache = true): array
     {
         return CatalogApi::searchByVinCat($vin, $cat, $useCache);
     }

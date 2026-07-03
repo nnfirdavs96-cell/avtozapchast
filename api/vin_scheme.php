@@ -22,8 +22,8 @@ if (!$provider->enabled() || !method_exists($provider, 'schemeByVinCat')) {
 }
 
 $vin = strtoupper(trim($_GET['vin'] ?? ''));
-$cat = (int)($_GET['cat'] ?? 0);
-if (!VinService::validate($vin) || $cat <= 0) {
+$cat = trim((string)($_GET['cat'] ?? ''));   // ID узла Parts-Catalogs — нечисловая строка
+if (!VinService::validate($vin) || $cat === '') {
     echo json_encode(['success' => false, 'error' => 'bad_params', 'enabled' => true]);
     exit;
 }
