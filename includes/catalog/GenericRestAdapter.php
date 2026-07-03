@@ -58,7 +58,7 @@ class GenericRestAdapter implements CatalogProvider
 
     // ── Каталог по узлу / по VIN ────────────────────────────────────────────
 
-    public function searchByVinCat(string $vin, int $cat, bool $useCache = true): array
+    public function searchByVinCat(string $vin, $cat, bool $useCache = true): array
     {
         $vin = strtoupper(trim($vin));
         $empty = ['items' => [], 'count' => 0, 'cat' => $cat, 'rate_limited' => false, 'from_cache' => false];

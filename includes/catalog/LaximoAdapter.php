@@ -60,7 +60,7 @@ class LaximoAdapter implements CatalogProvider
 
     // ── Каталог / кроссы ─────────────────────────────────────────────────────
 
-    public function searchByVinCat(string $vin, int $cat, bool $useCache = true): array
+    public function searchByVinCat(string $vin, $cat, bool $useCache = true): array
     {
         $empty = ['items' => [], 'count' => 0, 'cat' => $cat, 'rate_limited' => false, 'from_cache' => false];
         if (!$this->enabled()) return $empty;

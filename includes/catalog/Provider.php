@@ -41,7 +41,7 @@ interface CatalogProvider
     public function searchByVin(string $vin, bool $useCache = true): array;
 
     /** Каталог по одному узлу (cat) — один клик дерева = один запрос. */
-    public function searchByVinCat(string $vin, int $cat, bool $useCache = true): array;
+    public function searchByVinCat(string $vin, $cat, bool $useCache = true): array;
 
     /** Узлы дерева каталога: [['cat'=>int,'name'=>string], …]. */
     public function oemNodes(): array;

@@ -28,8 +28,8 @@ if (!VinService::validate($vin)) {
 @set_time_limit(120);
 
 // cat>0 → загрузка ОДНОГО узла (1 запрос, бережёт лимит ключа); иначе полный перебор.
-$cat   = (int)($_GET['cat'] ?? 0);
-$data  = $cat > 0 ? $provider->searchByVinCat($vin, $cat) : $provider->searchByVin($vin);
+$cat   = trim((string)($_GET['cat'] ?? ''));   // ID узла может быть нечисловым (Parts-Catalogs)
+$data  = ($cat !== '' && $cat !== '0') ? $provider->searchByVinCat($vin, $cat) : $provider->searchByVin($vin);
 $items = [];
 foreach ($data['items'] as $it) {
     $items[] = [

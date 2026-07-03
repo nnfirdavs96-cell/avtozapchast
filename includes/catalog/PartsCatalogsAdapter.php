@@ -251,10 +251,11 @@ class PartsCatalogsAdapter implements CatalogProvider
 
     // ── Каталог по узлу / полный ─────────────────────────────────────────────
 
-    public function searchByVinCat(string $vin, int $cat, bool $useCache = true): array
+    public function searchByVinCat(string $vin, $cat, bool $useCache = true): array
     {
+        $cat   = (string)$cat;
         $empty = ['items' => [], 'count' => 0, 'cat' => $cat, 'rate_limited' => false, 'from_cache' => false];
-        if (!$this->enabled() || $cat <= 0) return $empty;
+        if (!$this->enabled() || $cat === '') return $empty;
         $car = $this->vinToCar($vin);
         if ($car === null) return $empty;
 
@@ -320,11 +321,12 @@ class PartsCatalogsAdapter implements CatalogProvider
      * Возвращает ['img','caption','hotspots'=>[{n,x,y,w,h}],'parts'=>item[]+['pos'],
      *             'enabled'=>bool,'rate_limited'=>bool,'from_cache'=>bool].
      */
-    public function schemeByVinCat(string $vin, int $cat): array
+    public function schemeByVinCat(string $vin, string $cat): array
     {
+        $cat = trim($cat);
         $out = ['img' => '', 'caption' => '', 'hotspots' => [], 'parts' => [],
                 'enabled' => false, 'rate_limited' => false, 'from_cache' => false];
-        if (!$this->enabled() || getSetting('catalog_pc_schema', '1') !== '1' || $cat <= 0) return $out;
+        if (!$this->enabled() || getSetting('catalog_pc_schema', '1') !== '1' || $cat === '') return $out;
         $out['enabled'] = true;
         $car = $this->vinToCar($vin);
         if ($car === null) return $out;

@@ -55,7 +55,7 @@ class MockAdapter implements CatalogProvider
         return $nodes;
     }
 
-    public function searchByVinCat(string $vin, int $cat, bool $useCache = true): array
+    public function searchByVinCat(string $vin, $cat, bool $useCache = true): array
     {
         $items = isset(self::DEMO[$cat]) ? $this->itemsForNode($cat) : [];
         $items = CatalogApi::enrichItemsFromWarehouse($items);
