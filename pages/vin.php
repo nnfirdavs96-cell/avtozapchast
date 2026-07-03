@@ -511,7 +511,8 @@ require_once dirname(__DIR__) . '/includes/header.php';
             .vin-cross-row .cu{font-size:0.7rem;color:#bbb;}
             .vin-cross-row .cl{color:var(--vx-red,#C70909);font-weight:600;white-space:nowrap;}
             /* ── Визуальная взрыв-схема (Parts-Catalogs): картинка + кликабельные хотспоты ── */
-            .vin-scheme-wrap{margin-bottom:22px;}
+            .vin-scheme-wrap{margin-bottom:22px;scroll-margin-top:90px;}
+            #vinCatalogStatus,#vinCatalogBody{scroll-margin-top:90px;}
             .vin-scheme-cap{font-size:0.82rem;color:#888;margin-bottom:8px;text-align:center;}
             .vin-scheme-box{position:relative;width:100%;max-width:720px;margin:0 auto;background:#fff;border:1px solid #e7e9ee;border-radius:12px;overflow:hidden;}
             .vin-scheme-box img{width:100%;display:block;}
@@ -853,10 +854,23 @@ function vinRenderScheme(d){
         panel.style.display = 'block';
     } else if (panel) { panel.style.display = 'none'; }
     // Детали узла (список под схемой)
-    if (!parts.length) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;">В этом узле деталей не найдено. Выберите другой узел.</div>'; return; }
+    if (!parts.length) {
+        statusEl.style.display = 'block';
+        statusEl.innerHTML = '<div style="font-size:0.9rem;">В этом узле деталей не найдено. Выберите другой узел.</div>';
+        vinSchemeScroll(panel, d, statusEl);
+        return;
+    }
     statusEl.style.display = 'none'; countEl.textContent = '(' + parts.length + ')';
     bodyEl.innerHTML = vinBuildPartsHtml(parts) + '<p style="text-align:center;color:#bbb;font-size:0.76rem;margin:6px 0 32px;"><i class="fa fa-plug"></i> Оригинальный каталог Parts-Catalogs' + (d.from_cache ? ' · из кэша' : '') + '</p>';
     if (window.VX_PRICE_LAZY) vinFillPrices(bodyEl);
+    vinSchemeScroll(panel, d, bodyEl);
+}
+/* Прокрутить схему (или результаты) в зону видимости — иначе они уходят под сетку узлов. */
+function vinSchemeScroll(panel, d, fallback){
+    var t = (panel && d && d.img && panel.style.display !== 'none') ? panel : fallback;
+    if (!t) return;
+    try { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    catch (e) { if (t.scrollIntoView) t.scrollIntoView(); }
 }
 function vinCatalogFetch(extra){
     var box = document.getElementById('vinCatalog'); if (!box) return;
