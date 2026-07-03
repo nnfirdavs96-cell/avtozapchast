@@ -18,10 +18,13 @@
  * Связь «точка ↔ деталь» = общий номер выноски (positions[].number == part.positionNumber).
  *
  * Доступы (site_settings):
- *   catalog_pc_key      — API-ключ (значение заголовка Authorization)
- *   catalog_pc_base     — база API (по умолчанию https://api.parts-catalogs.com/)
- *   catalog_pc_timeout  — таймаут, сек (по умолчанию 20)
- *   catalog_pc_schema   — показывать визуальные схемы ('1'/'0', по умолчанию '1')
+ *   catalog_pc_key       — API-ключ
+ *   catalog_pc_base      — база API (по умолчанию https://api.parts-catalogs.com/; для
+ *                          Tradesoft может быть хост с /api/ — задаётся тут)
+ *   catalog_pc_timeout   — таймаут, сек (по умолчанию 20)
+ *   catalog_pc_schema    — показывать визуальные схемы ('1'/'0', по умолчанию '1')
+ *   catalog_pc_auth      — способ авторизации: header|bearer|query (по умолчанию header)
+ *   catalog_pc_key_param — имя query-параметра ключа при auth=query (по умолчанию api_key)
  *
  * Кэш: общая таблица partsapi_kv_cache, префикс ключей 'pc:'. Тарификация PC — по
  * VIN/24ч, поэтому кэшируем агрессивно по VIN (24ч): повторные просмотры бесплатны.
@@ -66,10 +69,35 @@ class PartsCatalogsAdapter implements CatalogProvider
         return ($t < 2 || $t > 60) ? 20 : $t;
     }
 
-    /** Заголовок авторизации PC: сырой ключ (без Bearer). Единственная точка правки. */
+    /**
+     * Способ передачи ключа. Tradesoft/Parts-Catalogs встречается в двух вариантах:
+     *   header  — заголовок `Authorization: <ключ>` (сырой; англ. клиент pc-client-slim)
+     *   bearer  — заголовок `Authorization: Bearer <ключ>`
+     *   query   — параметр запроса `?api_key=<ключ>` (рус. дока Tradesoft)
+     * Выбирается в админке (`catalog_pc_auth`), по умолчанию header. Имя query-параметра
+     * настраивается (`catalog_pc_key_param`, по умолчанию api_key; бывает auth_key).
+     */
+    private function authStyle(): string
+    {
+        $s = trim(getSetting('catalog_pc_auth', 'header'));
+        return in_array($s, ['header', 'bearer', 'query'], true) ? $s : 'header';
+    }
+
+    private function keyParam(): string
+    {
+        $p = trim(getSetting('catalog_pc_key_param', 'api_key'));
+        return $p !== '' ? $p : 'api_key';
+    }
+
+    /** Заголовки запроса с учётом способа авторизации. */
     private function authHdr(): array
     {
-        return ['Authorization: ' . $this->key(), 'Accept: application/json'];
+        $h = ['Accept: application/json'];
+        $style = $this->authStyle();
+        if ($style === 'header')      $h[] = 'Authorization: ' . $this->key();
+        elseif ($style === 'bearer')  $h[] = 'Authorization: Bearer ' . $this->key();
+        // style === 'query' → ключ уходит в query-параметр (см. get()), заголовок не нужен
+        return $h;
     }
 
     /**
@@ -77,6 +105,9 @@ class PartsCatalogsAdapter implements CatalogProvider
      */
     private function get(string $path, array $query = []): array
     {
+        if ($this->authStyle() === 'query' && $this->key() !== '') {
+            $query[$this->keyParam()] = $this->key();
+        }
         $url = $this->base() . ltrim($path, '/');
         if ($query) $url .= '?' . http_build_query($query);
         $r   = httpGet($url, $this->timeout(), $this->authHdr());

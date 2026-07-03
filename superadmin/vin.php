@@ -44,7 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         setSetting('catalog_api_type', trim($_POST['catalog_api_type'] ?? 'oem'));
         foreach (['catalog_api_key', 'catalog_api_max_groups', 'catalog_api_base', 'catalog_api_timeout',
                   'catalog_laximo_login', 'catalog_laximo_secret',
-                  'catalog_pc_key', 'catalog_pc_base', 'catalog_pc_timeout'] as $key) {
+                  'catalog_pc_key', 'catalog_pc_base', 'catalog_pc_timeout',
+                  'catalog_pc_auth', 'catalog_pc_key_param'] as $key) {
             setSetting($key, trim($_POST[$key] ?? ''));
         }
         // OEM-узлы для дерева каталога (строки «1191=Кузов»). Переводы строк сохраняем.
@@ -474,12 +475,22 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 <div class="az-form-group" style="background:#fafbfc;border:1px solid #eef0f3;border-radius:8px;padding:10px 12px;">
                     <label style="font-weight:600;">Parts-Catalogs <small style="color:#888;font-weight:400;">(OEM-каталоги + визуальные схемы — один ключ)</small></label>
                     <input type="text" name="catalog_pc_key" value="<?= sv2($settings,'catalog_pc_key') ?>"
-                           placeholder="API-ключ Parts-Catalogs (заголовок Authorization)" style="margin-bottom:6px;">
+                           placeholder="API-ключ Parts-Catalogs / Tradesoft" style="margin-bottom:6px;">
                     <div style="display:flex;gap:6px;flex-wrap:wrap;">
                         <input type="text" name="catalog_pc_base" value="<?= sv2($settings,'catalog_pc_base','https://api.parts-catalogs.com/') ?>"
                                placeholder="https://api.parts-catalogs.com/" style="flex:1;min-width:220px;">
                         <input type="number" name="catalog_pc_timeout" min="2" max="60"
                                value="<?= sv2($settings,'catalog_pc_timeout','20') ?>" style="width:110px;" title="Таймаут, сек">
+                    </div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+                        <?php $pcAuth = $settings['catalog_pc_auth'] ?? 'header'; ?>
+                        <select name="catalog_pc_auth" style="flex:1;min-width:220px;" title="Как передаётся ключ">
+                            <option value="header" <?= $pcAuth==='header'?'selected':'' ?>>Заголовок Authorization: &lt;ключ&gt;</option>
+                            <option value="bearer" <?= $pcAuth==='bearer'?'selected':'' ?>>Заголовок Authorization: Bearer &lt;ключ&gt;</option>
+                            <option value="query"  <?= $pcAuth==='query'?'selected':''  ?>>Параметр запроса ?api_key=&lt;ключ&gt;</option>
+                        </select>
+                        <input type="text" name="catalog_pc_key_param" value="<?= sv2($settings,'catalog_pc_key_param','api_key') ?>"
+                               placeholder="api_key" style="width:130px;" title="Имя параметра ключа (для «Параметр запроса»): api_key или auth_key">
                     </div>
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px;">
                         <input type="checkbox" name="catalog_pc_schema" value="1"
@@ -488,7 +499,10 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                     </label>
                     <small style="color:#888;display:block;margin-top:4px;">Нужен только если выбран провайдер
                         «Parts-Catalogs». Вставьте ключ, включите «Каталог» и жмите «Проверить» — должен прийти
-                        список каталогов. Кликабельные схемы появятся на странице VIN.</small>
+                        список каталогов. Кликабельные схемы появятся на странице VIN.<br>
+                        <b>Если «Проверить» вернул ошибку доступа (401/403)</b> — поменяйте «Способ авторизации»
+                        (заголовок ↔ Bearer ↔ параметр <code>api_key</code>; для Tradesoft часто параметр,
+                        иногда имя <code>auth_key</code>) и/или базовый URL (у Tradesoft бывает хост с <code>/api/</code>).</small>
                 </div>
 
                 <div class="az-form-group">
