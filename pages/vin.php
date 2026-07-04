@@ -467,20 +467,32 @@ require_once dirname(__DIR__) . '/includes/header.php';
             $showTree = !empty($oemNodes) || $pcProvider;
         ?>
         <style>
-            /* ── Дерево узлов: боковая панель «Узлы» + сетка карточек (как на макете) ── */
-            .vin-tree{display:flex;gap:18px;align-items:flex-start;margin-bottom:26px;flex-wrap:wrap;}
-            .vin-tree-side{flex:0 0 190px;background:#eef0f3;border-radius:14px;padding:16px;align-self:stretch;}
+            /* ── Каталог 7zap-стиль: классификатор слева + контент-панель справа ── */
+            .vin-cat7{display:flex;gap:18px;align-items:flex-start;margin-bottom:26px;scroll-margin-top:90px;}
+            .vin-cat7-side{flex:0 0 210px;background:#eef0f3;border-radius:14px;padding:16px;position:sticky;top:90px;max-height:calc(100vh - 120px);overflow-y:auto;}
+            .vin-cat7-main{flex:1;min-width:0;}
+            @media (max-width: 767px){ .vin-cat7{flex-direction:column;} .vin-cat7-side{position:static;flex:none;width:100%;max-height:220px;} }
             .vin-tree-pill{display:inline-flex;align-items:center;gap:6px;background:var(--vx-red,#C70909);color:#fff;font-size:0.76rem;font-weight:700;padding:6px 16px;border-radius:16px;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;}
-            .vin-tree-side ul{list-style:none;margin:0;padding:0;}
-            .vin-tree-side li{position:relative;padding:7px 8px 7px 18px;font-size:0.88rem;color:#39414d;cursor:pointer;border-radius:7px;transition:.12s;}
-            .vin-tree-side li:before{content:'';position:absolute;left:5px;top:14px;width:5px;height:5px;border-radius:50%;background:#9aa3af;}
-            .vin-tree-side li:hover{color:var(--vx-red,#C70909);background:#fff;}
-            .vin-tree-cards{flex:1;min-width:200px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,158px));gap:10px;align-content:start;justify-content:start;}
-            .vin-node-card{text-align:left;background:#fff;border:1px solid #e7e9ee;border-radius:12px;padding:13px 14px;min-height:58px;font-size:0.86rem;font-weight:700;color:#1d2129;cursor:pointer;transition:.15s;display:flex;align-items:center;}
+            .vin-cat7-side ul{list-style:none;margin:0;padding:0;}
+            .vin-cat7-side li{position:relative;padding:7px 8px 7px 18px;font-size:0.86rem;color:#39414d;cursor:pointer;border-radius:7px;transition:.12s;}
+            .vin-cat7-side li:before{content:'';position:absolute;left:5px;top:14px;width:5px;height:5px;border-radius:50%;background:#9aa3af;}
+            .vin-cat7-side li:hover,.vin-cat7-side li.active{color:var(--vx-red,#C70909);background:#fff;}
+            /* Сетка карточек-узлов с миниатюрами схем (как у 7zap) */
+            .vin-node-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
+            .vin-node-card{background:#fff;border:1px solid #e7e9ee;border-radius:12px;padding:0 0 12px;font-size:0.84rem;font-weight:700;color:#1d2129;cursor:pointer;transition:.15s;display:flex;flex-direction:column;overflow:hidden;text-align:center;}
             .vin-node-card:hover{border-color:var(--vx-red,#C70909);box-shadow:0 4px 14px rgba(199,9,9,.10);transform:translateY(-1px);}
             .vin-node-card.active{border-color:var(--vx-red,#C70909);background:#fff5f5;color:var(--vx-red,#C70909);}
-            .vin-node-card.all{align-items:center;justify-content:center;color:#fff;background:var(--vx-ink,#181a1f);border-color:var(--vx-ink,#181a1f);gap:6px;}
+            .vin-node-thumb{display:flex;align-items:center;justify-content:center;height:96px;background:#fbfbfc;border-bottom:1px solid #f0f1f5;margin-bottom:10px;}
+            .vin-node-thumb img{max-width:92%;max-height:88px;object-fit:contain;}
+            .vin-node-thumb svg{color:#c9cdd5;}
+            .vin-node-name{padding:0 10px;line-height:1.25;}
+            .vin-node-card.all{flex-direction:row;align-items:center;justify-content:center;gap:8px;color:#fff;background:var(--vx-ink,#181a1f);border-color:var(--vx-ink,#181a1f);min-height:60px;padding:12px;}
             .vin-node-card.all:hover{filter:brightness(1.15);color:#fff;}
+            /* Вид узла (схема+детали) — заменяет сетку НА МЕСТЕ, без прокрутки вниз */
+            .vin-nv-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+            .vin-nv-back{background:#fff;border:1px solid #e7e9ee;border-radius:9px;padding:8px 14px;font-size:0.82rem;font-weight:700;color:#1d2129;cursor:pointer;transition:.15s;}
+            .vin-nv-back:hover{border-color:var(--vx-red,#C70909);color:var(--vx-red,#C70909);}
+            .vin-nv-title{margin:0;font-size:1.05rem;font-weight:800;color:var(--vx-ink,#181a1f);}
             /* ── Карточки деталей (фото + крупная цена + «В корзину», как на макете) ── */
             .vin-grp{font-size:0.8rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin:0 0 12px;border-bottom:2px solid #f0f1f5;padding-bottom:6px;}
             .vin-pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;}
@@ -526,39 +538,52 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 <i class="fa fa-book" style="color:var(--vx-red);"></i> Оригинальный каталог по VIN
                 <span id="vinCatalogCount" style="color:#888;font-weight:400;font-size:0.9rem;"></span>
             </h2>
-            <?php if ($showTree): ?>
-            <div class="vin-tree">
-                <aside class="vin-tree-side">
+            <div class="vin-cat7">
+                <?php if ($showTree): ?>
+                <aside class="vin-cat7-side">
                     <span class="vin-tree-pill"><i class="fa fa-sitemap"></i> Узлы</span>
-                    <ul>
+                    <ul id="vinNodeList">
                         <?php foreach ($oemNodes as $n): ?>
-                        <li onclick="vinPickNode(<?= (int)$n['cat'] ?>)"><?= sanitize($n['name']) ?></li>
+                        <li data-cat="<?= sanitize((string)$n['cat']) ?>" onclick="vinPickNode('<?= sanitize((string)$n['cat']) ?>')"><?= sanitize($n['name']) ?></li>
                         <?php endforeach; ?>
                     </ul>
                 </aside>
-                <div class="vin-tree-cards">
-                    <?php foreach ($oemNodes as $n): ?>
-                    <button type="button" class="vin-node-card" data-cat="<?= (int)$n['cat'] ?>" onclick="vinLoadNode(<?= (int)$n['cat'] ?>, this)"><?= sanitize($n['name']) ?></button>
-                    <?php endforeach; ?>
-                    <button type="button" class="vin-node-card all" onclick="vinLoadAll(this)" title="Перебрать все группы (дольше, расходует лимит ключа)"><i class="fa fa-th-large"></i> Все узлы</button>
+                <?php endif; ?>
+                <div class="vin-cat7-main">
+                    <!-- Состояние A: сетка карточек-узлов (миниатюры схем — как у 7zap) -->
+                    <div id="vinNodeGrid" class="vin-node-grid" <?= $showTree ? '' : 'style="display:none;"' ?>>
+                        <?php foreach ($oemNodes as $n): ?>
+                        <button type="button" class="vin-node-card" data-cat="<?= sanitize((string)$n['cat']) ?>" data-name="<?= sanitize($n['name']) ?>" onclick="vinLoadNode('<?= sanitize((string)$n['cat']) ?>', this)">
+                            <span class="vin-node-thumb"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10.3 3.7a2 2 0 0 1 3.4 0l1 1.7 2-.2a2 2 0 0 1 1.7 3l-1 1.7 1 1.7a2 2 0 0 1-1.7 3l-2-.2-1 1.7a2 2 0 0 1-3.4 0l-1-1.7-2 .2a2 2 0 0 1-1.7-3l1-1.7-1-1.7a2 2 0 0 1 1.7-3l2 .2 1-1.7z"/><circle cx="12" cy="12" r="2.5"/></svg></span>
+                            <span class="vin-node-name"><?= sanitize($n['name']) ?></span>
+                        </button>
+                        <?php endforeach; ?>
+                        <button type="button" class="vin-node-card all" onclick="vinLoadAll(this)" title="Перебрать все группы (дольше, расходует лимит ключа)"><i class="fa fa-th-large"></i> Все узлы</button>
+                    </div>
+                    <!-- Состояние B: выбранный узел (схема + детали) — сменяет сетку на месте -->
+                    <div id="vinNodeView" style="display:none;">
+                        <div class="vin-nv-head">
+                            <button type="button" class="vin-nv-back" onclick="vinBackToNodes()"><i class="fa fa-arrow-left"></i> Все узлы</button>
+                            <h3 class="vin-nv-title" id="vinNodeTitle"></h3>
+                        </div>
+                        <?php if ($pcSchema): ?>
+                        <div id="vinSchemePanel" class="vin-scheme-wrap" style="display:none;">
+                            <div id="vinSchemeCap" class="vin-scheme-cap"></div>
+                            <div id="vinSchemeBox" class="vin-scheme-box">
+                                <img id="vinSchemeImg" alt="">
+                                <div id="vinSchemeHot"></div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        <div id="vinCatalogBody" style="overflow-x:auto;"></div>
+                    </div>
+                    <div id="vinCatalogStatus" style="background:#fff;border-radius:10px;padding:22px 24px;text-align:center;color:#888;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin:14px 0 32px;<?= $showTree ? 'display:none;' : '' ?>">
+                        <i class="fa fa-spinner fa-spin" style="font-size:1.6rem;color:#C70909;"></i>
+                        <div style="margin-top:10px;font-size:0.9rem;">Подбираем запчасти по VIN из оригинального каталога…</div>
+                        <div style="margin-top:4px;font-size:0.78rem;color:#bbb;">Это может занять несколько секунд.</div>
+                    </div>
                 </div>
             </div>
-            <?php endif; ?>
-            <?php if ($pcSchema): ?>
-            <div id="vinSchemePanel" class="vin-scheme-wrap" style="display:none;">
-                <div id="vinSchemeCap" class="vin-scheme-cap"></div>
-                <div id="vinSchemeBox" class="vin-scheme-box">
-                    <img id="vinSchemeImg" alt="">
-                    <div id="vinSchemeHot"></div>
-                </div>
-            </div>
-            <?php endif; ?>
-            <div id="vinCatalogStatus" style="background:#fff;border-radius:10px;padding:22px 24px;text-align:center;color:#888;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin-bottom:32px;">
-                <i class="fa fa-spinner fa-spin" style="font-size:1.6rem;color:#C70909;"></i>
-                <div style="margin-top:10px;font-size:0.9rem;">Подбираем запчасти по VIN из оригинального каталога…</div>
-                <div style="margin-top:4px;font-size:0.78rem;color:#bbb;">Это может занять несколько секунд.</div>
-            </div>
-            <div id="vinCatalogBody" style="overflow-x:auto;"></div>
         </div>
         <?php endif; ?>
 
@@ -796,9 +821,45 @@ window.VX_PC = <?= $pcProvider ? 'true' : 'false' ?>;
 window.VX_PC_SCHEMA = <?= $pcSchema ? 'true' : 'false' ?>;
 function jsAttr(s){ return String(s == null ? '' : s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,''); }
 function vinCssEsc(s){ return (window.CSS && CSS.escape) ? CSS.escape(String(s)) : String(s); }
-function vinSetActiveChip(btn){ document.querySelectorAll('.vin-node-card').forEach(function(c){ c.classList.remove('active'); }); if (btn) btn.classList.add('active'); }
-function vinLoadNode(cat, btn){ vinSetActiveChip(btn); if (window.VX_PC_SCHEMA) { vinLoadScheme(cat); } else { vinCatalogFetch('&cat=' + encodeURIComponent(cat)); } }
-function vinLoadAll(btn){ vinSetActiveChip(btn); var p = document.getElementById('vinSchemePanel'); if (p) p.style.display = 'none'; vinCatalogFetch(''); }
+function vinSetActiveChip(btn){
+    document.querySelectorAll('.vin-node-card').forEach(function(c){ c.classList.remove('active'); });
+    if (btn && btn.classList) btn.classList.add('active');
+    // Подсветка пункта в классификаторе слева
+    var cat = btn && btn.getAttribute ? btn.getAttribute('data-cat') : null;
+    document.querySelectorAll('#vinNodeList li').forEach(function(li){
+        li.classList.toggle('active', cat !== null && li.getAttribute('data-cat') === cat);
+    });
+}
+/* Переключение контент-панели: сетка узлов ↔ вид узла (схема+детали) — НА МЕСТЕ, без прокрутки вниз. */
+function vinShowView(title){
+    var grid = document.getElementById('vinNodeGrid'), view = document.getElementById('vinNodeView');
+    var t = document.getElementById('vinNodeTitle');
+    if (grid) grid.style.display = 'none';
+    if (view) view.style.display = 'block';
+    if (t) t.textContent = title || '';
+    var wrap = document.querySelector('.vin-cat7');
+    if (wrap) { try { wrap.scrollIntoView({behavior:'smooth', block:'start'}); } catch(e){} }
+}
+function vinBackToNodes(){
+    var grid = document.getElementById('vinNodeGrid'), view = document.getElementById('vinNodeView');
+    var statusEl = document.getElementById('vinCatalogStatus');
+    if (view) view.style.display = 'none';
+    if (grid) grid.style.display = '';
+    if (statusEl) statusEl.style.display = 'none';
+    vinSetActiveChip(null);
+}
+function vinLoadNode(cat, btn){
+    vinSetActiveChip(btn);
+    var name = btn && btn.getAttribute ? (btn.getAttribute('data-name') || (btn.textContent || '').trim()) : '';
+    vinShowView(name);
+    if (window.VX_PC_SCHEMA) { vinLoadScheme(cat); } else { vinCatalogFetch('&cat=' + encodeURIComponent(cat)); }
+}
+function vinLoadAll(btn){
+    vinSetActiveChip(btn);
+    vinShowView('Все узлы');
+    var p = document.getElementById('vinSchemePanel'); if (p) p.style.display = 'none';
+    vinCatalogFetch('');
+}
 /* Клик по узлу в боковом списке → имитируем клик по соответствующей карточке. */
 function vinPickNode(cat){ var c = document.querySelector('.vin-node-card[data-cat="' + vinCssEsc(cat) + '"]'); if (c) c.click(); }
 
@@ -853,24 +914,16 @@ function vinRenderScheme(d){
         if (img.complete && img.naturalWidth) vinScaleHot(img, hot);
         panel.style.display = 'block';
     } else if (panel) { panel.style.display = 'none'; }
-    // Детали узла (список под схемой)
+    // Детали узла (список под схемой). Контент сменяется на месте (vinShowView) —
+    // отдельная прокрутка вниз не нужна.
     if (!parts.length) {
         statusEl.style.display = 'block';
         statusEl.innerHTML = '<div style="font-size:0.9rem;">В этом узле деталей не найдено. Выберите другой узел.</div>';
-        vinSchemeScroll(panel, d, statusEl);
         return;
     }
     statusEl.style.display = 'none'; countEl.textContent = '(' + parts.length + ')';
     bodyEl.innerHTML = vinBuildPartsHtml(parts) + '<p style="text-align:center;color:#bbb;font-size:0.76rem;margin:6px 0 32px;"><i class="fa fa-plug"></i> Оригинальный каталог Parts-Catalogs' + (d.from_cache ? ' · из кэша' : '') + '</p>';
     if (window.VX_PRICE_LAZY) vinFillPrices(bodyEl);
-    vinSchemeScroll(panel, d, bodyEl);
-}
-/* Прокрутить схему (или результаты) в зону видимости — иначе они уходят под сетку узлов. */
-function vinSchemeScroll(panel, d, fallback){
-    var t = (panel && d && d.img && panel.style.display !== 'none') ? panel : fallback;
-    if (!t) return;
-    try { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-    catch (e) { if (t.scrollIntoView) t.scrollIntoView(); }
 }
 function vinCatalogFetch(extra){
     var box = document.getElementById('vinCatalog'); if (!box) return;
@@ -981,44 +1034,51 @@ function vinCrosses(article, brand, btn, cid){
         .catch(function(){ box.innerHTML = '<div style="color:#c00;font-size:0.8rem;">Ошибка загрузки аналогов.</div>'; });
 }
 
-/* Parts-Catalogs: узлы зависят от конкретного авто → тянем реальное дерево по VIN. */
+/* SVG-плейсхолдер миниатюры узла (когда у провайдера нет картинки). */
+var VIN_NODE_PH = '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10.3 3.7a2 2 0 0 1 3.4 0l1 1.7 2-.2a2 2 0 0 1 1.7 3l-1 1.7 1 1.7a2 2 0 0 1-1.7 3l-2-.2-1 1.7a2 2 0 0 1-3.4 0l-1-1.7-2 .2a2 2 0 0 1-1.7-3l1-1.7-1-1.7a2 2 0 0 1 1.7-3l2 .2 1-1.7z"/><circle cx="12" cy="12" r="2.5"/></svg>';
+
+/* Parts-Catalogs: узлы зависят от конкретного авто → тянем реальное дерево по VIN.
+   Карточки с миниатюрами схем (img из groups2) — как у 7zap. Первый узел НЕ
+   автогрузим: пользователь видит сетку узлов и выбирает сам. */
 function vinLoadPcNodes(vin){
-    var cards = document.querySelector('.vin-tree-cards'), side = document.querySelector('.vin-tree-side ul');
+    var grid = document.getElementById('vinNodeGrid'), side = document.getElementById('vinNodeList');
     var statusEl = document.getElementById('vinCatalogStatus');
-    if (cards) cards.innerHTML = '<div style="grid-column:1/-1;color:#999;font-size:0.85rem;padding:8px;"><i class="fa fa-spinner fa-spin"></i> Загружаем узлы автомобиля…</div>';
+    if (grid) grid.innerHTML = '<div style="grid-column:1/-1;color:#999;font-size:0.85rem;padding:8px;"><i class="fa fa-spinner fa-spin"></i> Загружаем узлы автомобиля…</div>';
     fetch('<?= APP_URL ?>/api/vin_nodes.php?vin=' + encodeURIComponent(vin), { credentials:'same-origin' })
         .then(function(r){ return r.json(); })
         .then(function(d){
             if (!d.success || !d.nodes || !d.nodes.length) {
-                if (cards) cards.innerHTML = '';
+                if (grid) grid.innerHTML = '';
                 if (statusEl) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;">Узлы для этого VIN не найдены. Проверьте VIN или ключ Parts-Catalogs.</div>'; }
                 return;
             }
             var ch = '', sh = '';
             d.nodes.forEach(function(n){
-                var cat = jsAttr(n.cat);
-                ch += '<button type="button" class="vin-node-card" data-cat="' + escapeHtml(n.cat) + '" onclick="vinLoadNode(\'' + cat + '\', this)">' + escapeHtml(n.name) + '</button>';
-                sh += '<li data-cat="' + escapeHtml(n.cat) + '" onclick="vinPickNode(\'' + cat + '\')">' + escapeHtml(n.name) + '</li>';
+                var cat = jsAttr(n.cat), nm = escapeHtml(n.name);
+                var thumb = n.img
+                    ? '<img src="' + escapeHtml(n.img) + '" alt="" loading="lazy" onerror="this.parentNode.innerHTML=VIN_NODE_PH;">'
+                    : VIN_NODE_PH;
+                ch += '<button type="button" class="vin-node-card" data-cat="' + escapeHtml(n.cat) + '" data-name="' + nm + '" onclick="vinLoadNode(\'' + cat + '\', this)">'
+                    + '<span class="vin-node-thumb">' + thumb + '</span>'
+                    + '<span class="vin-node-name">' + nm + '</span></button>';
+                sh += '<li data-cat="' + escapeHtml(n.cat) + '" onclick="vinPickNode(\'' + cat + '\')">' + nm + '</li>';
             });
-            ch += '<button type="button" class="vin-node-card all" onclick="vinLoadAll(this)" title="Все узлы (полный перебор)"><i class="fa fa-th-large"></i> Все узлы</button>';
-            if (cards) cards.innerHTML = ch;
+            if (grid) grid.innerHTML = ch;
             if (side)  side.innerHTML  = sh;
-            var first = document.querySelector('.vin-node-card[data-cat]');
-            if (first) vinLoadNode(first.getAttribute('data-cat'), first);
         })
         .catch(function(){
-            if (cards) cards.innerHTML = '';
+            if (grid) grid.innerHTML = '';
             if (statusEl) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;color:#c0392b;">Не удалось загрузить узлы. Попробуйте обновить страницу.</div>'; }
         });
 }
-/* Init: auto-load first node (1 request) or full scan for non-original. */
+/* Init: показываем сетку узлов (7zap-стиль, пользователь выбирает сам);
+   без дерева — полный перебор. */
 (function(){
     var box = document.getElementById('vinCatalog'); if (!box) return;
     var vin = box.getAttribute('data-vin') || ''; if (vin.length !== 17) return;
     if (window.VX_PC) { vinLoadPcNodes(vin); return; }
     var firstCard = document.querySelector('.vin-node-card[data-cat]');
-    if (firstCard) { vinLoadNode(firstCard.getAttribute('data-cat'), firstCard); }
-    else           { vinLoadAll(null); }
+    if (!firstCard) vinLoadAll(null);   // дерева нет → полный перебор
 })();
 </script>
 

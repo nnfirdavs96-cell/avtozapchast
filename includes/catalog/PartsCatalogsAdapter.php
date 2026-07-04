@@ -35,7 +35,7 @@ require_once __DIR__ . '/../catalog_api.php';
 
 class PartsCatalogsAdapter implements CatalogProvider
 {
-    private const CACHE_VER = 1;
+    private const CACHE_VER = 2;  // v2: язык (Language: ru) + миниатюры узлов — сброс англ. кэша
     private const TTL_CAR   = 86400;    // 24h  VIN→car (criteria живёт с кредитом VIN)
     private const TTL_DATA  = 86400;    // 24h  узлы / детали / схемы
     private const TTL_CATS  = 2592000;  // 30d  список каталогов
@@ -89,10 +89,17 @@ class PartsCatalogsAdapter implements CatalogProvider
         return $p !== '' ? $p : 'api_key';
     }
 
+    /** Язык ответов API (названия узлов/деталей). PC поддерживает заголовок Language. */
+    private function lang(): string
+    {
+        $l = strtolower(trim(getSetting('catalog_pc_lang', 'ru')));
+        return preg_match('/^[a-z]{2}$/', $l) ? $l : 'ru';
+    }
+
     /** Заголовки запроса с учётом способа авторизации. */
     private function authHdr(): array
     {
-        $h = ['Accept: application/json'];
+        $h = ['Accept: application/json', 'Language: ' . $this->lang()];
         $style = $this->authStyle();
         if ($style === 'header')      $h[] = 'Authorization: ' . $this->key();
         elseif ($style === 'bearer')  $h[] = 'Authorization: Bearer ' . $this->key();
@@ -162,7 +169,7 @@ class PartsCatalogsAdapter implements CatalogProvider
     {
         $vin = strtoupper(trim($vin));
         if ($vin === '') return null;
-        $ck = 'car:' . $vin;
+        $ck = 'car:' . $this->lang() . ':' . $vin;
         $c  = $this->kvGet($ck, self::TTL_CAR);
         if ($c !== null && !empty($c['carId'])) return $c;
 
@@ -215,7 +222,7 @@ class PartsCatalogsAdapter implements CatalogProvider
         $car = $this->vinToCar($vin);
         if ($car === null) return [];
 
-        $ck     = 'nodes:' . $car['catalogId'] . ':' . $car['carId'];
+        $ck     = 'nodes:' . $this->lang() . ':' . $car['catalogId'] . ':' . $car['carId'];
         $cached = $this->kvGet($ck, self::TTL_DATA);
         if ($cached !== null) return $cached['nodes'] ?? [];
 
@@ -241,7 +248,9 @@ class PartsCatalogsAdapter implements CatalogProvider
             $name = trim((string)($g['name'] ?? ''));
             if ($gid === '') continue;
             if (!empty($g['hasParts'])) {
-                $out[] = ['cat' => $gid, 'name' => $name !== '' ? $name : $gid];
+                // img — миниатюра схемы узла (как карточки у 7zap); может отсутствовать.
+                $out[] = ['cat' => $gid, 'name' => $name !== '' ? $name : $gid,
+                          'img' => (string)($g['img'] ?? '')];
             } else {
                 $this->collectLeaves($car, $gid, $out, $depth + 1);
             }
@@ -259,7 +268,7 @@ class PartsCatalogsAdapter implements CatalogProvider
         $car = $this->vinToCar($vin);
         if ($car === null) return $empty;
 
-        $ck = 'parts:' . $car['catalogId'] . ':' . $car['carId'] . ':' . $cat;
+        $ck = 'parts:' . $this->lang() . ':' . $car['catalogId'] . ':' . $car['carId'] . ':' . $cat;
         if ($useCache) {
             $c = $this->kvGet($ck, self::TTL_DATA);
             if ($c !== null) {
@@ -331,7 +340,7 @@ class PartsCatalogsAdapter implements CatalogProvider
         $car = $this->vinToCar($vin);
         if ($car === null) return $out;
 
-        $ck = 'scheme:' . $car['catalogId'] . ':' . $car['carId'] . ':' . $cat;
+        $ck = 'scheme:' . $this->lang() . ':' . $car['catalogId'] . ':' . $car['carId'] . ':' . $cat;
         $c  = $this->kvGet($ck, self::TTL_DATA);
         if ($c !== null) {
             $c['parts']      = CatalogApi::enrichItemsFromWarehouse($c['parts'] ?? []);
