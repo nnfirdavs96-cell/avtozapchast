@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach (['catalog_api_key', 'catalog_api_max_groups', 'catalog_api_base', 'catalog_api_timeout',
                   'catalog_laximo_login', 'catalog_laximo_secret',
                   'catalog_pc_key', 'catalog_pc_base', 'catalog_pc_timeout',
-                  'catalog_pc_auth', 'catalog_pc_key_param'] as $key) {
+                  'catalog_pc_auth', 'catalog_pc_key_param', 'catalog_pc_lang'] as $key) {
             setSetting($key, trim($_POST[$key] ?? ''));
         }
         // OEM-узлы для дерева каталога (строки «1191=Кузов»). Переводы строк сохраняем.
@@ -491,6 +491,11 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                         </select>
                         <input type="text" name="catalog_pc_key_param" value="<?= sv2($settings,'catalog_pc_key_param','api_key') ?>"
                                placeholder="api_key" style="width:130px;" title="Имя параметра ключа (для «Параметр запроса»): api_key или auth_key">
+                        <?php $pcLang = $settings['catalog_pc_lang'] ?? 'ru'; ?>
+                        <select name="catalog_pc_lang" style="width:150px;" title="Язык названий узлов и деталей из API">
+                            <option value="ru" <?= $pcLang==='ru'?'selected':'' ?>>Русский (ru)</option>
+                            <option value="en" <?= $pcLang==='en'?'selected':'' ?>>English (en)</option>
+                        </select>
                     </div>
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px;">
                         <input type="checkbox" name="catalog_pc_schema" value="1"

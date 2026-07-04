@@ -34,7 +34,9 @@ $out = [];
 foreach ((array)$nodes as $n) {
     $cat = (string)($n['cat'] ?? '');
     if ($cat === '') continue;
-    $out[] = ['cat' => $cat, 'name' => (string)($n['name'] ?? $cat)];
+    $out[] = ['cat'  => $cat,
+              'name' => (string)($n['name'] ?? $cat),
+              'img'  => (string)($n['img'] ?? '')];   // миниатюра схемы узла (7zap-стиль)
 }
 
 echo json_encode(['success' => true, 'count' => count($out), 'nodes' => $out], JSON_UNESCAPED_UNICODE);
