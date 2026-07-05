@@ -799,11 +799,8 @@ function vxPickBrand(b){
 
 /* ── Живой каскад «По параметрам» (Parts-Catalogs): Марка → Модель → уточнения → авто ── */
 (function(){
-    if (!window.VX_PC) return;                         // только у Parts-Catalogs
     var wrap = document.getElementById('vxPcCascade'); if (!wrap) return;
     var curated = document.querySelector('#vx-p-params .vx-params');
-    if (curated) curated.style.display = 'none';       // прячем курируемый список
-    wrap.style.display = 'block';
 
     var API = '<?= APP_URL ?>/api/vin_params.php';
     var PAGE = '<?= APP_URL ?>/pages/vin.php';
@@ -826,12 +823,16 @@ function vxPickBrand(b){
         '<select id="pcModel" disabled><option value="">' + e(L_MD) + '</option></select>';
     var pcBrand = document.getElementById('pcBrand'), pcModel = document.getElementById('pcModel');
 
-    spin('Загружаем марки…');
+    // Живой каскад активируем ТОЛЬКО если провайдер реально отдаёт марки
+    // (Parts-Catalogs). Иначе на странице остаётся курируемый список — без ложных
+    // ошибок и без зависимости от флага провайдера.
     api('step=brands').then(function(d){
-        if (!d.success || !d.items || !d.items.length) { msg('Марки не получены — проверьте ключ/провайдер Parts-Catalogs.', true); return; }
+        if (!d || !d.success || !d.items || !d.items.length) return;   // не PC → курируемый список
+        if (curated) curated.style.display = 'none';
+        wrap.style.display = 'block';
         msg('');
         d.items.forEach(function(b){ var o=document.createElement('option'); o.value=b.id; o.textContent=b.name; pcBrand.appendChild(o); });
-    }).catch(function(){ msg('Ошибка загрузки марок.', true); });
+    }).catch(function(){});
 
     pcBrand.addEventListener('change', function(){
         catalogId = pcBrand.value; modelId=''; clearParams(); carsEl.innerHTML='';
