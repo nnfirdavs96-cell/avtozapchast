@@ -490,9 +490,10 @@ require_once dirname(__DIR__) . '/includes/header.php';
             <a href="<?= APP_URL ?>/search/index.php?q=<?= urlencode($result['make'] ?? '') ?>" style="display:inline-block;background:#C70909;color:#fff;padding:10px 28px;border-radius:6px;font-weight:600;"><i class="fa fa-search"></i> Найти в каталоге</a>
         </div>
         <?php endif; ?>
+    </div><!-- /car-info max-width:900px -->
 
-        <!-- ── External catalog (PartsAPI): nodes + crosses bridge ─────── -->
-        <?php if ($catalogEnabled):
+    <!-- ── External catalog: на всю ширину контейнера (не в узкой обёртке) ─── -->
+    <?php if ($catalogEnabled):
             $oemNodes = Catalog::provider()->oemNodes();
             $catType  = trim(getSetting('catalog_api_type', 'oem'));
             // Для Parts-Catalogs дерево строится по VIN на клиенте (api/vin_nodes.php),
@@ -502,7 +503,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
         <style>
             /* ── Каталог 7zap-стиль: классификатор слева + контент-панель справа ── */
             .vin-cat7{display:flex;gap:18px;align-items:flex-start;margin-bottom:26px;scroll-margin-top:90px;}
-            .vin-cat7-side{flex:0 0 210px;background:#eef0f3;border-radius:14px;padding:16px;position:sticky;top:90px;max-height:calc(100vh - 120px);overflow-y:auto;}
+            .vin-cat7-side{flex:0 0 250px;background:#eef0f3;border-radius:14px;padding:16px;position:sticky;top:90px;max-height:calc(100vh - 120px);overflow-y:auto;}
             .vin-cat7-main{flex:1;min-width:0;}
             @media (max-width: 767px){ .vin-cat7{flex-direction:column;} .vin-cat7-side{position:static;flex:none;width:100%;max-height:220px;} }
             .vin-tree-pill{display:inline-flex;align-items:center;gap:6px;background:var(--vx-red,#C70909);color:#fff;font-size:0.76rem;font-weight:700;padding:6px 16px;border-radius:16px;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;}
@@ -621,8 +622,6 @@ require_once dirname(__DIR__) . '/includes/header.php';
             </div>
         </div>
         <?php endif; ?>
-
-    </div><!-- /max-width -->
 
     <?php else: ?>
     <!-- VIN entered but car not identified → friendly not-found with CTA -->
