@@ -410,6 +410,157 @@ class PartsCatalogsAdapter implements CatalogProvider
         return $out;
     }
 
+    // ── Каскад «По параметрам»: Марка → Модель → уточнения → авто ────────────
+    //  (те же поля, что подтвердились на VIN-пути; клиент alex-ello/pc-client-slim)
+
+    /** Собрать $car из выбранного по параметрам авто (без VIN). */
+    private function carArr(string $carId, string $catalogId, string $criteria, string $brand = ''): array
+    {
+        return ['carId' => $carId, 'catalogId' => $catalogId, 'criteria' => $criteria, 'brand' => $brand, 'count' => 1];
+    }
+
+    /** Марки (каталоги): [{id,name}]. `v1/catalogs/`. Кэш 30д. */
+    public function pcBrands(): array
+    {
+        if (!$this->enabled()) return [];
+        $ck = 'brands:' . $this->lang();
+        $c  = $this->kvGet($ck, self::TTL_CATS);
+        if ($c !== null) return $c['items'] ?? [];
+        [$j] = $this->get('v1/catalogs/');
+        $out = [];
+        foreach ((is_array($j) ? $j : []) as $b) {
+            if (!is_array($b)) continue;
+            $id = (string)($b['id'] ?? ''); $nm = trim((string)($b['name'] ?? ''));
+            if ($id === '') continue;
+            $out[] = ['id' => $id, 'name' => $nm !== '' ? $nm : $id];
+        }
+        $this->kvSet($ck, ['count' => count($out), 'items' => $out]);
+        return $out;
+    }
+
+    /** Модели марки: [{id,name,img}]. `v1/catalogs/{id}/models`. Кэш 30д. */
+    public function pcModels(string $catalogId): array
+    {
+        if (!$this->enabled() || $catalogId === '') return [];
+        $ck = 'models:' . $this->lang() . ':' . $catalogId;
+        $c  = $this->kvGet($ck, self::TTL_CATS);
+        if ($c !== null) return $c['items'] ?? [];
+        [$j] = $this->get('v1/catalogs/' . rawurlencode($catalogId) . '/models');
+        $out = [];
+        foreach ((is_array($j) ? $j : []) as $m) {
+            if (!is_array($m)) continue;
+            $id = (string)($m['id'] ?? ''); $nm = trim((string)($m['name'] ?? ''));
+            if ($id === '') continue;
+            $out[] = ['id' => $id, 'name' => $nm !== '' ? $nm : $id, 'img' => (string)($m['img'] ?? '')];
+        }
+        $this->kvSet($ck, ['count' => count($out), 'items' => $out]);
+        return $out;
+    }
+
+    /**
+     * Уточняющие параметры (год/кузов/двигатель/рулевое/рынок…): динамический набор.
+     * `v1/catalogs/{id}/cars-parameters?modelId&parameter=idx1,idx2`. Возвращает
+     * [{key,name,values:[{idx,value}]}]. Итеративно: накопленные idx сужают набор.
+     */
+    public function pcCarParams(string $catalogId, string $modelId, string $paramCsv = ''): array
+    {
+        if (!$this->enabled() || $catalogId === '' || $modelId === '') return [];
+        $ck = 'cparams:' . $this->lang() . ':' . $catalogId . ':' . $modelId . ':' . md5($paramCsv);
+        $c  = $this->kvGet($ck, self::TTL_DATA);
+        if ($c !== null) return $c['items'] ?? [];
+        [$j] = $this->get('v1/catalogs/' . rawurlencode($catalogId) . '/cars-parameters', array_filter([
+            'catalogId' => $catalogId, 'modelId' => $modelId, 'parameter' => $paramCsv,
+        ], fn($v) => $v !== ''));
+        $out = [];
+        foreach ((is_array($j) ? $j : []) as $p) {
+            if (!is_array($p)) continue;
+            $vals = [];
+            foreach (($p['values'] ?? []) as $v) {
+                if (!is_array($v)) continue;
+                $idx = (string)($v['idx'] ?? ''); if ($idx === '') continue;
+                $vals[] = ['idx' => $idx, 'value' => trim((string)($v['value'] ?? $idx))];
+            }
+            if (!$vals) continue;
+            $out[] = ['key' => (string)($p['key'] ?? ''), 'name' => trim((string)($p['name'] ?? '')), 'values' => $vals];
+        }
+        $this->kvSet($ck, ['count' => count($out), 'items' => $out]);
+        return $out;
+    }
+
+    /**
+     * Конкретные авто (модификации) под выбранные параметры.
+     * `v1/catalogs/{id}/cars2?modelId&parameter=idx1,idx2`.
+     * Возвращает [{carId,catalogId,criteria,name,modelName,brand}] (эти carId/criteria
+     * идут прямо в groups2/parts2 — как из VIN).
+     */
+    public function pcCars(string $catalogId, string $modelId, string $paramCsv = ''): array
+    {
+        if (!$this->enabled() || $catalogId === '' || $modelId === '') return [];
+        $ck = 'cars:' . $this->lang() . ':' . $catalogId . ':' . $modelId . ':' . md5($paramCsv);
+        $c  = $this->kvGet($ck, self::TTL_DATA);
+        if ($c !== null) return $c['items'] ?? [];
+        [$j] = $this->get('v1/catalogs/' . rawurlencode($catalogId) . '/cars2', array_filter([
+            'modelId' => $modelId, 'parameter' => $paramCsv,
+        ], fn($v) => $v !== ''));
+        $out = [];
+        foreach ((is_array($j) ? $j : []) as $c2) {
+            if (!is_array($c2)) continue;
+            $id = (string)($c2['id'] ?? ''); if ($id === '') continue;
+            $out[] = [
+                'carId'     => $id,
+                'catalogId' => (string)($c2['catalogId'] ?? $catalogId),
+                'criteria'  => (string)($c2['criteria'] ?? ''),
+                'name'      => trim((string)($c2['name'] ?? '')),
+                'modelName' => trim((string)($c2['modelName'] ?? '')),
+                'brand'     => trim((string)($c2['brand'] ?? '')),
+            ];
+            if (count($out) >= 200) break;
+        }
+        $this->kvSet($ck, ['count' => count($out), 'items' => $out]);
+        return $out;
+    }
+
+    /** Узлы для авто, выбранного по параметрам (без VIN) — тот же groups2, что и по VIN. */
+    public function oemNodesForCar(string $carId, string $catalogId, string $criteria, string $brand = ''): array
+    {
+        if (!$this->enabled() || $carId === '' || $catalogId === '') return [];
+        $ck     = 'nodes:' . $this->lang() . ':' . $catalogId . ':' . $carId;
+        $cached = $this->kvGet($ck, self::TTL_DATA);
+        if ($cached !== null) return $cached['nodes'] ?? [];
+        $car   = $this->carArr($carId, $catalogId, $criteria, $brand);
+        $nodes = [];
+        $this->collectLeaves($car, '', $nodes, 0);
+        $this->kvSet($ck, ['count' => count($nodes), 'nodes' => $nodes]);
+        return $nodes;
+    }
+
+    /** Схема+детали узла для авто, выбранного по параметрам (без VIN) — тот же parts2. */
+    public function schemeByCar(string $carId, string $catalogId, string $criteria, string $cat, string $brand = ''): array
+    {
+        $cat = trim($cat);
+        $out = ['img' => '', 'caption' => '', 'hotspots' => [], 'parts' => [],
+                'enabled' => false, 'rate_limited' => false, 'from_cache' => false];
+        if (!$this->enabled() || getSetting('catalog_pc_schema', '1') !== '1'
+            || $cat === '' || $carId === '' || $catalogId === '') return $out;
+        $out['enabled'] = true;
+        $ck = 'scheme:' . $this->lang() . ':' . $catalogId . ':' . $carId . ':' . $cat;
+        $c  = $this->kvGet($ck, self::TTL_DATA);
+        if ($c !== null) {
+            $c['parts']      = CatalogApi::enrichItemsFromWarehouse($c['parts'] ?? []);
+            $c['enabled']    = true;
+            $c['from_cache'] = true;
+            return $c;
+        }
+        $sp = $this->fetchScheme($this->carArr($carId, $catalogId, $criteria, $brand), $cat);
+        $sp['enabled'] = true;
+        if ($sp['rate_limited']) return $sp;
+        $this->kvSet($ck, ['img' => $sp['img'], 'caption' => $sp['caption'],
+                           'hotspots' => $sp['hotspots'], 'parts' => $sp['parts'],
+                           'count' => count($sp['parts'])]);
+        $sp['parts'] = CatalogApi::enrichItemsFromWarehouse($sp['parts']);
+        return $sp;
+    }
+
     // ── Кроссы: у PC своего метода нет → отдаём сам OEM, обогащённый складом ──
 
     public function crossesWithWarehouse(string $article, string $brand = ''): array

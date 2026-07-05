@@ -18,17 +18,23 @@ if (!$provider->enabled()) {
     exit;
 }
 
-$vin = strtoupper(trim($_GET['vin'] ?? ''));
-if (!VinService::validate($vin)) {
-    echo json_encode(['success' => false, 'error' => 'bad_vin', 'nodes' => []]);
-    exit;
-}
-
 @set_time_limit(60);
 
-$nodes = method_exists($provider, 'oemNodesForVin')
-    ? $provider->oemNodesForVin($vin)
-    : $provider->oemNodes();
+// Режим «По параметрам»: авто задано carId+catalogId (без VIN) → те же узлы (groups2).
+$carId = trim($_GET['carId'] ?? '');
+$catId = trim($_GET['catalogId'] ?? '');
+if ($carId !== '' && $catId !== '' && method_exists($provider, 'oemNodesForCar')) {
+    $nodes = $provider->oemNodesForCar($carId, $catId, trim($_GET['criteria'] ?? ''), trim($_GET['brand'] ?? ''));
+} else {
+    $vin = strtoupper(trim($_GET['vin'] ?? ''));
+    if (!VinService::validate($vin)) {
+        echo json_encode(['success' => false, 'error' => 'bad_vin', 'nodes' => []]);
+        exit;
+    }
+    $nodes = method_exists($provider, 'oemNodesForVin')
+        ? $provider->oemNodesForVin($vin)
+        : $provider->oemNodes();
+}
 
 $out = [];
 foreach ((array)$nodes as $n) {

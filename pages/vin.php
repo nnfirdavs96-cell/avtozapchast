@@ -870,7 +870,6 @@ function vinHi(pos, on){ if (pos === '' || pos == null) return; document.querySe
 function vinLoadScheme(cat){
     var box = document.getElementById('vinCatalog'); if (!box) return;
     var vin = box.getAttribute('data-vin') || ''; if (vin.length !== 17) return;
-    window.__vinSchemeLoads = (window.__vinSchemeLoads || 0) + 1;   // 1-й = авто-загрузка, >1 = клик пользователя
     var statusEl = document.getElementById('vinCatalogStatus'), bodyEl = document.getElementById('vinCatalogBody'), countEl = document.getElementById('vinCatalogCount');
     var panel = document.getElementById('vinSchemePanel');
     statusEl.style.display = 'block';
@@ -925,12 +924,6 @@ function vinRenderScheme(d){
     statusEl.style.display = 'none'; countEl.textContent = '(' + parts.length + ')';
     bodyEl.innerHTML = vinBuildPartsHtml(parts) + '<p style="text-align:center;color:#bbb;font-size:0.76rem;margin:6px 0 32px;"><i class="fa fa-plug"></i> Оригинальный каталог Parts-Catalogs' + (d.from_cache ? ' · из кэша' : '') + '</p>';
     if (window.VX_PRICE_LAZY) vinFillPrices(bodyEl);
-    // По клику пользователя (не на авто-загрузке) — прокрутить к схеме/деталям, т.к.
-    // сетка узлов высокая и результат оказывается ниже видимой области.
-    if ((window.__vinSchemeLoads || 0) > 1) {
-        var tgt = (panel && panel.style.display !== 'none') ? panel : bodyEl;
-        if (tgt) { try { tgt.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
-    }
 }
 function vinCatalogFetch(extra){
     var box = document.getElementById('vinCatalog'); if (!box) return;
