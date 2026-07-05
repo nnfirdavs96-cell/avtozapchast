@@ -133,7 +133,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
     --vx-text:#1d2129; --vx-radius:14px; --vx-shadow:0 6px 24px rgba(17,20,30,.07);
     background:var(--vx-bg); color:var(--vx-text); padding:18px 0 56px;
 }
-.vx .container{max-width:1160px;}
+.vx .container{max-width:min(1560px,94vw);}
 .vx a{text-decoration:none;}
 
 /* promo */
@@ -511,12 +511,12 @@ require_once dirname(__DIR__) . '/includes/header.php';
             .vin-cat7-side li:before{content:'';position:absolute;left:5px;top:14px;width:5px;height:5px;border-radius:50%;background:#9aa3af;}
             .vin-cat7-side li:hover,.vin-cat7-side li.active{color:var(--vx-red,#C70909);background:#fff;}
             /* Сетка карточек-узлов с миниатюрами схем (как у 7zap) */
-            .vin-node-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
+            .vin-node-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:14px;}
             .vin-node-card{background:#fff;border:1px solid #e7e9ee;border-radius:12px;padding:0 0 12px;font-size:0.84rem;font-weight:700;color:#1d2129;cursor:pointer;transition:.15s;display:flex;flex-direction:column;overflow:hidden;text-align:center;}
             .vin-node-card:hover{border-color:var(--vx-red,#C70909);box-shadow:0 4px 14px rgba(199,9,9,.10);transform:translateY(-1px);}
             .vin-node-card.active{border-color:var(--vx-red,#C70909);background:#fff5f5;color:var(--vx-red,#C70909);}
-            .vin-node-thumb{display:flex;align-items:center;justify-content:center;height:96px;background:#fbfbfc;border-bottom:1px solid #f0f1f5;margin-bottom:10px;}
-            .vin-node-thumb img{max-width:92%;max-height:88px;object-fit:contain;}
+            .vin-node-thumb{display:flex;align-items:center;justify-content:center;height:118px;background:#fbfbfc;border-bottom:1px solid #f0f1f5;margin-bottom:10px;}
+            .vin-node-thumb img{max-width:92%;max-height:106px;object-fit:contain;}
             .vin-node-thumb svg{color:#c9cdd5;}
             .vin-node-name{padding:0 10px;line-height:1.25;}
             .vin-node-card.all{flex-direction:row;align-items:center;justify-content:center;gap:8px;color:#fff;background:var(--vx-ink,#181a1f);border-color:var(--vx-ink,#181a1f);min-height:60px;padding:12px;}
