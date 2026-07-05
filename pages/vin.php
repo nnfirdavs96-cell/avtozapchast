@@ -151,7 +151,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
 .vx-hero p{color:var(--vx-muted);max-width:640px;margin:0 auto;font-size:.98rem;}
 
 /* search card */
-.vx-scard{background:var(--vx-ink);color:#fff;border-radius:18px;max-width:760px;margin:18px auto 6px;padding:24px 26px;box-shadow:0 18px 50px rgba(17,20,30,.25);}
+.vx-scard{background:var(--vx-ink);color:#fff;border-radius:18px;max-width:1040px;margin:18px auto 6px;padding:24px 26px;box-shadow:0 18px 50px rgba(17,20,30,.25);}
 .vx-scard h2{margin:0 0 4px;font-size:1.2rem;}
 .vx-scard .hint{color:#9aa0ab;font-size:.83rem;margin-bottom:16px;}
 .vx-scard .hint a{color:#ff6b6b;font-weight:600;cursor:pointer;}
@@ -352,7 +352,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
 
     <?php elseif ($result && !empty($result['make'])): ?>
     <!-- ── Decoded car info ──────────────────────────────────────────── -->
-    <div style="max-width:900px;margin:30px auto 0;">
+    <div style="max-width:100%;margin:30px auto 0;">
 
         <div style="background:#fff;border-radius:12px;box-shadow:var(--vx-shadow);overflow:hidden;margin-bottom:28px;">
             <?php $carImgUrl = getCarImageUrl($result['make'] ?? '', $result['model'] ?? '', (int)($result['year'] ?? 0)); ?>
