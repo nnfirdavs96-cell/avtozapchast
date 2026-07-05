@@ -35,7 +35,7 @@ require_once __DIR__ . '/../catalog_api.php';
 
 class PartsCatalogsAdapter implements CatalogProvider
 {
-    private const CACHE_VER = 2;  // v2: язык (Language: ru) + миниатюры узлов — сброс англ. кэша
+    private const CACHE_VER = 3;  // v3: язык через Accept-Language + query lang — сброс кэша
     private const TTL_CAR   = 86400;    // 24h  VIN→car (criteria живёт с кредитом VIN)
     private const TTL_DATA  = 86400;    // 24h  узлы / детали / схемы
     private const TTL_CATS  = 2592000;  // 30d  список каталогов
@@ -89,17 +89,26 @@ class PartsCatalogsAdapter implements CatalogProvider
         return $p !== '' ? $p : 'api_key';
     }
 
-    /** Язык ответов API (названия узлов/деталей). PC поддерживает заголовок Language. */
+    /**
+     * Язык ответов API (названия узлов/деталей).
+     * ВНИМАНИЕ: официальный клиент Parts-Catalogs язык НЕ передаёт — он определяется
+     * настройкой АККАУНТА/КЛЮЧА на стороне Tradesoft. Мы всё же отправляем язык
+     * тремя стандартными способами (заголовки Accept-Language/Language + query lang):
+     * если конкретный ключ их принимает — ответ будет на нужном языке; если нет —
+     * язык нужно переключить в аккаунте Tradesoft (у менеджера). Настройка
+     * `catalog_pc_lang` (ru/en) выбирается в админке.
+     */
     private function lang(): string
     {
         $l = strtolower(trim(getSetting('catalog_pc_lang', 'ru')));
         return preg_match('/^[a-z]{2}$/', $l) ? $l : 'ru';
     }
 
-    /** Заголовки запроса с учётом способа авторизации. */
+    /** Заголовки запроса с учётом способа авторизации + язык (best-effort). */
     private function authHdr(): array
     {
-        $h = ['Accept: application/json', 'Language: ' . $this->lang()];
+        $lang = $this->lang();
+        $h = ['Accept: application/json', 'Accept-Language: ' . $lang, 'Language: ' . $lang];
         $style = $this->authStyle();
         if ($style === 'header')      $h[] = 'Authorization: ' . $this->key();
         elseif ($style === 'bearer')  $h[] = 'Authorization: Bearer ' . $this->key();
@@ -115,6 +124,8 @@ class PartsCatalogsAdapter implements CatalogProvider
         if ($this->authStyle() === 'query' && $this->key() !== '') {
             $query[$this->keyParam()] = $this->key();
         }
+        // Язык также как query-параметр (best-effort; лишний параметр API игнорирует).
+        if (!isset($query['lang'])) $query['lang'] = $this->lang();
         $url = $this->base() . ltrim($path, '/');
         if ($query) $url .= '?' . http_build_query($query);
         $r   = httpGet($url, $this->timeout(), $this->authHdr());
