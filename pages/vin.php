@@ -79,6 +79,25 @@ if ($vin) {
 
 $totalCompat = array_sum(array_column($facets, 'cnt'));
 
+// ── Режим «По параметрам»: авто выбрано в каскаде Parts-Catalogs (без VIN) ──
+// Переиспользуем ту же ветку каталога (узлы → схемы → детали), что и для VIN.
+$carId   = trim($_GET['carId'] ?? '');
+$pcCatId = trim($_GET['catalogId'] ?? '');
+$pcCrit  = trim($_GET['criteria'] ?? '');
+$carName = trim($_GET['carName'] ?? '');
+$carMode = (!$vin && $pcProvider && $catalogEnabled && $carId !== '' && $pcCatId !== '');
+if ($carMode) {
+    $searchPerfomed = true;
+    $error  = '';
+    $np     = preg_split('/\s+/', $carName, 2);
+    $result = [                                   // минимальная «шапка авто»
+        'make'   => ($np[0] ?? '') !== '' ? $np[0] : ($carName ?: 'Автомобиль'),
+        'model'  => $np[1] ?? '',
+        'year'   => 0,
+        'source' => 'parts-catalogs',
+    ];
+}
+
 // ── Expert contacts (for help block + "by parameters" funnel) ──────────────
 $exWa    = preg_replace('/\D/', '', getSetting('site_whatsapp', ''));
 $exTg    = trim(getSetting('site_telegram', ''));
@@ -275,12 +294,24 @@ require_once dirname(__DIR__) . '/includes/header.php';
 
         <!-- Params panel -->
         <div class="vx-panel" id="vx-p-params">
+            <!-- Курируемый список (для провайдеров без каскада) -->
             <div class="vx-params">
                 <select id="vxMk" onchange="vxOnMake()"><option value=""><?= t('vin_marka') ?></option></select>
                 <select id="vxMd" onchange="vxOnModel()" disabled><option value=""><?= t('vin_model_lbl') ?></option></select>
                 <select id="vxYr" disabled><option value=""><?= t('vin_year_lbl') ?></option></select>
                 <button type="button" class="vx-btn" onclick="vxParamsSubmit()"><?= t('vin_pick') ?></button>
             </div>
+            <!-- Живой каскад Parts-Catalogs (Марка → Модель → уточнения → авто) -->
+            <div id="vxPcCascade" style="display:none;">
+                <div id="vxPcSelects" class="vxpc-selects"></div>
+                <div id="vxPcStatus" style="margin-top:10px;font-size:.84rem;color:#9aa0ab;"></div>
+                <div id="vxPcCars" style="margin-top:14px;"></div>
+            </div>
+            <style>
+            .vxpc-selects{display:flex;flex-wrap:wrap;gap:10px;}
+            .vxpc-selects select{height:52px;border:0;border-radius:12px;padding:0 14px;font-size:.92rem;background:#fff;color:#1d2129;outline:none;cursor:pointer;min-width:150px;flex:1 1 150px;}
+            .vx-carpick:hover{border-color:var(--vx-red,#C70909)!important;box-shadow:0 3px 12px rgba(199,9,9,.10);}
+            </style>
         </div>
     </div>
 
@@ -339,9 +370,11 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     <span style="color:rgba(255,255,255,0.35);font-size:0.85rem;">Фото недоступно</span>
                 </div>
                 <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(10,10,30,0.88) 0%,rgba(10,10,30,0.15) 55%,transparent 100%);pointer-events:none;"></div>
+                <?php if ($vin !== ''): ?>
                 <div style="position:absolute;top:14px;right:16px;background:rgba(0,0,0,0.55);border-radius:8px;padding:7px 14px;font-family:monospace;font-size:0.95rem;letter-spacing:2px;color:#fff;font-weight:700;border:1px solid rgba(255,255,255,0.12);">
                     <?= sanitize($vin) ?>
                 </div>
+                <?php endif; ?>
                 <div style="position:absolute;top:14px;left:16px;display:flex;gap:6px;">
                     <?php if (!empty($result['from_cache'])): ?>
                     <span style="background:rgba(0,0,0,0.5);padding:4px 10px;border-radius:20px;font-size:0.72rem;color:rgba(255,255,255,0.8);"><i class="fa fa-database"></i> Кэш</span>
@@ -533,7 +566,9 @@ require_once dirname(__DIR__) . '/includes/header.php';
             .vin-pcard.hot{border-color:var(--vx-red,#C70909);box-shadow:0 0 0 2px rgba(199,9,9,.18);}
             .vin-pos-badge{display:inline-block;min-width:18px;text-align:center;background:#eef0f3;color:#39414d;border-radius:5px;font-size:0.66rem;padding:1px 5px;margin-right:5px;}
         </style>
-        <div id="vinCatalog" data-vin="<?= sanitize($vin) ?>" data-type="<?= sanitize($catType) ?>" style="margin-top:8px;">
+        <div id="vinCatalog" data-vin="<?= sanitize($vin) ?>" data-type="<?= sanitize($catType) ?>"
+             data-car-id="<?= sanitize($carId) ?>" data-catalog-id="<?= sanitize($pcCatId) ?>"
+             data-criteria="<?= sanitize($pcCrit) ?>" data-brand="<?= sanitize($result['make'] ?? '') ?>" style="margin-top:8px;">
             <h2 style="font-size:1.3rem;font-weight:700;margin:8px 0 16px;color:var(--vx-ink);">
                 <i class="fa fa-book" style="color:var(--vx-red);"></i> Оригинальный каталог по VIN
                 <span id="vinCatalogCount" style="color:#888;font-weight:400;font-size:0.9rem;"></span>
@@ -756,10 +791,111 @@ function vxParamsSubmit(){
 }
 function vxPickBrand(b){
     vxTab('params');
+    if (window.VX_PC) { document.querySelector('.vx-scard').scrollIntoView({behavior:'smooth'}); return; }
     var mk = document.getElementById('vxMk');
     if (mk) { mk.value = b; vxOnMake(); }
     document.querySelector('.vx-scard').scrollIntoView({behavior:'smooth'});
 }
+
+/* ── Живой каскад «По параметрам» (Parts-Catalogs): Марка → Модель → уточнения → авто ── */
+(function(){
+    if (!window.VX_PC) return;                         // только у Parts-Catalogs
+    var wrap = document.getElementById('vxPcCascade'); if (!wrap) return;
+    var curated = document.querySelector('#vx-p-params .vx-params');
+    if (curated) curated.style.display = 'none';       // прячем курируемый список
+    wrap.style.display = 'block';
+
+    var API = '<?= APP_URL ?>/api/vin_params.php';
+    var PAGE = '<?= APP_URL ?>/pages/vin.php';
+    var selWrap = document.getElementById('vxPcSelects');
+    var statusEl = document.getElementById('vxPcStatus');
+    var carsEl  = document.getElementById('vxPcCars');
+    var catalogId = '', modelId = '';
+    var L_MK = <?= json_encode(t('vin_marka')) ?>, L_MD = <?= json_encode(t('vin_model_lbl')) ?>;
+
+    function e(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
+    function spin(m){ statusEl.style.color='#9aa0ab'; statusEl.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ' + e(m||'Загрузка…'); }
+    function msg(m,err){ statusEl.style.color = err ? '#ff8a8a' : '#9aa0ab'; statusEl.textContent = m || ''; }
+    function api(q){ return fetch(API + '?' + q, {credentials:'same-origin'}).then(function(r){ return r.json(); }); }
+    function idxCsv(){ var o=[]; selWrap.querySelectorAll('select.pc-param').forEach(function(s){ if(s.value) o.push(s.value); }); return o.join(','); }
+    function clearParams(){ selWrap.querySelectorAll('select.pc-param').forEach(function(s){ s.remove(); }); }
+    function brandName(){ var b=document.getElementById('pcBrand'); return b && b.options[b.selectedIndex] ? b.options[b.selectedIndex].textContent : ''; }
+
+    selWrap.innerHTML =
+        '<select id="pcBrand"><option value="">' + e(L_MK) + '</option></select>' +
+        '<select id="pcModel" disabled><option value="">' + e(L_MD) + '</option></select>';
+    var pcBrand = document.getElementById('pcBrand'), pcModel = document.getElementById('pcModel');
+
+    spin('Загружаем марки…');
+    api('step=brands').then(function(d){
+        if (!d.success || !d.items || !d.items.length) { msg('Марки не получены — проверьте ключ/провайдер Parts-Catalogs.', true); return; }
+        msg('');
+        d.items.forEach(function(b){ var o=document.createElement('option'); o.value=b.id; o.textContent=b.name; pcBrand.appendChild(o); });
+    }).catch(function(){ msg('Ошибка загрузки марок.', true); });
+
+    pcBrand.addEventListener('change', function(){
+        catalogId = pcBrand.value; modelId=''; clearParams(); carsEl.innerHTML='';
+        pcModel.innerHTML = '<option value="">' + e(L_MD) + '</option>'; pcModel.disabled = true;
+        if (!catalogId) { msg(''); return; }
+        spin('Загружаем модели…');
+        api('step=models&catalogId=' + encodeURIComponent(catalogId)).then(function(d){
+            if (!d.items || !d.items.length) { msg('Модели не найдены.', true); return; }
+            msg('');
+            d.items.forEach(function(m){ var o=document.createElement('option'); o.value=m.id; o.textContent=m.name; pcModel.appendChild(o); });
+            pcModel.disabled = false;
+        }).catch(function(){ msg('Ошибка загрузки моделей.', true); });
+    });
+
+    pcModel.addEventListener('change', function(){
+        modelId = pcModel.value; clearParams(); carsEl.innerHTML='';
+        if (!modelId) { msg(''); return; }
+        reloadParamsAndCars();
+    });
+
+    function reloadParamsAndCars(){
+        var csv = idxCsv();
+        spin('Уточняем параметры…');
+        api('step=carparams&catalogId=' + encodeURIComponent(catalogId) + '&modelId=' + encodeURIComponent(modelId) + '&parameter=' + encodeURIComponent(csv))
+            .then(function(d){ renderParams(d.items||[]); msg(''); loadCars(); })
+            .catch(function(){ msg('Ошибка загрузки параметров.', true); loadCars(); });
+    }
+
+    function renderParams(items){
+        var chosen = {}; selWrap.querySelectorAll('select.pc-param').forEach(function(s){ if(s.value) chosen[s.getAttribute('data-key')]=s.value; });
+        clearParams();
+        items.forEach(function(p){
+            var s = document.createElement('select'); s.className='pc-param'; s.setAttribute('data-key', p.key||'');
+            var ph = document.createElement('option'); ph.value=''; ph.textContent = p.name || '—'; s.appendChild(ph);
+            (p.values||[]).forEach(function(v){ var o=document.createElement('option'); o.value=v.idx; o.textContent=v.value; if (chosen[p.key]===v.idx) o.selected=true; s.appendChild(o); });
+            s.addEventListener('change', reloadParamsAndCars);
+            selWrap.appendChild(s);
+        });
+    }
+
+    function loadCars(){
+        carsEl.innerHTML = '<div style="color:#9aa0ab;font-size:.85rem;"><i class="fa fa-spinner fa-spin"></i> Загружаем автомобили…</div>';
+        api('step=cars&catalogId=' + encodeURIComponent(catalogId) + '&modelId=' + encodeURIComponent(modelId) + '&parameter=' + encodeURIComponent(idxCsv()))
+            .then(function(d){ renderCars(d.items||[]); })
+            .catch(function(){ carsEl.innerHTML = '<div style="color:#ff8a8a;font-size:.85rem;">Ошибка загрузки автомобилей.</div>'; });
+    }
+
+    function renderCars(cars){
+        if (!cars.length) { carsEl.innerHTML = '<div style="color:#9aa0ab;font-size:.85rem;">Уточните параметры выше — покажем подходящие автомобили.</div>'; return; }
+        var bn = brandName();
+        var html = '<div style="font-size:.74rem;color:#9aa0ab;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Автомобили (' + cars.length + ') — выберите свой</div>';
+        html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;">';
+        cars.forEach(function(c){
+            var nm = c.name || c.modelName || 'Автомобиль';
+            var full = (bn ? bn + ' ' : '') + nm;
+            var href = PAGE + '?carId=' + encodeURIComponent(c.carId) + '&catalogId=' + encodeURIComponent(c.catalogId)
+                     + '&criteria=' + encodeURIComponent(c.criteria||'') + '&carName=' + encodeURIComponent(full);
+            html += '<a href="' + href + '" class="vx-carpick" style="display:block;background:#fff;border:1px solid #e7e9ee;border-radius:10px;padding:12px 14px;color:#1d2129;font-size:.86rem;font-weight:600;text-decoration:none;transition:.12s;">'
+                  + e(nm) + '<span style="display:block;font-weight:400;font-size:.72rem;color:#9aa3af;margin-top:2px;">' + e(bn + (c.modelName ? ' · ' + c.modelName : '')) + '</span></a>';
+        });
+        html += '</div>';
+        carsEl.innerHTML = html;
+    }
+})();
 
 /* ── Add to cart from VIN results ─────────────────────────────────── */
 function vinAddToCart(partId, btn) {
@@ -866,17 +1002,29 @@ function vinPickNode(cat){ var c = document.querySelector('.vin-node-card[data-c
 /* Подсветка «хотспот ↔ карточка детали» по номеру выноски. */
 function vinHi(pos, on){ if (pos === '' || pos == null) return; document.querySelectorAll('[data-pos="' + vinCssEsc(pos) + '"]').forEach(function(el){ el.classList.toggle('hot', on); }); }
 
+/* Контекст авто: VIN ИЛИ выбранное по параметрам авто (carId/catalogId/criteria). */
+function vinCtxQuery(){
+    var box = document.getElementById('vinCatalog'); if (!box) return '';
+    var carId = box.getAttribute('data-car-id') || '', catId = box.getAttribute('data-catalog-id') || '';
+    if (carId && catId) {
+        return 'carId=' + encodeURIComponent(carId) + '&catalogId=' + encodeURIComponent(catId)
+             + '&criteria=' + encodeURIComponent(box.getAttribute('data-criteria') || '')
+             + '&brand=' + encodeURIComponent(box.getAttribute('data-brand') || '');
+    }
+    var vin = box.getAttribute('data-vin') || '';
+    return vin.length === 17 ? 'vin=' + encodeURIComponent(vin) : '';
+}
+
 /* ── Визуальная взрыв-схема узла (Parts-Catalogs): картинка + кликабельные хотспоты ── */
 function vinLoadScheme(cat){
-    var box = document.getElementById('vinCatalog'); if (!box) return;
-    var vin = box.getAttribute('data-vin') || ''; if (vin.length !== 17) return;
+    var ctx = vinCtxQuery(); if (!ctx) return;
     var statusEl = document.getElementById('vinCatalogStatus'), bodyEl = document.getElementById('vinCatalogBody'), countEl = document.getElementById('vinCatalogCount');
     var panel = document.getElementById('vinSchemePanel');
     statusEl.style.display = 'block';
     statusEl.innerHTML = '<i class="fa fa-spinner fa-spin" style="font-size:1.6rem;color:#C70909;"></i><div style="margin-top:10px;font-size:0.9rem;">Загружаем схему и детали…</div>';
     bodyEl.innerHTML = ''; countEl.textContent = '';
     if (panel) panel.style.display = 'none';
-    fetch('<?= APP_URL ?>/api/vin_scheme.php?vin=' + encodeURIComponent(vin) + '&cat=' + encodeURIComponent(cat), { credentials:'same-origin' })
+    fetch('<?= APP_URL ?>/api/vin_scheme.php?' + ctx + '&cat=' + encodeURIComponent(cat), { credentials:'same-origin' })
         .then(function(r){ return r.json(); }).then(vinRenderScheme)
         .catch(function(){ statusEl.innerHTML = '<div style="font-size:0.9rem;color:#c0392b;">Не удалось загрузить схему. Попробуйте ещё раз.</div>'; });
 }
@@ -1040,16 +1188,17 @@ var VIN_NODE_PH = '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" s
 /* Parts-Catalogs: узлы зависят от конкретного авто → тянем реальное дерево по VIN.
    Карточки с миниатюрами схем (img из groups2) — как у 7zap. Первый узел НЕ
    автогрузим: пользователь видит сетку узлов и выбирает сам. */
-function vinLoadPcNodes(vin){
+function vinLoadPcNodes(){
+    var ctx = vinCtxQuery(); if (!ctx) return;
     var grid = document.getElementById('vinNodeGrid'), side = document.getElementById('vinNodeList');
     var statusEl = document.getElementById('vinCatalogStatus');
     if (grid) grid.innerHTML = '<div style="grid-column:1/-1;color:#999;font-size:0.85rem;padding:8px;"><i class="fa fa-spinner fa-spin"></i> Загружаем узлы автомобиля…</div>';
-    fetch('<?= APP_URL ?>/api/vin_nodes.php?vin=' + encodeURIComponent(vin), { credentials:'same-origin' })
+    fetch('<?= APP_URL ?>/api/vin_nodes.php?' + ctx, { credentials:'same-origin' })
         .then(function(r){ return r.json(); })
         .then(function(d){
             if (!d.success || !d.nodes || !d.nodes.length) {
                 if (grid) grid.innerHTML = '';
-                if (statusEl) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;">Узлы для этого VIN не найдены. Проверьте VIN или ключ Parts-Catalogs.</div>'; }
+                if (statusEl) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;">Узлы для этого автомобиля не найдены. Проверьте данные или ключ Parts-Catalogs.</div>'; }
                 return;
             }
             var ch = '', sh = '';
@@ -1075,8 +1224,8 @@ function vinLoadPcNodes(vin){
    без дерева — полный перебор. */
 (function(){
     var box = document.getElementById('vinCatalog'); if (!box) return;
-    var vin = box.getAttribute('data-vin') || ''; if (vin.length !== 17) return;
-    if (window.VX_PC) { vinLoadPcNodes(vin); return; }
+    if (!vinCtxQuery()) return;                 // ни VIN, ни выбранного авто
+    if (window.VX_PC) { vinLoadPcNodes(); return; }
     var firstCard = document.querySelector('.vin-node-card[data-cat]');
     if (!firstCard) vinLoadAll(null);   // дерева нет → полный перебор
 })();

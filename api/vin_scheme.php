@@ -21,15 +21,27 @@ if (!$provider->enabled() || !method_exists($provider, 'schemeByVinCat')) {
     exit;
 }
 
-$vin = strtoupper(trim($_GET['vin'] ?? ''));
 $cat = trim((string)($_GET['cat'] ?? ''));   // ID узла Parts-Catalogs — нечисловая строка
-if (!VinService::validate($vin) || $cat === '') {
+if ($cat === '') {
     echo json_encode(['success' => false, 'error' => 'bad_params', 'enabled' => true]);
     exit;
 }
 
 @set_time_limit(60);
-$d = $provider->schemeByVinCat($vin, $cat);
+
+// Режим «По параметрам»: авто задано carId+catalogId (без VIN) → тот же parts2.
+$carId = trim($_GET['carId'] ?? '');
+$catId = trim($_GET['catalogId'] ?? '');
+if ($carId !== '' && $catId !== '' && method_exists($provider, 'schemeByCar')) {
+    $d = $provider->schemeByCar($carId, $catId, trim($_GET['criteria'] ?? ''), $cat, trim($_GET['brand'] ?? ''));
+} else {
+    $vin = strtoupper(trim($_GET['vin'] ?? ''));
+    if (!VinService::validate($vin)) {
+        echo json_encode(['success' => false, 'error' => 'bad_params', 'enabled' => true]);
+        exit;
+    }
+    $d = $provider->schemeByVinCat($vin, $cat);
+}
 
 $parts = [];
 foreach (($d['parts'] ?? []) as $it) {
