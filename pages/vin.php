@@ -559,8 +559,8 @@ require_once dirname(__DIR__) . '/includes/header.php';
             .vin-scheme-wrap{margin-bottom:22px;scroll-margin-top:90px;}
             #vinCatalogStatus,#vinCatalogBody{scroll-margin-top:90px;}
             .vin-scheme-cap{font-size:0.82rem;color:#888;margin-bottom:8px;text-align:center;}
-            .vin-scheme-box{position:relative;width:100%;max-width:720px;margin:0 auto;background:#fff;border:1px solid #e7e9ee;border-radius:12px;overflow:hidden;}
-            .vin-scheme-box img{width:100%;display:block;}
+            .vin-scheme-box{position:relative;width:100%;max-width:100%;margin:0 auto;background:#fff;border:1px solid #e7e9ee;border-radius:12px;overflow:hidden;}
+            .vin-scheme-box img{width:100%;max-height:70vh;object-fit:contain;display:block;background:#fff;}
             .vin-hot{position:absolute;border:2px solid transparent;border-radius:3px;cursor:pointer;transition:.1s;box-sizing:border-box;}
             .vin-hot:hover,.vin-hot.hot{border-color:var(--vx-red,#C70909);background:rgba(199,9,9,.16);}
             .vin-pcard.hot{border-color:var(--vx-red,#C70909);box-shadow:0 0 0 2px rgba(199,9,9,.18);}
@@ -1087,6 +1087,21 @@ function vinCatalogFetch(extra){
 }
 /* Построить HTML карточек деталей (сгруппировано по узлу). data-pos = номер выноски
    (для связи со схемой). Общий для каталога (PartsAPI) и схемы (Parts-Catalogs). */
+/* Расшифровка частых сокращений OEM-каталога (BMW ETK и т.п.) для читаемости.
+   Разворачиваем только однозначные; часть сокращений остаётся (так в исходных данных). */
+function vinExpandAbbr(s){
+    if (!s) return s || '';
+    return String(s)
+        .replace(/к-том/g, 'комплектом').replace(/К-том/g, 'Комплектом')
+        .replace(/К-т/g, 'Комплект').replace(/к-т/g, 'комплект')
+        .replace(/Компл\./g, 'Комплект ').replace(/компл\./g, 'комплект ')
+        .replace(/доосн\./g, 'дооснащения ').replace(/дообор\./g, 'дооборудование ')
+        .replace(/нерж\./g, 'нержавеющей ')
+        .replace(/Облиц\./g, 'Облицовка ').replace(/облиц\./g, 'облицовка ')
+        .replace(/солнцезащ\.?/g, 'солнцезащитные ')
+        .replace(/электр\./g, 'электрич.')
+        .replace(/\s{2,}/g, ' ').trim();
+}
 function vinBuildPartsHtml(items){
     var groups = {};
     items.forEach(function(it){ var g = it.group || 'Прочее'; (groups[g] = groups[g] || []).push(it); });
@@ -1099,7 +1114,7 @@ function vinBuildPartsHtml(items){
             var posAttr  = pos ? ' data-pos="' + escapeHtml(pos) + '" onmouseover="vinHi(\'' + jsAttr(pos) + '\',true)" onmouseout="vinHi(\'' + jsAttr(pos) + '\',false)"' : '';
             var posBadge = pos ? '<span class="vin-pos-badge">№' + escapeHtml(pos) + '</span>' : '';
             html += '<div class="vin-pcard" id="' + cid + '"' + posAttr + '>';
-            html += '<div class="vin-pcard-t">' + posBadge + escapeHtml(it.name) + '<span>' + escapeHtml(it.brand || '') + ' · ' + escapeHtml(it.part_number) + '</span></div>';
+            html += '<div class="vin-pcard-t">' + posBadge + escapeHtml(vinExpandAbbr(it.name)) + '<span>' + escapeHtml(it.brand || '') + ' · ' + escapeHtml(it.part_number) + '</span></div>';
             html += '<div class="vin-pcard-b"><div class="vin-pcard-ph">фото</div><div class="vin-pcard-buy">';
             if (it.in_catalog) {
                 html += '<div class="vin-price">' + escapeHtml(it.price) + '</div>';
@@ -1204,7 +1219,7 @@ function vinLoadPcNodes(){
             }
             var ch = '', sh = '';
             d.nodes.forEach(function(n){
-                var cat = jsAttr(n.cat), nm = escapeHtml(n.name);
+                var cat = jsAttr(n.cat), nm = escapeHtml(vinExpandAbbr(n.name));
                 var thumb = n.img
                     ? '<img src="' + escapeHtml(n.img) + '" alt="" loading="lazy" onerror="this.parentNode.innerHTML=VIN_NODE_PH;">'
                     : VIN_NODE_PH;
