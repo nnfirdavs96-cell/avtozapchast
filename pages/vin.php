@@ -535,6 +535,8 @@ require_once dirname(__DIR__) . '/includes/header.php';
             .vin-pcard-t span{display:block;font-weight:400;font-size:0.72rem;color:#9aa3af;font-family:monospace;margin-top:3px;}
             .vin-pcard-b{display:flex;gap:12px;margin-top:12px;align-items:stretch;}
             .vin-pcard-ph{flex:0 0 84px;background:#eef0f3;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#b6bcc6;font-size:0.72rem;min-height:84px;}
+            .vin-pos-box{flex:0 0 58px;min-height:58px;font-size:1.05rem;font-weight:800;color:#39414d;background:#f1f3f6;cursor:pointer;transition:.12s;}
+            .vin-pos-box:hover{background:#fff;color:var(--vx-red,#C70909);box-shadow:inset 0 0 0 2px var(--vx-red,#C70909);}
             .vin-pcard-buy{flex:1;display:flex;flex-direction:column;gap:8px;}
             .vin-price{background:var(--vx-red,#C70909);color:#fff;font-weight:800;font-size:1.1rem;text-align:center;border-radius:10px;padding:14px 8px;line-height:1;}
             .vin-price.ph{background:#f3f4f6;color:#9aa3af;font-size:0.85rem;font-weight:600;padding:16px 8px;}
@@ -1001,6 +1003,13 @@ function vinPickNode(cat){ var c = document.querySelector('.vin-node-card[data-c
 
 /* Подсветка «хотспот ↔ карточка детали» по номеру выноски. */
 function vinHi(pos, on){ if (pos === '' || pos == null) return; document.querySelectorAll('[data-pos="' + vinCssEsc(pos) + '"]').forEach(function(el){ el.classList.toggle('hot', on); }); }
+/* Клик по номеру детали → прокрутить к схеме и мигнуть выноской. */
+function vinFocusPos(pos){
+    var panel = document.getElementById('vinSchemePanel');
+    if (panel && panel.style.display !== 'none') { try { panel.scrollIntoView({behavior:'smooth', block:'center'}); } catch(e){} }
+    vinHi(pos, true);
+    setTimeout(function(){ vinHi(pos, false); }, 1600);
+}
 
 /* Контекст авто: VIN ИЛИ выбранное по параметрам авто (carId/catalogId/criteria). */
 function vinCtxQuery(){
@@ -1114,7 +1123,12 @@ function vinBuildPartsHtml(items){
             var posBadge = pos ? '<span class="vin-pos-badge">№' + escapeHtml(pos) + '</span>' : '';
             html += '<div class="vin-pcard" id="' + cid + '"' + posAttr + '>';
             html += '<div class="vin-pcard-t">' + posBadge + escapeHtml(vinExpandAbbr(it.name)) + '<span>' + escapeHtml(it.brand || '') + ' · ' + escapeHtml(it.part_number) + '</span></div>';
-            html += '<div class="vin-pcard-b"><div class="vin-pcard-ph">фото</div><div class="vin-pcard-buy">';
+            // У OEM-каталога нет фото детали — деталь = номер-выноска на схеме.
+            // Вместо пустого «фото» показываем кликабельный номер (клик → подсветка на схеме).
+            var phBox = pos
+                ? '<div class="vin-pcard-ph vin-pos-box" onclick="vinFocusPos(\'' + jsAttr(pos) + '\')" title="Показать на схеме">№' + escapeHtml(pos) + '</div>'
+                : '';
+            html += '<div class="vin-pcard-b">' + phBox + '<div class="vin-pcard-buy">';
             if (it.in_catalog) {
                 html += '<div class="vin-price">' + escapeHtml(it.price) + '</div>';
                 html += '<div class="vin-stock' + (it.stock > 0 ? ' ok' : '') + '">' + (it.stock > 0 ? 'в наличии · доставка Худжанд' : 'под заказ') + '</div>';
