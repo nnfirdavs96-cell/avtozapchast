@@ -1,202 +1,608 @@
-# ARCHITECTURE — карта кодовой базы autodoc.tj
+# ARCHITECTURE — полная карта кодовой базы autodoc.tj
 
-> Назначение: **быстрый навигатор**. Нужно что-то поправить — смотри «Быстрый
-> индекс: хочу изменить X → файл Y» внизу, не читай всё подряд. Каждый раздел
-> отвечает: где лежит, как работает, какие настройки/таблицы.
+> Назначение: **исчерпывающий навигатор** по проекту. Здесь всё: каждый файл,
+> функции, настройки, таблицы БД, контракты API, JS. Секретов нет (ключи — только
+> в БД `site_settings` и git-ignored `config/db_credentials.php`).
+> Быстрый поиск задачи → раздел 12 «хочу изменить X → файл Y».
 
 ---
 
 ## 1. Технический стек
 
-| Слой | Что |
+| Слой | Что | Детали |
+|------|-----|--------|
+| Язык | PHP 8.0+ | без фреймворка; каждая страница — отдельный php-файл |
+| БД | MySQL 8 / MariaDB 10.4+ | PDO, `ERRMODE_EXCEPTION`, utf8mb4 |
+| Фронт | Bootstrap 4 + шаблон Mazlay + jQuery + Owl Carousel | VIN-страница — своя вёрстка (CSS-токены `--vx-*`: red `#C70909`, ink `#181a1f`, bg `#f4f5f7`) |
+| HTTP к внешним API | `httpGet()` — cURL с CA-bundle → fallback `file_get_contents` | почему: на shared-хостинге fopen по HTTPS молча падает |
+| i18n | 3 языка ru/tg/en, `t('key')`, переключение через сессию | `lang/ru.php`, `lang/tg.php`, `lang/en.php` |
+| Валюта | база хранения — **RUB**; `formatPrice($rub)` конвертирует в активную (сомони TJS) | курсы — таблица `currencies` |
+| Хостинг | Timeweb shared (`vh464`, корень `~/public_html`) | PHP-FPM; `.htaccess` для ЧПУ |
+| Деплой | git: ветка `claude/initial-setup-BNMb8` → PR → merge `main` → на сервере `git pull origin main` | **в `main` напрямую не пушить** |
+
+---
+
+## 2. Бутстрап и конфиг
+
+**`config/config.php`** — точка входа каждого файла (`require config/config.php`):
+- стартует сессию, определяет `APP_URL` автоматически (переживает `git pull`), `APP_ROOT`;
+- подключает по порядку: `config/database.php` → `includes/functions.php` → `includes/cart_lib.php` → `includes/i18n.php` → `includes/currency.php`.
+
+**`config/database.php`** — `getDB(): PDO` (singleton). Реальные креды БД — в
+`config/db_credentials.php` (**git-ignored**, у каждого сервера свой).
+
+---
+
+## 3. Структура папок (все файлы)
+
+### 3.1 `includes/` — ядро
+| Файл | Назначение |
+|------|-----------|
+| `functions.php` (~1850 строк) | все общие хелперы — полный список функций в разделе 4 |
+| `cart_lib.php` | корзина гостя (сессия) + юзера (БД), merge при входе, привязка заказа гостя по телефону |
+| `vin_service.php` | класс `VinService` — декодер VIN (NHTSA / PartsAPI / локальная WMI-база), совместимость, аналоги, история |
+| `catalog.php` | 1 строка: подключает `catalog/Manager.php` → фасад `Catalog::` |
+| `catalog_api.php` | класс `CatalogApi` — боевой PartsAPI (getPartsbyVIN, getCrosses) + публичная `enrichItemsFromWarehouse()` (обогащение складом для ВСЕХ адаптеров) |
+| `autoeuro.php` | класс `AutoEuro` — клиент поставщика (баланс, склады, поиск, заказ) |
+| `partsapi_cats.php` | константы `PARTSAPI_CATS` (751 товарная группа id→название), `PARTSAPI_POPULAR` |
+| `header.php` / `footer.php` | витринная шапка (меню, мини-корзина, поиск, языки/валюта) / подвал |
+| `admin-header.php` / `admin-footer.php` | единый макет админки; сайдбар по ролям `renderRoleSidebar()` |
+| `nav.php` | навигационное меню витрины |
+| `i18n.php` | `initLang/getLang/loadTranslations/t/tField` |
+| `currency.php` | `initCurrency/getActiveCurrency/getCurrencies/getCurrencyRate/getCurrencySymbol/formatPrice/convertPrice` |
+| `manual_pdf.php` | генерация PDF-руководства для суперадмина |
+
+### 3.2 `includes/catalog/` — слой каталога (12 файлов, детально в разделе 5)
+`Provider.php`, `Manager.php`, `PartsCatalogsAdapter.php`, `PartsApiAdapter.php`,
+`LaximoAdapter.php`, `GenericRestAdapter.php`, `CatalogProfiles.php`, `MockAdapter.php`,
+`PriceProvider.php`, `WarehousePriceProvider.php`, `AutoEuroPriceProvider.php`, `PriceAggregator.php`.
+
+### 3.3 `api/` — AJAX-эндпоинты (JSON; контракты в разделе 6)
+| Файл | Что делает |
+|------|-----------|
+| `vin_catalog.php` | детали узла / полный каталог по VIN |
+| `vin_nodes.php` | дерево узлов авто (по VIN или carId+catalogId) |
+| `vin_scheme.php` | взрыв-схема узла: картинка + хотспоты + детали |
+| `vin_params.php` | каскад «По параметрам» (brands/models/carparams/cars) |
+| `vin_price.php` | цена по OEM (склад→AutoEuro) |
+| `vin_crosses.php` | аналоги-кроссы по артикулу |
+| `vin_analogs.php` | аналоги детали из СВОЕГО каталога (part_analogs + авто-детект) |
+| `cart.php` | корзина: add/remove/update/count/mini (гость+юзер) |
+| `wishlist.php` | избранное: toggle/count |
+| `search.php` | живой поиск (подсказки) по товарам |
+| `sms_auth.php` | отправка одноразового SMS-кода (регистрация/вход по телефону) |
+| `review_submit.php` / `shop_review_submit.php` | отзывы на товар / на магазин |
+| `upload.php` | загрузка изображений (только залогиненным сотрудникам) |
+| `autoeuro_search.php` / `autoeuro_order.php` | прокси к AutoEuro: поиск предложений / создание заказа |
+
+### 3.4 `pages/` — публичные страницы
+| Файл | Что |
 |------|-----|
-| Язык | **PHP 8.0+** (без фреймворка, собственный роутинг через страницы) |
-| БД | **MySQL** через PDO (`ERRMODE_EXCEPTION`), подключение — `config/database.php` → `getDB()` |
-| Фронт | Bootstrap 4 + шаблон **Mazlay**, jQuery; VIN-страница — своя вёрстка (токены `--vx-*`) |
-| HTTP к API | общий хелпер **`httpGet()`** (cURL → fallback file_get_contents) в `includes/functions.php` |
-| i18n | `includes/i18n.php` + `lang/ru.php|en.php|tg.php`, функция `t('ключ')` |
-| Валюта | `includes/currency.php`, база — **RUB**, `formatPrice($rub)` → активная валюта (сомони) |
-| Деплой | git → `main`; сервер `git pull origin main` (Timeweb, корень `public_html`) |
+| `vin.php` (~1280 строк) | **главная страница VIN+каталог** — детально в разделе 7 |
+| `about.php`, `contact.php`, `faq.php` | CMS-страницы (контент из таблицы `site_sections`) |
+| `blog.php` / `blog-detail.php` | блог (таблица `blog_posts`) |
+| `reviews.php` | отзывы о магазине (`shop_reviews`) |
+| `403.php` / `404.php` | страницы ошибок в стиле Mazlay (`denyAccess()` рендерит 403) |
 
-**Важно про потоки:** ветка разработки `claude/initial-setup-BNMb8` → PR → merge в `main`.
-Никогда не пушить в `main` напрямую. Ключи API — только в БД (`site_settings`), не в git.
+### 3.5 `catalog/` — витрина магазина
+| Файл | Что |
+|------|-----|
+| `index.php` | каталог товаров: фильтры (категория/бренд/цена/в наличии), сортировка, пагинация, сайдбар, верхний баннер из админки |
+| `category.php` | страница категории |
+| `part.php` | карточка товара: галерея, цена/скидка, отзывы, аналоги, Schema.org JSON-LD, canonical на ЧПУ `/product/{id}-{slug}`, 301 со старых `?id=` |
+
+### 3.6 `buyer/` — кабинет покупателя
+| Файл | Что |
+|------|-----|
+| `cart.php` | корзина (доступна гостю) |
+| `checkout.php` | оформление: адрес/город (зоны доставки по странам), способы оплаты (нал. / банк / **онлайн со скидкой**), заказ гостя привязывается по телефону |
+| `orders.php` | список/детали заказов, отмена покупателем |
+| `profile.php` | профиль (имя/адрес/телефон) |
+| `wishlist.php` | избранное |
+| `index.php` | дашборд покупателя |
+
+### 3.7 `auth/`
+| Файл | Что |
+|------|-----|
+| `login.php` | вход: email+пароль ИЛИ телефон (SMS-код; для сотрудников — PIN). Троттлинг: 5 неудач → блок 15 мин (`login_attempts`). CSRF, валидация redirect |
+| `register.php` | регистрация: телефон (SMS) или email |
+| `logout.php` | выход |
+
+### 3.8 `admin/` (роль admin) — товары и оформление витрины
+`index.php` (дашборд+выручка), `products.php` (товары+фото+цены+наценка),
+`orders.php` (заказы+статусы), `users.php`, `sliders.php` (слайдер: блочный
+текст-редактор с live-preview, 9 позиций текста, шрифты), `banners.php` (баннеры + placement).
+
+### 3.9 `manager/` (роль manager) — контент
+`index.php`, `parts.php`, `categories.php`, `brands.php`, `blog.php`, `pages.php` (CMS), `reviews.php` (модерация).
+
+### 3.10 `superadmin/` (роль superadmin) — всё управление
+| Файл | Что |
+|------|-----|
+| `vin.php` | **настройки VIN и каталога**: провайдер, ключи (PartsAPI/Parts-Catalogs/Laximo), язык, схемы, профили JSON, OEM-узлы, тест соединения, кэш; + автомобили (`car_models`) и совместимость (`parts_compatibility`) |
+| `settings.php` | общие настройки: контакты, соцсети, email-вход, онлайн-оплата (скидка/бесплат.доставка), SEO meta, карта |
+| `users.php` | пользователи, роли, PIN сотрудников |
+| `permissions.php` | делегирование разделов админки по пользователям |
+| `warehouse.php` | AutoEuro: ключ, delivery/payer, тест |
+| `currencies.php` / `languages.php` | валюты (курсы) / языки |
+| `delivery.php` | зоны доставки (город+страна+цена+срок) |
+| `blog.php` | блог |
+| `backup.php` / `backup_cron.php` / `_backup_lib.php` | SQL-бэкапы (UI + cron), ротация |
+| `manual.php` | руководство (PDF) |
+| `index.php` | дашборд |
+
+### 3.11 Прочее
+- `search/index.php` — страница поиска.
+- `index.php` (корень) — главная (слайдер, скидки, категории) + **фолбэк-роутер ЧПУ** `/product/{id}-{slug}` для nginx.
+- `.htaccess` — правило ЧПУ для Apache.
+- `assets/` — css (`custom.css` — все наши правки), js (`app.js`, `main.js`), img.
+- `deploy/` — заметки по деплою. `storage/` — логи (`sms.log`).
 
 ---
 
-## 2. Структура папок
+## 4. `includes/functions.php` — все функции
+
+### Авторизация, роли, доступ
+| Функция | Что делает |
+|---|---|
+| `isLoggedIn(): bool` | есть ли user_id в сессии |
+| `getCurrentUser(): ?array` | текущий юзер из БД (кэш в сессии) |
+| `hasRole($role): bool` / `requireRole($role)` | проверка/требование роли (строка или массив) |
+| `denyAccess()` | рендер страницы 403 (вместо редиректа) |
+| `permissionSections(): array` | каталог разделов админки key→название |
+| `permissionAlias(string)` | алиасы разделов |
+| `roleDefaultSections(string $role)` | разделы по умолчанию для роли |
+| `getUserConfiguredSections(int)` / `effectiveAllowedSections(int,string)` | персональные права из `user_permissions` |
+| `userCan(string $section): bool` / `requirePermission($section)` | точечный доступ к разделу |
+| `requireAdminPort()` | (опц.) отдельный порт для админки |
+| `loginUser(array $user)` | логин: regenerate session id, запись user_id/role + **merge гостевой корзины** |
+
+### CSRF, флеш, редирект, экранирование
+`generateCsrfToken()`, `verifyCsrfToken(?string)`, `flashMessage(type,msg)`,
+`getFlashMessage()`, `redirect(url)`, `sanitize($input)` (htmlspecialchars).
+
+### Настройки и HTTP
+| Функция | Что делает |
+|---|---|
+| `getSetting(key, default)` | значение из `site_settings` (кэш на запрос) |
+| `setSetting(key, value)` | upsert настройки |
+| **`httpGet(url, timeout=12, headers=[])`** | GET: cURL (verify → retry без verify при 60/51/35) → fopen. Возврат `['body','status','error','transport']` |
+
+### Каталог витрины / товары
+`getCategories()`, `getCategoryTree()`, `getBrands()`, `getStockStatus(stock)`,
+`discountPercent(part)`, `isNewProduct(part)`, `productBadges(part)` (бейджи −XX%/Новый),
+`priceBox(part)` (цена+зачёркнутая старая), `productImageUrl($images)`,
+`getEffectiveMarkup(partId, categoryId)` (наценка: товар → категория → `global_markup`),
+`partUrl($part)` (ЧПУ `/product/{id}-{slug}`), `categorySlugify(name)`.
+
+### Отзывы/рейтинги
+`getProductRatings(ids)`, `productStarsInline`, `starsHtml(float)`,
+`userPurchasedPart(userId, partId)` (отзыв только купившим), `getShopRatingSummary()`.
+
+### Корзина/избранное (шапка)
+`getCartCount()`, `getMiniCart()`, `getMiniCartTotal()` (все — через cart_lib, работают у гостя), `getWishlistCount()`.
+
+### Заказы
+`getOrderStatusLabel/Class(status)`, `formatShippingAddress(json)`.
+
+### Телефонная авторизация / SMS
+| Функция | Что делает |
+|---|---|
+| `normalizePhone(raw)` | цифры; 8→7; 9 цифр → +992 |
+| `phoneCountriesCatalog()` / `enabledPhoneCountries()` | справочник стран (флаг, код, маска) |
+| `smsConfigured()` / `sendSms(phone,msg)` | сейчас ТЕСТ-режим: код в `storage/sms.log` + на экран |
+| `createPhoneOtp(phone,purpose)` / `verifyPhoneOtp(...)` | одноразовые коды (таблица `phone_otp`) |
+| `findUserByPhone(phone)` | поиск юзера по `phone_e164` |
+| `emailAuthEnabled()` | тумблер `auth_email_enabled` |
+| `isStaffRole(role)` | manager/admin/superadmin |
+| `ensurePhoneAuthSchema()` / `ensureStaffPinSchema()` | идемпотентные миграции (колонки phone_e164, pin_hash) |
+
+### Троттлинг входа (C2)
+`ensureLoginThrottleSchema()`, `loginThrottleKey`, `loginThrottleStatus`,
+`registerFailedLogin`, `clearLoginAttempts`, `loginLockMessage` — 5 неудач по паре IP+логин → 15 мин.
+
+### Онлайн-оплата со скидкой
+`onlinePaymentSettings()` (enabled/type/value/free_ship), `onlinePaymentEnabled()`,
+`onlinePaymentDiscount(subtotal)`, `onlinePaymentIncentiveLabel()`.
+
+### Слайдер (блочный редактор)
+`sliderFonts()/sliderFontStack()/sliderFontsGoogleUrl()/sliderWeights()`,
+`normalizeSliderBlocks(raw)` — JSON-блоки текста слайда (размер/вес/цвет/шрифт/отступ).
+
+### Сидеры (одноразовое наполнение, флаг в site_settings)
+`seedCategorySubcategories()`, `fillMissingProductImages()`, `seedBrands()`,
+`seedSliderTemplate()`, `seedSliderText()`, `seedBanners()`, `seedDemoProducts()` (42 демо-товара).
+
+### Разное
+`truncate(str,len)`, `breadcrumb(items)`, `renderBuyerAccountNav(active)`,
+`paginate(countSql,dataSql,params,page,perPage)` + `paginationHtml`,
+`renderRoleSidebar(active)`, **`dbAddColumnIfMissing(pdo,table,col,ddl)`** —
+портируемая миграция (MySQL 8 без `IF NOT EXISTS` у колонок).
+
+### `includes/cart_lib.php`
+| Функция | Что |
+|---|---|
+| `cartIsGuest()` | !isLoggedIn |
+| `cartRawMap(db)` | [part_id=>qty] из сессии или таблицы cart |
+| `cartAdd/cartSetQty/cartRemove/cartClearAny` | операции (гость→сессия, юзер→БД; qty 1..99) |
+| `cartDetailedItems(db)` | позиции + join parts (name,price,images,stock,brand) |
+| `cartCountAny/cartTotalAny` | количество/сумма |
+| `cartMergeGuestIntoUser(db,userId)` | слить сессию в БД при входе |
+| `guestOrderUserId(db,phone,...)` | найти/создать аккаунт по телефону для заказа гостя |
+
+### `includes/vin_service.php` — класс VinService
+| Метод | Что |
+|---|---|
+| `validate(vin)` | 17 симв., [A-HJ-NPR-Z0-9], БЕЗ check-digit (Япония/ЕС не соблюдают) |
+| `decode(vin)` | локальный WMI-разбор + провайдер (`vin_api_provider`: nhtsa/partsapi/custom), merge, кэш `vin_cache` 30 дн (версия `DECODE_VER`) |
+| `searchCompatibleParts(make,model,year,catId)` | свои товары через `parts_compatibility` |
+| `getCategoryFacets(...)` | фасеты категорий для фильтра |
+| `getAnalogs(partId)` | явные `part_analogs` + авто (та же категория + общая машина) |
+| `recordSearch/getUserHistory` | история VIN юзера (`vin_search_history`) |
+| `getStats()` / `clearCache()` | статистика/сброс кэша |
+
+### `includes/autoeuro.php` — класс AutoEuro
+`fromSettings(): ?self` (null если выключен/нет ключа), `getBalance`, `getDeliveries`,
+`getWarehouses`, `getPayers`, `getBrands`, `searchBrands(code)`,
+`searchItems(brand, code, deliveryKey, withCrosses, withOffers)`,
+`createOrder(deliveryKey, payerKey, items[], ...)`, `getOrders`, `getStatuses`.
+База `https://api.autoeuro.ru/api/v2/json`, ключ в заголовке `key:`. Цены в RUB.
+
+---
+
+## 5. Слой каталога `includes/catalog/` (система «VIN + каталог»)
+
+### 5.1 Идея
+Провайдер каталога **сменный** и выбирается в админке (`catalog_provider`).
+Фронт и эндпоинты зовут ТОЛЬКО `Catalog::provider()` — им всё равно, какой сервис под капотом.
+Слой цен независим: каталог даёт OEM-номер → `Catalog::price()` даёт цену.
 
 ```
-config/       — config.php (бутстрап, подключает всё), database.php
-includes/     — ядро: functions.php, header/footer, currency, i18n, cart_lib, vin_service, autoeuro
-includes/catalog/ — СЛОЙ КАТАЛОГА (провайдеры, слой цен) — см. раздел 4
-api/          — AJAX-эндпоинты (JSON), см. раздел 4.4
-pages/        — публичные страницы (vin.php — главная по каталогу)
-catalog/      — витрина магазина (index, category, part)
-buyer/        — кабинет покупателя (cart, checkout, orders, profile, wishlist)
-auth/         — вход/регистрация (email + телефон/PIN/SMS)
-admin/ manager/ superadmin/ — админ-панель по ролям
-assets/       — css/js/картинки шаблона
-lang/         — переводы ru/en/tg
-sql/          — schema.sql + миграции
-storage/      — логи (sms.log и т.п.)
+pages/vin.php + api/vin_*.php
+   └── Catalog::provider()  (Manager.php, по настройке catalog_provider)
+         ├── 'partspc'  → PartsCatalogsAdapter   ★ боевой сейчас (OEM + визуальные схемы)
+         ├── 'partsapi' → PartsApiAdapter        (PartsAPI.ru, данные без схем)
+         ├── 'laximo'   → LaximoAdapter          (каркас: HMAC ec.api, ssd-цепочка)
+         ├── 'mock'     → MockAdapter            (демо без ключа)
+         └── '<id>'     → GenericRestAdapter(профиль из CatalogProfiles)
+   └── Catalog::price() → PriceAggregator → Warehouse → AutoEuro
 ```
 
-**Бутстрап:** любой файл начинается с `require config/config.php`, который тянет
-`database.php → functions.php → cart_lib.php → i18n.php → currency.php`.
-
----
-
-## 3. Ключевые общие файлы (`includes/`)
-
-| Файл | За что отвечает | Заметные функции |
-|------|-----------------|------------------|
-| `functions.php` (1800+ строк) | хелперы всего сайта | `getSetting/setSetting`, **`httpGet()`**, `getDB` (в database.php), `isLoggedIn/getCurrentUser/loginUser`, `getCartCount/getMiniCart/getMiniCartTotal`, `formatPrice` (в currency), `getEffectiveMarkup`, `normalizePhone`, `userCan/requirePermission`, `partUrl` |
-| `cart_lib.php` | **корзина гостя+юзера** | `cartAdd/cartSetQty/cartRemove/cartClearAny/cartDetailedItems/cartCountAny/cartTotalAny`, `cartMergeGuestIntoUser`, `guestOrderUserId` |
-| `vin_service.php` | **декодер VIN** (NHTSA/PartsAPI/локальная WMI-база) | `VinService::decode/validate`, кэш `vin_cache`, `DECODE_VER` |
-| `catalog.php` | единая точка подключения слоя каталога → `Catalog::provider()` | — |
-| `catalog_api.php` | боевой PartsAPI (getPartsbyVIN/getCrosses) + `enrichItemsFromWarehouse()` | обёртка склада для всех адаптеров |
-| `autoeuro.php` | клиент поставщика AutoEuro (цены/заказ) | `AutoEuro::fromSettings/searchItems/createOrder` |
-| `header.php/footer.php` | шапка/подвал витрины (мини-корзина в шапке) | — |
-| `admin-header.php/admin-footer.php` | единый макет админки (роли) | `renderRoleSidebar` |
-| `currency.php` | конвертация RUB→активная валюта | `formatPrice/convertPrice/getCurrencySymbol` |
-| `partsapi_cats.php` | справочник 751 товарной группы PartsAPI | `PARTSAPI_CATS`, `PARTSAPI_POPULAR` |
-
----
-
-## 4. СИСТЕМА «VIN + КАТАЛОГ» (главное)
-
-Цель: каталог запчастей по VIN «как у autodoc.ru», но провайдер **сменный** и
-настраивается из админки. Полный план — `CATALOG_PLAN.md`.
-
-### 4.1. Архитектура: единый интерфейс + сменные провайдеры
-
+### 5.2 `Provider.php` — интерфейс CatalogProvider (контракт)
+```php
+id(): string; title(): string; enabled(): bool; hasKey(): bool;
+searchByVin(string $vin, bool $useCache=true): array;      // весь каталог
+searchByVinCat(string $vin, $cat, bool $useCache=true): array; // один узел ($cat — СТРОКА у PC!)
+oemNodes(): array;                                          // [['cat','name'],…]
+crossesWithWarehouse(string $article, string $brand=''): array;
+testConnection(string $vin=''): array;   // ['ok','message','count','sample']
+clearCache(): void;
 ```
-Фронт (pages/vin.php) и эндпоинты (api/vin_*.php)
-        ↓ работают только через
-Catalog::provider()   ← includes/catalog/Manager.php (фабрика, читает настройку catalog_provider)
-        ↓ возвращает один из:
-CatalogProvider (интерфейс) ← includes/catalog/Provider.php
-  ├── PartsApiAdapter        — PartsAPI.ru (данные, без схем)
-  ├── PartsCatalogsAdapter   — Parts-Catalogs/Tradesoft (OEM + ВИЗУАЛЬНЫЕ схемы)  ★ активный
-  ├── LaximoAdapter          — Laximo (каркас, HMAC)
-  ├── GenericRestAdapter     — ЛЮБОЙ REST-сервис по ПРОФИЛЮ (без кода)
-  └── MockAdapter            — демо без ключа
+Единый формат item:
+```php
+['name','group','brand','part_number','in_catalog'(bool),
+ 'part_id'(?int),'price'(?float RUB),'stock'(?int),'url'(?string), 'pos'(№ выноски, у схем)]
 ```
 
-| Файл | Роль |
-|------|------|
-| `includes/catalog/Provider.php` | **интерфейс** `CatalogProvider` (контракт: `enabled/searchByVin/searchByVinCat/oemNodes/crossesWithWarehouse/testConnection/clearCache`) |
-| `includes/catalog/Manager.php` | **фабрика** `Catalog::provider()/available()/make()/price()`. Выбор по `catalog_provider` |
-| `includes/catalog/PartsCatalogsAdapter.php` | активный провайдер: VIN→car/info→groups2(узлы)→parts2(схема+детали). Методы каскада `pcBrands/pcModels/pcCarParams/pcCars`, `oemNodesForVin/oemNodesForCar`, `schemeByVinCat`. Кэш `partsapi_kv_cache` (префикс `pc:`) |
-| `includes/catalog/GenericRestAdapter.php` | движок профилей: `buildUrl/getByPath/parseParts` (чистые, тестируемые) |
-| `includes/catalog/CatalogProfiles.php` | реестр профилей (встроенные + `catalog_profiles` JSON) |
-| `includes/catalog/PartsApiAdapter.php` | обёртка `CatalogApi` (PartsAPI) |
-| `includes/catalog/LaximoAdapter.php` | Laximo (ec.api HMAC, каркас) |
-| `includes/catalog/MockAdapter.php` | демо-данные |
+### 5.3 `Manager.php` — фасад Catalog
+`Catalog::provider()` (кэш на запрос), `Catalog::available()` (код-адаптеры + профили,
+для выпадающего списка), `Catalog::make(id)`, `Catalog::reset()` (после смены настроек),
+`Catalog::price(): PriceProvider`.
 
-### 4.2. Слой цен (независим от каталога)
+### 5.4 `PartsCatalogsAdapter.php` (★ активный, id `partspc`)
+REST `https://api.parts-catalogs.com/`, формат сверен по клиенту `alex-ello/pc-client-slim`.
 
-Каталог даёт **OEM-номер** → слой цен возвращает цену в сомони.
+**Цепочка данных:** `v1/car/info/?q={VIN}` → `{carId, catalogId, criteria}` →
+`v1/catalogs/{catalogId}/groups2?carId&criteria` (дерево узлов; листья `hasParts`,
+у групп есть `img` — миниатюра) → `v1/catalogs/{catalogId}/parts2?carId&groupId&criteria`
+(**схема**: `img`, `positions[{number, coordinates[x,y,w,h]}]`, `partGroups[].parts[{number=OEM, name, positionNumber}]`).
 
-| Файл | Роль |
-|------|------|
-| `includes/catalog/PriceProvider.php` | интерфейс `priceByOem(oem,brand)` |
-| `includes/catalog/WarehousePriceProvider.php` | свой склад (таблица `parts`) — приоритет |
-| `includes/catalog/AutoEuroPriceProvider.php` | фолбэк AutoEuro по OEM + наценка `global_markup` |
-| `includes/catalog/PriceAggregator.php` | склад → AutoEuro; кэш `catalog_price_cache`. Фасад: `Catalog::price()` |
+**Каскад «По параметрам»:** `pcBrands()` → `v1/catalogs/`;
+`pcModels(catalogId)` → `/models`; `pcCarParams(catalogId, modelId, paramCsv)` →
+`/cars-parameters` (итеративные уточнения год/кузов/двигатель);
+`pcCars(...)` → `/cars2` → конкретные `{carId, criteria}` — дальше как по VIN.
+`oemNodesForVin(vin)` / `oemNodesForCar(carId, catalogId, criteria, brand)`.
+`schemeByVinCat(vin, cat)` → данные для `api/vin_scheme.php`.
 
-### 4.3. Фронтенд — `pages/vin.php` (единственный, ~1260 строк)
+**Авторизация** (переключается в админке `catalog_pc_auth`):
+`header` = `Authorization: <ключ>` (сырой) | `bearer` | `query ?api_key=` (имя — `catalog_pc_key_param`).
+**Язык**: `catalog_pc_lang` (ru/en) — шлём `Accept-Language` + `Language` + `?lang=` (best-effort;
+если API игнорирует — язык переключается в аккаунте Tradesoft).
+**Кэш**: таблица `partsapi_kv_cache`, префикс `pc:`, версия `CACHE_VER`; TTL: car/узлы/схемы 24ч
+(тарификация PC — за VIN/сутки, повторные просмотры бесплатны), каталоги 30 дн.
+Лимит: 429/`limit+exceed|quota` → `rate_limited: true` (фронт показывает сообщение).
 
-Одна страница, всё внутри. Ключевые зоны (ищи по имени):
-- **Табы поиска**: `vxTab`, `#vx-p-vin` (по VIN), `#vx-p-params` (по параметрам).
-- **Живой каскад «По параметрам»** (Parts-Catalogs): IIFE ~строка 800, ходит в `api/vin_params.php`, самоактивируется если API вернул марки.
-- **Дерево узлов**: `.vin-cat7` (сайдбар `#vinNodeList` + сетка `#vinNodeGrid`), `vinLoadPcNodes()` тянет `api/vin_nodes.php`.
-- **Вид узла**: `vinLoadNode → vinLoadScheme` (Parts-Catalogs, схема) или `vinCatalogFetch` (PartsAPI). Рендер схемы — `vinRenderScheme` (картинка `#vinSchemeImg` + хотспоты `#vinSchemeHot`).
-- **Карточки деталей**: `vinBuildPartsHtml()` (номер-выноска `.vin-pos-box` вместо фото — у OEM фото нет, `vinFocusPos` подсвечивает деталь на схеме).
-- **Ленивые цены**: `vinFillPrices()` → `api/vin_price.php`.
-- **Кроссы**: `vinCrosses()` → `api/vin_crosses.php`.
-- **Расшифровка сокращений**: `vinExpandAbbr()` (К-т→Комплект и т.п.).
-- **Ширина**: `.vx .container{max-width:min(1560px,94vw)}`; каталог вынесен из узкой обёртки на всю ширину.
+### 5.5 `PartsApiAdapter.php` + `catalog_api.php` (id `partsapi`)
+PartsAPI.ru: `getPartsbyVIN(vin, type, cat)` — перебор товарных групп (справочник
+`partsapi_cats.php`), `getCrosses`. Формат parts: `"БРЕНД|АРТИКУЛ,БРЕНД|АРТИКУЛ"`.
+Лимит демо-ключа: HTTP 401 `error_code 5000` (лимит с IP) → ранний выход, не кэшируем.
+Кэш: `partsapi_catalog_cache` (по VIN) + `partsapi_kv_cache`.
 
-### 4.4. AJAX-эндпоинты (`api/`) — все через `Catalog::provider()`
+### 5.6 `GenericRestAdapter.php` + `CatalogProfiles.php` (профили — провайдер БЕЗ кода)
+Профиль = JSON в настройке `catalog_profiles` (правится в админке):
+```jsonc
+{"umapi": {"title":"UMAPI", "base_url":"https://api.umapi.ru/",
+  "auth":"query|bearer|header", "key_param":"key", "timeout":12,
+  "endpoints": {"parts":"?method=getParts&vin={VIN}&cat={CAT}&key={KEY}",
+                 "crosses":"?method=getCrosses&art={ART}&key={KEY}"},
+  "parse": {"list_path":"data.array", "mode":"objects|pairs",
+             "brand_field":"brand", "article_field":"article",
+             "name_field":"name", "group_field":"group",
+             "parts_field":"parts", "parts_sep":",", "pair_sep":"|"},
+  "nodes": ["1=Двигатель","2=Тормоза"]}}
+```
+Плейсхолдеры: `{VIN}{KEY}{CAT}{ART}{BRAND}{TYPE}`. Чистые функции:
+`buildUrl`, `getByPath('a.b.c')`, `parseParts` (режимы objects/pairs) — тестируются без сети.
 
-| Эндпоинт | Что отдаёт |
-|----------|------------|
-| `api/vin_catalog.php` | детали узла/полный каталог (PartsAPI-режим) |
-| `api/vin_nodes.php` | дерево узлов авто (`oemNodesForVin/ForCar`), поле `img` (миниатюра) |
-| `api/vin_scheme.php` | визуальная взрыв-схема узла: `img`, `hotspots[{n,x,y,w,h}]`, `parts[]` |
-| `api/vin_params.php` | каскад «По параметрам»: `step=brands/models/carparams/cars` |
-| `api/vin_price.php` | цена по OEM (склад→AutoEuro) |
-| `api/vin_crosses.php` | аналоги-кроссы + обогащение складом |
-| `api/vin_analogs.php` | аналоги детали из своего каталога |
+### 5.7 `LaximoAdapter.php` (id `laximo`, каркас)
+Шлюз `https://ws.laximo.ru/ec.api/`. Подпись: `base64(md5(command.secret, raw))`;
+логин+подпись в query, команда в POST `request`. `testConnection` шлёт
+`GetListCatalogs:Locale=ru_RU` — на боевом аккаунте видно ответ. Выдача деталей
+(ssd-цепочка FindVehicle→ListUnits→ListDetailByUnit) достраивается на боевом ключе;
+до этого graceful-пусто.
 
----
+### 5.8 `MockAdapter.php` (id `mock`)
+Демо-каталог без ключа: 4 узла (Двигатель/Тормоза/Подвеска/Электрика), реальные
+бренды/артикулы (MANN W712/52, BREMBO P50090…) — совпавшие со складом получают цену.
 
-## 5. Корзина и заказ (гость + юзер)
-
-Login-wall снят: гость подбирает и заказывает без регистрации.
-
-- **`includes/cart_lib.php`** — единое хранилище: гость → сессия `$_SESSION['guest_cart']`, юзер → таблица `cart`. При входе — `cartMergeGuestIntoUser` (вызов из `loginUser`).
-- **`api/cart.php`** — add/remove/update/count/mini.
-- **`buyer/cart.php`** — страница корзины; **`buyer/checkout.php`** — оформление (заказ гостя привязывается к аккаунту по телефону через `guestOrderUserId`).
-- Мини-корзина в шапке — `getCartCount/getMiniCart/getMiniCartTotal` (в `functions.php`).
-
----
-
-## 6. Аутентификация и роли
-
-- **`auth/login.php` / `auth/register.php`** — email (логин+пароль) и телефон (SMS-код / PIN для сотрудников). Тумблер email — `auth_email_enabled`. Защита от перебора — таблица `login_attempts` (5 попыток → блок 15 мин).
-- Роли: `buyer` (покупатель), `manager`, `admin`, `superadmin`. Проверки — `userCan($section)/requirePermission($section)/requireRole([...])` в `functions.php`.
-- **`superadmin/`** — настройки сайта, VIN/каталог, пользователи, бэкап. **`manager/`** — контент (страницы, блог, отзывы). **`admin/`** — товары, слайдеры, баннеры.
-
----
-
-## 7. Настройки (`site_settings`, ключ→значение) — где что
-
-Читаются `getSetting('ключ', 'дефолт')`, правятся в **Суперадмин → VIN-поиск** и др.
-
-**Каталог/провайдер:**
-`catalog_provider` (partsapi|partspc|laximo|mock|<профиль>), `catalog_api_enabled`,
-`catalog_api_type`, `catalog_api_oem_nodes`, `catalog_profiles` (JSON).
-**PartsAPI:** `catalog_api_key`, `catalog_api_base`, `catalog_api_max_groups`, `catalog_api_timeout`.
-**Parts-Catalogs:** `catalog_pc_key`, `catalog_pc_base`, `catalog_pc_timeout`, `catalog_pc_auth` (header|bearer|query), `catalog_pc_key_param`, `catalog_pc_schema`, `catalog_pc_lang` (ru|en).
-**Laximo:** `catalog_laximo_login`, `catalog_laximo_secret`.
-**Цены:** `catalog_price_autoeuro`, `global_markup`; AutoEuro: `autoeuro_enabled/api_key/delivery_key/payer_key`.
-**VIN-декодер:** `vin_search_enabled`, `vin_api_provider` (nhtsa|partsapi|custom), `vin_api_url`, `vin_api_key`, `vin_api_timeout`.
+### 5.9 Слой цен
+| Файл | Логика |
+|------|--------|
+| `PriceProvider.php` | интерфейс `priceByOem(oem, brand): ?['price'(RUB),'stock','source','delivery','part_id','url']` |
+| `WarehousePriceProvider.php` | свой склад: нормализованное совпадение `part_number` (без регистра/разделителей) в `parts`, отдаёт цену/сток/ссылку на товар |
+| `AutoEuroPriceProvider.php` | AutoEuro `searchItems(brand, oem)`: самое дешёвое предложение с ТОЧНЫМ совпадением кода + наценка `global_markup`; отдаёт `delivery_time` |
+| `PriceAggregator.php` | склад (без кэша, живой сток) → если пусто и `catalog_price_autoeuro=1` → AutoEuro (кэш `catalog_price_cache`: найдено 6ч / «не найдено» 1ч) |
 
 ---
 
-## 8. Таблицы БД (`sql/schema.sql` + миграции на лету)
+## 6. Контракты AJAX-эндпоинтов `api/vin_*`
 
-**Основные:** `users`, `parts`, `categories`, `brands`, `cart`, `orders`, `order_items`, `delivery_zones`, `site_settings`.
-**Создаются в рантайме (кэш каталога):** `partsapi_catalog_cache`, `partsapi_kv_cache` (узлы/схемы/кроссы/каскад, префиксы `pc:`), `catalog_price_cache`, `vin_cache`, `login_attempts`.
+Все проверяют `Catalog::provider()->enabled()` → иначе `{success:false, error:'disabled'}`.
 
-> Миграции идемпотентные (через `dbAddColumnIfMissing()` / `CREATE TABLE IF NOT EXISTS`) — совместимо с MySQL 8 на проде.
+### `vin_nodes.php`
+`GET ?vin=<17>` ИЛИ `?carId=&catalogId=&criteria=&brand=` (режим «по параметрам»)
+→ `{success, count, nodes:[{cat, name, img}]}` (`img` — миниатюра схемы узла или '').
+
+### `vin_scheme.php`
+`GET ?vin=&cat=<groupId>` (+ carId/catalogId/criteria в режиме параметров)
+→ `{success, enabled, rate_limited, img, caption, hotspots:[{n,x,y,w,h}],
+    parts:[{name, group, brand, part_number, pos, in_catalog, part_id, price(отформатир.), stock, url}]}`
+Хотспоты в ПИКСЕЛЯХ исходной картинки; фронт пересчитывает в % по naturalWidth/Height.
+Связь: `hotspots[].n == parts[].pos`.
+
+### `vin_catalog.php`
+`GET ?vin=&cat=<id>` (один узел) или без cat (полный перебор)
+→ `{success, count, cat, groups_scanned, errors, rate_limited, type, from_cache, items:[…]}`.
+
+### `vin_params.php`
+`GET ?step=brands` → `{items:[{id,name}]}`;
+`?step=models&catalogId=` → `{items:[{id,name,img}]}`;
+`?step=carparams&catalogId=&modelId=&parameter=idx1,idx2` → `{items:[{key,name,values:[{idx,value}]}]}`;
+`?step=cars&...&parameter=` → `{items:[{carId,catalogId,criteria,name,modelName,brand}]}`.
+
+### `vin_price.php`
+`GET ?oem=&brand=` → `{success, found, price(строка в валюте), price_raw(RUB), stock, source('warehouse'|'autoeuro'), delivery, part_id, url}`.
+
+### `vin_crosses.php`
+`GET ?article=&brand=` → `{success, count, rate_limited, from_cache,
+ items:[{brand, part_number, is_original, in_catalog, part_id, price, stock, url}]}`.
+
+### `cart.php`
+GET `?action=count|mini|remove(+part_id,_csrf)`;
+POST JSON/form `{action:add|remove|update|count, part_id, quantity, _csrf}`
+→ `{success, cart_count, cart_total, cart_total_html, message}` (mini добавляет items_html).
+CSRF обязателен на мутациях. Работает для гостя.
 
 ---
 
-## 9. Быстрый индекс: «хочу изменить X → файл Y»
+## 7. Фронтенд `pages/vin.php` — карта одного файла
 
-| Задача | Файл(ы) |
-|--------|---------|
-| Внешний вид страницы VIN, дерево, схема, карточки | `pages/vin.php` (CSS+JS вверху) |
-| Добавить новый REST-провайдер каталога **без кода** | админка: `catalog_profiles` JSON (движок `GenericRestAdapter`) |
-| Поведение Parts-Catalogs (язык, авторизация, поля) | `includes/catalog/PartsCatalogsAdapter.php` |
-| Логика цен (склад/AutoEuro/наценка) | `includes/catalog/PriceAggregator.php` + `*PriceProvider.php` |
-| Ответ эндпоинта каталога/схемы/узлов/цены | `api/vin_*.php` |
-| Корзина (гость/юзер, слияние, заказ) | `includes/cart_lib.php`, `api/cart.php`, `buyer/checkout.php` |
-| Расшифровка VIN (марка/год/страна) | `includes/vin_service.php` |
-| Настройки каталога в админке | `superadmin/vin.php` |
-| HTTP к любому внешнему API | `httpGet()` в `includes/functions.php` |
-| Переводы текста | `lang/ru.php|en.php|tg.php` + `t()` |
-| Цена/валюта/наценка | `includes/currency.php`, `getEffectiveMarkup` |
-| Права/роли/доступ к разделам | `functions.php` (`userCan/requirePermission`) |
-| Схема БД / новые колонки | `sql/schema.sql` (+ `dbAddColumnIfMissing`) |
+**PHP-верх (строки ~1–120):** `Catalog::provider()->enabled()`, `$pcProvider`
+(`catalog_provider==='partspc'`), `$pcSchema` (`catalog_pc_schema`); декод VIN →
+`$result`; режим «по параметрам» (`?carId&catalogId&criteria&carName` → `$carMode`);
+`getCarImageUrl()` — фото авто (Wikipedia для СНГ-брендов).
+
+**Секции HTML (по порядку):** промо-баннер → hero → карточка поиска
+(`.vx-scard`, табы `#vx-t-vin`/`#vx-t-params`, панели `#vx-p-vin`/`#vx-p-params`;
+в параметрах: курируемый `.vx-params` + живой `#vxPcCascade`) → результат
+(карточка авто, совместимые со склада, **каталог `#vinCatalog`**) → популярные марки →
+«Как это работает» → эксперт (WhatsApp/Telegram из настроек) → trust.
+
+**Блок каталога `#vinCatalog`:** `.vin-cat7` = сайдбар `#vinNodeList` (sticky) +
+`.vin-cat7-main` с двумя состояниями: `#vinNodeGrid` (карточки узлов с миниатюрами)
+↔ `#vinNodeView` (кнопка «← Все узлы», `#vinNodeTitle`, панель схемы `#vinSchemePanel`
+c `#vinSchemeImg`+`#vinSchemeHot`, статус `#vinCatalogStatus`, детали `#vinCatalogBody`).
+
+**JS-функции (все):**
+| Функция | Что |
+|---|---|
+| `vxTab(t)` | переключение табов VIN/параметры |
+| `vxFillExample` / `vxOnMake` / `vxOnModel` / `vxParamsSubmit` / `vxPickBrand` | курируемый фуннел параметров (когда нет живого каскада) |
+| IIFE «Живой каскад» (~стр. 800) | самоактивация: `step=brands` вернул марки → прячет курируемый, строит селекты Марка→Модель→уточнения→карточки авто (ссылки `?carId=...`) |
+| `vinLoadPcNodes()` | тянет `vin_nodes.php`, строит сайдбар + сетку карточек (миниатюра `img`/SVG-плейсхолдер `VIN_NODE_PH`) |
+| `vinLoadNode(cat, btn)` | активная карточка + `vinShowView(имя)` + (схема? `vinLoadScheme` : `vinCatalogFetch('&cat=')`) |
+| `vinShowView(title)` / `vinBackToNodes()` | смена контента НА МЕСТЕ (grid↔view) + прокрутка к началу каталога |
+| `vinLoadScheme(cat)` → `vinRenderScheme(d)` | fetch схемы; хотспоты px→% (`vinScaleHot`), клик по точке — скролл к карточке |
+| `vinCatalogFetch(extra)` → `vinRenderCatalog(d)` | режим без схем (PartsAPI/Mock/профили) |
+| `vinBuildPartsHtml(items)` | карточки деталей: бейдж №, **`.vin-pos-box`** (кликабельный номер вместо фото — у OEM фото деталей НЕТ), цена/«под заказ», «В корзину»/«Найти в каталоге», кнопка кроссов |
+| `vinExpandAbbr(s)` | расшифровка сокращений: К-т→Комплект, Компл.→Комплект, доосн.→дооснащения, нерж.→нержавеющей, Облиц.→Облицовка, солнцезащ.→солнцезащитные |
+| `vinFillPrices(scope)` | ленивые цены: `.vin-price-ph[data-oem]` → `vin_price.php` → красный ценник + «склад/поставщик · N дн» |
+| `vinCrosses(article, brand, btn, cid)` | разворот кроссов под карточкой |
+| `vinHi(pos, on)` / `vinFocusPos(pos)` | подсветка «хотспот ↔ карточка» / скролл к схеме+мигание |
+| `vinAddToCart(partId, btn)` | добавление в корзину (работает у гостя) |
+| `vinCtxQuery()` | добавляет carId/catalogId/criteria к запросам в режиме «по параметрам» |
+| `escapeHtml/jsAttr/vinCssEsc` | экранирование |
+
+**Ключевые CSS-классы:** `.vx .container{max-width:min(1560px,94vw)}`;
+`.vin-cat7-side` (250px, sticky); `.vin-node-grid` (minmax 185px); `.vin-node-thumb` (118px);
+`.vin-scheme-box img{max-height:70vh;object-fit:contain}`; `.vin-pcard`, `.vin-price`,
+`.vin-cart`, `.vin-pos-box`, `.vin-hot` (хотспот), `.hot` (подсветка).
+
+**Глобальные JS-флаги:** `VX_PC`, `VX_PC_SCHEMA`, `VX_PRICE_LAZY`, `VX_MAKES`, `VX_CAR_CTX`.
 
 ---
 
-## 10. Документация в репозитории
+## 8. Все настройки `site_settings` (по группам)
 
-- **`ARCHITECTURE.md`** (этот файл) — карта кода.
-- **`CATALOG_PLAN.md`** — план и этапы универсального каталога (архитектура, статусы).
-- **`README.md`** — установка, деплой, changelog по PR, «как работает» разделы.
+### Каталог: выбор провайдера
+| Ключ | Значения / смысл |
+|---|---|
+| `catalog_provider` | `partspc` \| `partsapi` \| `laximo` \| `mock` \| id профиля |
+| `catalog_api_enabled` | '1'/'0' — общий тумблер каталога |
+| `catalog_api_type` | `oem` (оригинал) \| '' (аналоги) — для PartsAPI |
+| `catalog_api_oem_nodes` | построчно `ID=Название` — общий справочник узлов (фолбэк) |
+| `catalog_profiles` | JSON профилей REST-провайдеров (GenericRestAdapter) |
+
+### PartsAPI
+`catalog_api_key`, `catalog_api_base` (https://api.partsapi.ru/), `catalog_api_max_groups` (0=все 751), `catalog_api_timeout`.
+
+### Parts-Catalogs (Tradesoft)
+`catalog_pc_key`, `catalog_pc_base` (https://api.parts-catalogs.com/), `catalog_pc_timeout` (20),
+`catalog_pc_auth` (header|bearer|query), `catalog_pc_key_param` (api_key|auth_key),
+`catalog_pc_schema` ('1' — показывать взрыв-схемы), `catalog_pc_lang` (ru|en).
+
+### Laximo
+`catalog_laximo_login`, `catalog_laximo_secret`.
+
+### Цены
+`catalog_price_autoeuro` ('1' — фолбэк цен из AutoEuro), `global_markup` (% наценки по умолчанию).
+
+### AutoEuro
+`autoeuro_enabled`, `autoeuro_api_key`, `autoeuro_delivery_key`, `autoeuro_payer_key`.
+
+### VIN-декодер
+`vin_search_enabled`, `vin_api_provider` (nhtsa|partsapi|custom), `vin_api_url`
+(шаблон c `{VIN}`/`{KEY}`), `vin_api_key`, `vin_api_timeout`.
+
+### Аутентификация / SMS
+`auth_email_enabled` (тумблер email-входа), `sms_provider` (пусто = тест-режим), `phone_countries` (вкл. страны).
+
+### Онлайн-оплата
+`online_payment_enabled`, `online_discount_type` (percent|fixed), `online_discount_value`, `online_free_shipping`.
+
+### Сайт/контакты/SEO/карта
+`site_name`, `site_phone`, `site_email`, `site_address`, `site_whatsapp`, `site_telegram`,
+`site_facebook`, `site_instagram`, `site_youtube`, `site_tiktok`,
+`meta_description`, `meta_keywords`, `map_lat/lng/zoom`, `contact_intro`,
+`slider_interval_sec`, тексты отзывов `review_msg_*`.
+
+### Служебные флаги сидеров (не трогать)
+`banners_seed_done`, `brands_seed_done`, `cat_subseed_v2`, `demo_products_v1`,
+`prod_imgseed_done`, `slider_photos_template_v1`, `slider_text_v1`,
+`phone_auth_schema_v1`, `staff_pin_schema_v1`, `login_throttle_schema_v1`, `order_discount_col_v1`.
+
+---
+
+## 9. База данных — все таблицы
+
+### Основные (`sql/schema.sql`)
+| Таблица | Колонки |
+|---|---|
+| `users` | id, username, email, password_hash, role(buyer/admin/manager/superadmin), phone, created_at, updated_at, is_active. +миграции: phone_e164, pin_hash, first/last_name, address, city, zip_code, country |
+| `parts` | id, part_number, name, description, brand_id, category_id, price(RUB), old_price, stock, weight, dimensions, images(JSON), is_active, created_by, created_at, updated_at. +cost_price, markup_percent |
+| `categories` | id, name, slug, parent_id, description, image_path(+_mobile), sort_order, is_active, markup_percent |
+| `brands` | id, name, slug, logo_path, country, description, is_active, sort_order |
+| `cart` | id, user_id, part_id, quantity, added_at (UNIQUE user+part) |
+| `orders` | id, user_id, status(enum), total_amount, discount_amount, shipping_cost, shipping_address(JSON-текст), notes, payment_method, created_at, updated_at |
+| `order_items` | id, order_id, part_id, quantity, unit_price |
+| `delivery_zones` | id, city, country, cost, delivery_days, is_active, sort_order |
+| `site_settings` | id, key(UNIQUE), value, updated_at |
+
+### Из миграций (sql/*.sql)
+| Таблица | Откуда / зачем |
+|---|---|
+| `wishlist`, `currencies`, `languages`, `blog_posts`, `warehouse_api_log`, `parts_i`, `categories_i` | schema_v2 (избранное, валюты, языки, блог, лог AutoEuro, i18n-таблицы) |
+| `backups` | schema_v3 (реестр SQL-бэкапов) |
+| `sliders` | schema_v4 (+text_blocks JSON, title_highlight) |
+| `car_models`, `parts_compatibility`, `vin_cache` | migrate_vin (свои авто, совместимость, кэш декода) |
+| `vin_search_history`, `part_analogs` | migrate_vin_v2 |
+| `site_sections` | migrate_cms (контент страниц about/contact/faq) |
+| `product_reviews`, `shop_reviews` | migrate_reviews / v2 |
+| `phone_otp` | add_phone_auth (SMS-коды) |
+| `banners` | (сидер) баннеры с placement |
+| `user_permissions` | migrate_permissions (персональные разделы) |
+| `login_attempts` | рантайм (троттлинг входа) |
+
+### Рантайм-кэши (создаются кодом, `CREATE TABLE IF NOT EXISTS`)
+| Таблица | Кто пишет | Ключи |
+|---|---|---|
+| `partsapi_catalog_cache` | CatalogApi (PartsAPI, по VIN) | vin PK, result JSON, cached_at |
+| `partsapi_kv_cache` | PC-адаптер и др. | k(96) PK: `pc:car:*`, `pc:nodes:*`, `pc:parts:*`, `pc:scheme:*`, `pc:brands:*`, `pc:models:*`, `pc:cparams:*`, `pc:cars:*`, `cr:*`, `g:*` |
+| `catalog_price_cache` | PriceAggregator (AutoEuro) | ck PK (oem\|brand), result, cached_at |
+
+> Все миграции идемпотентны: `dbAddColumnIfMissing()` / `CREATE TABLE IF NOT EXISTS` — безопасно для MySQL 8.
+
+---
+
+## 10. Роли и доступ
+
+| Роль | Разделы |
+|---|---|
+| `buyer` | кабинет buyer/ (заказы, профиль, избранное, корзина) |
+| `manager` | контент: товары/категории/бренды/блог/страницы/отзывы (manager/) |
+| `admin` | + товары/наценки/слайдеры/заказы/пользователи (admin/) |
+| `superadmin` | всё + настройки/VIN/каталог/валюты/доставка/права/бэкапы (superadmin/) |
+
+Точечные права: `permissionSections()` (ключи: products, markup, sliders, orders,
+users, categories, brands, blog, pages, reviews, vin, settings, …) →
+`userCan('vin')` / `requirePermission('vin')`. Персональные наборы — `user_permissions`
+(редактор — superadmin/permissions.php). Вход сотрудника: телефон + PIN
+(`pin_hash`), либо email если `auth_email_enabled=1` (`?staff=1`).
+
+---
+
+## 11. Внешние сервисы (сводно)
+
+| Сервис | Роль | Файл | Доступ |
+|---|---|---|---|
+| **Parts-Catalogs / Tradesoft** | OEM-каталог + визуальные схемы (боевой) | `PartsCatalogsAdapter.php` | ключ `catalog_pc_key`; тариф — за VIN/сутки |
+| PartsAPI.ru | данные (детали по VIN, кроссы 428 млн) | `catalog_api.php` | `catalog_api_key`+`vin_api_key`; демо 50 req/сутки/IP (`error_code 5000`) |
+| Laximo | оригинал (каркас) | `LaximoAdapter.php` | логин+секрет |
+| NHTSA | бесплатный VIN-декод (US) | `vin_service.php` | без ключа |
+| AutoEuro | цены/наличие/заказ поставщика | `autoeuro.php` | `autoeuro_api_key` (+delivery/payer key) |
+| SMS | коды входа | `sendSms()` | ТЕСТ-режим (лог); боевой шлюз не подключён |
+
+---
+
+## 12. Быстрый индекс: «хочу изменить X → файл Y»
+
+| Задача | Где |
+|---|---|
+| Вид страницы VIN (дерево/схема/карточки/ширина) | `pages/vin.php` (CSS в `<style>` блока каталога, JS внизу) |
+| Добавить REST-провайдер каталога БЕЗ кода | админка → `catalog_profiles` JSON (движок `GenericRestAdapter.php`) |
+| Parts-Catalogs: язык/авторизация/парсинг/кэш | `includes/catalog/PartsCatalogsAdapter.php` |
+| PartsAPI: перебор групп/кроссы/лимит | `includes/catalog_api.php` |
+| Логика цен (склад/AutoEuro/наценка/TTL) | `includes/catalog/PriceAggregator.php`, `*PriceProvider.php` |
+| Формат ответа эндпоинта | `api/vin_*.php` (тонкие, вся логика в адаптерах) |
+| Декод VIN (WMI, годы, провайдеры) | `includes/vin_service.php` |
+| Корзина/гость/слияние | `includes/cart_lib.php`; UI — `buyer/cart.php`, `api/cart.php` |
+| Оформление заказа/доставка/оплата | `buyer/checkout.php`; зоны — `superadmin/delivery.php` |
+| Вход/регистрация/SMS/PIN/троттлинг | `auth/login.php`, `auth/register.php`, `functions.php` (SMS/OTP/throttle) |
+| Настройки каталога в админке (форма) | `superadmin/vin.php` |
+| Общие настройки/соцсети/оплата/SEO | `superadmin/settings.php` |
+| HTTP к внешнему API | `httpGet()` в `includes/functions.php` |
+| Наценка на товар | `getEffectiveMarkup()`; поля parts.markup_percent / categories.markup_percent / `global_markup` |
+| Переводы интерфейса | `lang/ru.php`, `lang/tg.php`, `lang/en.php` + `t()` |
+| Валюта/курс | `includes/currency.php`, таблица `currencies`, `superadmin/currencies.php` |
+| ЧПУ товара | `partUrl()`, `.htaccess`, роутер в корневом `index.php`, canonical в `catalog/part.php` |
+| Слайдер главной | `admin/sliders.php` (+`normalizeSliderBlocks`), рендер в корневом `index.php` |
+| Баннеры (placement) | `admin/banners.php`, вывод в `catalog/index.php` |
+| Роли/права/разделы | `functions.php` (permission*), `superadmin/permissions.php` |
+| Бэкапы | `superadmin/backup.php`, `_backup_lib.php`, cron — `backup_cron.php` |
+| Новая колонка/таблица | `sql/` + `dbAddColumnIfMissing()` (идемпотентно) |
+| Демо-режим каталога (без ключа) | админка: провайдер «Демо»; код — `MockAdapter.php` |
+
+---
+
+## 13. Документы репозитория
+- **`ARCHITECTURE.md`** — этот файл (полная карта).
+- **`CATALOG_PLAN.md`** — план/этапы универсального каталога (все 5 этапов ✅).
+- **`README.md`** — установка, деплой, changelog всех PR, разделы «как работает».
+
+## 14. Известные ограничения / «остаётся»
+- SMS — тест-режим (код в `storage/sms.log`); боевой шлюз не подключён (`sendSms()`).
+- Онлайн-оплата фиксирует способ и скидку; реальный платёжный шлюз — отдельная интеграция.
+- Laximo — каркас (ssd-выдача деталей достраивается на боевом аккаунте).
+- У OEM-каталогов НЕТ фото отдельных деталей (только взрыв-схема) — это свойство данных, на карточке показывается кликабельный номер-выноска.
+- Часть названий узлов может приходить на en/de — непереведённые позиции в данных Tradesoft (лечится на их стороне).
+- Локализация ru/tg/en: каркас VIN-страницы через `t()`, часть текстов блока результатов — на русском.
