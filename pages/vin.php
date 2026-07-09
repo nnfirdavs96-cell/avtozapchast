@@ -510,6 +510,19 @@ require_once dirname(__DIR__) . '/includes/header.php';
             /* ── Визуальная взрыв-схема (Parts-Catalogs): картинка + кликабельные хотспоты ── */
             .vin-scheme-wrap{margin-bottom:22px;scroll-margin-top:90px;}
             #vinCatalogStatus,#vinCatalogBody{scroll-margin-top:90px;}
+            /* Раскладка узла: схема слева (залипает и остаётся на виду) + детали
+               справа (скроллятся). Двухколоночный режим включается классом has-scheme,
+               который ставится только когда у узла есть картинка схемы. */
+            .vin-nv-split{display:block;}
+            .vin-nv-split.has-scheme{display:flex;gap:18px;align-items:flex-start;}
+            .vin-nv-split.has-scheme .vin-nv-scheme{flex:0 0 clamp(320px,44%,600px);position:sticky;top:14px;}
+            .vin-nv-split.has-scheme .vin-scheme-wrap{margin-bottom:0;}
+            .vin-nv-split.has-scheme #vinCatalogBody{flex:1;min-width:0;}
+            @media (max-width:820px){
+                .vin-nv-split.has-scheme{flex-direction:column;}
+                .vin-nv-split.has-scheme .vin-nv-scheme{flex:none;width:100%;position:sticky;top:0;z-index:6;background:#fff;padding-bottom:8px;margin-bottom:6px;}
+                .vin-nv-split.has-scheme .vin-scheme-box img{max-height:42vh;}
+            }
             .vin-scheme-cap{font-size:0.82rem;color:#888;margin-bottom:8px;text-align:center;}
             .vin-scheme-box{position:relative;width:100%;max-width:100%;margin:0 auto;background:#fff;border:1px solid #e7e9ee;border-radius:12px;overflow:hidden;}
             .vin-scheme-box img{width:100%;max-height:70vh;object-fit:contain;display:block;background:#fff;}
@@ -553,16 +566,20 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             <button type="button" class="vin-nv-back" onclick="vinBackToNodes()"><i class="fa fa-arrow-left"></i> Все узлы</button>
                             <h3 class="vin-nv-title" id="vinNodeTitle"></h3>
                         </div>
-                        <?php if ($pcSchema): ?>
-                        <div id="vinSchemePanel" class="vin-scheme-wrap" style="display:none;">
-                            <div id="vinSchemeCap" class="vin-scheme-cap"></div>
-                            <div id="vinSchemeBox" class="vin-scheme-box">
-                                <img id="vinSchemeImg" alt="">
-                                <div id="vinSchemeHot"></div>
+                        <div id="vinNvSplit" class="vin-nv-split">
+                            <?php if ($pcSchema): ?>
+                            <div class="vin-nv-scheme">
+                                <div id="vinSchemePanel" class="vin-scheme-wrap" style="display:none;">
+                                    <div id="vinSchemeCap" class="vin-scheme-cap"></div>
+                                    <div id="vinSchemeBox" class="vin-scheme-box">
+                                        <img id="vinSchemeImg" alt="">
+                                        <div id="vinSchemeHot"></div>
+                                    </div>
+                                </div>
                             </div>
+                            <?php endif; ?>
+                            <div id="vinCatalogBody" style="overflow-x:auto;"></div>
                         </div>
-                        <?php endif; ?>
-                        <div id="vinCatalogBody" style="overflow-x:auto;"></div>
                     </div>
                     <div id="vinCatalogStatus" style="background:#fff;border-radius:10px;padding:22px 24px;text-align:center;color:#888;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin:14px 0 32px;<?= $showTree ? 'display:none;' : '' ?>">
                         <i class="fa fa-spinner fa-spin" style="font-size:1.6rem;color:#C70909;"></i>
@@ -1025,10 +1042,9 @@ function vinPickNode(cat){ var c = document.querySelector('.vin-node-card[data-c
 
 /* Подсветка «хотспот ↔ карточка детали» по номеру выноски. */
 function vinHi(pos, on){ if (pos === '' || pos == null) return; document.querySelectorAll('[data-pos="' + vinCssEsc(pos) + '"]').forEach(function(el){ el.classList.toggle('hot', on); }); }
-/* Клик по номеру детали → прокрутить к схеме и мигнуть выноской. */
+/* Клик по номеру детали → мигнуть выноской на схеме. Схема залипает слева и всегда
+   на виду (sticky), поэтому прокрутка к ней больше не нужна. */
 function vinFocusPos(pos){
-    var panel = document.getElementById('vinSchemePanel');
-    if (panel && panel.style.display !== 'none') { try { panel.scrollIntoView({behavior:'smooth', block:'center'}); } catch(e){} }
     vinHi(pos, true);
     setTimeout(function(){ vinHi(pos, false); }, 1600);
 }
@@ -1093,8 +1109,11 @@ function vinRenderScheme(d){
         if (img.complete && img.naturalWidth) vinScaleHot(img, hot);
         panel.style.display = 'block';
     } else if (panel) { panel.style.display = 'none'; }
-    // Детали узла (список под схемой). Контент сменяется на месте (vinShowView) —
-    // отдельная прокрутка вниз не нужна.
+    // Двухколоночная раскладка (схема слева sticky + детали справа) — только если
+    // у узла реально есть картинка схемы; иначе детали занимают всю ширину.
+    var split = document.getElementById('vinNvSplit');
+    if (split) split.classList.toggle('has-scheme', !!(panel && d.img));
+    // Детали узла (список справа от схемы). Контент сменяется на месте (vinShowView).
     if (!parts.length) {
         statusEl.style.display = 'block';
         statusEl.innerHTML = '<div style="font-size:0.9rem;">В этом узле деталей не найдено. Выберите другой узел.</div>';
