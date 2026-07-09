@@ -72,6 +72,23 @@ if ($vin) {
                 VinService::recordSearch((int)$_SESSION['user_id'], $vin, $result);
             }
         }
+        // ── Карточка авто: реальные данные из Parts-Catalogs (car/info). Тот же
+        //    вызов уже идёт для дерева узлов, поэтому доп. запроса к PC (и лишнего
+        //    кредита по VIN) НЕ уходит — оба читают из общего кэша car:lang:vin.
+        if ($pcProvider && $catalogEnabled && $result !== null
+                && method_exists(Catalog::provider(), 'vinCarInfo')) {
+            $pcInfo = Catalog::provider()->vinCarInfo($vin);
+            if (!empty($pcInfo)) {
+                foreach (['make','model','year','engine','body_type',
+                          'series','region','steering','transmission'] as $k) {
+                    if (isset($pcInfo[$k]) && $pcInfo[$k] !== '' && $pcInfo[$k] !== 0) {
+                        $result[$k] = $pcInfo[$k];
+                    }
+                }
+                $result['source']      = 'parts-catalogs';
+                $result['pc_enriched'] = true;
+            }
+        }
         // External catalog (PartsAPI) is loaded asynchronously via api/vin_catalog.php
         // because it scans many product groups and may take a few seconds.
     }
@@ -396,12 +413,16 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     $fields = [
                         'make'         => ['Марка',       'fa-car'],
                         'model'        => ['Модель',      'fa-tag'],
+                        'series'       => ['Поколение',   'fa-code-fork'],
                         'year'         => ['Год выпуска', 'fa-calendar'],
                         'body_type'    => ['Тип кузова',  'fa-cube'],
                         'engine'       => ['Двигатель',   'fa-cog'],
+                        'transmission' => ['Коробка передач','fa-cogs'],
                         'fuel_type'    => ['Топливо',     'fa-tint'],
                         'drive_type'   => ['Привод',      'fa-road'],
+                        'steering'     => ['Рулевое управление','fa-dot-circle-o'],
                         'country'      => ['Страна',      'fa-globe'],
+                        'region'       => ['Регион',      'fa-map-o'],
                         'manufacturer' => ['Производитель','fa-industry'],
                         'plant_country'=> ['Завод',       'fa-map-marker'],
                     ];

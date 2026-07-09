@@ -178,6 +178,18 @@ class PartsCatalogsAdapter implements CatalogProvider
     /** @return array{carId:string,catalogId:string,criteria:string,brand:string}|null */
     private function vinToCar(string $vin)
     {
+        return $this->carInfoFull($vin);
+    }
+
+    /**
+     * Полный ответ car/info по VIN: маршрутные поля (carId/catalogId/criteria/brand)
+     * + разобранные атрибуты авто ('attrs': модель/серия/двигатель/год/кузов/…).
+     * Кэшируется ОДНОЙ записью (car:lang:vin) — и дерево узлов, и карточка авто
+     * читают из неё, поэтому лишний запрос к PC (и лишний кредит по VIN) НЕ уходит.
+     * @return array{carId:string,catalogId:string,criteria:string,brand:string,attrs:array}|null
+     */
+    private function carInfoFull(string $vin)
+    {
         $vin = strtoupper(trim($vin));
         if ($vin === '') return null;
         $ck = 'car:' . $this->lang() . ':' . $vin;
@@ -198,9 +210,50 @@ class PartsCatalogsAdapter implements CatalogProvider
             'criteria'  => (string)($row['criteria'] ?? ''),
             'brand'     => (string)($row['brand'] ?? ''),
             'count'     => 1,
+            'attrs'     => $this->parseCarAttrs($row),
         ];
         $this->kvSet($ck, $car);
         return $car;
+    }
+
+    /**
+     * Разбор атрибутов авто из ответа car/info (title/modelName/brand + parameters[]).
+     * Возвращает только НЕПУСТЫЕ поля: make, model, model_line, series, engine, year,
+     * body_type, region, steering, transmission.
+     */
+    private function parseCarAttrs(array $row): array
+    {
+        $p = [];
+        foreach (($row['parameters'] ?? []) as $par) {
+            if (!is_array($par)) continue;
+            $k = (string)($par['key'] ?? '');
+            $v = trim((string)($par['value'] ?? ''));
+            if ($k !== '' && $v !== '') $p[$k] = $v;
+        }
+        $model = trim((string)($row['title'] ?? ($p['car_name'] ?? '')));
+        $out = [
+            'make'         => trim((string)($row['brand'] ?? '')),
+            'model'        => $model,
+            'model_line'   => trim((string)($row['modelName'] ?? '')),
+            'series'       => $p['spec_series'] ?? '',
+            'engine'       => $p['engine'] ?? '',
+            'year'         => isset($p['year']) ? (int)$p['year'] : 0,
+            'body_type'    => $p['body_type'] ?? '',
+            'region'       => $p['sales_region'] ?? '',
+            'steering'     => $p['steering'] ?? '',
+            'transmission' => $p['trans_type'] ?? '',
+        ];
+        return array_filter($out, fn($v) => $v !== '' && $v !== 0 && $v !== null);
+    }
+
+    /**
+     * Публичный: атрибуты авто по VIN для карточки на странице VIN. Переиспользует
+     * кэш car/info (см. carInfoFull) — дополнительного запроса к PC не делает.
+     */
+    public function vinCarInfo(string $vin): array
+    {
+        $c = $this->carInfoFull($vin);
+        return is_array($c) ? ($c['attrs'] ?? []) : [];
     }
 
     // ── Дерево узлов ─────────────────────────────────────────────────────────
