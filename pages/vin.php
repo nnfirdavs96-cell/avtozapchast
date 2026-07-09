@@ -418,78 +418,6 @@ require_once dirname(__DIR__) . '/includes/header.php';
             </div>
         </div>
 
-        <!-- ── Compatible parts (own catalog) ─────────────────────────── -->
-        <?php if (!empty($facets) || !empty($compatParts)): ?>
-        <?php if (!empty($facets)): ?>
-        <div style="background:#fff;border-radius:10px;padding:14px 18px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-            <div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;"><i class="fa fa-filter" style="color:var(--vx-red);"></i> Фильтр по категориям</div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                <?php $chipBase = APP_URL . '/pages/vin.php?vin=' . urlencode($vin); $isAll = $filterCat === 0; ?>
-                <a href="<?= $chipBase ?>" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;font-size:0.85rem;font-weight:600;<?= $isAll ? 'background:#C70909;color:#fff;' : 'background:#f0f1f5;color:#1d2129;' ?>">
-                    Все <span style="opacity:0.75;font-weight:400;">(<?= (int)$totalCompat ?>)</span>
-                </a>
-                <?php foreach ($facets as $f): $active = $filterCat === (int)$f['id']; ?>
-                <a href="<?= $chipBase ?>&cat=<?= (int)$f['id'] ?>" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;font-size:0.85rem;font-weight:600;<?= $active ? 'background:#C70909;color:#fff;' : 'background:#f0f1f5;color:#1d2129;' ?>">
-                    <?= sanitize($f['name']) ?> <span style="opacity:0.75;font-weight:400;">(<?= (int)$f['cnt'] ?>)</span>
-                </a>
-                <?php endforeach; ?>
-            </div>
-        </div>
-        <?php endif; ?>
-
-        <h2 style="font-size:1.3rem;font-weight:700;margin-bottom:20px;color:var(--vx-ink);">
-            <i class="fa fa-cogs" style="color:var(--vx-red);"></i> Совместимые запчасти
-            <span style="color:#888;font-weight:400;font-size:0.9rem;">(<?= count($compatParts) ?>)</span>
-        </h2>
-
-        <?php if (empty($compatParts)): ?>
-        <div style="background:#fff;border-radius:10px;padding:24px;text-align:center;color:#888;margin-bottom:32px;">В этой категории запчастей нет. <a href="<?= sanitize($chipBase) ?>" style="color:#C70909;">Показать все</a></div>
-        <?php else: ?>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;margin-bottom:40px;">
-            <?php foreach ($compatParts as $p):
-                $imgs    = json_decode($p['images'] ?? '[]', true) ?: [];
-                $thumb   = $imgs[0] ?? '';
-                $st      = getStockStatus((int)$p['stock']);
-                $inStock = (int)$p['stock'] > 0;
-            ?>
-            <div class="vin-part-card" style="background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.07);overflow:hidden;display:flex;flex-direction:column;">
-                <a href="<?= partUrl($p) ?>">
-                    <?php if ($thumb): ?>
-                    <img src="<?= sanitize($thumb) ?>" alt="<?= sanitize($p['name']) ?>" style="width:100%;height:160px;object-fit:cover;">
-                    <?php else: ?>
-                    <div style="width:100%;height:120px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;color:#ddd;font-size:2rem;"><i class="fa fa-image"></i></div>
-                    <?php endif; ?>
-                </a>
-                <div style="padding:14px 16px;flex:1;display:flex;flex-direction:column;">
-                    <div style="font-size:0.72rem;color:#aaa;margin-bottom:4px;"><?= sanitize($p['brand_name'] ?? '') ?><?= sanitize(!empty($p['category_name']) ? ' · ' . $p['category_name'] : '') ?></div>
-                    <a href="<?= partUrl($p) ?>" style="font-weight:600;color:var(--vx-ink);font-size:0.9rem;display:block;margin-bottom:4px;line-height:1.3;"><?= sanitize(truncate($p['name'], 60)) ?></a>
-                    <div style="font-size:0.7rem;color:#bbb;font-family:monospace;margin-bottom:8px;"><?= sanitize($p['part_number']) ?></div>
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;">
-                        <span style="font-size:1.1rem;font-weight:800;color:var(--vx-red);"><?= formatPrice($p['price']) ?></span>
-                        <span class="badge badge-<?= $st['class'] ?>" style="font-size:0.7rem;"><?= $st['label'] ?></span>
-                    </div>
-                    <div style="display:flex;gap:6px;margin-top:10px;">
-                        <button type="button" onclick="vinAddToCart(<?= (int)$p['id'] ?>,this)" <?= $inStock ? '' : 'disabled' ?>
-                                style="flex:1;background:<?= $inStock ? '#C70909' : '#ccc' ?>;color:#fff;border:none;padding:9px 8px;border-radius:6px;font-size:0.82rem;font-weight:700;cursor:<?= $inStock ? 'pointer' : 'not-allowed' ?>;">
-                            <i class="fa fa-shopping-cart"></i> В корзину
-                        </button>
-                        <button type="button" onclick="vinToggleAnalogs(<?= (int)$p['id'] ?>,this)" title="Аналоги"
-                                style="background:#f0f1f5;color:#1d2129;border:none;padding:9px 12px;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer;"><i class="fa fa-exchange"></i></button>
-                    </div>
-                    <div class="vin-analogs" id="analogs-<?= (int)$p['id'] ?>" style="display:none;margin-top:10px;padding-top:10px;border-top:1px dashed #eef0f3;"></div>
-                </div>
-            </div>
-            <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
-        <?php else: ?>
-        <div style="background:#fff;border-radius:10px;padding:28px 24px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin-bottom:32px;">
-            <i class="fa fa-search" style="font-size:2.5rem;color:#ddd;display:block;margin-bottom:12px;"></i>
-            <h3 style="color:#555;margin-bottom:8px;">Совместимые запчасти ещё не привязаны</h3>
-            <p style="color:#888;margin-bottom:20px;">Найдите нужные детали поиском по марке <?= sanitize(!empty($result['make']) ? '«' . $result['make'] . '»' : '') ?> в каталоге.</p>
-            <a href="<?= APP_URL ?>/search/index.php?q=<?= urlencode($result['make'] ?? '') ?>" style="display:inline-block;background:#C70909;color:#fff;padding:10px 28px;border-radius:6px;font-weight:600;"><i class="fa fa-search"></i> Найти в каталоге</a>
-        </div>
-        <?php endif; ?>
     </div><!-- /car-info max-width:900px -->
 
     <!-- ── External catalog: на всю ширину контейнера (не в узкой обёртке) ─── -->
@@ -622,6 +550,79 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     </div>
                 </div>
             </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- ── Compatible parts (own catalog) ─────────────────────────── -->
+        <?php if (!empty($facets) || !empty($compatParts)): ?>
+        <?php if (!empty($facets)): ?>
+        <div style="background:#fff;border-radius:10px;padding:14px 18px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+            <div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;"><i class="fa fa-filter" style="color:var(--vx-red);"></i> Фильтр по категориям</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                <?php $chipBase = APP_URL . '/pages/vin.php?vin=' . urlencode($vin); $isAll = $filterCat === 0; ?>
+                <a href="<?= $chipBase ?>" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;font-size:0.85rem;font-weight:600;<?= $isAll ? 'background:#C70909;color:#fff;' : 'background:#f0f1f5;color:#1d2129;' ?>">
+                    Все <span style="opacity:0.75;font-weight:400;">(<?= (int)$totalCompat ?>)</span>
+                </a>
+                <?php foreach ($facets as $f): $active = $filterCat === (int)$f['id']; ?>
+                <a href="<?= $chipBase ?>&cat=<?= (int)$f['id'] ?>" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;font-size:0.85rem;font-weight:600;<?= $active ? 'background:#C70909;color:#fff;' : 'background:#f0f1f5;color:#1d2129;' ?>">
+                    <?= sanitize($f['name']) ?> <span style="opacity:0.75;font-weight:400;">(<?= (int)$f['cnt'] ?>)</span>
+                </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <h2 style="font-size:1.3rem;font-weight:700;margin-bottom:20px;color:var(--vx-ink);">
+            <i class="fa fa-cogs" style="color:var(--vx-red);"></i> Совместимые запчасти
+            <span style="color:#888;font-weight:400;font-size:0.9rem;">(<?= count($compatParts) ?>)</span>
+        </h2>
+
+        <?php if (empty($compatParts)): ?>
+        <div style="background:#fff;border-radius:10px;padding:24px;text-align:center;color:#888;margin-bottom:32px;">В этой категории запчастей нет. <a href="<?= sanitize($chipBase) ?>" style="color:#C70909;">Показать все</a></div>
+        <?php else: ?>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;margin-bottom:40px;">
+            <?php foreach ($compatParts as $p):
+                $imgs    = json_decode($p['images'] ?? '[]', true) ?: [];
+                $thumb   = $imgs[0] ?? '';
+                $st      = getStockStatus((int)$p['stock']);
+                $inStock = (int)$p['stock'] > 0;
+            ?>
+            <div class="vin-part-card" style="background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.07);overflow:hidden;display:flex;flex-direction:column;">
+                <a href="<?= partUrl($p) ?>">
+                    <?php if ($thumb): ?>
+                    <img src="<?= sanitize($thumb) ?>" alt="<?= sanitize($p['name']) ?>" style="width:100%;height:160px;object-fit:cover;">
+                    <?php else: ?>
+                    <div style="width:100%;height:120px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;color:#ddd;font-size:2rem;"><i class="fa fa-image"></i></div>
+                    <?php endif; ?>
+                </a>
+                <div style="padding:14px 16px;flex:1;display:flex;flex-direction:column;">
+                    <div style="font-size:0.72rem;color:#aaa;margin-bottom:4px;"><?= sanitize($p['brand_name'] ?? '') ?><?= sanitize(!empty($p['category_name']) ? ' · ' . $p['category_name'] : '') ?></div>
+                    <a href="<?= partUrl($p) ?>" style="font-weight:600;color:var(--vx-ink);font-size:0.9rem;display:block;margin-bottom:4px;line-height:1.3;"><?= sanitize(truncate($p['name'], 60)) ?></a>
+                    <div style="font-size:0.7rem;color:#bbb;font-family:monospace;margin-bottom:8px;"><?= sanitize($p['part_number']) ?></div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;">
+                        <span style="font-size:1.1rem;font-weight:800;color:var(--vx-red);"><?= formatPrice($p['price']) ?></span>
+                        <span class="badge badge-<?= $st['class'] ?>" style="font-size:0.7rem;"><?= $st['label'] ?></span>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-top:10px;">
+                        <button type="button" onclick="vinAddToCart(<?= (int)$p['id'] ?>,this)" <?= $inStock ? '' : 'disabled' ?>
+                                style="flex:1;background:<?= $inStock ? '#C70909' : '#ccc' ?>;color:#fff;border:none;padding:9px 8px;border-radius:6px;font-size:0.82rem;font-weight:700;cursor:<?= $inStock ? 'pointer' : 'not-allowed' ?>;">
+                            <i class="fa fa-shopping-cart"></i> В корзину
+                        </button>
+                        <button type="button" onclick="vinToggleAnalogs(<?= (int)$p['id'] ?>,this)" title="Аналоги"
+                                style="background:#f0f1f5;color:#1d2129;border:none;padding:9px 12px;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer;"><i class="fa fa-exchange"></i></button>
+                    </div>
+                    <div class="vin-analogs" id="analogs-<?= (int)$p['id'] ?>" style="display:none;margin-top:10px;padding-top:10px;border-top:1px dashed #eef0f3;"></div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+        <?php else: ?>
+        <div style="background:#fff;border-radius:10px;padding:28px 24px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin-bottom:32px;">
+            <i class="fa fa-search" style="font-size:2.5rem;color:#ddd;display:block;margin-bottom:12px;"></i>
+            <h3 style="color:#555;margin-bottom:8px;">Совместимые запчасти ещё не привязаны</h3>
+            <p style="color:#888;margin-bottom:20px;">Найдите нужные детали поиском по марке <?= sanitize(!empty($result['make']) ? '«' . $result['make'] . '»' : '') ?> в каталоге.</p>
+            <a href="<?= APP_URL ?>/search/index.php?q=<?= urlencode($result['make'] ?? '') ?>" style="display:inline-block;background:#C70909;color:#fff;padding:10px 28px;border-radius:6px;font-weight:600;"><i class="fa fa-search"></i> Найти в каталоге</a>
         </div>
         <?php endif; ?>
 
