@@ -1211,15 +1211,21 @@ function vinLbOpenAt(pos){
     requestAnimationFrame(function(){
         var w = img.clientWidth, ht = img.clientHeight;
         var natW = img.naturalWidth || 1, natH = img.naturalHeight || 1;
-        if (!w || !ht) { vinHi(pos, true); return; }
+        var stage = document.getElementById('vinLbStage');
+        if (!w || !ht || !stage) { vinHi(pos, true); return; }
+        // Окно вокруг детали (в px изображения). Масштаб подбираем так, чтобы это
+        // окно заполнило ~90% экрана — виден «только фрагмент», лишнее обрезано.
+        var winNat  = Math.max(h.w, h.h) * 5; if (winNat < 160) winNat = 160;
+        var winDisp = winNat / natW * w;
+        var S = 0.9 * Math.min(stage.clientWidth, stage.clientHeight) / winDisp;
+        S = Math.max(1, Math.min(8, S));
         var cx = (h.x + h.w / 2) / natW * w, cy = (h.y + h.h / 2) / natH * ht;
-        var S = 2.6;
         vinLbScale = S;
         vinLbTx = -(cx - w / 2) * S;
         vinLbTy = -(cy - ht / 2) * S;
         vinLbApply();
         vinHi(pos, true);
-        setTimeout(function(){ vinHi(pos, false); }, 2200);
+        setTimeout(function(){ vinHi(pos, false); }, 2500);
     });
 }
 function vinLbClose(){ var lb = document.getElementById('vinLightbox'); if (lb) lb.style.display = 'none'; var t = document.querySelector('#vinLbInner .vin-tip'); if (t) t.style.display = 'none'; }
