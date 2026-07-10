@@ -292,7 +292,9 @@ class PartsCatalogsAdapter implements CatalogProvider
 
         $nodes = [];
         $this->collectLeaves($car, '', $nodes, 0);
-        $this->kvSet($ck, ['count' => count($nodes), 'nodes' => $nodes]);
+        // Кэшируем ТОЛЬКО непустой результат: разовый сбой/лимит (пусто) не должен
+        // залипать на 24ч и «прятать» каталог у авто, где узлы на самом деле есть.
+        if (!empty($nodes)) $this->kvSet($ck, ['count' => count($nodes), 'nodes' => $nodes]);
         return $nodes;
     }
 
@@ -607,7 +609,9 @@ class PartsCatalogsAdapter implements CatalogProvider
         $car   = $this->carArr($carId, $catalogId, $criteria, $brand);
         $nodes = [];
         $this->collectLeaves($car, '', $nodes, 0);
-        $this->kvSet($ck, ['count' => count($nodes), 'nodes' => $nodes]);
+        // Кэшируем ТОЛЬКО непустой результат: разовый сбой/лимит (пусто) не должен
+        // залипать на 24ч и «прятать» каталог у авто, где узлы на самом деле есть.
+        if (!empty($nodes)) $this->kvSet($ck, ['count' => count($nodes), 'nodes' => $nodes]);
         return $nodes;
     }
 
