@@ -35,7 +35,7 @@ require_once __DIR__ . '/../catalog_api.php';
 
 class PartsCatalogsAdapter implements CatalogProvider
 {
-    private const CACHE_VER = 3;  // v3: язык через Accept-Language + query lang — сброс кэша
+    private const CACHE_VER = 4;  // v4: канонизация номеров выносок/позиций (01→1) — сброс кэша
     private const TTL_CAR   = 86400;    // 24h  VIN→car (criteria живёт с кредитом VIN)
     private const TTL_DATA  = 86400;    // 24h  узлы / детали / схемы
     private const TTL_CATS  = 2592000;  // 30d  список каталогов
@@ -423,6 +423,19 @@ class PartsCatalogsAdapter implements CatalogProvider
     }
 
     /**
+     * Канонизация номера выноски/позиции: trim + убрать ведущие нули ("01"→"1"),
+     * чтобы выноска на схеме и карточка детали совпадали независимо от формата
+     * (частая причина «деталь не подсвечивается»). Нечисловые — как есть.
+     */
+    private static function canonPos($s): string
+    {
+        $s = trim((string)$s);
+        if ($s === '' || !ctype_digit($s)) return $s;
+        $s = ltrim($s, '0');
+        return $s === '' ? '0' : $s;
+    }
+
+    /**
      * parts2 → нормализованная схема: картинка + хотспоты + детали.
      * Разбор защитный: если positions/coordinates отсутствуют — hotspots пустой,
      * панель деградирует до «картинка + список» (не ломается).
@@ -447,7 +460,7 @@ class PartsCatalogsAdapter implements CatalogProvider
             $c = $p['coordinates'] ?? null;
             if (!is_array($c) || count($c) < 4) continue;
             $out['hotspots'][] = [
-                'n' => (string)($p['number'] ?? ''),
+                'n' => self::canonPos($p['number'] ?? ''),
                 'x' => (float)$c[0], 'y' => (float)$c[1], 'w' => (float)$c[2], 'h' => (float)$c[3],
             ];
         }
@@ -466,7 +479,7 @@ class PartsCatalogsAdapter implements CatalogProvider
                     'group'       => $gname,
                     'brand'       => $brand,
                     'part_number' => $num,
-                    'pos'         => (string)($part['positionNumber'] ?? ''),
+                    'pos'         => self::canonPos($part['positionNumber'] ?? ''),
                     'in_catalog'  => false, 'part_id' => null, 'price' => null, 'stock' => null, 'url' => null,
                 ];
             }

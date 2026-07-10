@@ -549,6 +549,9 @@ require_once dirname(__DIR__) . '/includes/header.php';
             .vin-tip .vt-m{display:block;font-family:monospace;color:#c7ccd3;margin-top:2px;}
             .vin-tip .vt-more{display:block;color:#9aa3af;margin-top:3px;font-size:0.68rem;}
             .vin-tip:after{content:'';position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);border:6px solid transparent;border-top-color:#16171c;}
+            /* Верхнее положение — когда у детали нет точки на схеме (без стрелки, без сдвига вверх). */
+            .vin-tip.at-top{transform:translate(-50%,0);}
+            .vin-tip.at-top:after{display:none;}
             /* ── Кнопка «увеличить схему» ── */
             .vin-zoom-btn{position:absolute;top:8px;right:8px;z-index:6;width:34px;height:34px;border:0;border-radius:8px;background:rgba(0,0,0,.55);color:#fff;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;}
             .vin-zoom-btn:hover{background:var(--vx-red,#C70909);}
@@ -1123,10 +1126,19 @@ function vinTipFor(pos, on){
     if (!tip) return;
     if (!on) { tip.style.display = 'none'; return; }
     var hotEl = box.querySelector('.vin-hot[data-pos="' + vinCssEsc(pos) + '"]');
-    if (!hotEl) { tip.style.display = 'none'; return; }
-    tip.innerHTML = vinTipHtml(pos);
-    tip.style.left = (hotEl.offsetLeft + hotEl.offsetWidth / 2) + 'px';
-    tip.style.top  = hotEl.offsetTop + 'px';
+    if (hotEl) {
+        tip.className = 'vin-tip';
+        tip.innerHTML = vinTipHtml(pos);
+        tip.style.left = (hotEl.offsetLeft + hotEl.offsetWidth / 2) + 'px';
+        tip.style.top  = hotEl.offsetTop + 'px';
+    } else {
+        // У детали нет точки на схеме (Parts-Catalogs не дал координаты) —
+        // показываем имя сверху с пометкой, чтобы наведение не было «мёртвым».
+        tip.className = 'vin-tip at-top';
+        tip.innerHTML = vinTipHtml(pos) + '<span class="vt-more">точка на схеме не указана</span>';
+        tip.style.left = (box.clientWidth / 2) + 'px';
+        tip.style.top  = '10px';
+    }
     tip.style.display = 'block';
 }
 
