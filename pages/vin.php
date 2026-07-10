@@ -1203,6 +1203,25 @@ function vinLbOpen(){
     vinLbScale = 1; vinLbTx = 0; vinLbTy = 0; vinLbApply();
     lb.style.display = 'flex';
 }
+/* Открыть лайтбокс, сразу приблизив к конкретной детали (клик по вырезке-«фото»). */
+function vinLbOpenAt(pos){
+    vinLbOpen();
+    var h = window.VIN_HOT[pos], img = document.getElementById('vinLbImg');
+    if (!h || !img) { vinHi(pos, true); return; }
+    requestAnimationFrame(function(){
+        var w = img.clientWidth, ht = img.clientHeight;
+        var natW = img.naturalWidth || 1, natH = img.naturalHeight || 1;
+        if (!w || !ht) { vinHi(pos, true); return; }
+        var cx = (h.x + h.w / 2) / natW * w, cy = (h.y + h.h / 2) / natH * ht;
+        var S = 2.6;
+        vinLbScale = S;
+        vinLbTx = -(cx - w / 2) * S;
+        vinLbTy = -(cy - ht / 2) * S;
+        vinLbApply();
+        vinHi(pos, true);
+        setTimeout(function(){ vinHi(pos, false); }, 2200);
+    });
+}
 function vinLbClose(){ var lb = document.getElementById('vinLightbox'); if (lb) lb.style.display = 'none'; var t = document.querySelector('#vinLbInner .vin-tip'); if (t) t.style.display = 'none'; }
 function vinLbBg(e){ if (e.target && e.target.id === 'vinLightbox') vinLbClose(); }
 (function(){
@@ -1352,7 +1371,7 @@ function vinBuildPartsHtml(items){
             var hasCrop = pos && window.VIN_SCHEME && window.VIN_SCHEME.img && window.VIN_HOT && window.VIN_HOT[pos];
             var phBox;
             if (hasCrop) {
-                phBox = '<div class="vin-pcard-ph vin-crop" data-pos="' + escapeHtml(pos) + '" onclick="vinFocusPos(\'' + jsAttr(pos) + '\')" title="Показать на схеме"><span class="vin-crop-z"><i class="fa fa-search-plus"></i></span><span class="vin-crop-n">№' + escapeHtml(pos) + '</span></div>';
+                phBox = '<div class="vin-pcard-ph vin-crop" data-pos="' + escapeHtml(pos) + '" onclick="vinLbOpenAt(\'' + jsAttr(pos) + '\')" title="Увеличить деталь"><span class="vin-crop-z"><i class="fa fa-search-plus"></i></span><span class="vin-crop-n">№' + escapeHtml(pos) + '</span></div>';
             } else if (pos) {
                 phBox = '<div class="vin-pcard-ph vin-pos-box" onclick="vinFocusPos(\'' + jsAttr(pos) + '\')" title="Показать на схеме">№' + escapeHtml(pos) + '</div>';
             } else {
