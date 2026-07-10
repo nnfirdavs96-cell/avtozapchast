@@ -526,8 +526,21 @@ require_once dirname(__DIR__) . '/includes/header.php';
             .vin-scheme-cap{font-size:0.82rem;color:#888;margin-bottom:8px;text-align:center;}
             .vin-scheme-box{position:relative;width:100%;max-width:100%;margin:0 auto;background:#fff;border:1px solid #e7e9ee;border-radius:12px;overflow:visible;}
             .vin-scheme-box img{width:100%;max-height:70vh;object-fit:contain;display:block;background:#fff;border-radius:12px;}
-            .vin-hot{position:absolute;border:2px solid transparent;border-radius:3px;cursor:pointer;transition:.1s;box-sizing:border-box;}
-            .vin-hot:hover,.vin-hot.hot{border-color:var(--vx-red,#C70909);background:rgba(199,9,9,.16);}
+            .vin-hot{position:absolute;border:2px solid transparent;border-radius:4px;cursor:pointer;transition:.12s;box-sizing:border-box;}
+            .vin-hot:hover{border-color:var(--vx-red,#C70909);background:rgba(199,9,9,.16);}
+            /* Заметная подсветка выноски: яркая заливка + свечение + пульсация,
+               чтобы деталь явно загоралась даже на мелком/плотном участке схемы. */
+            .vin-hot.hot{border-color:var(--vx-red,#C70909);background:rgba(199,9,9,.30);z-index:5;
+                box-shadow:0 0 0 3px rgba(199,9,9,.40), 0 0 14px 4px rgba(199,9,9,.55);
+                animation:vinHotPulse .95s ease-in-out infinite;}
+            .vin-hot.hot::after{content:'';position:absolute;left:50%;top:50%;width:9px;height:9px;
+                transform:translate(-50%,-50%);border-radius:50%;background:var(--vx-red,#C70909);
+                box-shadow:0 0 0 3px #fff, 0 0 8px rgba(199,9,9,.9);pointer-events:none;}
+            @keyframes vinHotPulse{
+                0%,100%{box-shadow:0 0 0 3px rgba(199,9,9,.40), 0 0 10px 2px rgba(199,9,9,.45);}
+                50%{box-shadow:0 0 0 6px rgba(199,9,9,.20), 0 0 20px 7px rgba(199,9,9,.70);}
+            }
+            @media (prefers-reduced-motion:reduce){ .vin-hot.hot{animation:none;} }
             .vin-pcard.hot{border-color:var(--vx-red,#C70909);box-shadow:0 0 0 2px rgba(199,9,9,.18);}
             .vin-pos-badge{display:inline-block;min-width:18px;text-align:center;background:#eef0f3;color:#39414d;border-radius:5px;font-size:0.66rem;padding:1px 5px;margin-right:5px;}
             /* ── Тултип на схеме (имя детали при наведении на выноску ИЛИ карточку) ── */
