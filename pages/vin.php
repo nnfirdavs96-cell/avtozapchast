@@ -486,6 +486,11 @@ require_once dirname(__DIR__) . '/includes/header.php';
             .vin-pcard-ph{flex:0 0 84px;background:#eef0f3;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#b6bcc6;font-size:0.72rem;min-height:84px;}
             .vin-pos-box{flex:0 0 58px;min-height:58px;font-size:1.05rem;font-weight:800;color:#39414d;background:#f1f3f6;cursor:pointer;transition:.12s;}
             .vin-pos-box:hover{background:#fff;color:var(--vx-red,#C70909);box-shadow:inset 0 0 0 2px var(--vx-red,#C70909);}
+            /* «Фото» = вырезка из схемы (зум-фрагмент вокруг детали). Фон ставит vinApplyCrops. */
+            .vin-crop{flex:0 0 84px;min-height:84px;position:relative;background-color:#fff;border-radius:10px;overflow:hidden;cursor:zoom-in;box-shadow:inset 0 0 0 1px #e7e9ee;transition:.12s;}
+            .vin-crop:hover{box-shadow:inset 0 0 0 2px var(--vx-red,#C70909);}
+            .vin-crop .vin-crop-n{position:absolute;left:5px;bottom:4px;background:var(--vx-red,#C70909);color:#fff;font-size:0.62rem;font-weight:800;padding:1px 7px;border-radius:20px;}
+            .vin-crop .vin-crop-z{position:absolute;right:4px;top:4px;width:19px;height:19px;border-radius:6px;background:rgba(0,0,0,.5);color:#fff;font-size:0.6rem;display:flex;align-items:center;justify-content:center;}
             .vin-pcard-buy{flex:1;display:flex;flex-direction:column;gap:8px;}
             .vin-price{background:var(--vx-red,#C70909);color:#fff;font-weight:800;font-size:1.1rem;text-align:center;border-radius:10px;padding:14px 8px;line-height:1;}
             .vin-price.ph{background:#f3f4f6;color:#9aa3af;font-size:0.85rem;font-weight:600;padding:16px 8px;}
@@ -1105,6 +1110,29 @@ function vinHi(pos, on){ if (pos === '' || pos == null) return; document.querySe
 window.VIN_POS = {};
 /* Данные текущей схемы (для лайтбокса). Заполняется vinRenderScheme. */
 window.VIN_SCHEME = null;
+/* Координаты точек по позициям (px в размере схемы) — для вырезки-«фото» в карточке. */
+window.VIN_HOT = {};
+
+/* «Фото» карточки = вырезка (зум-фрагмент) схемы вокруг точки детали. */
+function vinApplyCrops(){
+    var img = document.getElementById('vinSchemeImg');
+    if (!img || !img.naturalWidth || !window.VIN_SCHEME || !window.VIN_SCHEME.img) return;
+    var W = img.naturalWidth, H = img.naturalHeight, url = window.VIN_SCHEME.img;
+    document.querySelectorAll('.vin-crop[data-pos]').forEach(function(el){
+        if (el.dataset.cropped === '1') return;
+        var h = window.VIN_HOT[el.getAttribute('data-pos')];
+        if (!h) return;
+        var box = el.clientWidth || 84;
+        var cx = h.x + h.w / 2, cy = h.y + h.h / 2;
+        var win = Math.max(h.w, h.h) * 4; if (win < 130) win = 130;  // окно вокруг детали
+        var scale = box / win;
+        el.style.backgroundImage    = 'url("' + url + '")';
+        el.style.backgroundRepeat   = 'no-repeat';
+        el.style.backgroundSize     = (W * scale) + 'px ' + (H * scale) + 'px';
+        el.style.backgroundPosition = (-(cx - win / 2) * scale) + 'px ' + (-(cy - win / 2) * scale) + 'px';
+        el.dataset.cropped = '1';
+    });
+}
 
 /* HTML тултипа для позиции: имя первой детали + бренд/OEM, и счётчик остальных. */
 function vinTipHtml(pos){
@@ -1241,8 +1269,10 @@ function vinRenderScheme(d){
         var cap = document.getElementById('vinSchemeCap'), img = document.getElementById('vinSchemeImg'), hot = document.getElementById('vinSchemeHot');
         cap.textContent = d.caption || '';
         window.VIN_SCHEME = { img: d.img, caption: d.caption || '' };  // для лайтбокса
+        window.VIN_HOT = {};                                           // координаты точек для вырезки
         hot.innerHTML = ''; hot.dataset.scaled = '';
         (d.hotspots || []).forEach(function(h){
+            if (!window.VIN_HOT[h.n]) window.VIN_HOT[h.n] = { x:+h.x, y:+h.y, w:+h.w, h:+h.h };
             var a = document.createElement('a'); a.className = 'vin-hot'; a.href = '#'; a.setAttribute('data-pos', h.n);
             a.style.left = h.x + 'px'; a.style.top = h.y + 'px'; a.style.width = h.w + 'px'; a.style.height = h.h + 'px';
             a.addEventListener('mouseenter', function(){ vinHi(h.n, true); });
@@ -1250,11 +1280,11 @@ function vinRenderScheme(d){
             a.addEventListener('click', function(e){ e.preventDefault(); var c = document.querySelector('.vin-pcard[data-pos="' + vinCssEsc(h.n) + '"]'); if (c) c.scrollIntoView({behavior:'smooth', block:'center'}); });
             hot.appendChild(a);
         });
-        img.onload = function(){ vinScaleHot(img, hot); };
+        img.onload = function(){ vinScaleHot(img, hot); vinApplyCrops(); };
         img.src = d.img;
         if (img.complete && img.naturalWidth) vinScaleHot(img, hot);
         panel.style.display = 'block';
-    } else if (panel) { panel.style.display = 'none'; }
+    } else if (panel) { panel.style.display = 'none'; window.VIN_SCHEME = null; window.VIN_HOT = {}; }
     // Двухколоночная раскладка (схема слева sticky + детали справа) — только если
     // у узла реально есть картинка схемы; иначе детали занимают всю ширину.
     var split = document.getElementById('vinNvSplit');
@@ -1267,6 +1297,7 @@ function vinRenderScheme(d){
     }
     statusEl.style.display = 'none'; countEl.textContent = '(' + parts.length + ')';
     bodyEl.innerHTML = vinBuildPartsHtml(parts) + '<p style="text-align:center;color:#bbb;font-size:0.76rem;margin:6px 0 32px;"><i class="fa fa-plug"></i> Оригинальный каталог Parts-Catalogs' + (d.from_cache ? ' · из кэша' : '') + '</p>';
+    vinApplyCrops();  // вырезки-«фото» (если картинка уже загружена)
     if (window.VX_PRICE_LAZY) vinFillPrices(bodyEl);
 }
 function vinCatalogFetch(extra){
@@ -1316,11 +1347,17 @@ function vinBuildPartsHtml(items){
             var posBadge = pos ? '<span class="vin-pos-badge">№' + escapeHtml(pos) + '</span>' : '';
             html += '<div class="vin-pcard" id="' + cid + '"' + posAttr + '>';
             html += '<div class="vin-pcard-t">' + posBadge + escapeHtml(vinExpandAbbr(it.name)) + '<span>' + escapeHtml(it.brand || '') + ' · ' + escapeHtml(it.part_number) + '</span></div>';
-            // У OEM-каталога нет фото детали — деталь = номер-выноска на схеме.
-            // Вместо пустого «фото» показываем кликабельный номер (клик → подсветка на схеме).
-            var phBox = pos
-                ? '<div class="vin-pcard-ph vin-pos-box" onclick="vinFocusPos(\'' + jsAttr(pos) + '\')" title="Показать на схеме">№' + escapeHtml(pos) + '</div>'
-                : '';
+            // У OEM-каталога нет фото детали. Если есть точка на схеме — «фото» = вырезка
+            // (зум-фрагмент) схемы вокруг детали (фон ставит vinApplyCrops). Иначе — № или пусто.
+            var hasCrop = pos && window.VIN_SCHEME && window.VIN_SCHEME.img && window.VIN_HOT && window.VIN_HOT[pos];
+            var phBox;
+            if (hasCrop) {
+                phBox = '<div class="vin-pcard-ph vin-crop" data-pos="' + escapeHtml(pos) + '" onclick="vinFocusPos(\'' + jsAttr(pos) + '\')" title="Показать на схеме"><span class="vin-crop-z"><i class="fa fa-search-plus"></i></span><span class="vin-crop-n">№' + escapeHtml(pos) + '</span></div>';
+            } else if (pos) {
+                phBox = '<div class="vin-pcard-ph vin-pos-box" onclick="vinFocusPos(\'' + jsAttr(pos) + '\')" title="Показать на схеме">№' + escapeHtml(pos) + '</div>';
+            } else {
+                phBox = '';
+            }
             html += '<div class="vin-pcard-b">' + phBox + '<div class="vin-pcard-buy">';
             if (it.in_catalog) {
                 html += '<div class="vin-price">' + escapeHtml(it.price) + '</div>';
@@ -1340,6 +1377,7 @@ function vinBuildPartsHtml(items){
 }
 function vinRenderCatalog(d){
     var statusEl = document.getElementById('vinCatalogStatus'), bodyEl = document.getElementById('vinCatalogBody'), countEl = document.getElementById('vinCatalogCount');
+    window.VIN_SCHEME = null; window.VIN_HOT = {};  // каталог PartsAPI без схемы — вырезок нет
     if (d.rate_limited) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;color:#b8860b;"><i class="fa fa-clock-o"></i> Каталог временно недоступен: превышен суточный лимит запросов. Попробуйте позже.</div>'; return; }
     if (!d.success || !d.items || d.items.length === 0) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;">В этом узле по данному VIN запчасти не найдены. Выберите другой узел или нажмите «Все узлы».</div>'; return; }
     statusEl.style.display = 'none'; countEl.textContent = '(' + d.count + ')';
