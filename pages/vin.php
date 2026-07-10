@@ -524,12 +524,32 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 .vin-nv-split.has-scheme .vin-scheme-box img{max-height:42vh;}
             }
             .vin-scheme-cap{font-size:0.82rem;color:#888;margin-bottom:8px;text-align:center;}
-            .vin-scheme-box{position:relative;width:100%;max-width:100%;margin:0 auto;background:#fff;border:1px solid #e7e9ee;border-radius:12px;overflow:hidden;}
-            .vin-scheme-box img{width:100%;max-height:70vh;object-fit:contain;display:block;background:#fff;}
+            .vin-scheme-box{position:relative;width:100%;max-width:100%;margin:0 auto;background:#fff;border:1px solid #e7e9ee;border-radius:12px;overflow:visible;}
+            .vin-scheme-box img{width:100%;max-height:70vh;object-fit:contain;display:block;background:#fff;border-radius:12px;}
             .vin-hot{position:absolute;border:2px solid transparent;border-radius:3px;cursor:pointer;transition:.1s;box-sizing:border-box;}
             .vin-hot:hover,.vin-hot.hot{border-color:var(--vx-red,#C70909);background:rgba(199,9,9,.16);}
             .vin-pcard.hot{border-color:var(--vx-red,#C70909);box-shadow:0 0 0 2px rgba(199,9,9,.18);}
             .vin-pos-badge{display:inline-block;min-width:18px;text-align:center;background:#eef0f3;color:#39414d;border-radius:5px;font-size:0.66rem;padding:1px 5px;margin-right:5px;}
+            /* ── Тултип на схеме (имя детали при наведении на выноску ИЛИ карточку) ── */
+            .vin-tip{position:absolute;z-index:30;transform:translate(-50%,calc(-100% - 9px));background:#16171c;color:#fff;font-size:0.72rem;line-height:1.35;padding:7px 10px;border-radius:8px;max-width:240px;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.38);display:none;}
+            .vin-tip b{color:#ffcf6b;}
+            .vin-tip .vt-m{display:block;font-family:monospace;color:#c7ccd3;margin-top:2px;}
+            .vin-tip .vt-more{display:block;color:#9aa3af;margin-top:3px;font-size:0.68rem;}
+            .vin-tip:after{content:'';position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);border:6px solid transparent;border-top-color:#16171c;}
+            /* ── Кнопка «увеличить схему» ── */
+            .vin-zoom-btn{position:absolute;top:8px;right:8px;z-index:6;width:34px;height:34px;border:0;border-radius:8px;background:rgba(0,0,0,.55);color:#fff;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;}
+            .vin-zoom-btn:hover{background:var(--vx-red,#C70909);}
+            /* ── Лайтбокс (схема на весь экран, зум + перетаскивание) ── */
+            .vin-lb{position:fixed;inset:0;z-index:9999;background:rgba(8,9,13,.93);display:flex;flex-direction:column;}
+            .vin-lb-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;color:#fff;}
+            .vin-lb-cap{font-size:0.85rem;color:#cfd3da;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+            .vin-lb-btns{display:flex;gap:8px;flex:0 0 auto;}
+            .vin-lb-btns button{width:38px;height:38px;border:0;border-radius:9px;background:rgba(255,255,255,.14);color:#fff;font-size:1.15rem;font-weight:700;cursor:pointer;line-height:1;}
+            .vin-lb-btns button:hover{background:var(--vx-red,#C70909);}
+            .vin-lb-stage{flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;}
+            .vin-lb-stage.drag{cursor:grabbing;}
+            .vin-lb-inner{position:relative;transform-origin:center center;will-change:transform;}
+            .vin-lb-inner img{display:block;max-width:94vw;max-height:82vh;user-select:none;-webkit-user-drag:none;border-radius:6px;background:#fff;}
         </style>
         <div id="vinCatalog" data-vin="<?= sanitize($vin) ?>" data-type="<?= sanitize($catType) ?>"
              data-car-id="<?= sanitize($carId) ?>" data-catalog-id="<?= sanitize($pcCatId) ?>"
@@ -574,6 +594,8 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                     <div id="vinSchemeBox" class="vin-scheme-box">
                                         <img id="vinSchemeImg" alt="">
                                         <div id="vinSchemeHot"></div>
+                                        <div id="vinSchemeTip" class="vin-tip"></div>
+                                        <button type="button" class="vin-zoom-btn" onclick="vinLbOpen()" title="Увеличить схему"><i class="fa fa-search-plus"></i></button>
                                     </div>
                                 </div>
                             </div>
@@ -581,6 +603,26 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             <div id="vinCatalogBody" style="overflow-x:auto;"></div>
                         </div>
                     </div>
+                    <?php if ($pcSchema): ?>
+                    <!-- Лайтбокс: схема на весь экран (зум колесом/кнопками + перетаскивание) -->
+                    <div id="vinLightbox" class="vin-lb" style="display:none;" onclick="vinLbBg(event)">
+                        <div class="vin-lb-bar">
+                            <span id="vinLbCap" class="vin-lb-cap"></span>
+                            <span class="vin-lb-btns">
+                                <button type="button" onclick="vinLbZoom(-1)" title="Уменьшить">&minus;</button>
+                                <button type="button" onclick="vinLbZoom(1)" title="Увеличить">+</button>
+                                <button type="button" onclick="vinLbClose()" title="Закрыть (Esc)">&times;</button>
+                            </span>
+                        </div>
+                        <div class="vin-lb-stage" id="vinLbStage">
+                            <div class="vin-lb-inner" id="vinLbInner">
+                                <img id="vinLbImg" alt="">
+                                <div id="vinLbHot"></div>
+                                <div id="vinLbTip" class="vin-tip"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                     <div id="vinCatalogStatus" style="background:#fff;border-radius:10px;padding:22px 24px;text-align:center;color:#888;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin:14px 0 32px;<?= $showTree ? 'display:none;' : '' ?>">
                         <i class="fa fa-spinner fa-spin" style="font-size:1.6rem;color:#C70909;"></i>
                         <div style="margin-top:10px;font-size:0.9rem;">Подбираем запчасти по VIN из оригинального каталога…</div>
@@ -1041,7 +1083,85 @@ function vinLoadAll(btn){
 function vinPickNode(cat){ var c = document.querySelector('.vin-node-card[data-cat="' + vinCssEsc(cat) + '"]'); if (c) c.click(); }
 
 /* Подсветка «хотспот ↔ карточка детали» по номеру выноски. */
-function vinHi(pos, on){ if (pos === '' || pos == null) return; document.querySelectorAll('[data-pos="' + vinCssEsc(pos) + '"]').forEach(function(el){ el.classList.toggle('hot', on); }); }
+function vinHi(pos, on){ if (pos === '' || pos == null) return; document.querySelectorAll('[data-pos="' + vinCssEsc(pos) + '"]').forEach(function(el){ el.classList.toggle('hot', on); }); vinTipFor(pos, on); }
+
+/* Карта «позиция → детали» (для тултипа с именем). Заполняется vinBuildPartsHtml. */
+window.VIN_POS = {};
+/* Данные текущей схемы (для лайтбокса). Заполняется vinRenderScheme. */
+window.VIN_SCHEME = null;
+
+/* HTML тултипа для позиции: имя первой детали + бренд/OEM, и счётчик остальных. */
+function vinTipHtml(pos){
+    var arr = (window.VIN_POS && window.VIN_POS[pos]) ? window.VIN_POS[pos] : [];
+    if (!arr.length) return '<b>№' + escapeHtml(pos) + '</b>';
+    var p = arr[0];
+    var h = '<b>№' + escapeHtml(pos) + '</b> ' + escapeHtml(p.name || '');
+    var meta = [p.brand, p.oem].filter(Boolean).map(escapeHtml).join(' · ');
+    if (meta) h += '<span class="vt-m">' + meta + '</span>';
+    if (arr.length > 1) h += '<span class="vt-more">+ ещё ' + (arr.length - 1) + ' на позиции №' + escapeHtml(pos) + '</span>';
+    return h;
+}
+/* Показать/скрыть тултип у выноски на активной схеме (лайтбокс если открыт, иначе обычная). */
+function vinTipFor(pos, on){
+    var lb  = vinLbIsOpen();
+    var box = document.getElementById(lb ? 'vinLbInner' : 'vinSchemeBox');
+    if (!box) return;
+    var tip = box.querySelector('.vin-tip');
+    if (!tip) return;
+    if (!on) { tip.style.display = 'none'; return; }
+    var hotEl = box.querySelector('.vin-hot[data-pos="' + vinCssEsc(pos) + '"]');
+    if (!hotEl) { tip.style.display = 'none'; return; }
+    tip.innerHTML = vinTipHtml(pos);
+    tip.style.left = (hotEl.offsetLeft + hotEl.offsetWidth / 2) + 'px';
+    tip.style.top  = hotEl.offsetTop + 'px';
+    tip.style.display = 'block';
+}
+
+/* ── Лайтбокс схемы: открыть на весь экран, зум колесом/кнопками, перетаскивание ── */
+var vinLbScale = 1, vinLbTx = 0, vinLbTy = 0, vinLbDrag = null;
+function vinLbIsOpen(){ var lb = document.getElementById('vinLightbox'); return !!(lb && lb.style.display === 'flex'); }
+function vinLbApply(){ var el = document.getElementById('vinLbInner'); if (el) el.style.transform = 'translate(' + vinLbTx + 'px,' + vinLbTy + 'px) scale(' + vinLbScale + ')'; }
+function vinLbZoom(dir){
+    vinLbScale = Math.min(5, Math.max(1, +(vinLbScale + dir * 0.3).toFixed(2)));
+    if (vinLbScale === 1) { vinLbTx = 0; vinLbTy = 0; }
+    vinLbApply();
+}
+/* Навесить обработчики на выноски (общий для обычной схемы и лайтбокса). */
+function vinWireHots(container, inLb){
+    container.querySelectorAll('.vin-hot').forEach(function(a){
+        var pos = a.getAttribute('data-pos');
+        a.addEventListener('mouseenter', function(){ vinHi(pos, true); });
+        a.addEventListener('mouseleave', function(){ vinHi(pos, false); });
+        a.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation();
+            if (inLb) vinLbClose();
+            var c = document.querySelector('.vin-pcard[data-pos="' + vinCssEsc(pos) + '"]');
+            if (c) c.scrollIntoView({behavior:'smooth', block:'center'});
+        });
+    });
+}
+function vinLbOpen(){
+    if (!window.VIN_SCHEME || !window.VIN_SCHEME.img) return;
+    var lb = document.getElementById('vinLightbox'); if (!lb) return;
+    document.getElementById('vinLbImg').src = window.VIN_SCHEME.img;
+    document.getElementById('vinLbCap').textContent = window.VIN_SCHEME.caption || '';
+    var lbhot = document.getElementById('vinLbHot');
+    lbhot.innerHTML = document.getElementById('vinSchemeHot').innerHTML;  // выноски в % (уже масштабированы)
+    vinWireHots(lbhot, true);
+    vinLbScale = 1; vinLbTx = 0; vinLbTy = 0; vinLbApply();
+    lb.style.display = 'flex';
+}
+function vinLbClose(){ var lb = document.getElementById('vinLightbox'); if (lb) lb.style.display = 'none'; var t = document.querySelector('#vinLbInner .vin-tip'); if (t) t.style.display = 'none'; }
+function vinLbBg(e){ if (e.target && e.target.id === 'vinLightbox') vinLbClose(); }
+(function(){
+    var stage = document.getElementById('vinLbStage');
+    if (stage){
+        stage.addEventListener('wheel', function(e){ if (!vinLbIsOpen()) return; e.preventDefault(); vinLbZoom(e.deltaY < 0 ? 1 : -1); }, { passive:false });
+        stage.addEventListener('mousedown', function(e){ if (vinLbScale <= 1) return; vinLbDrag = { x:e.clientX, y:e.clientY, tx:vinLbTx, ty:vinLbTy }; stage.classList.add('drag'); });
+        window.addEventListener('mousemove', function(e){ if (!vinLbDrag) return; vinLbTx = vinLbDrag.tx + (e.clientX - vinLbDrag.x); vinLbTy = vinLbDrag.ty + (e.clientY - vinLbDrag.y); vinLbApply(); });
+        window.addEventListener('mouseup', function(){ if (vinLbDrag){ vinLbDrag = null; stage.classList.remove('drag'); } });
+    }
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && vinLbIsOpen()) vinLbClose(); });
+})();
 /* Клик по номеру детали → мигнуть выноской на схеме. Схема залипает слева и всегда
    на виду (sticky), поэтому прокрутка к ней больше не нужна. */
 function vinFocusPos(pos){
@@ -1095,9 +1215,10 @@ function vinRenderScheme(d){
     if (panel && d.img) {
         var cap = document.getElementById('vinSchemeCap'), img = document.getElementById('vinSchemeImg'), hot = document.getElementById('vinSchemeHot');
         cap.textContent = d.caption || '';
+        window.VIN_SCHEME = { img: d.img, caption: d.caption || '' };  // для лайтбокса
         hot.innerHTML = ''; hot.dataset.scaled = '';
         (d.hotspots || []).forEach(function(h){
-            var a = document.createElement('a'); a.className = 'vin-hot'; a.href = '#'; a.setAttribute('data-pos', h.n); a.title = '№ ' + h.n;
+            var a = document.createElement('a'); a.className = 'vin-hot'; a.href = '#'; a.setAttribute('data-pos', h.n);
             a.style.left = h.x + 'px'; a.style.top = h.y + 'px'; a.style.width = h.w + 'px'; a.style.height = h.h + 'px';
             a.addEventListener('mouseenter', function(){ vinHi(h.n, true); });
             a.addEventListener('mouseleave', function(){ vinHi(h.n, false); });
@@ -1153,7 +1274,13 @@ function vinExpandAbbr(s){
 }
 function vinBuildPartsHtml(items){
     var groups = {};
-    items.forEach(function(it){ var g = it.group || 'Прочее'; (groups[g] = groups[g] || []).push(it); });
+    // Карта «позиция → детали» для тултипа на схеме (имя детали при наведении).
+    window.VIN_POS = {};
+    items.forEach(function(it){
+        var g = it.group || 'Прочее'; (groups[g] = groups[g] || []).push(it);
+        var p = it.pos ? String(it.pos) : '';
+        if (p) { (window.VIN_POS[p] = window.VIN_POS[p] || []).push({ name: vinExpandAbbr(it.name), brand: it.brand || '', oem: it.part_number || '' }); }
+    });
     var html = '', idx = 0;
     Object.keys(groups).forEach(function(g){
         html += '<div style="margin-bottom:26px;"><div class="vin-grp">' + escapeHtml(g) + '</div><div class="vin-pgrid">';
