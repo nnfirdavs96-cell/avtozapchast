@@ -1207,26 +1207,27 @@ function vinLbOpen(){
 function vinLbOpenAt(pos){
     vinLbOpen();
     var h = window.VIN_HOT[pos], img = document.getElementById('vinLbImg');
-    if (!h || !img) { vinHi(pos, true); return; }
-    requestAnimationFrame(function(){
-        var w = img.clientWidth, ht = img.clientHeight;
-        var natW = img.naturalWidth || 1, natH = img.naturalHeight || 1;
+    if (!h || !img) return;
+    var apply = function(){
         var stage = document.getElementById('vinLbStage');
-        if (!w || !ht || !stage) { vinHi(pos, true); return; }
-        // Окно вокруг детали (в px изображения). Масштаб подбираем так, чтобы это
-        // окно заполнило ~90% экрана — виден «только фрагмент», лишнее обрезано.
-        var winNat  = Math.max(h.w, h.h) * 5; if (winNat < 160) winNat = 160;
+        var w = img.clientWidth, ht = img.clientHeight;
+        var natW = img.naturalWidth || 0, natH = img.naturalHeight || 0;
+        if (!w || !ht || !natW || !natH || !stage) return;  // картинка ещё не готова
+        // Окно вокруг детали (в px изображения). Масштаб — чтобы окно заполнило ~90%
+        // экрана: виден только фрагмент, остальное обрезано (overflow лайтбокса).
+        var winNat  = Math.max(h.w, h.h) * 5; if (winNat < 150) winNat = 150;
         var winDisp = winNat / natW * w;
         var S = 0.9 * Math.min(stage.clientWidth, stage.clientHeight) / winDisp;
-        S = Math.max(1, Math.min(8, S));
+        S = Math.max(1.5, Math.min(10, S));
         var cx = (h.x + h.w / 2) / natW * w, cy = (h.y + h.h / 2) / natH * ht;
         vinLbScale = S;
         vinLbTx = -(cx - w / 2) * S;
         vinLbTy = -(cy - ht / 2) * S;
-        vinLbApply();
-        vinHi(pos, true);
-        setTimeout(function(){ vinHi(pos, false); }, 2500);
-    });
+        vinLbApply();  // деталь оказывается в центре экрана — тултип не показываем (он бы раздулся)
+    };
+    // Считаем ТОЛЬКО когда картинка реально загружена и размер известен.
+    if (img.complete && img.naturalWidth) requestAnimationFrame(apply);
+    else img.addEventListener('load', function(){ requestAnimationFrame(apply); }, { once:true });
 }
 function vinLbClose(){ var lb = document.getElementById('vinLightbox'); if (lb) lb.style.display = 'none'; var t = document.querySelector('#vinLbInner .vin-tip'); if (t) t.style.display = 'none'; }
 function vinLbBg(e){ if (e.target && e.target.id === 'vinLightbox') vinLbClose(); }
