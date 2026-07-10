@@ -520,7 +520,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                который ставится только когда у узла есть картинка схемы. */
             .vin-nv-split{display:block;}
             .vin-nv-split.has-scheme{display:flex;gap:18px;align-items:flex-start;}
-            .vin-nv-split.has-scheme .vin-nv-scheme{flex:0 0 clamp(320px,44%,600px);position:sticky;top:14px;}
+            .vin-nv-split.has-scheme .vin-nv-scheme{flex:0 0 clamp(320px,44%,600px);position:sticky;top:90px;max-height:calc(100vh - 100px);}
             .vin-nv-split.has-scheme .vin-scheme-wrap{margin-bottom:0;}
             .vin-nv-split.has-scheme #vinCatalogBody{flex:1;min-width:0;}
             @media (max-width:820px){
