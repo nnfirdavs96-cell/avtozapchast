@@ -88,6 +88,27 @@ if ($action === 'collect_batch') {
     exit;
 }
 
+// ── Тумблер шага 1: библиотека — источник чтения до API. Аварийный откат к старому
+//    поведению (TTL-кэш → API) без деплоя кода, если библиотека вдруг начнёт мешать. ──
+if ($action === 'toggle_library_read' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        flashMessage('danger', 'Ошибка CSRF.'); redirect(APP_URL . '/superadmin/catalog_library.php');
+    }
+    setSetting('catalog_library_read_first', isset($_POST['catalog_library_read_first']) ? '1' : '0');
+    flashMessage('success', 'Настройка сохранена.');
+    redirect(APP_URL . '/superadmin/catalog_library.php');
+}
+
+// ── Тумблер кнопки «Скачать КП» на странице VIN ──────────────────────────────
+if ($action === 'toggle_kp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        flashMessage('danger', 'Ошибка CSRF.'); redirect(APP_URL . '/superadmin/catalog_library.php');
+    }
+    setSetting('catalog_kp_enabled', isset($_POST['catalog_kp_enabled']) ? '1' : '0');
+    flashMessage('success', 'Настройка сохранена.');
+    redirect(APP_URL . '/superadmin/catalog_library.php');
+}
+
 // ── Тумблер автосбора (cron): суперадмин может отключить фоновый дособиратель ──
 if ($action === 'toggle_autocollect' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
@@ -275,6 +296,40 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
             (<code>partsapi_kv_cache</code>, 24ч) отвечает за скорость и лимит API; эта библиотека — за
             накопление собственной базы для выгрузки.
         </p>
+    </div>
+
+    <?php $libReadFirst = getSetting('catalog_library_read_first', '1') === '1'; ?>
+    <div class="az-card" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div style="font-size:0.85rem;color:#555;line-height:1.5;max-width:640px;">
+            <strong><i class="fa fa-bolt" style="color:#d32f2f;"></i> Библиотека — источник чтения до API</strong><br>
+            Собранное авто отдаётся из библиотеки без обращения к Parts-Catalogs — это и есть
+            вся экономия лимита. Выключайте только как аварийный откат к старому поведению
+            (TTL-кэш → API), если библиотека вдруг начнёт отдавать не то.
+        </div>
+        <form method="POST" action="?action=toggle_library_read" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
+            <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:0.85rem;color:<?= $libReadFirst ? '#2e7d32' : '#c62828' ?>;">
+                <input type="checkbox" name="catalog_library_read_first" value="1" <?= $libReadFirst ? 'checked' : '' ?>
+                       onchange="this.form.submit()">
+                <?= $libReadFirst ? 'Включена' : 'Выключена (расходует лимит зря!)' ?>
+            </label>
+        </form>
+    </div>
+
+    <?php $kpEnabled = getSetting('catalog_kp_enabled', '1') === '1'; ?>
+    <div class="az-card" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div style="font-size:0.85rem;color:#555;line-height:1.5;max-width:640px;">
+            <strong><i class="fa fa-file-text-o" style="color:#d32f2f;"></i> Кнопка «Скачать КП»</strong><br>
+            Печатная страница со списком деталей узла и живыми ценами — кнопка на странице VIN.
+        </div>
+        <form method="POST" action="?action=toggle_kp" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
+            <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:0.85rem;color:<?= $kpEnabled ? '#2e7d32' : '#999' ?>;">
+                <input type="checkbox" name="catalog_kp_enabled" value="1" <?= $kpEnabled ? 'checked' : '' ?>
+                       onchange="this.form.submit()">
+                <?= $kpEnabled ? 'Включена' : 'Выключена' ?>
+            </label>
+        </form>
     </div>
 
     <?php $autocollect = getSetting('catalog_library_autocollect', '0') === '1'; ?>

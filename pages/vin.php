@@ -678,9 +678,11 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <div class="vin-nv-head">
                             <button type="button" class="vin-nv-back" onclick="vinBackToNodes()"><i class="fa fa-arrow-left"></i> Все узлы</button>
                             <h3 class="vin-nv-title" id="vinNodeTitle"></h3>
+                            <?php if (getSetting('catalog_kp_enabled', '1') === '1'): ?>
                             <a id="vinKpBtn" href="#" target="_blank" class="vin-nv-back" style="margin-left:auto;display:none;">
                                 <i class="fa fa-file-text-o"></i> Скачать КП
                             </a>
+                            <?php endif; ?>
                         </div>
                         <div id="vinNvSplit" class="vin-nv-split">
                             <?php if ($pcSchema): ?>

@@ -292,11 +292,18 @@ class PartsCatalogsAdapter implements CatalogProvider
     //  Проверяется ДО TTL-кэша и ДО живого запроса к API. В отличие от kv-кэша у
     //  библиотеки нет TTL и она не сбрасывается при поднятии CACHE_VER — авто,
     //  собранное однажды, больше никогда не тратит кредит ключа на эти же данные.
+    //  Тумблер catalog_library_read_first — аварийный откат к старому поведению
+    //  (TTL-кэш → API) без деплоя кода, если библиотека вдруг начнёт мешать.
+
+    private function libReadEnabled(): bool
+    {
+        return getSetting('catalog_library_read_first', '1') === '1';
+    }
 
     /** Карточка авто по VIN из библиотеки, в формате carInfoFull(), или null. */
     private function libGetCar(string $vin): ?array
     {
-        if ($vin === '') return null;
+        if ($vin === '' || !$this->libReadEnabled()) return null;
         try {
             $st = getDB()->prepare("SELECT * FROM catalog_library_cars WHERE vin = ? LIMIT 1");
             $st->execute([$vin]);
@@ -316,7 +323,7 @@ class PartsCatalogsAdapter implements CatalogProvider
     /** Дерево узлов авто из библиотеки, в формате oemNodesForVin()/oemNodesForCar(), или null. */
     private function libGetNodes(string $catalogId, string $carId): ?array
     {
-        if ($catalogId === '' || $carId === '') return null;
+        if ($catalogId === '' || $carId === '' || !$this->libReadEnabled()) return null;
         try {
             $st = getDB()->prepare("SELECT nodes_json FROM catalog_library_nodes WHERE catalog_id=? AND car_id=? LIMIT 1");
             $st->execute([$catalogId, $carId]);
@@ -330,7 +337,7 @@ class PartsCatalogsAdapter implements CatalogProvider
     /** Схема+детали узла из библиотеки, в формате fetchScheme(), или null. */
     private function libGetScheme(string $catalogId, string $carId, string $groupId): ?array
     {
-        if ($catalogId === '' || $carId === '' || $groupId === '') return null;
+        if ($catalogId === '' || $carId === '' || $groupId === '' || !$this->libReadEnabled()) return null;
         try {
             $st = getDB()->prepare("SELECT img, caption, hotspots_json, parts_json FROM catalog_library_schemes
                                      WHERE catalog_id=? AND car_id=? AND group_id=? LIMIT 1");

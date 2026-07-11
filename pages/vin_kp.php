@@ -14,6 +14,12 @@ require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/vin_service.php';
 require_once dirname(__DIR__) . '/includes/catalog.php';
 
+if (getSetting('catalog_kp_enabled', '1') !== '1') {
+    http_response_code(404);
+    echo '<!DOCTYPE html><meta charset="UTF-8"><p style="font-family:sans-serif;padding:40px;text-align:center;color:#888;">Функция временно отключена.</p>';
+    exit;
+}
+
 $cat = trim((string)($_GET['cat'] ?? ''));
 $nodeTitle = trim((string)($_GET['node'] ?? ''));
 
