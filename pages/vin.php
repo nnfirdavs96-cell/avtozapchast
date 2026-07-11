@@ -442,8 +442,8 @@ require_once dirname(__DIR__) . '/includes/header.php';
             }
             @media (prefers-reduced-motion:reduce){ .vin-cc-brand{ animation:none; color:rgba(255,255,255,.14); } }
             .vin-cc-car{position:absolute;right:-4%;bottom:6%;width:56%;max-width:300px;color:rgba(255,255,255,.11);z-index:0;pointer-events:none;}
-            .vin-cc-badges{position:relative;z-index:2;display:flex;gap:8px;flex-wrap:wrap;}
-            .vin-cc-badges span{padding:4px 11px;border-radius:20px;font-size:.66rem;color:#fff;}
+            .vin-cc-badges{position:relative;z-index:2;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;}
+            .vin-cc-badges span{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:20px;font-size:.66rem;color:#fff;white-space:nowrap;line-height:1.4;}
             .vin-cc-title{position:relative;z-index:2;}
             .vin-cc-title .m{font-size:1.55rem;font-weight:900;line-height:1.06;text-shadow:0 2px 8px rgba(0,0,0,.4);}
             .vin-cc-title .s{font-size:.86rem;opacity:.75;margin-top:6px;}
