@@ -590,6 +590,7 @@ class PartsCatalogsAdapter implements CatalogProvider
                 'catalogId' => (string)($c2['catalogId'] ?? $catalogId),
                 'criteria'  => (string)($c2['criteria'] ?? ''),
                 'name'      => trim((string)($c2['name'] ?? '')),
+                'modelId'   => (string)($c2['modelId'] ?? $modelId),
                 'modelName' => trim((string)($c2['modelName'] ?? '')),
                 'brand'     => trim((string)($c2['brand'] ?? '')),
             ];
@@ -597,6 +598,63 @@ class PartsCatalogsAdapter implements CatalogProvider
         }
         $this->kvSet($ck, ['count' => count($out), 'items' => $out]);
         return $out;
+    }
+
+    /**
+     * Атрибуты авто, выбранного по параметрам (без VIN) — из `cars2` (у car/info
+     * контракт только по VIN). Возвращает НЕПУСТЫЕ поля для карточки: make, model,
+     * series (модификация), engine, year, body_type, region, transmission.
+     */
+    public function pcCarAttrs(string $catalogId, string $modelId, string $carId): array
+    {
+        if (!$this->enabled() || $catalogId === '' || $modelId === '' || $carId === '') return [];
+        $ck = 'carattrs:' . $this->lang() . ':' . $catalogId . ':' . $carId;
+        $c  = $this->kvGet($ck, self::TTL_DATA);
+        if ($c !== null) return $c['attrs'] ?? [];
+        [$j] = $this->get('v1/catalogs/' . rawurlencode($catalogId) . '/cars2', ['modelId' => $modelId]);
+        $attrs = [];
+        foreach ((is_array($j) ? $j : []) as $car) {
+            if (is_array($car) && (string)($car['id'] ?? '') === $carId) {
+                $attrs = $this->parseCarAttrsFromCar($car);
+                break;
+            }
+        }
+        if (!empty($attrs)) $this->kvSet($ck, ['attrs' => $attrs]);
+        return $attrs;
+    }
+
+    /** Разбор атрибутов из объекта авто cars2 (parameters[] + description). */
+    private function parseCarAttrsFromCar(array $car): array
+    {
+        $p = [];
+        foreach (($car['parameters'] ?? []) as $par) {
+            if (!is_array($par)) continue;
+            $k = (string)($par['key'] ?? ''); $v = trim((string)($par['value'] ?? ''));
+            if ($k !== '' && $v !== '') $p[$k] = $v;
+        }
+        // description: «СЕДАН КУПЕ. Regions: Europe, …» → кузов + регион.
+        $desc = trim((string)($car['description'] ?? ''));
+        $region = ''; $body = '';
+        if ($desc !== '') {
+            if (preg_match('/Regions?:\s*(.+)$/ui', $desc, $rm)) {
+                $region = trim($rm[1]);
+                $body   = trim(preg_replace('/\.?\s*Regions?:.*$/ui', '', $desc));
+            } else {
+                $body = $desc;
+            }
+            if (mb_strlen($body) > 40) $body = '';   // длинные описания не тащим в «кузов»
+        }
+        $out = [
+            'make'         => trim((string)($car['brand'] ?? '')),
+            'model'        => trim((string)($car['modelName'] ?? '')),
+            'series'       => $p['modificationId'] ?? ($p['modification'] ?? ($p['spec_series'] ?? '')),
+            'engine'       => $p['engine'] ?? '',
+            'year'         => isset($p['year']) ? (int)$p['year'] : 0,
+            'body_type'    => $p['body_type'] ?? $body,
+            'region'       => $region ?: ($p['sales_region'] ?? ''),
+            'transmission' => $p['trans_type'] ?? ($p['transmission'] ?? ''),
+        ];
+        return array_filter($out, fn($v) => $v !== '' && $v !== 0 && $v !== null);
     }
 
     /** Узлы для авто, выбранного по параметрам (без VIN) — тот же groups2, что и по VIN. */

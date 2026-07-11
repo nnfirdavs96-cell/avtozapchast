@@ -113,6 +113,35 @@ if ($carMode) {
         'year'   => 0,
         'source' => 'parts-catalogs',
     ];
+    // Дотягиваем реальные атрибуты авто из cars2 (модель/модификация/кузов/регион/…).
+    // Тот же вызов уже делает каскад — данные из кэша, лишних кредитов нет.
+    $pcModelId = trim($_GET['modelId'] ?? '');
+    $prov = Catalog::provider();
+    if ($pcModelId !== '' && method_exists($prov, 'pcCarAttrs')) {
+        $attrs = $prov->pcCarAttrs($pcCatId, $pcModelId, $carId);
+        foreach (['make','model','series','engine','year','body_type','region','transmission'] as $k) {
+            if (isset($attrs[$k]) && $attrs[$k] !== '' && $attrs[$k] !== 0) $result[$k] = $attrs[$k];
+        }
+    }
+    // Страна: cars2 не отдаёт страну производителя → выводим по бренду.
+    if (empty($result['country'])) {
+        $brandCountry = [
+            'mercedes'=>'Германия','mercedes-benz'=>'Германия','bmw'=>'Германия','audi'=>'Германия',
+            'volkswagen'=>'Германия','vw'=>'Германия','porsche'=>'Германия','opel'=>'Германия','smart'=>'Германия',
+            'toyota'=>'Япония','lexus'=>'Япония','honda'=>'Япония','acura'=>'Япония','nissan'=>'Япония','infiniti'=>'Япония',
+            'mazda'=>'Япония','subaru'=>'Япония','mitsubishi'=>'Япония','suzuki'=>'Япония','daihatsu'=>'Япония',
+            'hyundai'=>'Южная Корея','kia'=>'Южная Корея','daewoo'=>'Южная Корея','ssangyong'=>'Южная Корея',
+            'ford'=>'США','chevrolet'=>'США','dodge'=>'США','jeep'=>'США','chrysler'=>'США','cadillac'=>'США','tesla'=>'США','gmc'=>'США',
+            'renault'=>'Франция','peugeot'=>'Франция','citroen'=>'Франция','citroën'=>'Франция',
+            'volvo'=>'Швеция','saab'=>'Швеция','skoda'=>'Чехия','škoda'=>'Чехия','seat'=>'Испания',
+            'fiat'=>'Италия','alfa romeo'=>'Италия','lancia'=>'Италия','ferrari'=>'Италия','lamborghini'=>'Италия','maserati'=>'Италия',
+            'jaguar'=>'Великобритания','land rover'=>'Великобритания','mini'=>'Великобритания','bentley'=>'Великобритания',
+            'lada'=>'Россия','uaz'=>'Россия','gaz'=>'Россия','doosan'=>'Южная Корея',
+        ];
+        $mk = mb_strtolower(trim($result['make'] ?? ''));
+        if (isset($brandCountry[$mk])) $result['country'] = $brandCountry[$mk];
+    }
+    $result['pc_enriched'] = true;
 }
 
 // ── Expert contacts (for help block + "by parameters" funnel) ──────────────
@@ -992,7 +1021,8 @@ function vxPickBrand(b){
             var nm = c.name || c.modelName || 'Автомобиль';
             var full = (bn ? bn + ' ' : '') + nm;
             var href = PAGE + '?carId=' + encodeURIComponent(c.carId) + '&catalogId=' + encodeURIComponent(c.catalogId)
-                     + '&criteria=' + encodeURIComponent(c.criteria||'') + '&carName=' + encodeURIComponent(full);
+                     + '&criteria=' + encodeURIComponent(c.criteria||'') + '&modelId=' + encodeURIComponent(c.modelId||'')
+                     + '&carName=' + encodeURIComponent(full);
             html += '<a href="' + href + '" class="vx-carpick" style="display:block;background:#fff;border:1px solid #e7e9ee;border-radius:10px;padding:12px 14px;color:#1d2129;font-size:.86rem;font-weight:600;text-decoration:none;transition:.12s;">'
                   + e(nm) + '<span style="display:block;font-weight:400;font-size:.72rem;color:#9aa3af;margin-top:2px;">' + e(bn + (c.modelName ? ' · ' + c.modelName : '')) + '</span></a>';
         });
