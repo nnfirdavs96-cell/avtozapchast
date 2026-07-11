@@ -134,6 +134,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($cid) $db->prepare("DELETE FROM parts_compatibility WHERE id=?")->execute([$cid]);
         redirect(APP_URL . '/superadmin/vin.php?action=compat');
     }
+
+    // Применить выбранные предложения из библиотеки каталога (шаг 3 плана — с
+    // подтверждением, никогда не пишем связи автоматически без явного отбора).
+    if ($postAction === 'apply_compat_suggestions') {
+        $pairs = (array)($_POST['pair'] ?? []);
+        $added = 0;
+        foreach ($pairs as $pair) {
+            [$pid, $cid] = array_pad(array_map('intval', explode(':', (string)$pair, 2)), 2, 0);
+            if ($pid <= 0 || $cid <= 0) continue;
+            $ins = $db->prepare("INSERT IGNORE INTO parts_compatibility (part_id, car_model_id) VALUES (?,?)");
+            $ins->execute([$pid, $cid]);
+            if ($ins->rowCount() > 0) $added++;
+        }
+        flashMessage($added ? 'success' : 'warning', $added ? "Добавлено связей: {$added}." : 'Ничего не выбрано.');
+        redirect(APP_URL . '/superadmin/vin.php?action=compat');
+    }
 }
 
 // ── Load data ─────────────────────────────────────────────────────────────────
@@ -198,6 +214,91 @@ if ($action === 'compat') {
     } catch (Exception $e) {
         $migrationMissing = true;
     }
+}
+
+// ── Предложения совместимости из библиотеки каталога (шаг 3 плана) ─────────────
+// Точное совпадение OEM-номера из собранных схем со своим складом. НИЧЕГО не
+// пишется здесь — только формируется список для отображения; связи создаются
+// исключительно через apply_compat_suggestions по явно отмеченным чекбоксам.
+
+/** Найти существующую модель по марке/модели/году или завести новую (сама модель — не риск). */
+function ccResolveCarModel(PDO $db, string $make, string $model, int $year, string $engine, string $body): ?int
+{
+    if ($make === '' || $model === '') return null;
+    $st = $db->prepare(
+        "SELECT id FROM car_models WHERE make=? AND model=? AND is_active=1
+           AND (? = 0 OR year_from IS NULL OR year_from <= ?)
+           AND (? = 0 OR year_to   IS NULL OR year_to   >= ?)
+         LIMIT 1"
+    );
+    $st->execute([$make, $model, $year, $year, $year, $year]);
+    $id = $st->fetchColumn();
+    if ($id) return (int)$id;
+
+    $db->prepare("INSERT INTO car_models (make,model,year_from,year_to,engine,body_type,region) VALUES (?,?,?,?,?,?,'other')")
+       ->execute([$make, $model, $year ?: null, $year ?: null, $engine ?: null, $body ?: null]);
+    return (int)$db->lastInsertId();
+}
+
+/** @return array<int,array{part_id:int,part_number:string,part_name:string,car_model_id:int,car_label:string,lib_vin:string,lib_brand:string}> */
+function ccFindCompatSuggestions(PDO $db): array
+{
+    $suggestions = [];
+    try {
+        $cars = $db->query("SELECT * FROM catalog_library_cars ORDER BY brand, updated_at DESC")->fetchAll();
+    } catch (Exception $e) {
+        return [];
+    }
+
+    foreach ($cars as $libCar) {
+        $sc = $db->prepare("SELECT parts_json FROM catalog_library_schemes WHERE catalog_id=? AND car_id=?");
+        $sc->execute([$libCar['catalog_id'], $libCar['car_id']]);
+
+        $numbers = [];
+        foreach ($sc->fetchAll(PDO::FETCH_COLUMN) as $pjson) {
+            foreach ((json_decode((string)$pjson, true) ?: []) as $p) {
+                $num = trim((string)($p['part_number'] ?? ''));
+                if ($num !== '') $numbers[$num] = true;
+            }
+        }
+        if (!$numbers) continue;
+
+        $nums = array_keys($numbers);
+        $ph   = implode(',', array_fill(0, count($nums), '?'));
+        $mp   = $db->prepare("SELECT id, part_number, name FROM parts WHERE is_active=1 AND part_number IN ($ph)");
+        $mp->execute($nums);
+        $matched = $mp->fetchAll();
+        if (!$matched) continue;
+
+        $attrs = json_decode($libCar['attrs_json'] ?? '[]', true) ?: [];
+        $make  = trim($attrs['make'] ?? $libCar['brand'] ?? '');
+        $model = trim($attrs['model'] ?? '');
+        $carModelId = ccResolveCarModel(
+            $db, $make, $model, (int)($attrs['year'] ?? 0),
+            (string)($attrs['engine'] ?? ''), (string)($attrs['body_type'] ?? '')
+        );
+        if (!$carModelId) continue;
+
+        $carLabel = trim($make . ' ' . $model . (!empty($attrs['year']) ? ' (' . $attrs['year'] . ')' : ''));
+
+        foreach ($matched as $row) {
+            $exists = $db->prepare("SELECT 1 FROM parts_compatibility WHERE part_id=? AND car_model_id=? LIMIT 1");
+            $exists->execute([$row['id'], $carModelId]);
+            if ($exists->fetchColumn()) continue;
+
+            $suggestions[] = [
+                'part_id' => (int)$row['id'], 'part_number' => $row['part_number'], 'part_name' => $row['name'],
+                'car_model_id' => $carModelId, 'car_label' => $carLabel !== '' ? $carLabel : '—',
+                'lib_vin' => (string)($libCar['vin'] ?? ''), 'lib_brand' => (string)($libCar['brand'] ?? ''),
+            ];
+        }
+    }
+    return $suggestions;
+}
+
+$compatSuggestions = [];
+if ($action === 'compat' && !$migrationMissing) {
+    try { $compatSuggestions = ccFindCompatSuggestions($db); } catch (Exception $e) { $compatSuggestions = []; }
 }
 
 // Test VIN (AJAX-like via GET)
@@ -789,6 +890,61 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
     <!-- ================================================================ -->
     <?php elseif ($action === 'compat'): ?>
     <!-- ── Compatibility tab ─────────────────────────────────────────── -->
+
+    <!-- Предложения из библиотеки каталога — точное совпадение OEM-номера со складом.
+         Ничего не пишется без явного подтверждения (отмеченные чекбоксы). -->
+    <div class="az-card" style="margin-bottom:24px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:4px;">
+            <h3 style="margin:0;"><i class="fa fa-magic" style="color:#d32f2f;"></i> Предложения из библиотеки каталога
+                <span style="color:#aaa;font-weight:400;">(<?= count($compatSuggestions) ?>)</span></h3>
+        </div>
+        <p style="color:#888;font-size:0.82rem;margin:0 0 14px;">
+            OEM-номера деталей из собранных схем (<a href="<?= APP_URL ?>/superadmin/catalog_library.php">библиотека каталога</a>)
+            сопоставлены со своим складом по точному совпадению артикула. Ничего не привязывается
+            автоматически — отметьте нужные строки и нажмите «Добавить выбранные».
+        </p>
+
+        <?php if (empty($compatSuggestions)): ?>
+        <p style="color:#aaa;padding:12px 0;">Пока нет предложений — либо библиотека пуста, либо
+            собранные OEM-номера не совпадают ни с одним артикулом на складе.</p>
+        <?php else: ?>
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
+            <input type="hidden" name="action" value="apply_compat_suggestions">
+            <div style="overflow-x:auto;max-height:420px;overflow-y:auto;border:1px solid #eef0f3;border-radius:8px;">
+                <table class="az-table" style="font-size:0.82rem;">
+                    <thead>
+                        <tr>
+                            <th style="width:34px;">
+                                <input type="checkbox" onclick="document.querySelectorAll('.cc-chk').forEach(c=>c.checked=this.checked)" title="Отметить все">
+                            </th>
+                            <th>Автомобиль</th>
+                            <th>Деталь</th>
+                            <th>OEM-номер</th>
+                            <th>Источник</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($compatSuggestions as $s): ?>
+                        <tr>
+                            <td><input class="cc-chk" type="checkbox" name="pair[]" value="<?= (int)$s['part_id'] ?>:<?= (int)$s['car_model_id'] ?>" checked></td>
+                            <td><?= sanitize($s['car_label']) ?></td>
+                            <td><?= sanitize(truncate($s['part_name'], 40)) ?></td>
+                            <td><code style="font-size:0.75rem;"><?= sanitize($s['part_number']) ?></code></td>
+                            <td style="color:#aaa;">
+                                <?= $s['lib_vin'] ? 'VIN ' . sanitize($s['lib_vin']) : sanitize($s['lib_brand'] ?: '—') ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <button type="submit" class="az-btn az-btn-primary az-btn-sm" style="margin-top:12px;">
+                <i class="fa fa-check"></i> Добавить выбранные
+            </button>
+        </form>
+        <?php endif; ?>
+    </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
 
