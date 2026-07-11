@@ -629,7 +629,13 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                     <?php foreach ($cars as $c): ?>
                     <tr>
                         <td><strong><?= sanitize($c['brand'] ?: '—') ?></strong></td>
-                        <td><code style="font-size:0.75rem;"><?= sanitize($c['vin'] ?: '—') ?></code></td>
+                        <td>
+                            <?php if ($c['vin']): ?>
+                                <code style="font-size:0.75rem;"><?= sanitize($c['vin']) ?></code>
+                            <?php else: ?>
+                                <span style="color:#aaa;font-size:0.72rem;font-style:italic;" title="Найдено по марке/модели без VIN — так работает поиск «по параметрам»">без VIN (по параметрам)</span>
+                            <?php endif; ?>
+                        </td>
                         <td style="color:#888;font-size:0.78rem;"><?= sanitize($c['catalog_id']) ?> / <?= sanitize($c['car_id']) ?></td>
                         <td style="text-align:center;"><?= (int)($c['nodes_count'] ?? 0) ?></td>
                         <td style="text-align:center;"><?= (int)($c['schemes_count'] ?? 0) ?></td>
