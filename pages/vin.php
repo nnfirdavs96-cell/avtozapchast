@@ -433,7 +433,14 @@ require_once dirname(__DIR__) . '/includes/header.php';
             @media(max-width:760px){ .vin-carcard{grid-template-columns:1fr;} }
             .vin-cc-l{position:relative;background:radial-gradient(120% 120% at 20% 18%,#2a2f3a,#14161b 72%);color:#fff;padding:20px;display:flex;flex-direction:column;justify-content:space-between;gap:16px;min-height:170px;overflow:hidden;}
             /* Бренд-вотермарк («лого»-эффект) + компактный чертёж авто фоном */
-            .vin-cc-brand{position:absolute;right:18px;top:46px;z-index:0;font-size:2.6rem;font-weight:900;letter-spacing:.02em;text-transform:uppercase;color:rgba(255,255,255,.06);line-height:1;pointer-events:none;white-space:nowrap;}
+            .vin-cc-brand{position:absolute;right:18px;top:46px;z-index:0;font-size:2.6rem;font-weight:900;letter-spacing:.02em;text-transform:uppercase;line-height:1;pointer-events:none;white-space:nowrap;
+                color:rgba(255,255,255,.1);text-shadow:0 0 22px rgba(255,255,255,0);
+                animation:vinBrandGlow 4.5s ease-in-out infinite;}
+            @keyframes vinBrandGlow{
+                0%,100%{ color:rgba(255,255,255,.09); text-shadow:0 0 16px rgba(199,9,9,0); }
+                50%{ color:rgba(255,255,255,.22); text-shadow:0 0 30px rgba(199,9,9,.45),0 0 6px rgba(255,255,255,.25); }
+            }
+            @media (prefers-reduced-motion:reduce){ .vin-cc-brand{ animation:none; color:rgba(255,255,255,.14); } }
             .vin-cc-car{position:absolute;right:-4%;bottom:6%;width:56%;max-width:300px;color:rgba(255,255,255,.11);z-index:0;pointer-events:none;}
             .vin-cc-badges{position:relative;z-index:2;display:flex;gap:8px;flex-wrap:wrap;}
             .vin-cc-badges span{padding:4px 11px;border-radius:20px;font-size:.66rem;color:#fff;}
@@ -508,14 +515,23 @@ require_once dirname(__DIR__) . '/includes/header.php';
         <style>
             /* ── Каталог 7zap-стиль: классификатор слева + контент-панель справа ── */
             .vin-cat7{display:flex;gap:18px;align-items:flex-start;margin-bottom:26px;scroll-margin-top:90px;}
-            .vin-cat7-side{flex:0 0 250px;background:#eef0f3;border-radius:14px;padding:16px;position:sticky;top:90px;max-height:calc(100vh - 120px);overflow-y:auto;}
+            .vin-cat7-side{flex:0 0 260px;background:#fff;border:1px solid #e7e9ee;border-radius:16px;padding:18px 14px;position:sticky;top:90px;max-height:calc(100vh - 120px);overflow-y:auto;box-shadow:0 12px 30px rgba(20,22,27,.06);}
             .vin-cat7-main{flex:1;min-width:0;}
-            @media (max-width: 767px){ .vin-cat7{flex-direction:column;} .vin-cat7-side{position:static;flex:none;width:100%;max-height:220px;} }
-            .vin-tree-pill{display:inline-flex;align-items:center;gap:6px;background:var(--vx-red,#C70909);color:#fff;font-size:0.76rem;font-weight:700;padding:6px 16px;border-radius:16px;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;}
-            .vin-cat7-side ul{list-style:none;margin:0;padding:0;}
-            .vin-cat7-side li{position:relative;padding:7px 8px 7px 18px;font-size:0.86rem;color:#39414d;cursor:pointer;border-radius:7px;transition:.12s;}
-            .vin-cat7-side li:before{content:'';position:absolute;left:5px;top:14px;width:5px;height:5px;border-radius:50%;background:#9aa3af;}
-            .vin-cat7-side li:hover,.vin-cat7-side li.active{color:var(--vx-red,#C70909);background:#fff;}
+            @media (max-width: 767px){
+                .vin-cat7{flex-direction:column;}
+                .vin-cat7-side{position:static;flex:none;width:100%;max-height:260px;
+                    background:linear-gradient(#fff,#fff),linear-gradient(#fff,#fff),
+                        linear-gradient(to bottom,rgba(20,22,27,.09),rgba(20,22,27,0)),
+                        linear-gradient(to top,rgba(20,22,27,.09),rgba(20,22,27,0));
+                    background-repeat:no-repeat;background-color:#fff;
+                    background-size:100% 22px,100% 22px,100% 22px,100% 22px;
+                    background-position:top,bottom,top,bottom;background-attachment:local,local,scroll,scroll;}
+            }
+            .vin-tree-pill{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(100deg,var(--vx-red,#C70909),#e8393e);color:#fff;font-size:0.74rem;font-weight:800;padding:7px 16px;border-radius:20px;margin-bottom:14px;text-transform:uppercase;letter-spacing:.6px;box-shadow:0 6px 16px rgba(199,9,9,.28);}
+            .vin-cat7-side ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;}
+            .vin-cat7-side li{position:relative;padding:10px 12px 10px 16px;font-size:0.85rem;color:#4a5361;font-weight:600;cursor:pointer;border-radius:9px;border-left:3px solid transparent;line-height:1.32;transition:.15s;}
+            .vin-cat7-side li:hover{color:var(--vx-red,#C70909);background:#fbf3f3;}
+            .vin-cat7-side li.active{color:var(--vx-red,#C70909);background:#fff1f1;border-left-color:var(--vx-red,#C70909);font-weight:800;}
             /* Сетка карточек-узлов с миниатюрами схем (как у 7zap) */
             .vin-node-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:14px;}
             .vin-node-card{background:#fff;border:1px solid #e7e9ee;border-radius:12px;padding:0 0 12px;font-size:0.84rem;font-weight:700;color:#1d2129;cursor:pointer;transition:.15s;display:flex;flex-direction:column;overflow:hidden;text-align:center;}
