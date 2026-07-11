@@ -824,6 +824,37 @@ class PartsCatalogsAdapter implements CatalogProvider
         return $sp;
     }
 
+    // ── Догрузка схем в библиотеку (кнопка «Собрать всё» + cron-дособиратель) ──
+
+    /**
+     * Тянет parts2 по каждому переданному groupId — fetchScheme() при этом сохраняет
+     * результат в постоянную библиотеку (catalog_library_schemes). Между запросами
+     * пауза, чтобы не словить rate-limit; при 429 останавливаемся (оставшиеся узлы
+     * доберём в следующий заход). Схемы кэшируются навсегда — повторно узел не тянем,
+     * поэтому вызывающий передаёт только НЕДОСТАЮЩИЕ groupId.
+     *
+     * @param string[] $groupIds список groupId (cat) для догрузки
+     * @param int $limit максимум узлов за один вызов (0 = все переданные)
+     * @param int $pauseMs пауза между запросами, мс (бережёт лимит ключа)
+     * @return array{fetched:int,rate_limited:bool}
+     */
+    public function harvestSchemes(string $catalogId, string $carId, string $criteria, string $brand, array $groupIds, int $limit = 0, int $pauseMs = 300): array
+    {
+        $out = ['fetched' => 0, 'rate_limited' => false];
+        if (!$this->enabled() || $catalogId === '' || $carId === '') return $out;
+        $car = $this->carArr($carId, $catalogId, $criteria, $brand);
+        foreach ($groupIds as $gid) {
+            $gid = (string)$gid;
+            if ($gid === '') continue;
+            if ($limit > 0 && $out['fetched'] >= $limit) break;
+            $sp = $this->fetchScheme($car, $gid);          // сохраняет схему в библиотеку
+            if (!empty($sp['rate_limited'])) { $out['rate_limited'] = true; break; }
+            $out['fetched']++;
+            if ($pauseMs > 0) usleep($pauseMs * 1000);
+        }
+        return $out;
+    }
+
     // ── Кроссы: у PC своего метода нет → отдаём сам OEM, обогащённый складом ──
 
     public function crossesWithWarehouse(string $article, string $brand = ''): array

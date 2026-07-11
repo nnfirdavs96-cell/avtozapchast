@@ -8,8 +8,10 @@
  */
 require_once dirname(__DIR__) . '/config/config.php';
 requireRole(['superadmin']);
+require_once dirname(__DIR__) . '/includes/catalog.php';
 
 $db     = getDB();
+$csrf   = generateCsrfToken();
 $action = $_GET['action'] ?? 'list';
 
 function clFetchOne(PDO $db, string $sql, array $params = []) {
@@ -23,6 +25,68 @@ function clFetchAll(PDO $db, string $sql, array $params = []): array {
 function clCount(PDO $db, string $sql, array $params = []): int {
     try { $st = $db->prepare($sql); $st->execute($params); return (int)$st->fetchColumn(); }
     catch (Exception $e) { return 0; }
+}
+
+/**
+ * Узлы авто, у которых схема ЕЩЁ НЕ собрана в библиотеку (для догрузки).
+ * @return array{nodes:array,missing:string[],total:int,have:int}
+ */
+function clMissingGroups(PDO $db, string $catalogId, string $carId): array {
+    $n = clFetchOne($db, "SELECT nodes_json FROM catalog_library_nodes WHERE catalog_id=? AND car_id=?", [$catalogId, $carId]);
+    $nodes = $n ? (json_decode($n['nodes_json'] ?? '[]', true) ?: []) : [];
+    $rows = clFetchAll($db, "SELECT group_id FROM catalog_library_schemes WHERE catalog_id=? AND car_id=?", [$catalogId, $carId]);
+    $have = [];
+    foreach ($rows as $r) $have[(string)$r['group_id']] = true;
+    $missing = [];
+    foreach ($nodes as $nd) {
+        $cat = (string)($nd['cat'] ?? '');
+        if ($cat !== '' && empty($have[$cat])) $missing[] = $cat;
+    }
+    return ['nodes' => $nodes, 'missing' => $missing, 'total' => count($nodes), 'have' => count($have)];
+}
+
+// ── AJAX: собрать порцию недостающих схем авто (кнопка «Собрать все схемы») ──
+if ($action === 'collect_batch') {
+    header('Content-Type: application/json; charset=utf-8');
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) { echo json_encode(['error' => 'csrf']); exit; }
+    $catalogId = trim($_POST['catalog_id'] ?? '');
+    $carId     = trim($_POST['car_id'] ?? '');
+    $car = clFetchOne($db, "SELECT * FROM catalog_library_cars WHERE catalog_id=? AND car_id=?", [$catalogId, $carId]);
+    if (!$car) { echo json_encode(['error' => 'not_found']); exit; }
+
+    $prov = Catalog::provider();
+    if (!($prov instanceof PartsCatalogsAdapter) || !$prov->enabled()) {
+        echo json_encode(['error' => 'provider', 'message' => 'Провайдер Parts-Catalogs выключен или не выбран.']); exit;
+    }
+
+    $mg = clMissingGroups($db, $catalogId, $carId);
+    if (empty($mg['missing'])) {
+        echo json_encode(['done' => true, 'fetched' => 0, 'have' => $mg['have'], 'total' => $mg['total'], 'remaining' => 0]); exit;
+    }
+    $batch = array_slice($mg['missing'], 0, 8);   // до 8 узлов за вызов — запрос короткий
+    @set_time_limit(60);
+    $res = $prov->harvestSchemes($catalogId, $carId, (string)($car['criteria'] ?? ''), (string)($car['brand'] ?? ''), $batch, 8, 300);
+
+    $mg2 = clMissingGroups($db, $catalogId, $carId);   // пересчёт после догрузки
+    echo json_encode([
+        'done'         => empty($mg2['missing']) || $res['rate_limited'],
+        'fetched'      => $res['fetched'],
+        'rate_limited' => $res['rate_limited'],
+        'have'         => $mg2['have'],
+        'total'        => $mg2['total'],
+        'remaining'    => count($mg2['missing']),
+    ]);
+    exit;
+}
+
+// ── Тумблер автосбора (cron): суперадмин может отключить фоновый дособиратель ──
+if ($action === 'toggle_autocollect' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        flashMessage('danger', 'Ошибка CSRF.'); redirect(APP_URL . '/superadmin/catalog_library.php');
+    }
+    setSetting('catalog_library_autocollect', isset($_POST['catalog_library_autocollect']) ? '1' : '0');
+    flashMessage('success', 'Настройка автосбора сохранена.');
+    redirect(APP_URL . '/superadmin/catalog_library.php');
 }
 
 // ── Экспорт одного авто (карточка + узлы + все сохранённые схемы) → JSON-файл ──
@@ -175,6 +239,10 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
 
     <div class="az-content">
 
+    <?php if ($flash = getFlashMessage()): ?>
+        <div class="az-alert az-alert-<?= sanitize($flash['type']) ?>"><?= sanitize($flash['message']) ?></div>
+    <?php endif; ?>
+
     <?php if ($migrationMissing): ?>
         <div class="az-alert az-alert-warning" style="background:#fff3cd;border:1px solid #ffc107;color:#856404;">
             <strong><i class="fa fa-exclamation-triangle"></i> Миграция БД ещё не запущена.</strong><br>
@@ -189,6 +257,25 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
             (<code>partsapi_kv_cache</code>, 24ч) отвечает за скорость и лимит API; эта библиотека — за
             накопление собственной базы для выгрузки.
         </p>
+    </div>
+
+    <?php $autocollect = getSetting('catalog_library_autocollect', '0') === '1'; ?>
+    <div class="az-card" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div style="font-size:0.85rem;color:#555;line-height:1.5;max-width:640px;">
+            <strong><i class="fa fa-refresh" style="color:#d32f2f;"></i> Автосбор схем (cron)</strong><br>
+            Фоновый дособиратель по расписанию тихо дотягивает недостающие схемы у накопленных авто —
+            малыми порциями, чтобы не выжечь суточный лимит ключа. Выключите, если хотите собирать только
+            вручную кнопкой «Собрать все схемы» у авто.
+            <span style="color:#999;">Требует строки в cron: <code>*/5 * * * * php <?= sanitize(dirname(__DIR__)) ?>/superadmin/catalog_library_cron.php</code></span>
+        </div>
+        <form method="POST" action="?action=toggle_autocollect" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
+            <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:0.85rem;color:<?= $autocollect ? '#2e7d32' : '#999' ?>;">
+                <input type="checkbox" name="catalog_library_autocollect" value="1" <?= $autocollect ? 'checked' : '' ?>
+                       onchange="this.form.submit()">
+                <?= $autocollect ? 'Включён' : 'Выключен' ?>
+            </label>
+        </form>
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
@@ -221,6 +308,54 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
             <a href="?action=list" class="az-btn az-btn-secondary az-btn-sm">← Список</a>
         </div>
     </div>
+
+    <?php
+        $mg = clMissingGroups($db, $viewCar['catalog_id'], $viewCar['car_id']);
+        $collectDone = empty($mg['missing']) && $mg['total'] > 0;
+    ?>
+    <div class="az-card" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div style="font-size:0.85rem;color:#555;line-height:1.5;">
+            <strong><i class="fa fa-picture-o" style="color:#d32f2f;"></i> Сбор всех схем этого авто</strong><br>
+            Собрано схем: <b id="clHave"><?= (int)$mg['have'] ?></b> из <b><?= (int)$mg['total'] ?></b> узлов.
+            <?php if ($collectDone): ?><span style="color:#2e7d32;">— всё собрано.</span><?php endif; ?>
+            <div style="color:#999;margin-top:2px;">Тянет недостающие схемы порциями с паузами — не выжигает лимит; собранное хранится навсегда.</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <div id="clProgWrap" style="display:none;width:160px;height:8px;background:#eef0f3;border-radius:6px;overflow:hidden;">
+                <div id="clProgBar" style="height:100%;width:0;background:#d32f2f;transition:width .3s;"></div>
+            </div>
+            <button type="button" id="clCollectBtn" class="az-btn az-btn-primary az-btn-sm"
+                    data-catalog="<?= sanitize($viewCar['catalog_id']) ?>" data-car="<?= sanitize($viewCar['car_id']) ?>"
+                    onclick="clCollectAll(this)" <?= $collectDone ? 'disabled' : '' ?>>
+                <i class="fa fa-cloud-download"></i> <?= $collectDone ? 'Всё собрано' : 'Собрать все схемы' ?>
+            </button>
+        </div>
+    </div>
+    <script>
+    function clCollectAll(btn){
+        var cat = btn.getAttribute('data-catalog'), car = btn.getAttribute('data-car');
+        var wrap = document.getElementById('clProgWrap'), bar = document.getElementById('clProgBar'), have = document.getElementById('clHave');
+        btn.disabled = true; wrap.style.display = 'block';
+        var origHtml = btn.innerHTML;
+        function step(){
+            var body = new FormData();
+            body.append('csrf_token', '<?= sanitize($csrf) ?>');
+            body.append('catalog_id', cat); body.append('car_id', car);
+            fetch('?action=collect_batch', { method:'POST', body:body })
+              .then(function(r){ return r.json(); })
+              .then(function(d){
+                if (d.error){ btn.innerHTML = '<i class="fa fa-exclamation-triangle"></i> ' + (d.message || d.error); btn.disabled = false; return; }
+                if (typeof d.have === 'number' && d.total){ have.textContent = d.have; bar.style.width = Math.round(d.have / d.total * 100) + '%'; }
+                btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Собираю… осталось ' + (d.remaining || 0);
+                if (d.rate_limited){ btn.innerHTML = '<i class="fa fa-clock-o"></i> Пауза (лимит) — осталось ' + d.remaining + ', нажмите позже'; btn.disabled = false; return; }
+                if (d.done || (d.remaining || 0) <= 0){ btn.innerHTML = '<i class="fa fa-check"></i> Всё собрано'; setTimeout(function(){ location.reload(); }, 800); return; }
+                step();  // следующая порция
+              })
+              .catch(function(){ btn.innerHTML = origHtml; btn.disabled = false; });
+        }
+        step();
+    }
+    </script>
 
     <?php $attrs = json_decode($viewCar['attrs_json'] ?? '[]', true) ?: []; ?>
     <?php if ($attrs): ?>
