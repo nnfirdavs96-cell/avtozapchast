@@ -29,18 +29,27 @@ function clCount(PDO $db, string $sql, array $params = []): int {
 
 /**
  * Узлы авто, у которых схема ЕЩЁ НЕ собрана в библиотеку (для догрузки).
+ * Список узлов дедуплицируется по groupId: PC иногда отдаёт один и тот же
+ * узел (ту же схему) сразу в двух ветках дерева — без дедупа "Узлов N" не
+ * совпадало бы с реальным числом схем, которые вообще можно собрать.
  * @return array{nodes:array,missing:string[],total:int,have:int}
  */
 function clMissingGroups(PDO $db, string $catalogId, string $carId): array {
     $n = clFetchOne($db, "SELECT nodes_json FROM catalog_library_nodes WHERE catalog_id=? AND car_id=?", [$catalogId, $carId]);
-    $nodes = $n ? (json_decode($n['nodes_json'] ?? '[]', true) ?: []) : [];
+    $rawNodes = $n ? (json_decode($n['nodes_json'] ?? '[]', true) ?: []) : [];
+    $nodes = []; $seenCat = [];
+    foreach ($rawNodes as $nd) {
+        $cat = (string)($nd['cat'] ?? '');
+        if ($cat === '' || isset($seenCat[$cat])) continue;
+        $seenCat[$cat] = true; $nodes[] = $nd;
+    }
     $rows = clFetchAll($db, "SELECT group_id FROM catalog_library_schemes WHERE catalog_id=? AND car_id=?", [$catalogId, $carId]);
     $have = [];
     foreach ($rows as $r) $have[(string)$r['group_id']] = true;
     $missing = [];
     foreach ($nodes as $nd) {
         $cat = (string)($nd['cat'] ?? '');
-        if ($cat !== '' && empty($have[$cat])) $missing[] = $cat;
+        if (empty($have[$cat])) $missing[] = $cat;
     }
     return ['nodes' => $nodes, 'missing' => $missing, 'total' => count($nodes), 'have' => count($have)];
 }
@@ -180,8 +189,7 @@ if ($action === 'view') {
     $carId     = trim($_GET['car_id'] ?? '');
     $viewCar = clFetchOne($db, "SELECT * FROM catalog_library_cars WHERE catalog_id=? AND car_id=?", [$catalogId, $carId]);
     if ($viewCar) {
-        $n = clFetchOne($db, "SELECT nodes_json FROM catalog_library_nodes WHERE catalog_id=? AND car_id=?", [$catalogId, $carId]);
-        $viewNodes = $n ? (json_decode($n['nodes_json'] ?? '[]', true) ?: []) : [];
+        $viewNodes = clMissingGroups($db, $catalogId, $carId)['nodes'];   // дедуп по groupId
         $viewSchemes = clFetchAll($db, "SELECT * FROM catalog_library_schemes WHERE catalog_id=? AND car_id=? ORDER BY group_id", [$catalogId, $carId]);
     }
 }
