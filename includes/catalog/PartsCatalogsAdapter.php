@@ -413,9 +413,13 @@ class PartsCatalogsAdapter implements CatalogProvider
     }
 
     /** Рекурсивный обход groups2 до листьев (hasParts=true). Ограничение глубины/кол-ва. */
-    private function collectLeaves(array $car, string $groupId, array &$out, int $depth): void
+    private function collectLeaves(array $car, string $groupId, array &$out, int $depth, array &$seen = []): void
     {
         if ($depth > 4 || count($out) >= 120) return;
+        // Один и тот же лист/ветка дерева бывает достижим сразу из нескольких родительских
+        // групп (общий узел в двух категориях у PC) — без этой защиты он и попадал бы в
+        // список узлов (и в очередь на сбор схем) по нескольку раз с одинаковым groupId.
+        if ($groupId !== '') { if (isset($seen[$groupId])) return; $seen[$groupId] = true; }
         [$j] = $this->get('v1/catalogs/' . rawurlencode($car['catalogId']) . '/groups2', array_filter([
             'carId'    => $car['carId'],
             'groupId'  => $groupId,
@@ -426,13 +430,14 @@ class PartsCatalogsAdapter implements CatalogProvider
             if (!is_array($g)) continue;
             $gid  = (string)($g['id'] ?? '');
             $name = trim((string)($g['name'] ?? ''));
-            if ($gid === '') continue;
+            if ($gid === '' || isset($seen[$gid])) continue;
             if (!empty($g['hasParts'])) {
                 // img — миниатюра схемы узла (как карточки у 7zap); может отсутствовать.
+                $seen[$gid] = true;
                 $out[] = ['cat' => $gid, 'name' => $name !== '' ? $name : $gid,
                           'img' => (string)($g['img'] ?? '')];
             } else {
-                $this->collectLeaves($car, $gid, $out, $depth + 1);
+                $this->collectLeaves($car, $gid, $out, $depth + 1, $seen);
             }
             if (count($out) >= 120) return;
         }
