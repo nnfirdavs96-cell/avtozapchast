@@ -235,13 +235,18 @@ class PartsCatalogsAdapter implements CatalogProvider
         if (empty($car['catalogId']) || empty($car['carId'])) return;
         $this->libEnsureTables();
         try {
+            // attrs_json перезаписываем ТОЛЬКО непустым значением: oemNodesForCar()/oemNodesForVin()
+            // теперь тоже завoдят/трогают строку авто (без атрибутов — только чтобы у узлов и схем
+            // всегда был родитель), и не должны затирать уже сохранённые атрибуты из pcCarAttrs()/
+            // carInfoFull() пустым набором при повторном просмотре узлов.
             getDB()->prepare("INSERT INTO catalog_library_cars (catalog_id, car_id, vin, brand, criteria, attrs_json)
                 VALUES (?,?,?,?,?,?)
                 ON DUPLICATE KEY UPDATE
                     vin = COALESCE(VALUES(vin), vin),
                     brand = IF(VALUES(brand) <> '', VALUES(brand), brand),
                     criteria = IF(VALUES(criteria) <> '', VALUES(criteria), criteria),
-                    attrs_json = VALUES(attrs_json), updated_at = NOW()")
+                    attrs_json = IF(JSON_LENGTH(VALUES(attrs_json)) > 0, VALUES(attrs_json), attrs_json),
+                    updated_at = NOW()")
                ->execute([
                    (string)$car['catalogId'], (string)$car['carId'],
                    $vin !== '' ? strtoupper(trim($vin)) : null,
@@ -900,6 +905,11 @@ class PartsCatalogsAdapter implements CatalogProvider
     {
         if (!$this->enabled() || $carId === '' || $catalogId === '') return [];
         $this->demandBump($catalogId, $carId, '');
+        // Путь «по параметрам» пишет карточку авто в библиотеку только внутри pcCarAttrs()
+        // (а её вызывают, только если в URL есть modelId и атрибуты не пустые) — узлы и схемы
+        // при этом сохраняются независимо и рисковали остаться «сиротами» без родительской
+        // строки авто. Заводим/обновляем её здесь тоже — минимально, но гарантированно.
+        $this->libSaveCar(['catalogId' => $catalogId, 'carId' => $carId, 'brand' => $brand, 'criteria' => $criteria, 'attrs' => []]);
         $lib = $this->libGetNodes($catalogId, $carId);
         if ($lib !== null) return $lib;
 
