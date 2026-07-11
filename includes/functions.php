@@ -263,6 +263,7 @@ function renderRoleSidebar(string $active = ''): void {
             ['key' => 'brands',     'href' => "$url/manager/brands.php",       'icon' => 'fa-tag',         'label' => 'Бренды'],
             ['key' => 'warehouse',  'href' => "$url/superadmin/warehouse.php", 'icon' => 'fa-database',    'label' => 'Склад API'],
             ['key' => 'vin',        'href' => "$url/superadmin/vin.php",       'icon' => 'fa-search',      'label' => 'VIN-поиск'],
+            ['key' => 'catalog_library', 'href' => "$url/superadmin/catalog_library.php", 'icon' => 'fa-archive', 'label' => 'Библиотека каталога'],
         ]],
         ['label' => 'Продажи', 'items' => [
             ['key' => 'orders',     'href' => "$url/admin/orders.php",         'icon' => 'fa-shopping-bag','label' => 'Заказы'],
@@ -305,7 +306,7 @@ function renderRoleSidebar(string $active = ''): void {
     $canSee = function (string $key) use ($role): bool {
         if ($key === 'dashboard') return true;
         if ($role === 'superadmin') return true;
-        if (in_array($key, ['permissions', 'backup', 'manual'], true)) return false;
+        if (in_array($key, ['permissions', 'backup', 'manual', 'catalog_library'], true)) return false;
         return userCan(permissionAlias($key));
     };
 
