@@ -173,6 +173,116 @@ class PartsCatalogsAdapter implements CatalogProvider
         } catch (Exception $e) { /* кэш необязателен */ }
     }
 
+    // ── Библиотека каталога (постоянный архив — без TTL, для выгрузки в суперадмине) ─
+    //  Пишется из тех же точек, что и kvSet(), но ТОЛЬКО на свежий (не из TTL-кэша)
+    //  ответ PC — повторный просмотр закэшированных данных архив не дублирует.
+
+    private function libEnsureTables(): void
+    {
+        static $done = false;
+        if ($done) return;
+        $done = true;
+        try {
+            $db = getDB();
+            $db->exec("CREATE TABLE IF NOT EXISTS catalog_library_cars (
+                id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                catalog_id VARCHAR(64) NOT NULL,
+                car_id VARCHAR(64) NOT NULL,
+                vin CHAR(17) DEFAULT NULL,
+                brand VARCHAR(120) DEFAULT NULL,
+                criteria VARCHAR(255) DEFAULT NULL,
+                attrs_json MEDIUMTEXT,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id), UNIQUE KEY uk_car (catalog_id, car_id), KEY idx_vin (vin), KEY idx_brand (brand)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            $db->exec("CREATE TABLE IF NOT EXISTS catalog_library_nodes (
+                id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                catalog_id VARCHAR(64) NOT NULL,
+                car_id VARCHAR(64) NOT NULL,
+                nodes_count INT UNSIGNED NOT NULL DEFAULT 0,
+                nodes_json MEDIUMTEXT,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id), UNIQUE KEY uk_car (catalog_id, car_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            $db->exec("CREATE TABLE IF NOT EXISTS catalog_library_schemes (
+                id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                catalog_id VARCHAR(64) NOT NULL,
+                car_id VARCHAR(64) NOT NULL,
+                group_id VARCHAR(64) NOT NULL,
+                group_name VARCHAR(255) DEFAULT NULL,
+                img VARCHAR(500) DEFAULT NULL,
+                caption VARCHAR(255) DEFAULT NULL,
+                parts_count INT UNSIGNED NOT NULL DEFAULT 0,
+                hotspots_json MEDIUMTEXT,
+                parts_json MEDIUMTEXT,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id), UNIQUE KEY uk_scheme (catalog_id, car_id, group_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        } catch (Exception $e) { /* архив необязателен */ }
+    }
+
+    /** Карточка авто (VIN-путь carInfoFull() и путь «по параметрам» pcCarAttrs()). */
+    private function libSaveCar(array $car, string $vin = ''): void
+    {
+        if (empty($car['catalogId']) || empty($car['carId'])) return;
+        $this->libEnsureTables();
+        try {
+            getDB()->prepare("INSERT INTO catalog_library_cars (catalog_id, car_id, vin, brand, criteria, attrs_json)
+                VALUES (?,?,?,?,?,?)
+                ON DUPLICATE KEY UPDATE
+                    vin = COALESCE(VALUES(vin), vin),
+                    brand = IF(VALUES(brand) <> '', VALUES(brand), brand),
+                    criteria = IF(VALUES(criteria) <> '', VALUES(criteria), criteria),
+                    attrs_json = VALUES(attrs_json), updated_at = NOW()")
+               ->execute([
+                   (string)$car['catalogId'], (string)$car['carId'],
+                   $vin !== '' ? strtoupper(trim($vin)) : null,
+                   (string)($car['brand'] ?? ''), (string)($car['criteria'] ?? ''),
+                   json_encode($car['attrs'] ?? [], JSON_UNESCAPED_UNICODE),
+               ]);
+        } catch (Exception $e) { /* архив необязателен */ }
+    }
+
+    /** Дерево узлов конкретного авто (oemNodesForVin() / oemNodesForCar()). */
+    private function libSaveNodes(string $catalogId, string $carId, array $nodes): void
+    {
+        if ($catalogId === '' || $carId === '' || empty($nodes)) return;
+        $this->libEnsureTables();
+        try {
+            getDB()->prepare("INSERT INTO catalog_library_nodes (catalog_id, car_id, nodes_count, nodes_json)
+                VALUES (?,?,?,?)
+                ON DUPLICATE KEY UPDATE nodes_count=VALUES(nodes_count), nodes_json=VALUES(nodes_json), updated_at=NOW()")
+               ->execute([$catalogId, $carId, count($nodes), json_encode($nodes, JSON_UNESCAPED_UNICODE)]);
+        } catch (Exception $e) { /* архив необязателен */ }
+    }
+
+    /** Схема узла + детали (fetchScheme() — общая точка для VIN и «по параметрам»). */
+    private function libSaveScheme(string $catalogId, string $carId, string $groupId, array $sp): void
+    {
+        if ($catalogId === '' || $carId === '' || $groupId === '') return;
+        if (empty($sp['img']) && empty($sp['parts'])) return;
+        $this->libEnsureTables();
+        $groupName = '';
+        foreach (($sp['parts'] ?? []) as $p) { if (!empty($p['group'])) { $groupName = $p['group']; break; } }
+        try {
+            getDB()->prepare("INSERT INTO catalog_library_schemes
+                    (catalog_id, car_id, group_id, group_name, img, caption, parts_count, hotspots_json, parts_json)
+                VALUES (?,?,?,?,?,?,?,?,?)
+                ON DUPLICATE KEY UPDATE
+                    group_name=VALUES(group_name), img=VALUES(img), caption=VALUES(caption),
+                    parts_count=VALUES(parts_count), hotspots_json=VALUES(hotspots_json),
+                    parts_json=VALUES(parts_json), updated_at=NOW()")
+               ->execute([
+                   $catalogId, $carId, $groupId, $groupName, (string)($sp['img'] ?? ''), (string)($sp['caption'] ?? ''),
+                   count($sp['parts'] ?? []), json_encode($sp['hotspots'] ?? [], JSON_UNESCAPED_UNICODE),
+                   json_encode($sp['parts'] ?? [], JSON_UNESCAPED_UNICODE),
+               ]);
+        } catch (Exception $e) { /* архив необязателен */ }
+    }
+
     // ── VIN → авто (carId / catalogId / criteria) ────────────────────────────
 
     /** @return array{carId:string,catalogId:string,criteria:string,brand:string}|null */
@@ -213,6 +323,7 @@ class PartsCatalogsAdapter implements CatalogProvider
             'attrs'     => $this->parseCarAttrs($row),
         ];
         $this->kvSet($ck, $car);
+        $this->libSaveCar($car, $vin);
         return $car;
     }
 
@@ -294,7 +405,10 @@ class PartsCatalogsAdapter implements CatalogProvider
         $this->collectLeaves($car, '', $nodes, 0);
         // Кэшируем ТОЛЬКО непустой результат: разовый сбой/лимит (пусто) не должен
         // залипать на 24ч и «прятать» каталог у авто, где узлы на самом деле есть.
-        if (!empty($nodes)) $this->kvSet($ck, ['count' => count($nodes), 'nodes' => $nodes]);
+        if (!empty($nodes)) {
+            $this->kvSet($ck, ['count' => count($nodes), 'nodes' => $nodes]);
+            $this->libSaveNodes($car['catalogId'], $car['carId'], $nodes);
+        }
         return $nodes;
     }
 
@@ -486,6 +600,7 @@ class PartsCatalogsAdapter implements CatalogProvider
                 ];
             }
         }
+        $this->libSaveScheme((string)($car['catalogId'] ?? ''), (string)($car['carId'] ?? ''), $groupId, $out);
         return $out;
     }
 
@@ -619,7 +734,13 @@ class PartsCatalogsAdapter implements CatalogProvider
                 break;
             }
         }
-        if (!empty($attrs)) $this->kvSet($ck, ['attrs' => $attrs]);
+        if (!empty($attrs)) {
+            $this->kvSet($ck, ['attrs' => $attrs]);
+            $this->libSaveCar([
+                'catalogId' => $catalogId, 'carId' => $carId,
+                'brand'     => $attrs['make'] ?? '', 'criteria' => '', 'attrs' => $attrs,
+            ]);
+        }
         return $attrs;
     }
 
@@ -669,7 +790,10 @@ class PartsCatalogsAdapter implements CatalogProvider
         $this->collectLeaves($car, '', $nodes, 0);
         // Кэшируем ТОЛЬКО непустой результат: разовый сбой/лимит (пусто) не должен
         // залипать на 24ч и «прятать» каталог у авто, где узлы на самом деле есть.
-        if (!empty($nodes)) $this->kvSet($ck, ['count' => count($nodes), 'nodes' => $nodes]);
+        if (!empty($nodes)) {
+            $this->kvSet($ck, ['count' => count($nodes), 'nodes' => $nodes]);
+            $this->libSaveNodes($catalogId, $carId, $nodes);
+        }
         return $nodes;
     }
 
