@@ -189,6 +189,11 @@ require_once dirname(__DIR__) . '/includes/header.php';
 .vx-promo h3{margin:0;font-size:1.5rem;font-weight:800;}
 .vx-promo p{margin:4px 0 0;opacity:.92;font-size:.92rem;}
 .vx-promo .badge{background:#fff;color:var(--vx-red);font-weight:800;padding:8px 16px;border-radius:30px;font-size:.92rem;white-space:nowrap;}
+@media(max-width:640px){
+    .vx-promo{flex-direction:column;align-items:flex-start;text-align:left;padding:20px 22px;}
+    .vx-promo h3{font-size:1.28rem;}
+    .vx-promo .badge{align-self:flex-start;}
+}
 
 /* hero */
 .vx-hero{text-align:center;padding:26px 0 4px;}
@@ -1197,8 +1202,14 @@ function vinTipHtml(pos){
     if (arr.length > 1) h += '<span class="vt-more">+ ещё ' + (arr.length - 1) + ' на позиции №' + escapeHtml(pos) + '</span>';
     return h;
 }
+/* Тач-устройства (курсор coarse / нет реального hover) — на них mouseenter «залипает»
+   без парного mouseleave (нет ухода курсора), поэтому автотултип по наведению там
+   отключаем; подсветка + переход по клику/тапу работают как обычно (см. vinWireHots). */
+var vinIsTouch = ('ontouchstart' in window) || (window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
+
 /* Показать/скрыть тултип у выноски на активной схеме (лайтбокс если открыт, иначе обычная). */
 function vinTipFor(pos, on){
+    if (vinIsTouch) return;
     var lb  = vinLbIsOpen();
     var box = document.getElementById(lb ? 'vinLbInner' : 'vinSchemeBox');
     if (!box) return;
@@ -1206,19 +1217,25 @@ function vinTipFor(pos, on){
     if (!tip) return;
     if (!on) { tip.style.display = 'none'; return; }
     var hotEl = box.querySelector('.vin-hot[data-pos="' + vinCssEsc(pos) + '"]');
+    var left, top;
     if (hotEl) {
         tip.className = 'vin-tip';
         tip.innerHTML = vinTipHtml(pos);
-        tip.style.left = (hotEl.offsetLeft + hotEl.offsetWidth / 2) + 'px';
-        tip.style.top  = hotEl.offsetTop + 'px';
+        left = hotEl.offsetLeft + hotEl.offsetWidth / 2;
+        top  = hotEl.offsetTop;
     } else {
         // У детали нет точки на схеме (Parts-Catalogs не дал координаты) —
         // показываем имя сверху с пометкой, чтобы наведение не было «мёртвым».
         tip.className = 'vin-tip at-top';
         tip.innerHTML = vinTipHtml(pos) + '<span class="vt-more">точка на схеме не указана</span>';
-        tip.style.left = (box.clientWidth / 2) + 'px';
-        tip.style.top  = '10px';
+        left = box.clientWidth / 2;
+        top  = 10;
     }
+    // Клэмп по горизонтали, чтобы тултип (~240px) не обрезался за краем узкой колонки.
+    var half = 120;
+    left = Math.max(half, Math.min(box.clientWidth - half, left));
+    tip.style.left = left + 'px';
+    tip.style.top  = top + 'px';
     tip.style.display = 'block';
 }
 
@@ -1235,9 +1252,12 @@ function vinLbZoom(dir){
 function vinWireHots(container, inLb){
     container.querySelectorAll('.vin-hot').forEach(function(a){
         var pos = a.getAttribute('data-pos');
-        a.addEventListener('mouseenter', function(){ vinHi(pos, true); });
-        a.addEventListener('mouseleave', function(){ vinHi(pos, false); });
+        if (!vinIsTouch) {
+            a.addEventListener('mouseenter', function(){ vinHi(pos, true); });
+            a.addEventListener('mouseleave', function(){ vinHi(pos, false); });
+        }
         a.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation();
+            vinHi(pos, true); setTimeout(function(){ vinHi(pos, false); }, 1600);
             if (inLb) vinLbClose();
             var c = document.querySelector('.vin-pcard[data-pos="' + vinCssEsc(pos) + '"]');
             if (c) c.scrollIntoView({behavior:'smooth', block:'center'});
@@ -1254,6 +1274,9 @@ function vinLbOpen(){
     vinWireHots(lbhot, true);
     vinLbScale = 1; vinLbTx = 0; vinLbTy = 0; vinLbApply();
     lb.style.display = 'flex';
+    // Заблокировать скролл фона: на iOS Safari инерционная прокрутка страницы под
+    // fixed-лайтбоксом просвечивала сквозь него (виден кусок страницы позади схемы).
+    document.body.style.overflow = 'hidden'; document.body.style.touchAction = 'none';
 }
 /* Открыть лайтбокс, сразу приблизив к конкретной детали (клик по вырезке-«фото»). */
 function vinLbOpenAt(pos){
@@ -1281,7 +1304,13 @@ function vinLbOpenAt(pos){
     if (img.complete && img.naturalWidth) requestAnimationFrame(apply);
     else img.addEventListener('load', function(){ requestAnimationFrame(apply); }, { once:true });
 }
-function vinLbClose(){ var lb = document.getElementById('vinLightbox'); if (lb) lb.style.display = 'none'; var t = document.querySelector('#vinLbInner .vin-tip'); if (t) t.style.display = 'none'; }
+function vinLbClose(){
+    var lb = document.getElementById('vinLightbox'); if (lb) lb.style.display = 'none';
+    var t = document.querySelector('#vinLbInner .vin-tip'); if (t) t.style.display = 'none';
+    // Разблокировать скролл фона (см. vinLbOpen — блокировка спасает от "просвечивания"
+    // страницы под лайтбоксом на iOS Safari при инерционной прокрутке под fixed-слоем).
+    document.body.style.overflow = ''; document.body.style.touchAction = '';
+}
 function vinLbBg(e){ if (e.target && e.target.id === 'vinLightbox') vinLbClose(); }
 (function(){
     var stage = document.getElementById('vinLbStage');
@@ -1290,6 +1319,50 @@ function vinLbBg(e){ if (e.target && e.target.id === 'vinLightbox') vinLbClose()
         stage.addEventListener('mousedown', function(e){ if (vinLbScale <= 1) return; vinLbDrag = { x:e.clientX, y:e.clientY, tx:vinLbTx, ty:vinLbTy }; stage.classList.add('drag'); });
         window.addEventListener('mousemove', function(e){ if (!vinLbDrag) return; vinLbTx = vinLbDrag.tx + (e.clientX - vinLbDrag.x); vinLbTy = vinLbDrag.ty + (e.clientY - vinLbDrag.y); vinLbApply(); });
         window.addEventListener('mouseup', function(){ if (vinLbDrag){ vinLbDrag = null; stage.classList.remove('drag'); } });
+
+        // ── Тач: pinch двумя пальцами — зум; один палец при zoom>1 — перетаскивание;
+        //    двойной тап — переключить 1× ↔ 2.5×. Раньше на тач-экране зумом можно было
+        //    управлять только кнопками ±, жестами — никак.
+        var pinchStart = null, panStart = null, lastTapT = 0, lastTapPos = null;
+        function tDist(a, b){ return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); }
+        stage.addEventListener('touchstart', function(e){
+            if (!vinLbIsOpen()) return;
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                pinchStart = { dist: tDist(e.touches[0], e.touches[1]), scale: vinLbScale };
+                panStart = null;
+            } else if (e.touches.length === 1) {
+                var t = e.touches[0], now = Date.now();
+                if (lastTapPos && (now - lastTapT) < 320 && Math.hypot(t.clientX - lastTapPos.x, t.clientY - lastTapPos.y) < 30) {
+                    vinLbScale = vinLbScale > 1 ? 1 : 2.5;
+                    if (vinLbScale === 1) { vinLbTx = 0; vinLbTy = 0; }
+                    vinLbApply();
+                    lastTapT = 0; lastTapPos = null;
+                    return;
+                }
+                lastTapT = now; lastTapPos = { x: t.clientX, y: t.clientY };
+                if (vinLbScale > 1) panStart = { x: t.clientX, y: t.clientY, tx: vinLbTx, ty: vinLbTy };
+            }
+        }, { passive:false });
+        stage.addEventListener('touchmove', function(e){
+            if (!vinLbIsOpen()) return;
+            if (e.touches.length === 2 && pinchStart) {
+                e.preventDefault();
+                var d = tDist(e.touches[0], e.touches[1]);
+                vinLbScale = Math.min(5, Math.max(1, +(pinchStart.scale * (d / pinchStart.dist)).toFixed(2)));
+                vinLbApply();
+            } else if (e.touches.length === 1 && panStart) {
+                e.preventDefault();
+                var t = e.touches[0];
+                vinLbTx = panStart.tx + (t.clientX - panStart.x);
+                vinLbTy = panStart.ty + (t.clientY - panStart.y);
+                vinLbApply();
+            }
+        }, { passive:false });
+        stage.addEventListener('touchend', function(e){
+            if (e.touches.length < 2) pinchStart = null;
+            if (e.touches.length < 1) { panStart = null; if (vinLbScale === 1) { vinLbTx = 0; vinLbTy = 0; vinLbApply(); } }
+        });
     }
     document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && vinLbIsOpen()) vinLbClose(); });
 })();
@@ -1353,9 +1426,13 @@ function vinRenderScheme(d){
             if (!window.VIN_HOT[h.n]) window.VIN_HOT[h.n] = { x:+h.x, y:+h.y, w:+h.w, h:+h.h };
             var a = document.createElement('a'); a.className = 'vin-hot'; a.href = '#'; a.setAttribute('data-pos', h.n);
             a.style.left = h.x + 'px'; a.style.top = h.y + 'px'; a.style.width = h.w + 'px'; a.style.height = h.h + 'px';
-            a.addEventListener('mouseenter', function(){ vinHi(h.n, true); });
-            a.addEventListener('mouseleave', function(){ vinHi(h.n, false); });
-            a.addEventListener('click', function(e){ e.preventDefault(); var c = document.querySelector('.vin-pcard[data-pos="' + vinCssEsc(h.n) + '"]'); if (c) c.scrollIntoView({behavior:'smooth', block:'center'}); });
+            if (!vinIsTouch) {
+                a.addEventListener('mouseenter', function(){ vinHi(h.n, true); });
+                a.addEventListener('mouseleave', function(){ vinHi(h.n, false); });
+            }
+            a.addEventListener('click', function(e){ e.preventDefault();
+                vinHi(h.n, true); setTimeout(function(){ vinHi(h.n, false); }, 1600);
+                var c = document.querySelector('.vin-pcard[data-pos="' + vinCssEsc(h.n) + '"]'); if (c) c.scrollIntoView({behavior:'smooth', block:'center'}); });
             hot.appendChild(a);
         });
         img.onload = function(){ vinScaleHot(img, hot); vinApplyCrops(); };
@@ -1421,7 +1498,12 @@ function vinBuildPartsHtml(items){
         groups[g].forEach(function(it){
             idx++; var cid = 'vinc-' + idx;
             var pos = it.pos ? String(it.pos) : '';
-            var posAttr  = pos ? ' data-pos="' + escapeHtml(pos) + '" onmouseover="vinHi(\'' + jsAttr(pos) + '\',true)" onmouseout="vinHi(\'' + jsAttr(pos) + '\',false)"' : '';
+            // Десктоп: подсветка по наведению (mouseover/out). Тач-устройства: mouseout там
+            // часто не срабатывает до следующего тапа по другому элементу (тултип «залипает») —
+            // вместо этого тап переключает подсветку и она гаснет сама через 1.6с (vinFocusPos).
+            var posAttr  = pos ? ' data-pos="' + escapeHtml(pos) + '"' + (vinIsTouch
+                ? ' onclick="vinFocusPos(\'' + jsAttr(pos) + '\')"'
+                : ' onmouseover="vinHi(\'' + jsAttr(pos) + '\',true)" onmouseout="vinHi(\'' + jsAttr(pos) + '\',false)"') : '';
             var posBadge = pos ? '<span class="vin-pos-badge">№' + escapeHtml(pos) + '</span>' : '';
             html += '<div class="vin-pcard" id="' + cid + '"' + posAttr + '>';
             html += '<div class="vin-pcard-t">' + posBadge + escapeHtml(vinExpandAbbr(it.name)) + '<span>' + escapeHtml(it.brand || '') + ' · ' + escapeHtml(it.part_number) + '</span></div>';
