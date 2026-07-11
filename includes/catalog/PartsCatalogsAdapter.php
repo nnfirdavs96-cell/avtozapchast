@@ -36,8 +36,13 @@ require_once __DIR__ . '/../catalog_api.php';
 class PartsCatalogsAdapter implements CatalogProvider
 {
     private const CACHE_VER = 4;  // v4: канонизация номеров выносок/позиций (01→1) — сброс кэша
-    private const TTL_CAR   = 86400;    // 24h  VIN→car (criteria живёт с кредитом VIN)
-    private const TTL_DATA  = 86400;    // 24h  узлы / детали / схемы
+    // TTL подняты с 24ч до 30д (шаг 1 плана экономии лимита): carId/дерево узлов/детали у OEM-
+    // каталога физически не меняются день ото дня. Долгий TTL страхует шаги каскада «по
+    // параметрам» (бренд→модель→параметры), которые библиотека не архивирует — она хранит
+    // только финально выбранное авто (см. libGetCar/libGetNodes/libGetScheme ниже: постоянная
+    // библиотека проверяется ДО этого TTL-кэша и до живого запроса к API).
+    private const TTL_CAR   = 2592000;  // 30d  VIN→car (criteria живёт с кредитом VIN)
+    private const TTL_DATA  = 2592000;  // 30d  узлы / детали / схемы
     private const TTL_CATS  = 2592000;  // 30d  список каталогов
 
     public function id(): string    { return 'partspc'; }
@@ -283,6 +288,65 @@ class PartsCatalogsAdapter implements CatalogProvider
         } catch (Exception $e) { /* архив необязателен */ }
     }
 
+    // ── Чтение из библиотеки (шаг 1 плана экономии лимита) ────────────────────
+    //  Проверяется ДО TTL-кэша и ДО живого запроса к API. В отличие от kv-кэша у
+    //  библиотеки нет TTL и она не сбрасывается при поднятии CACHE_VER — авто,
+    //  собранное однажды, больше никогда не тратит кредит ключа на эти же данные.
+
+    /** Карточка авто по VIN из библиотеки, в формате carInfoFull(), или null. */
+    private function libGetCar(string $vin): ?array
+    {
+        if ($vin === '') return null;
+        try {
+            $st = getDB()->prepare("SELECT * FROM catalog_library_cars WHERE vin = ? LIMIT 1");
+            $st->execute([$vin]);
+            $row = $st->fetch();
+            if (!$row) return null;
+            return [
+                'carId'     => (string)$row['car_id'],
+                'catalogId' => (string)$row['catalog_id'],
+                'criteria'  => (string)($row['criteria'] ?? ''),
+                'brand'     => (string)($row['brand'] ?? ''),
+                'count'     => 1,
+                'attrs'     => json_decode($row['attrs_json'] ?? '[]', true) ?: [],
+            ];
+        } catch (Exception $e) { return null; }
+    }
+
+    /** Дерево узлов авто из библиотеки, в формате oemNodesForVin()/oemNodesForCar(), или null. */
+    private function libGetNodes(string $catalogId, string $carId): ?array
+    {
+        if ($catalogId === '' || $carId === '') return null;
+        try {
+            $st = getDB()->prepare("SELECT nodes_json FROM catalog_library_nodes WHERE catalog_id=? AND car_id=? LIMIT 1");
+            $st->execute([$catalogId, $carId]);
+            $json = $st->fetchColumn();
+            if ($json === false) return null;
+            $nodes = json_decode($json, true);
+            return is_array($nodes) && $nodes ? $nodes : null;
+        } catch (Exception $e) { return null; }
+    }
+
+    /** Схема+детали узла из библиотеки, в формате fetchScheme(), или null. */
+    private function libGetScheme(string $catalogId, string $carId, string $groupId): ?array
+    {
+        if ($catalogId === '' || $carId === '' || $groupId === '') return null;
+        try {
+            $st = getDB()->prepare("SELECT img, caption, hotspots_json, parts_json FROM catalog_library_schemes
+                                     WHERE catalog_id=? AND car_id=? AND group_id=? LIMIT 1");
+            $st->execute([$catalogId, $carId, $groupId]);
+            $row = $st->fetch();
+            if (!$row) return null;
+            return [
+                'img'          => (string)($row['img'] ?? ''),
+                'caption'      => (string)($row['caption'] ?? ''),
+                'hotspots'     => json_decode($row['hotspots_json'] ?? '[]', true) ?: [],
+                'parts'        => json_decode($row['parts_json'] ?? '[]', true) ?: [],
+                'rate_limited' => false,
+            ];
+        } catch (Exception $e) { return null; }
+    }
+
     // ── VIN → авто (carId / catalogId / criteria) ────────────────────────────
 
     /** @return array{carId:string,catalogId:string,criteria:string,brand:string}|null */
@@ -302,6 +366,10 @@ class PartsCatalogsAdapter implements CatalogProvider
     {
         $vin = strtoupper(trim($vin));
         if ($vin === '') return null;
+
+        $lib = $this->libGetCar($vin);
+        if ($lib !== null) return $lib;
+
         $ck = 'car:' . $this->lang() . ':' . $vin;
         $c  = $this->kvGet($ck, self::TTL_CAR);
         if ($c !== null && !empty($c['carId'])) return $c;
@@ -396,6 +464,9 @@ class PartsCatalogsAdapter implements CatalogProvider
         if (!$this->enabled()) return [];
         $car = $this->vinToCar($vin);
         if ($car === null) return [];
+
+        $lib = $this->libGetNodes($car['catalogId'], $car['carId']);
+        if ($lib !== null) return $lib;
 
         $ck     = 'nodes:' . $this->lang() . ':' . $car['catalogId'] . ':' . $car['carId'];
         $cached = $this->kvGet($ck, self::TTL_DATA);
@@ -563,6 +634,9 @@ class PartsCatalogsAdapter implements CatalogProvider
      */
     private function fetchScheme(array $car, string $groupId): array
     {
+        $lib = $this->libGetScheme((string)($car['catalogId'] ?? ''), (string)($car['carId'] ?? ''), $groupId);
+        if ($lib !== null) return $lib;
+
         $out = ['img' => '', 'caption' => '', 'hotspots' => [], 'parts' => [], 'rate_limited' => false];
         [$j, $st, $err, $raw] = $this->get('v1/catalogs/' . rawurlencode($car['catalogId']) . '/parts2', array_filter([
             'carId'    => $car['carId'],
@@ -787,6 +861,9 @@ class PartsCatalogsAdapter implements CatalogProvider
     public function oemNodesForCar(string $carId, string $catalogId, string $criteria, string $brand = ''): array
     {
         if (!$this->enabled() || $carId === '' || $catalogId === '') return [];
+        $lib = $this->libGetNodes($catalogId, $carId);
+        if ($lib !== null) return $lib;
+
         $ck     = 'nodes:' . $this->lang() . ':' . $catalogId . ':' . $carId;
         $cached = $this->kvGet($ck, self::TTL_DATA);
         if ($cached !== null) return $cached['nodes'] ?? [];
