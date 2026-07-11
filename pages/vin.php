@@ -426,23 +426,27 @@ require_once dirname(__DIR__) . '/includes/header.php';
         <style>
             .vin-carcard{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);border-radius:16px;overflow:hidden;box-shadow:var(--vx-shadow);border:1px solid #e7e9ee;margin-bottom:28px;background:#fff;}
             @media(max-width:620px){ .vin-carcard{grid-template-columns:1fr;} }
-            .vin-cc-l{position:relative;background:radial-gradient(120% 120% at 20% 20%,#2a2f3a,#14161b 70%);color:#fff;padding:22px;display:flex;flex-direction:column;justify-content:space-between;gap:18px;min-height:210px;overflow:hidden;}
-            .vin-cc-car{position:absolute;right:-6%;top:34%;width:84%;color:rgba(255,255,255,.13);pointer-events:none;}
+            .vin-cc-l{position:relative;background:radial-gradient(120% 120% at 20% 18%,#2a2f3a,#14161b 72%);color:#fff;padding:22px;display:flex;flex-direction:column;justify-content:space-between;gap:18px;min-height:200px;overflow:hidden;}
+            /* Бренд-вотермарк («лого»-эффект) + компактный чертёж авто фоном */
+            .vin-cc-brand{position:absolute;right:18px;top:46px;z-index:0;font-size:2.6rem;font-weight:900;letter-spacing:.02em;text-transform:uppercase;color:rgba(255,255,255,.06);line-height:1;pointer-events:none;white-space:nowrap;}
+            .vin-cc-car{position:absolute;right:-4%;bottom:6%;width:56%;max-width:300px;color:rgba(255,255,255,.11);z-index:0;pointer-events:none;}
             .vin-cc-badges{position:relative;z-index:2;display:flex;gap:8px;flex-wrap:wrap;}
             .vin-cc-badges span{padding:4px 11px;border-radius:20px;font-size:.66rem;color:#fff;}
             .vin-cc-title{position:relative;z-index:2;}
             .vin-cc-title .m{font-size:1.55rem;font-weight:900;line-height:1.06;text-shadow:0 2px 8px rgba(0,0,0,.4);}
-            .vin-cc-title .s{font-size:.86rem;opacity:.72;margin-top:6px;}
+            .vin-cc-title .s{font-size:.86rem;opacity:.75;margin-top:6px;}
             .vin-cc-r{background:#fff;display:flex;flex-direction:column;justify-content:center;}
-            .vin-cc-row{display:flex;justify-content:space-between;gap:16px;padding:11px 22px;border-bottom:1px solid #eef0f3;}
+            .vin-cc-row{display:flex;justify-content:space-between;gap:16px;padding:12px 22px;border-bottom:1px solid #edeff2;}
+            .vin-cc-row:nth-child(even){background:#f7f8fa;}
             .vin-cc-row:last-child{border-bottom:0;}
-            .vin-cc-k{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#98a0ab;font-weight:700;white-space:nowrap;}
-            .vin-cc-k i{margin-right:6px;color:#c9ccd2;}
-            .vin-cc-v{font-weight:700;color:var(--vx-ink);font-size:.9rem;text-align:right;}
+            .vin-cc-k{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:#6b7480;font-weight:700;white-space:nowrap;}
+            .vin-cc-k i{margin-right:7px;color:#aab0b8;}
+            .vin-cc-v{font-weight:800;color:#14161b;font-size:.96rem;text-align:right;}
         </style>
         <div class="vin-carcard">
             <!-- Левая тёмная панель: источник/VIN + чертёж авто + марка/модель -->
             <div class="vin-cc-l">
+                <?php if (!empty($result['make'])): ?><div class="vin-cc-brand"><?= sanitize($result['make']) ?></div><?php endif; ?>
                 <div class="vin-cc-badges">
                     <?php if (!empty($result['from_cache'])): ?><span style="background:rgba(0,0,0,.4);"><i class="fa fa-database"></i> Кэш</span><?php endif; ?>
                     <span style="background:var(--vx-red,#C70909);font-weight:800;letter-spacing:.05em;text-transform:uppercase;font-size:.62rem;"><i class="fa fa-plug"></i> <?= sanitize(strtoupper($result['source'] ?? 'local')) ?></span>
