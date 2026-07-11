@@ -59,6 +59,6 @@ CREATE TABLE IF NOT EXISTS `catalog_library_schemes` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Проверка
-SELECT 'catalog_library_cars'    AS tbl, COUNT(*) AS rows FROM catalog_library_cars;
-SELECT 'catalog_library_nodes'   AS tbl, COUNT(*) AS rows FROM catalog_library_nodes;
-SELECT 'catalog_library_schemes' AS tbl, COUNT(*) AS rows FROM catalog_library_schemes;
+SELECT 'catalog_library_cars'    AS tbl, COUNT(*) AS `count` FROM catalog_library_cars;
+SELECT 'catalog_library_nodes'   AS tbl, COUNT(*) AS `count` FROM catalog_library_nodes;
+SELECT 'catalog_library_schemes' AS tbl, COUNT(*) AS `count` FROM catalog_library_schemes;
