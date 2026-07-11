@@ -678,6 +678,9 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <div class="vin-nv-head">
                             <button type="button" class="vin-nv-back" onclick="vinBackToNodes()"><i class="fa fa-arrow-left"></i> Все узлы</button>
                             <h3 class="vin-nv-title" id="vinNodeTitle"></h3>
+                            <a id="vinKpBtn" href="#" target="_blank" class="vin-nv-back" style="margin-left:auto;display:none;">
+                                <i class="fa fa-file-text-o"></i> Скачать КП
+                            </a>
                         </div>
                         <div id="vinNvSplit" class="vin-nv-split">
                             <?php if ($pcSchema): ?>
@@ -1161,15 +1164,26 @@ function vinBackToNodes(){
     if (statusEl) statusEl.style.display = 'none';
     vinSetActiveChip(null);
 }
+/* Кнопка «Скачать КП» — ведёт на печатную страницу текущего узла (только для одного
+   конкретного узла: у «Все узлы» нет единого groupId, поэтому там кнопка скрыта). */
+function vinUpdateKpBtn(cat, title){
+    var kp = document.getElementById('vinKpBtn'); if (!kp) return;
+    var ctx = cat ? vinCtxQuery() : '';
+    if (!ctx) { kp.style.display = 'none'; return; }
+    kp.href = '<?= APP_URL ?>/pages/vin_kp.php?' + ctx + '&cat=' + encodeURIComponent(cat) + '&node=' + encodeURIComponent(title || '');
+    kp.style.display = 'inline-flex';
+}
 function vinLoadNode(cat, btn){
     vinSetActiveChip(btn);
     var name = btn && btn.getAttribute ? (btn.getAttribute('data-name') || (btn.textContent || '').trim()) : '';
     vinShowView(name);
+    vinUpdateKpBtn(cat, name);
     if (window.VX_PC_SCHEMA) { vinLoadScheme(cat); } else { vinCatalogFetch('&cat=' + encodeURIComponent(cat)); }
 }
 function vinLoadAll(btn){
     vinSetActiveChip(btn);
     vinShowView('Все узлы');
+    vinUpdateKpBtn('', '');
     var p = document.getElementById('vinSchemePanel'); if (p) p.style.display = 'none';
     vinCatalogFetch('');
 }
