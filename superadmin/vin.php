@@ -150,6 +150,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         flashMessage($added ? 'success' : 'warning', $added ? "Добавлено связей: {$added}." : 'Ничего не выбрано.');
         redirect(APP_URL . '/superadmin/vin.php?action=compat');
     }
+
+    // Тумблер панели предложений совместимости — можно скрыть, если мешает.
+    if ($postAction === 'toggle_compat_suggestions') {
+        setSetting('catalog_compat_suggestions_enabled', isset($_POST['catalog_compat_suggestions_enabled']) ? '1' : '0');
+        redirect(APP_URL . '/superadmin/vin.php?action=compat');
+    }
 }
 
 // ── Load data ─────────────────────────────────────────────────────────────────
@@ -296,8 +302,9 @@ function ccFindCompatSuggestions(PDO $db): array
     return $suggestions;
 }
 
+$compatSuggestionsOn = getSetting('catalog_compat_suggestions_enabled', '1') === '1';
 $compatSuggestions = [];
-if ($action === 'compat' && !$migrationMissing) {
+if ($action === 'compat' && !$migrationMissing && $compatSuggestionsOn) {
     try { $compatSuggestions = ccFindCompatSuggestions($db); } catch (Exception $e) { $compatSuggestions = []; }
 }
 
@@ -891,6 +898,23 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
     <?php elseif ($action === 'compat'): ?>
     <!-- ── Compatibility tab ─────────────────────────────────────────── -->
 
+    <!-- Тумблер панели: если предложения мешают/не нужны — можно скрыть. -->
+    <div class="az-card" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div style="font-size:0.85rem;color:#555;">
+            <strong><i class="fa fa-magic" style="color:#d32f2f;"></i> Предложения совместимости из библиотеки</strong>
+        </div>
+        <form method="POST" action="?action=compat" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
+            <input type="hidden" name="action" value="toggle_compat_suggestions">
+            <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:0.85rem;color:<?= $compatSuggestionsOn ? '#2e7d32' : '#999' ?>;">
+                <input type="checkbox" name="catalog_compat_suggestions_enabled" value="1" <?= $compatSuggestionsOn ? 'checked' : '' ?>
+                       onchange="this.form.submit()">
+                <?= $compatSuggestionsOn ? 'Включены' : 'Выключены' ?>
+            </label>
+        </form>
+    </div>
+
+    <?php if ($compatSuggestionsOn): ?>
     <!-- Предложения из библиотеки каталога — точное совпадение OEM-номера со складом.
          Ничего не пишется без явного подтверждения (отмеченные чекбоксы). -->
     <div class="az-card" style="margin-bottom:24px;">
@@ -945,6 +969,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
         </form>
         <?php endif; ?>
     </div>
+    <?php endif; // $compatSuggestionsOn ?>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
 
