@@ -400,71 +400,87 @@ require_once dirname(__DIR__) . '/includes/header.php';
     <!-- ── Decoded car info ──────────────────────────────────────────── -->
     <div style="max-width:100%;margin:30px auto 0;">
 
-        <div style="background:#fff;border-radius:12px;box-shadow:var(--vx-shadow);overflow:hidden;margin-bottom:28px;">
-            <?php $carImgUrl = getCarImageUrl($result['make'] ?? '', $result['model'] ?? '', (int)($result['year'] ?? 0)); ?>
-            <div style="position:relative;height:260px;background:var(--vx-ink);overflow:hidden;">
-                <img id="carImg" src="<?= sanitize($carImgUrl) ?>"
-                     alt="<?= sanitize(($result['make'] ?? '') . ' ' . ($result['model'] ?? '')) ?>"
-                     style="width:100%;height:100%;object-fit:cover;object-position:center;"
-                     onerror="this.style.display='none';document.getElementById('carImgFallback').style.display='flex';">
-                <div id="carImgFallback" style="display:none;position:absolute;inset:0;background:linear-gradient(135deg,#181a1f 0%,#2d3561 100%);align-items:center;justify-content:center;flex-direction:column;gap:12px;">
-                    <svg width="180" height="80" viewBox="0 0 180 80" fill="none" opacity="0.25">
-                        <path d="M12 54 L20 28 Q26 18 42 17 L80 14 Q100 13 116 17 L142 28 L168 54 L170 62 L10 62 Z" fill="white"/>
-                        <circle cx="40" cy="64" r="12" fill="white"/><circle cx="140" cy="64" r="12" fill="white"/>
-                        <rect x="26" y="42" width="128" height="18" rx="3" fill="#181a1f"/>
-                    </svg>
-                    <span style="color:rgba(255,255,255,0.35);font-size:0.85rem;">Фото недоступно</span>
+        <?php
+        $carTitle = trim(($result['make'] ?? '') . ' ' . ($result['model'] ?? ''));
+        $carSub   = trim(
+            (($result['year'] ?? 0) > 0 ? $result['year'] . ' г.' : '')
+            . (!empty($result['country']) ? ((($result['year'] ?? 0) > 0) ? ' · ' : '') . $result['country'] : '')
+        );
+        $fields = [
+            'make'         => ['Марка',       'fa-car'],
+            'model'        => ['Модель',      'fa-tag'],
+            'series'       => ['Поколение',   'fa-code-fork'],
+            'year'         => ['Год выпуска', 'fa-calendar'],
+            'body_type'    => ['Тип кузова',  'fa-cube'],
+            'engine'       => ['Двигатель',   'fa-cog'],
+            'transmission' => ['Коробка передач','fa-cogs'],
+            'fuel_type'    => ['Топливо',     'fa-tint'],
+            'drive_type'   => ['Привод',      'fa-road'],
+            'steering'     => ['Рулевое управление','fa-dot-circle-o'],
+            'country'      => ['Страна',      'fa-globe'],
+            'region'       => ['Регион',      'fa-map-o'],
+            'manufacturer' => ['Производитель','fa-industry'],
+            'plant_country'=> ['Завод',       'fa-map-marker'],
+        ];
+        ?>
+        <style>
+            .vin-carcard{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);border-radius:16px;overflow:hidden;box-shadow:var(--vx-shadow);border:1px solid #e7e9ee;margin-bottom:28px;background:#fff;}
+            @media(max-width:620px){ .vin-carcard{grid-template-columns:1fr;} }
+            .vin-cc-l{position:relative;background:radial-gradient(120% 120% at 20% 20%,#2a2f3a,#14161b 70%);color:#fff;padding:22px;display:flex;flex-direction:column;justify-content:space-between;gap:18px;min-height:210px;overflow:hidden;}
+            .vin-cc-car{position:absolute;right:-6%;top:34%;width:84%;color:rgba(255,255,255,.13);pointer-events:none;}
+            .vin-cc-badges{position:relative;z-index:2;display:flex;gap:8px;flex-wrap:wrap;}
+            .vin-cc-badges span{padding:4px 11px;border-radius:20px;font-size:.66rem;color:#fff;}
+            .vin-cc-title{position:relative;z-index:2;}
+            .vin-cc-title .m{font-size:1.55rem;font-weight:900;line-height:1.06;text-shadow:0 2px 8px rgba(0,0,0,.4);}
+            .vin-cc-title .s{font-size:.86rem;opacity:.72;margin-top:6px;}
+            .vin-cc-r{background:#fff;display:flex;flex-direction:column;justify-content:center;}
+            .vin-cc-row{display:flex;justify-content:space-between;gap:16px;padding:11px 22px;border-bottom:1px solid #eef0f3;}
+            .vin-cc-row:last-child{border-bottom:0;}
+            .vin-cc-k{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#98a0ab;font-weight:700;white-space:nowrap;}
+            .vin-cc-k i{margin-right:6px;color:#c9ccd2;}
+            .vin-cc-v{font-weight:700;color:var(--vx-ink);font-size:.9rem;text-align:right;}
+        </style>
+        <div class="vin-carcard">
+            <!-- Левая тёмная панель: источник/VIN + чертёж авто + марка/модель -->
+            <div class="vin-cc-l">
+                <div class="vin-cc-badges">
+                    <?php if (!empty($result['from_cache'])): ?><span style="background:rgba(0,0,0,.4);"><i class="fa fa-database"></i> Кэш</span><?php endif; ?>
+                    <span style="background:var(--vx-red,#C70909);font-weight:800;letter-spacing:.05em;text-transform:uppercase;font-size:.62rem;"><i class="fa fa-plug"></i> <?= sanitize(strtoupper($result['source'] ?? 'local')) ?></span>
+                    <?php if ($vin !== ''): ?><span style="background:rgba(0,0,0,.45);font-family:monospace;letter-spacing:1px;border:1px solid rgba(255,255,255,.12);"><?= sanitize($vin) ?></span><?php endif; ?>
                 </div>
-                <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(10,10,30,0.88) 0%,rgba(10,10,30,0.15) 55%,transparent 100%);pointer-events:none;"></div>
-                <?php if ($vin !== ''): ?>
-                <div style="position:absolute;top:14px;right:16px;background:rgba(0,0,0,0.55);border-radius:8px;padding:7px 14px;font-family:monospace;font-size:0.95rem;letter-spacing:2px;color:#fff;font-weight:700;border:1px solid rgba(255,255,255,0.12);">
-                    <?= sanitize($vin) ?>
-                </div>
-                <?php endif; ?>
-                <div style="position:absolute;top:14px;left:16px;display:flex;gap:6px;">
-                    <?php if (!empty($result['from_cache'])): ?>
-                    <span style="background:rgba(0,0,0,0.5);padding:4px 10px;border-radius:20px;font-size:0.72rem;color:rgba(255,255,255,0.8);"><i class="fa fa-database"></i> Кэш</span>
-                    <?php endif; ?>
-                    <span style="background:rgba(199,9,9,0.78);padding:4px 10px;border-radius:20px;font-size:0.72rem;color:#fff;"><i class="fa fa-plug"></i> <?= sanitize(strtoupper($result['source'] ?? 'local')) ?></span>
-                </div>
-                <div style="position:absolute;bottom:18px;left:24px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.5);">
-                    <div style="font-size:2rem;font-weight:900;line-height:1.1;"><?= sanitize(($result['make'] ?? '') . ' ' . ($result['model'] ?? '')) ?></div>
-                    <div style="font-size:0.95rem;opacity:0.75;margin-top:5px;">
-                        <?= sanitize($result['year'] > 0 ? $result['year'] . ' г.' : '') ?>
-                        <?= sanitize(!empty($result['country']) ? ' · ' . $result['country'] : '') ?>
-                    </div>
+                <svg class="vin-cc-car" viewBox="0 0 460 175" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20 118 Q30 92 70 88 L120 84 Q150 50 220 48 Q300 46 330 84 L400 96 Q430 100 440 118"/>
+                    <path d="M120 84 Q150 58 208 57 L212 84 Z"/>
+                    <path d="M222 57 Q286 57 318 84 L226 84 Z"/>
+                    <path d="M20 118 L440 118 L432 138 Q430 144 422 144 L360 144"/>
+                    <path d="M110 144 L54 144 Q30 144 24 130 L20 118"/>
+                    <circle cx="132" cy="146" r="26"/><circle cx="132" cy="146" r="11"/>
+                    <circle cx="338" cy="146" r="26"/><circle cx="338" cy="146" r="11"/>
+                    <line x1="158" y1="118" x2="312" y2="118"/>
+                </svg>
+                <div class="vin-cc-title">
+                    <div class="m"><?= sanitize($carTitle !== '' ? $carTitle : 'Автомобиль') ?></div>
+                    <?php if ($carSub !== ''): ?><div class="s"><?= sanitize($carSub) ?></div><?php endif; ?>
                 </div>
             </div>
-
-            <div style="padding:24px 28px;">
-                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:20px;">
-                    <?php
-                    $fields = [
-                        'make'         => ['Марка',       'fa-car'],
-                        'model'        => ['Модель',      'fa-tag'],
-                        'series'       => ['Поколение',   'fa-code-fork'],
-                        'year'         => ['Год выпуска', 'fa-calendar'],
-                        'body_type'    => ['Тип кузова',  'fa-cube'],
-                        'engine'       => ['Двигатель',   'fa-cog'],
-                        'transmission' => ['Коробка передач','fa-cogs'],
-                        'fuel_type'    => ['Топливо',     'fa-tint'],
-                        'drive_type'   => ['Привод',      'fa-road'],
-                        'steering'     => ['Рулевое управление','fa-dot-circle-o'],
-                        'country'      => ['Страна',      'fa-globe'],
-                        'region'       => ['Регион',      'fa-map-o'],
-                        'manufacturer' => ['Производитель','fa-industry'],
-                        'plant_country'=> ['Завод',       'fa-map-marker'],
-                    ];
-                    foreach ($fields as $key => [$label, $icon]):
-                        $val = $result[$key] ?? '';
-                        if (!$val || $val === '0') continue;
-                    ?>
-                    <div style="border:1px solid #eef0f3;border-radius:8px;padding:14px 16px;">
-                        <div style="font-size:0.72rem;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;"><i class="fa <?= $icon ?>"></i> <?= $label ?></div>
-                        <div style="font-weight:600;color:var(--vx-ink);font-size:0.95rem;"><?= sanitize((string)$val) ?></div>
-                    </div>
-                    <?php endforeach; ?>
+            <!-- Правая колонка: характеристики (только непустые, модель — в заголовке) -->
+            <div class="vin-cc-r">
+                <?php
+                $rowsShown = 0;
+                foreach ($fields as $key => [$label, $icon]):
+                    if ($key === 'model') continue;              // модель уже в заголовке слева
+                    $val = $result[$key] ?? '';
+                    if (!$val || $val === '0') continue;
+                    $rowsShown++;
+                ?>
+                <div class="vin-cc-row">
+                    <span class="vin-cc-k"><i class="fa <?= $icon ?>"></i><?= $label ?></span>
+                    <span class="vin-cc-v"><?= sanitize((string)$val) ?></span>
                 </div>
+                <?php endforeach; ?>
+                <?php if ($rowsShown === 0): ?>
+                <div class="vin-cc-row"><span class="vin-cc-k">Данные</span><span class="vin-cc-v" style="color:#98a0ab;">уточняются</span></div>
+                <?php endif; ?>
             </div>
         </div>
 
