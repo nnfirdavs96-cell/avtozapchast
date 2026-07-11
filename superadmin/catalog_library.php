@@ -258,16 +258,31 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
         <?php else: ?>
         <div style="overflow-x:auto;">
             <table class="az-table">
-                <thead><tr><th></th><th>Узел</th><th style="text-align:center;">Деталей</th><th>Обновлено</th></tr></thead>
+                <thead><tr><th></th><th>Узел</th><th style="text-align:center;">Деталей</th><th>Обновлено</th><th></th></tr></thead>
                 <tbody>
                 <?php foreach ($viewSchemes as $s): ?>
                 <tr>
-                    <td style="width:50px;">
-                        <?php if ($s['img']): ?><img src="<?= sanitize($s['img']) ?>" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:4px;"><?php endif; ?>
+                    <td style="width:60px;">
+                        <?php if ($s['img']): ?>
+                        <img src="<?= sanitize($s['img']) ?>" alt="" loading="lazy"
+                             style="width:48px;height:48px;object-fit:cover;border-radius:4px;cursor:zoom-in;transition:transform .15s;"
+                             onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'"
+                             onclick="clOpenLightbox('<?= sanitize(addslashes($s['img'])) ?>', '<?= sanitize(addslashes($s['group_name'] ?: $s['group_id'])) ?>')">
+                        <?php else: ?>
+                        <span style="color:#ccc;font-size:0.75rem;">нет фото</span>
+                        <?php endif; ?>
                     </td>
                     <td><?= sanitize($s['group_name'] ?: $s['group_id']) ?> <span style="color:#aaa;font-size:0.75rem;">(<?= sanitize($s['group_id']) ?>)</span></td>
                     <td style="text-align:center;"><?= (int)$s['parts_count'] ?></td>
                     <td style="color:#888;font-size:0.8rem;"><?= sanitize($s['updated_at']) ?></td>
+                    <td style="text-align:right;white-space:nowrap;">
+                        <?php if ($s['img']): ?>
+                        <button type="button" class="az-btn az-btn-secondary az-btn-sm"
+                                onclick="clOpenLightbox('<?= sanitize(addslashes($s['img'])) ?>', '<?= sanitize(addslashes($s['group_name'] ?: $s['group_id'])) ?>')">
+                            <i class="fa fa-search-plus"></i> Просмотр
+                        </button>
+                        <?php endif; ?>
+                    </td>
                 </tr>
                 <?php endforeach; ?>
                 </tbody>
@@ -275,6 +290,28 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
         </div>
         <?php endif; ?>
     </div>
+
+    <!-- Лайтбокс: увеличенный просмотр схемы узла -->
+    <div id="clLightbox" onclick="if(event.target===this) clCloseLightbox()"
+         style="display:none;position:fixed;inset:0;background:rgba(10,10,15,0.9);z-index:9999;align-items:center;justify-content:center;flex-direction:column;cursor:zoom-out;padding:24px;">
+        <button type="button" onclick="clCloseLightbox()"
+                style="position:absolute;top:20px;right:24px;background:none;border:none;color:#fff;font-size:1.8rem;cursor:pointer;line-height:1;">&times;</button>
+        <div id="clLightboxCaption" style="color:#fff;font-weight:700;margin-bottom:12px;font-size:0.95rem;"></div>
+        <img id="clLightboxImg" src="" alt="" style="max-width:92vw;max-height:82vh;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.6);cursor:default;">
+    </div>
+    <script>
+    function clOpenLightbox(url, caption) {
+        if (!url) return;
+        document.getElementById('clLightboxImg').src = url;
+        document.getElementById('clLightboxCaption').textContent = caption || '';
+        document.getElementById('clLightbox').style.display = 'flex';
+    }
+    function clCloseLightbox() {
+        document.getElementById('clLightbox').style.display = 'none';
+        document.getElementById('clLightboxImg').src = '';
+    }
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') clCloseLightbox(); });
+    </script>
 
     <?php else: ?>
     <!-- ── Список авто ───────────────────────────────────────────────────── -->
