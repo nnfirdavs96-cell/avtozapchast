@@ -347,6 +347,35 @@ class PartsCatalogsAdapter implements CatalogProvider
         } catch (Exception $e) { return null; }
     }
 
+    // ── Спрос: счётчик обращений к авто/узлам (шаг 4 плана, выключен по умолчанию) ──
+    //  Пишется НЕЗАВИСИМО от источника ответа (библиотека/кэш/живой запрос) — считаем
+    //  реальные просмотры клиентов, а не только траты лимита. Тумблер
+    //  catalog_demand_enabled — пока библиотека маленькая, включать смысла нет: раз
+    //  выключено, demandBump() не делает ни одного лишнего запроса к БД.
+
+    /** group_id = '' — обращение к авто целиком (дерево узлов); иначе — конкретный узел. */
+    private function demandBump(string $catalogId, string $carId, string $groupId): void
+    {
+        if ($catalogId === '' || $carId === '') return;
+        if (getSetting('catalog_demand_enabled', '0') !== '1') return;
+        try {
+            $db = getDB();
+            $db->exec("CREATE TABLE IF NOT EXISTS catalog_demand (
+                id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                catalog_id VARCHAR(64) NOT NULL,
+                car_id VARCHAR(64) NOT NULL,
+                group_id VARCHAR(64) NOT NULL DEFAULT '',
+                hits INT UNSIGNED NOT NULL DEFAULT 0,
+                last_hit_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id), UNIQUE KEY uk_hit (catalog_id, car_id, group_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            $db->prepare("INSERT INTO catalog_demand (catalog_id, car_id, group_id, hits, last_hit_at)
+                VALUES (?,?,?,1,NOW())
+                ON DUPLICATE KEY UPDATE hits = hits + 1, last_hit_at = NOW()")
+               ->execute([$catalogId, $carId, $groupId]);
+        } catch (Exception $e) { /* аналитика необязательна */ }
+    }
+
     // ── VIN → авто (carId / catalogId / criteria) ────────────────────────────
 
     /** @return array{carId:string,catalogId:string,criteria:string,brand:string}|null */
@@ -464,6 +493,7 @@ class PartsCatalogsAdapter implements CatalogProvider
         if (!$this->enabled()) return [];
         $car = $this->vinToCar($vin);
         if ($car === null) return [];
+        $this->demandBump($car['catalogId'], $car['carId'], '');
 
         $lib = $this->libGetNodes($car['catalogId'], $car['carId']);
         if ($lib !== null) return $lib;
@@ -595,6 +625,7 @@ class PartsCatalogsAdapter implements CatalogProvider
         $out['enabled'] = true;
         $car = $this->vinToCar($vin);
         if ($car === null) return $out;
+        $this->demandBump($car['catalogId'], $car['carId'], $cat);
 
         $ck = 'scheme:' . $this->lang() . ':' . $car['catalogId'] . ':' . $car['carId'] . ':' . $cat;
         $c  = $this->kvGet($ck, self::TTL_DATA);
@@ -861,6 +892,7 @@ class PartsCatalogsAdapter implements CatalogProvider
     public function oemNodesForCar(string $carId, string $catalogId, string $criteria, string $brand = ''): array
     {
         if (!$this->enabled() || $carId === '' || $catalogId === '') return [];
+        $this->demandBump($catalogId, $carId, '');
         $lib = $this->libGetNodes($catalogId, $carId);
         if ($lib !== null) return $lib;
 
@@ -888,6 +920,7 @@ class PartsCatalogsAdapter implements CatalogProvider
         if (!$this->enabled() || getSetting('catalog_pc_schema', '1') !== '1'
             || $cat === '' || $carId === '' || $catalogId === '') return $out;
         $out['enabled'] = true;
+        $this->demandBump($catalogId, $carId, $cat);
         $ck = 'scheme:' . $this->lang() . ':' . $catalogId . ':' . $carId . ':' . $cat;
         $c  = $this->kvGet($ck, self::TTL_DATA);
         if ($c !== null) {

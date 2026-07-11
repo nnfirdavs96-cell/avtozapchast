@@ -98,6 +98,16 @@ if ($action === 'toggle_autocollect' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect(APP_URL . '/superadmin/catalog_library.php');
 }
 
+// ── Тумблер аналитики спроса (шаг 4 плана) — выключен, пока библиотека маленькая ──
+if ($action === 'toggle_demand' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        flashMessage('danger', 'Ошибка CSRF.'); redirect(APP_URL . '/superadmin/catalog_library.php');
+    }
+    setSetting('catalog_demand_enabled', isset($_POST['catalog_demand_enabled']) ? '1' : '0');
+    flashMessage('success', 'Настройка аналитики спроса сохранена.');
+    redirect(APP_URL . '/superadmin/catalog_library.php');
+}
+
 // ── Экспорт одного авто (карточка + узлы + все сохранённые схемы) → JSON-файл ──
 if ($action === 'export_car') {
     $catalogId = trim($_GET['catalog_id'] ?? '');
@@ -285,6 +295,80 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
             </label>
         </form>
     </div>
+
+    <?php $demandOn = getSetting('catalog_demand_enabled', '0') === '1'; ?>
+    <div class="az-card" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div style="font-size:0.85rem;color:#555;line-height:1.5;max-width:640px;">
+            <strong><i class="fa fa-bar-chart" style="color:#d32f2f;"></i> Аналитика спроса</strong><br>
+            Считает обращения клиентов к авто и узлам (не только живые запросы к API — вообще
+            все просмотры), чтобы видеть, что реально ищут. Пока в библиотеке мало авто — выводы
+            будут случайными; включайте, когда накопится достаточно данных.
+        </div>
+        <form method="POST" action="?action=toggle_demand" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
+            <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:0.85rem;color:<?= $demandOn ? '#2e7d32' : '#999' ?>;">
+                <input type="checkbox" name="catalog_demand_enabled" value="1" <?= $demandOn ? 'checked' : '' ?>
+                       onchange="this.form.submit()">
+                <?= $demandOn ? 'Включена' : 'Выключена' ?>
+            </label>
+        </form>
+    </div>
+
+    <?php if ($demandOn):
+        $topCars = clFetchAll($db,
+            "SELECT c.brand, c.vin, c.catalog_id, c.car_id, SUM(d.hits) AS total_hits, MAX(d.last_hit_at) AS last_hit
+             FROM catalog_demand d JOIN catalog_library_cars c ON c.catalog_id=d.catalog_id AND c.car_id=d.car_id
+             GROUP BY c.catalog_id, c.car_id ORDER BY total_hits DESC LIMIT 10");
+        $topNodes = clFetchAll($db,
+            "SELECT c.brand, d.group_id, s.group_name, d.hits, d.last_hit_at
+             FROM catalog_demand d
+             JOIN catalog_library_cars c ON c.catalog_id=d.catalog_id AND c.car_id=d.car_id
+             LEFT JOIN catalog_library_schemes s ON s.catalog_id=d.catalog_id AND s.car_id=d.car_id AND s.group_id=d.group_id
+             WHERE d.group_id <> '' ORDER BY d.hits DESC LIMIT 10");
+    ?>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+        <div class="az-card" style="padding:0;overflow:hidden;">
+            <div style="padding:14px 18px;border-bottom:1px solid #eef0f3;font-weight:700;font-size:0.9rem;">Топ авто по обращениям</div>
+            <?php if (empty($topCars)): ?>
+                <p style="color:#aaa;padding:16px 18px;font-size:0.85rem;">Пока нет данных.</p>
+            <?php else: ?>
+            <table class="az-table" style="font-size:0.8rem;">
+                <thead><tr><th>Авто</th><th style="text-align:center;">Обращений</th></tr></thead>
+                <tbody>
+                <?php foreach ($topCars as $tc): ?>
+                <tr>
+                    <td><a href="?action=view&catalog_id=<?= urlencode($tc['catalog_id']) ?>&car_id=<?= urlencode($tc['car_id']) ?>">
+                        <?= sanitize($tc['brand'] ?: '—') ?></a>
+                        <?php if ($tc['vin']): ?><br><code style="font-size:0.7rem;color:#aaa;"><?= sanitize($tc['vin']) ?></code><?php endif; ?>
+                    </td>
+                    <td style="text-align:center;font-weight:700;"><?= (int)$tc['total_hits'] ?></td>
+                </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
+        </div>
+        <div class="az-card" style="padding:0;overflow:hidden;">
+            <div style="padding:14px 18px;border-bottom:1px solid #eef0f3;font-weight:700;font-size:0.9rem;">Топ узлов по обращениям</div>
+            <?php if (empty($topNodes)): ?>
+                <p style="color:#aaa;padding:16px 18px;font-size:0.85rem;">Пока нет данных.</p>
+            <?php else: ?>
+            <table class="az-table" style="font-size:0.8rem;">
+                <thead><tr><th>Узел</th><th>Авто</th><th style="text-align:center;">Обращений</th></tr></thead>
+                <tbody>
+                <?php foreach ($topNodes as $tn): ?>
+                <tr>
+                    <td><?= sanitize($tn['group_name'] ?: $tn['group_id']) ?></td>
+                    <td style="color:#888;"><?= sanitize($tn['brand'] ?: '—') ?></td>
+                    <td style="text-align:center;font-weight:700;"><?= (int)$tn['hits'] ?></td>
+                </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
         <?php foreach ([
