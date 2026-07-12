@@ -285,6 +285,23 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // ── Auth: кнопка «Войти» на форме входа по телефону скрыта, пока пользователь
+    //    не сделал одно из трёх: получил SMS-код, открыл вход по паролю или PIN.
+    //    Раньше кнопка была видна всегда — клиенты жали её раньше времени и получали
+    //    путающее «Введите код из SMS или пароль».
+    function updatePhoneSubmitVisibility(form) {
+        if (!form) return;
+        var submitBtn = form.querySelector('.phone_login_submit');
+        if (!submitBtn) return;
+        var codeWrap = form.querySelector('.sms_code_wrap');
+        var pwdWrap  = form.querySelector('.pwd_login_wrap');
+        var pinWrap  = form.querySelector('.pin_login_wrap');
+        var visible = (codeWrap && codeWrap.style.display !== 'none')
+                   || (pwdWrap  && pwdWrap.style.display  !== 'none')
+                   || (pinWrap  && pinWrap.style.display  !== 'none');
+        submitBtn.style.display = visible ? '' : 'none';
+    }
+
     // ── Auth: «Войти по паролю» (раскрыть поле пароля во вкладке номера)
     document.querySelectorAll('.pwd_login_toggle').forEach(function (link) {
         link.addEventListener('click', function (e) {
@@ -295,6 +312,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var open = wrap.style.display !== 'none';
             wrap.style.display = open ? 'none' : 'block';
             this.textContent = open ? 'Войти по паролю' : 'Войти по SMS-коду';
+            updatePhoneSubmitVisibility(form);
         });
     });
 
@@ -309,6 +327,7 @@ document.addEventListener('DOMContentLoaded', function () {
             wrap.style.display = open ? 'none' : 'block';
             this.textContent = open ? 'Вход для сотрудников (PIN)' : 'Скрыть PIN';
             if (!open) { var i = wrap.querySelector('input'); if (i) i.focus(); }
+            updatePhoneSubmitVisibility(form);
         });
     });
 
@@ -341,6 +360,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(function (data) {
                     if (data.ok) {
                         if (wrap) wrap.style.display = 'block';
+                        updatePhoneSubmitVisibility(form);
                         var codeInput = form.querySelector('input[name="code"]');
                         if (codeInput) codeInput.focus();
                         if (status) {

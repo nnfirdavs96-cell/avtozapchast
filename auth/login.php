@@ -284,7 +284,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
 
                             <div class="login_submit">
                                 <a href="#" class="pwd_login_toggle">Войти по паролю</a>
-                                <button type="submit"><?= t('sign_in') ?></button>
+                                <button type="submit" class="phone_login_submit" style="display:none;"><?= t('sign_in') ?></button>
                             </div>
                             <p style="margin-top:10px;font-size:0.82rem;">
                                 <a href="#" class="pin_login_toggle" style="color:#888;">Вход для сотрудников (PIN)</a>
