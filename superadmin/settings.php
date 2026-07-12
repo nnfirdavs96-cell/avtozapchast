@@ -22,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'map_lat', 'map_lng', 'map_zoom',
         'global_markup',
         'online_discount_type', 'online_discount_value',
+        'sms_provider', 'sms_osonsms_login', 'sms_osonsms_hash', 'sms_osonsms_sender', 'sms_osonsms_server',
     ];
     // Checkboxes
     $checkboxes = ['show_language_switcher', 'show_currency_switcher', 'warehouse_api_enabled', 'auth_email_enabled',
@@ -64,6 +65,18 @@ $currencies = [];
 try {
     $currencies = $db->query("SELECT code, name_ru FROM currencies ORDER BY code")->fetchAll();
 } catch (Exception $e) {}
+
+// Тест SMS-шлюза (кнопка «Отправить тест» на форме)
+$smsTest = null;
+if (isset($_GET['test_sms'])) {
+    $testPhone = trim($_GET['test_sms']);
+    $norm = normalizePhone($testPhone);
+    if ($norm === '') {
+        $smsTest = ['ok' => false, 'error' => 'Некорректный номер телефона.', 'raw' => ''];
+    } else {
+        $smsTest = osonSmsSend($norm, 'Тестовое сообщение с сайта ' . getSetting('site_name', 'AutoDoc') . '.');
+    }
+}
 
 function sv(array $s, string $k, string $default = ''): string {
     return sanitize($s[$k] ?? $default);
@@ -429,6 +442,70 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 «Пользователи»). Для сотрудников остаётся резервный вход по email на странице
                 <code><?= APP_URL ?>/auth/login.php?staff=1</code>.
               </small>
+            </div>
+          </div>
+        </div>
+
+        <!-- SMS-шлюз -->
+        <div class="az-card mb-24">
+          <div class="az-card-header"><h4 class="az-card-title">SMS-шлюз (коды входа по телефону)</h4></div>
+          <div class="az-card-body">
+            <?php $smsProv = $settings['sms_provider'] ?? ''; ?>
+            <div class="az-form-group">
+              <label>Провайдер</label>
+              <select name="sms_provider" class="form-control" id="smsProviderSelect" onchange="document.getElementById('smsOsonFields').style.display = this.value === 'osonsms' ? 'block' : 'none';">
+                <option value="" <?= $smsProv === '' ? 'selected' : '' ?>>Тестовый режим (код показывается на экране, SMS не отправляется)</option>
+                <option value="osonsms" <?= $smsProv === 'osonsms' ? 'selected' : '' ?>>OsonSMS (osonsms.com)</option>
+              </select>
+              <small style="color:#888;display:block;margin-top:4px;">
+                В тестовом режиме код входа/регистрации показывается прямо в браузере — удобно для
+                разработки, но небезопасно для боевого сайта. Переключите на реального провайдера
+                перед запуском.
+              </small>
+            </div>
+
+            <div id="smsOsonFields" style="<?= $smsProv === 'osonsms' ? '' : 'display:none;' ?>border-top:1px solid #eee;padding-top:14px;margin-top:6px;">
+              <div class="az-form-group">
+                <label>Логин OsonSMS</label>
+                <input type="text" name="sms_osonsms_login" class="form-control" value="<?= sv($settings, 'sms_osonsms_login') ?>" placeholder="выдан администратором OsonSMS" autocomplete="off">
+              </div>
+              <div class="az-form-group">
+                <label>Hash (токен)</label>
+                <input type="password" name="sms_osonsms_hash" class="form-control" value="<?= sv($settings, 'sms_osonsms_hash') ?>" placeholder="выдан администратором OsonSMS" autocomplete="new-password">
+              </div>
+              <div class="az-form-group">
+                <label>Sender (имя отправителя)</label>
+                <input type="text" name="sms_osonsms_sender" class="form-control" value="<?= sv($settings, 'sms_osonsms_sender') ?>" placeholder="альфанумерик, напр. AutoDoc">
+              </div>
+              <div class="az-form-group">
+                <label>Адрес сервера API</label>
+                <input type="text" name="sms_osonsms_server" class="form-control" value="<?= sv($settings, 'sms_osonsms_server', 'https://api.osonsms.com/sendsms_v1.php') ?>">
+              </div>
+              <small style="color:#888;display:block;">
+                Сначала сохраните настройки, затем проверьте отправку — введите свой номер и нажмите
+                «Отправить тест». Реальное SMS придёт на указанный номер.
+              </small>
+            </div>
+
+            <div class="az-form-group" style="margin-top:14px;border-top:1px solid #eee;padding-top:14px;">
+              <label>Проверить отправку</label>
+              <div style="display:flex;gap:8px;max-width:420px;">
+                <input type="text" id="smsTestPhone" value="<?= sanitize($_GET['test_sms'] ?? '') ?>"
+                       class="form-control" placeholder="+992 XX XXX-XX-XX">
+                <button type="button" class="btn btn-secondary" onclick="var p=document.getElementById('smsTestPhone').value; if(p) window.location = '?test_sms=' + encodeURIComponent(p) + '#sms-test-result';">
+                  Отправить тест
+                </button>
+              </div>
+              <?php if ($smsTest !== null): ?>
+              <div id="sms-test-result" style="margin-top:10px;padding:10px 14px;border-radius:8px;<?= $smsTest['ok'] ? 'background:#e8f5e9;color:#1b5e20;' : 'background:#fdecea;color:#b71c1c;' ?>">
+                <?php if ($smsTest['ok']): ?>
+                  ✅ SMS отправлено успешно<?= !empty($smsTest['msg_id']) ? ' (msg_id: ' . sanitize((string)$smsTest['msg_id']) . ')' : '' ?>.
+                <?php else: ?>
+                  ❌ Ошибка: <?= sanitize($smsTest['error']) ?>
+                  <?php if (!empty($smsTest['raw'])): ?><br><small style="opacity:.8;"><?= sanitize(mb_substr($smsTest['raw'], 0, 300)) ?></small><?php endif; ?>
+                <?php endif; ?>
+              </div>
+              <?php endif; ?>
             </div>
           </div>
         </div>
