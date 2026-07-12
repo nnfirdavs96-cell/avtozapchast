@@ -164,7 +164,8 @@ php -S localhost:8000       # либо nginx/apache на корень проек
 - **Логика:** `normalizePhone`, `createPhoneOtp`/`verifyPhoneOtp`, `findUserByPhone`,
   троттлинг `registerFailedLogin`/`loginThrottleStatus` (5 неудач → блок 15 мин), `loginUser` (+merge корзины).
 - **БД:** `users` (+`phone_e164`,`pin_hash`; email/пароль опциональны), `phone_otp`, `login_attempts`.
-- ⚠️ **SMS в тест-режиме** — реальный шлюз не подключён (§15).
+- ✅ **SMS — боевой шлюз OsonSMS** подключён (`sendSms()`→`osonSmsSend()`); тест-режим (лог) — фолбэк, если провайдер не выбран (§15).
+- Кнопка «Войти» на форме телефона скрыта до получения кода/пароля/PIN (`phone_login_submit`); Enter в поле телефона запускает «Получить код», а не сабмит формы.
 
 ### 5.4 Кабинет покупателя
 - **Файлы:** `buyer/{index,profile,orders,wishlist,cart}.php`; навигация `renderBuyerAccountNav`.
@@ -354,7 +355,7 @@ Cron: `*/5 * * * * php <APP_ROOT>/superadmin/catalog_library_cron.php`
 - **Цены:** `catalog_price_autoeuro`, `global_markup`.
 - **AutoEuro:** `autoeuro_enabled`, `autoeuro_api_key`, `autoeuro_delivery_key`, `autoeuro_payer_key`.
 - **VIN-декодер:** `vin_search_enabled`, `vin_api_provider`, `vin_api_url`, `vin_api_key`, `vin_api_timeout`.
-- **Auth/SMS:** `auth_email_enabled`, `sms_provider` (пусто = тест-режим), `phone_countries`.
+- **Auth/SMS:** `auth_email_enabled`, `sms_provider` (пусто = тест-режим, `osonsms` = боевая отправка), `sms_osonsms_login/hash/sender/server`, `phone_countries`.
 - **Онлайн-оплата:** `online_payment_enabled`, `online_discount_type`, `online_discount_value`, `online_free_shipping`.
 - **Сайт/SEO/карта:** `site_name`, `site_phone`, `site_email`, `site_address`, соцсети (`site_whatsapp/telegram/instagram/...`), `meta_description`, `map_lat/lng/zoom`, `slider_interval_sec`.
 - **Флаги сидеров/схем (не трогать):** `*_seed_done`, `*_schema_v1`, `demo_products_v1`, и т.п.
@@ -386,7 +387,7 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 | AutoEuro | цены/наличие/заказ поставщика | `autoeuro.php` | `autoeuro_api_key` (+delivery/payer); цены в RUB |
 | Laximo | оригинал (каркас) | `LaximoAdapter.php` | логин+секрет |
 | NHTSA | бесплатный VIN-декод | `vin_service.php` | без ключа |
-| SMS-шлюз | коды входа | `sendSms()` | ⚠️ ТЕСТ-режим, боевой не подключён |
+| SMS-шлюз | коды входа | `sendSms()` | ✅ OsonSMS (боевой); тест-режим — фолбэк без провайдера |
 
 ---
 
@@ -416,8 +417,8 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 
 ## 15. Техдолг / незавершённое
 
-- **SMS-отправка** — тест-режим (`sendSms()` пишет в `storage/sms.log`, код виден на экране).
-  Нужен провайдер СНГ + HTTP-вызов + форма настроек. **В проде так оставлять нельзя** (код не защищён).
+- ~~**SMS-отправка** — тест-режим~~ ✅ сделано: боевой шлюз **OsonSMS** подключён (`sendSms()`→`osonSmsSend()`,
+  настройки в `superadmin/settings.php`). Тест-режим (`storage/sms.log`) остаётся фолбэком, если `sms_provider` пуст.
 - **Онлайн-оплата** — только маркетинговый чекбокс со скидкой; реального эквайринга/карты/QR нет.
   Нужен провайдер ТДж (Alif/Corti/Eskhata) + редирект + webhook.
 - **SEO-страницы по авто из библиотеки** — не сделано намеренно (риск лицензии Parts-Catalogs).
@@ -717,6 +718,12 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 - **#251** (2026-07-11) — Фикс: авто «по параметрам» не попадало в библиотеку (сироты в nodes/schemes)
 - **#252** (2026-07-11) — Библиотека каталога: понятная подпись вместо «–» у авто без VIN
 - **#253** (2026-07-11) — docs: NAVIGATION.md — карта проекта (единая точка входа)
+- **#255** (2026-07-12) — docs: полный перечень файлов (Приложение A) + PDF-техдокументация для клиента
+- **#256** (2026-07-12) — docs: перечень файлов со ссылками + расширенный клиентский PDF (19 разделов)
+- **#257** (2026-07-12) — feat(sms): боевой SMS-шлюз OsonSMS (`sendSms()`→`osonSmsSend()`, настройки в админке)
+- **#258** (2026-07-12) — fix(auth): Enter в поле телефона запускает «Получить код», а не сабмит формы
+- **#259** (2026-07-12) — fix(auth): кнопка «Войти» на форме телефона скрыта до кода/пароля/PIN
+- **#260** (2026-07-12) — fix(auth): clearfix `.login_submit` — устранён наезд ссылки PIN-входа на «Войти по паролю»
 
 ---
 
