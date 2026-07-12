@@ -190,7 +190,8 @@
 |---|---|
 | `normalizePhone(raw)` | цифры; 8→7; 9 цифр → +992 |
 | `phoneCountriesCatalog()` / `enabledPhoneCountries()` | справочник стран (флаг, код, маска) |
-| `smsConfigured()` / `sendSms(phone,msg)` | сейчас ТЕСТ-режим: код в `storage/sms.log` + на экран |
+| `smsConfigured()` / `sendSms(phone,msg)` | боевой шлюз **OsonSMS** (`sms_provider=osonsms` → `osonSmsSend()`); пусто → ТЕСТ-режим: код в `storage/sms.log` + на экран |
+| `osonSmsSend(phone,msg)` / `osonSmsLocalPhone(phone)` | HTTP-клиент OsonSMS (GET + `Authorization: Bearer <hash>`) и приведение номера к локальному 9-значному формату |
 | `createPhoneOtp(phone,purpose)` / `verifyPhoneOtp(...)` | одноразовые коды (таблица `phone_otp`) |
 | `findUserByPhone(phone)` | поиск юзера по `phone_e164` |
 | `emailAuthEnabled()` | тумблер `auth_email_enabled` |
@@ -475,7 +476,7 @@ c `#vinSchemeImg`+`#vinSchemeHot`, статус `#vinCatalogStatus`, детал�
 (шаблон c `{VIN}`/`{KEY}`), `vin_api_key`, `vin_api_timeout`.
 
 ### Аутентификация / SMS
-`auth_email_enabled` (тумблер email-входа), `sms_provider` (пусто = тест-режим), `phone_countries` (вкл. страны).
+`auth_email_enabled` (тумблер email-входа), `sms_provider` (пусто = тест-режим, `osonsms` = боевая отправка), `sms_osonsms_login`/`sms_osonsms_hash`/`sms_osonsms_sender`/`sms_osonsms_server` (реквизиты OsonSMS), `phone_countries` (вкл. страны).
 
 ### Онлайн-оплата
 `online_payment_enabled`, `online_discount_type` (percent|fixed), `online_discount_value`, `online_free_shipping`.
@@ -560,7 +561,7 @@ users, categories, brands, blog, pages, reviews, vin, settings, …) →
 | Laximo | оригинал (каркас) | `LaximoAdapter.php` | логин+секрет |
 | NHTSA | бесплатный VIN-декод (US) | `vin_service.php` | без ключа |
 | AutoEuro | цены/наличие/заказ поставщика | `autoeuro.php` | `autoeuro_api_key` (+delivery/payer key) |
-| SMS | коды входа | `sendSms()` | ТЕСТ-режим (лог); боевой шлюз не подключён |
+| SMS | коды входа | `sendSms()` | боевой шлюз **OsonSMS** (`sms_provider=osonsms`); пусто = ТЕСТ-режим (лог) |
 
 ---
 
@@ -600,7 +601,7 @@ users, categories, brands, blog, pages, reviews, vin, settings, …) →
 - **`README.md`** — установка, деплой, changelog всех PR, разделы «как работает».
 
 ## 14. Известные ограничения / «остаётся»
-- SMS — тест-режим (код в `storage/sms.log`); боевой шлюз не подключён (`sendSms()`).
+- SMS — боевой шлюз OsonSMS подключён (`sendSms()`→`osonSmsSend()`); тест-режим (лог) остаётся, если провайдер не выбран в настройках.
 - Онлайн-оплата фиксирует способ и скидку; реальный платёжный шлюз — отдельная интеграция.
 - Laximo — каркас (ssd-выдача деталей достраивается на боевом аккаунте).
 - У OEM-каталогов НЕТ фото отдельных деталей (только взрыв-схема) — это свойство данных, на карточке показывается кликабельный номер-выноска.
