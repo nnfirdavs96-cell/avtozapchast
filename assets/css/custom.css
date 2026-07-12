@@ -381,6 +381,10 @@
 .phone-wrap > input { flex: 1 1 auto; min-width: 0; }
 .phone-cc { position: relative; flex: 0 0 auto; }
 
+/* Тема плавает .login_submit a (float:left) — без clearfix следующий блок
+   (напр. ссылка входа по PIN) наезжает на одну строку с ней */
+.login_submit::after { content: ""; display: table; clear: both; }
+
 /* Кнопка выбора страны — нейтральная, перебивает красную кнопку темы (.account_form button) */
 .phone-cc-btn,
 .account_form .phone-cc-btn {
