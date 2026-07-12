@@ -717,3 +717,162 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 - **#251** (2026-07-11) — Фикс: авто «по параметрам» не попадало в библиотеку (сироты в nodes/schemes)
 - **#252** (2026-07-11) — Библиотека каталога: понятная подпись вместо «–» у авто без VIN
 - **#253** (2026-07-11) — docs: NAVIGATION.md — карта проекта (единая точка входа)
+
+---
+
+## Приложение A. Полный перечень файлов (что за что отвечает и как связаны)
+
+Каждая PHP-страница верхнего уровня стартует одинаково: `config/config.php` →
+`config/database.php` → `includes/functions.php` (+ cart/i18n/currency). Ниже в колонке
+«Связи» указано только **специфичное** для файла (что он дополнительно подключает/зовёт).
+
+### Точка входа и корень
+| Файл | Строк | Назначение | Связи |
+|---|---|---|---|
+| `index.php` | 623 | Главная (слайдер, скидки, категории) + фолбэк-роутер ЧПУ `/product/{id}-{slug}` | рендерит `sliders`/`banners`/`parts`; `partUrl()`; sliderBlocks |
+| `sitemap.php` | 70 | Динамический XML-sitemap для Google/Yandex | `parts`, `categories`, `blog_posts` |
+| `config/config.php` | 46 | Константы (APP_URL/APP_ROOT), сессия, no-cache, `ADMIN_PORT` | подключает database + functions + cart/i18n/currency |
+| `config/database.php` | 34 | `getDB()` — синглтон PDO; креды из `db_credentials.php` | используется всем проектом |
+| `deploy/timeweb/{config,database}.php` | 22/29 | Прод-конфиги для Timeweb | копии для сервера |
+
+### `includes/` — ядро
+| Файл | Строк | Назначение | Связи |
+|---|---|---|---|
+| `functions.php` | 1857 | Все общие хелперы: auth, права, настройки, `httpGet`, товары, заказы, SMS/OTP, троттлинг, оплата, сидеры, `dbAddColumnIfMissing` | зовётся везде |
+| `cart_lib.php` | 174 | Корзина гостя (сессия) и юзера (БД), merge при входе, заказ гостя по телефону | `getDB`, таблица `cart` |
+| `vin_service.php` | 576 | `VinService`: валидация/декод VIN, WMI-база, совместимость, аналоги, история | `vin_cache`, `car_models`, `parts_compatibility` |
+| `catalog.php` | 8 | Единая точка подключения слоя каталога (`Catalog::`) | подключает `catalog/Manager.php` |
+| `catalog_api.php` | 675 | `CatalogApi` — боевой PartsAPI (getPartsbyVIN/getCrosses) + `enrichItemsFromWarehouse()` | `partsapi_catalog_cache`, `parts` |
+| `autoeuro.php` | 205 | `AutoEuro` — клиент поставщика (баланс/склады/поиск/заказ) | `httpGet`, настройки autoeuro_* |
+| `partsapi_cats.php` | 763 | Справочник 751 товарной группы PartsAPI (id→название) | константы для `catalog_api` |
+| `currency.php` | 93 | Валюта: активная/курс/символ, `formatPrice`, `convertPrice` | таблица `currencies` |
+| `i18n.php` | 79 | Локализация: `initLang/t/tField` | `lang/*.php`, `languages` |
+| `header.php` / `footer.php` | 503/154 | Витринная шапка (меню, мини-корзина, поиск, языки/валюта) / подвал | `getMiniCart`, `getCategories` |
+| `admin-header.php` / `admin-footer.php` | 30/5 | Единый макет админки; сайдбар `renderRoleSidebar()` | `userCan()` |
+| `nav.php` | 107 | Навигация витрины по ролям | `getCategories` |
+| `manual_pdf.php` | 522 | Генерация PDF-руководства для суперадмина | `superadmin/manual.php` |
+
+### `includes/catalog/` — слой каталога (провайдеры + цены)
+| Файл | Строк | Назначение | Связи |
+|---|---|---|---|
+| `Provider.php` | 57 | Интерфейс `CatalogProvider` (контракт всех адаптеров) | реализуют все адаптеры |
+| `Manager.php` | 82 | Фасад `Catalog` (`provider/available/reset/price`) | выбирает адаптер по `catalog_provider` |
+| `PartsCatalogsAdapter.php` | 1039 | ★ `partspc` — OEM Parts-Catalogs + взрыв-схемы; кэш; библиотека; сбор схем; спрос | `Provider`, `catalog_api`(enrich), `catalog_library_*`, `partsapi_kv_cache` |
+| `PartsApiAdapter.php` | 47 | `partsapi` — обёртка `CatalogApi` в единый интерфейс | `catalog_api.php` |
+| `GenericRestAdapter.php` | 285 | Универсальный REST-адаптер: исполняет JSON-профиль (провайдер без кода) | `CatalogProfiles`, `httpGet` |
+| `CatalogProfiles.php` | 124 | Реестр профилей (`catalog_profiles`) | `GenericRestAdapter` |
+| `LaximoAdapter.php` | 175 | `laximo` — оригинальные каталоги (каркас) | `Provider`, `httpGet` |
+| `MockAdapter.php` | 124 | `mock` — демо без ключа | `Provider` |
+| `PriceProvider.php` | 17 | Контракт слоя цен | реализуют price-провайдеры |
+| `PriceAggregator.php` | 102 | Слой цен: свой склад → AutoEuro → сомони | `Warehouse`+`AutoEuroPriceProvider`, `catalog_price_cache` |
+| `WarehousePriceProvider.php` | 44 | Цена со своего склада (`parts`) — приоритет | `parts` |
+| `AutoEuroPriceProvider.php` | 65 | Цена от AutoEuro по OEM — фолбэк | `autoeuro.php` |
+
+### `api/` — AJAX-эндпоинты (JSON)
+| Файл | Строк | Назначение | Связи |
+|---|---|---|---|
+| `vin_nodes.php` | 48 | Дерево узлов авто (по VIN/carId) | `Catalog::provider()` → oemNodes* |
+| `vin_scheme.php` | 70 | Взрыв-схема узла (img+hotspots+parts) | `Catalog::provider()` → schemeBy* |
+| `vin_catalog.php` | 59 | Детали узла/каталог по VIN | `Catalog::provider()` |
+| `vin_params.php` | 51 | Каскад «по параметрам» | `Catalog::provider()` → pc* |
+| `vin_price.php` | 40 | Цена по OEM (ленивая подгрузка) | `Catalog::price()` |
+| `vin_crosses.php` | 53 | Аналоги-кроссы по артикулу | `catalog_api` getCrosses |
+| `vin_analogs.php` | 37 | Аналоги из своего каталога | `VinService::getAnalogs` |
+| `cart.php` | 172 | Корзина: add/remove/update/count/mini | `cart_lib.php` |
+| `wishlist.php` | 151 | Избранное: toggle/count | `wishlist` |
+| `search.php` | 49 | Живой поиск-подсказки | `parts` |
+| `sms_auth.php` | 53 | Отправка SMS-кода | `createPhoneOtp`, `sendSms` |
+| `review_submit.php` / `shop_review_submit.php` | 67/50 | Отзыв на товар / магазин | `product_reviews` / `shop_reviews` |
+| `upload.php` | 81 | Загрузка изображений (сотрудникам) | `assets/uploads/` |
+| `autoeuro_search.php` / `autoeuro_order.php` | 90/120 | Прокси к AutoEuro (поиск/заказ) | `autoeuro.php` |
+
+### `pages/` — публичные страницы
+| Файл | Строк | Назначение | Связи |
+|---|---|---|---|
+| `vin.php` | 1686 | ★ Страница VIN+каталог: карточка авто, дерево узлов, взрыв-схемы, лайтбокс, КП | `VinService`, `Catalog::provider()`, `api/vin_*` |
+| `vin_kp.php` | 168 | Печатное КП по узлу (PDF из браузера) | `Catalog::provider()`, живые цены со склада |
+| `about.php` / `contact.php` / `faq.php` | 233/99/104 | CMS-страницы | `site_sections`, `map_*` |
+| `blog.php` / `blog-detail.php` | 141/155 | Блог | `blog_posts` |
+| `reviews.php` | 144 | Отзывы о магазине | `shop_reviews` |
+| `403.php` / `404.php` | 27/31 | Страницы ошибок (стиль Mazlay) | `denyAccess()` |
+
+### `catalog/` + `search/` — витрина
+| Файл | Строк | Назначение | Связи |
+|---|---|---|---|
+| `catalog/index.php` | 645 | Каталог товаров: фильтры/сортировка/пагинация/сайдбар/баннер | `parts`, `categories`, `brands`, `banners` |
+| `catalog/category.php` | 608 | Страница категории | `categories`, `parts` |
+| `catalog/part.php` | 617 | Карточка товара: галерея, цена, отзывы, аналоги, JSON-LD, canonical | `parts`, `product_reviews`, `part_analogs` |
+| `search/index.php` | 113 | Страница результатов поиска | `parts` |
+
+### `buyer/` — кабинет покупателя
+| Файл | Строк | Назначение | Связи |
+|---|---|---|---|
+| `cart.php` | 232 | Корзина (доступна гостю) | `cart_lib.php` |
+| `checkout.php` | 563 | Оформление: адрес/зоны/оплата (нал/банк/онлайн со скидкой), гость по телефону | `cart_lib`, `delivery_zones`, `orders`, `onlinePayment*` |
+| `orders.php` | 292 | Список/детали/отмена заказов | `orders`, `order_items` |
+| `profile.php` | 341 | Профиль (имя/адрес/аватар) | `users` |
+| `wishlist.php` | 128 | Избранное | `wishlist` |
+| `index.php` | 155 | Дашборд покупателя | `orders` |
+
+### `auth/`
+| Файл | Строк | Назначение | Связи |
+|---|---|---|---|
+| `login.php` | 360 | Вход: email+пароль / телефон (SMS/PIN); троттлинг | `verifyPhoneOtp`, `loginThrottle*`, `loginUser` |
+| `register.php` | 283 | Регистрация: телефон (SMS) или email | `createPhoneOtp`, `users` |
+| `logout.php` | 23 | Выход (очистка сессии) | — |
+
+### `admin/` (роль admin)
+| Файл | Строк | Назначение | Связи |
+|---|---|---|---|
+| `products.php` | 538 | Товары: фото, цены, наценка | `parts`, `getEffectiveMarkup` |
+| `orders.php` | 282 | Заказы + статусы | `orders` |
+| `sliders.php` | 795 | Блочный редактор слайдера (9 позиций, шрифты, десктоп/мобильный) | `sliders`, `normalizeSliderBlocks` |
+| `banners.php` | 402 | Баннеры + placement | `banners` |
+| `users.php` | 308 | Пользователи | `users` |
+| `index.php` | 143 | Дашборд + выручка | `orders` |
+
+### `manager/` (роль manager)
+| Файл | Строк | Назначение | Связи |
+|---|---|---|---|
+| `parts.php` | 501 | Товары | `parts` |
+| `categories.php` | 370 | Категории (+картинки) | `categories` |
+| `brands.php` | 358 | Бренды (+логотипы, сортировка) | `brands` |
+| `blog.php` | 478 | Блог | `blog_posts` |
+| `pages.php` | 382 | CMS-страницы | `site_sections` |
+| `reviews.php` | 289 | Модерация отзывов | `product_reviews`, `shop_reviews` |
+| `index.php` | 146 | Дашборд | — |
+
+### `superadmin/` (роль superadmin)
+| Файл | Строк | Назначение | Связи |
+|---|---|---|---|
+| `vin.php` | 1079 | Настройки VIN/каталога (провайдер, ключи, язык, схемы, профили) + авто/совместимость + предложения из библиотеки | `Catalog`, `car_models`, `parts_compatibility`, `catalog_library_*` |
+| `settings.php` | 507 | Общие настройки: контакты, соцсети, email-вход, онлайн-оплата, SEO, карта | `site_settings` |
+| `warehouse.php` | 491 | AutoEuro: ключ, delivery/payer, тест | `autoeuro.php` |
+| `delivery.php` | 318 | Зоны доставки (город+страна+цена+срок) | `delivery_zones` |
+| `currencies.php` | 253 | Валюты (курсы) | `currencies` |
+| `languages.php` | 193 | Языки | `languages` |
+| `permissions.php` | 187 | Делегирование разделов по пользователям | `user_permissions` |
+| `users.php` | 331 | Пользователи, роли, PIN | `users` |
+| `catalog_library.php` | 671 | Библиотека каталога: список авто, экспорт, сбор схем, тумблеры, аналитика спроса | `catalog_library_*`, `catalog_demand`, `PartsCatalogsAdapter` |
+| `catalog_library_cron.php` | 94 | CLI-дособиратель схем (по тумблеру автосбора) | `PartsCatalogsAdapter::harvestSchemes` |
+| `backup.php` / `backup_cron.php` / `_backup_lib.php` | 248/35/116 | SQL-бэкапы (UI + cron + общие функции), ротация | `backups`, `storage/backups/` |
+| `blog.php` | 357 | Блог (дубль управления) | `blog_posts` |
+| `manual.php` | 126 | Руководство (PDF) | `manual_pdf.php` |
+| `index.php` | 210 | Дашборд суперадмина | сводная статистика |
+
+### `lang/`, `assets/`, служебное
+| Файл | Назначение |
+|---|---|
+| `lang/{ru,tg,en}.php` | Переводы интерфейса (317 ключей каждый), функция `t()` |
+| `assets/css/custom.css` | Все наши CSS-правки (поверх шаблона Mazlay) |
+| `assets/css/style.css` | Базовый стиль шаблона |
+| `assets/js/app.js` | Основной клиентский JS (корзина live, слайдер, SMS-кнопка, мобильные фиксы) |
+| `assets/js/main.js` | Шаблонный JS (Owl-карусель и т.п.) |
+| `assets/mazlay-*` | Исходный шаблон Mazlay (CSS/JS) |
+| `diag_partsapi.php` / `fix_vin_catalog.php` / `setup_catalog.php` | Одноразовые диагностические скрипты (кандидаты на удаление) |
+
+### `sql/` — миграции (порядок применения)
+`schema.sql` → `schema_v2/v3/v4.sql` → `migrate_vin.sql` → `migrate_vin_v2.sql` →
+`migrate_cms.sql` → `migrate_reviews.sql` → `migrate_reviews_v2.sql` → `migrate_permissions.sql` →
+`add_phone_auth.sql` → `add_*` (профильные поля, доставка, наценка, оплата, лого) →
+`migrate_catalog_library.sql`. Все идемпотентны; на проде большинство накатывается рантаймом.
