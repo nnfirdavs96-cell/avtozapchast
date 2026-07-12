@@ -292,8 +292,10 @@ check-digit), локальный WMI-разбор + провайдер (`vin_api
 `catalog_library_nodes` (дерево узлов), `catalog_library_schemes` (схема+детали), `catalog_demand` (спрос).
 
 **Экраны:** `superadmin/catalog_library.php` (список, экспорт JSON/CSV, сбор схем, тумблеры, аналитика),
-`superadmin/catalog_library_cron.php` (CLI-дособиратель), кнопка КП → `pages/vin_kp.php`,
-предложения совместимости → вкладка `superadmin/vin.php`.
+`superadmin/catalog_library_cron.php` (CLI-дособиратель схем УЖЕ известных авто),
+`superadmin/catalog_library_seed.php` (CLI-скрипт, ОТКРЫВАЕТ новые марки/модели/авто через
+`pcBrands/pcModels/pcCars`, запускать вручную — платно, тариф за авто/сутки), кнопка КП →
+`pages/vin_kp.php`, предложения совместимости → вкладка `superadmin/vin.php`.
 
 **Тумблеры (`site_settings`):**
 | Ключ | Что | Дефолт |
@@ -893,6 +895,7 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 | [`superadmin/blog.php`](superadmin/blog.php) | Блог (управление на уровне суперадмина). | blog_posts |
 | [`superadmin/catalog_library.php`](superadmin/catalog_library.php) | Библиотека каталога: список авто, экспорт JSON/CSV, сбор схем, тумблеры, аналитика спроса (~671 строка). | catalog_library_*, catalog_demand, PartsCatalogsAdapter |
 | [`superadmin/catalog_library_cron.php`](superadmin/catalog_library_cron.php) | CLI-дособиратель схем библиотеки (по тумблеру автосбора). | PartsCatalogsAdapter::harvestSchemes |
+| [`superadmin/catalog_library_seed.php`](superadmin/catalog_library_seed.php) | CLI-скрипт прогрева библиотеки: обходит марки/модели/авто (по параметрам, без VIN), сохраняя новые записи. Запускать вручную. | pcBrands, pcModels, pcCars, oemNodesForCar, harvestSchemes |
 | [`superadmin/currencies.php`](superadmin/currencies.php) | Валюты и курсы. | currencies |
 | [`superadmin/delivery.php`](superadmin/delivery.php) | Зоны доставки (город+страна+цена+срок). | delivery_zones |
 | [`superadmin/index.php`](superadmin/index.php) | Дашборд суперадмина (сводная статистика). | — |
