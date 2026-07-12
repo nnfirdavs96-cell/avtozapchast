@@ -374,6 +374,25 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // ── Auth: Enter в поле телефона запрашивает код, а не отправляет форму раньше
+    //    времени (частая жалоба: на мобильной клавиатуре жмут «Готово»/Enter, форма
+    //    улетает без кода, сервер честно отвечает «Введите код из SMS или пароль»).
+    document.querySelectorAll('.auth_pane[data-sms-mode] input[name="phone"]').forEach(function (phoneInput) {
+        phoneInput.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter') return;
+            var form = phoneInput.closest('form');
+            if (!form) return;
+            var wrap = form.querySelector('.sms_code_wrap');
+            var codeVisible = wrap && wrap.style.display !== 'none' && wrap.offsetParent !== null;
+            if (!codeVisible) {
+                e.preventDefault();
+                var btn = form.querySelector('.sms_send_btn');
+                if (btn && !btn.disabled) btn.click();
+            }
+            // Если код уже запрошен и поле видно — даём Enter отправить форму как обычно.
+        });
+    });
+
     // ── Cart icon: на мобиле — прямая ссылка на /buyer/cart.php, не открывать панель
     document.querySelectorAll('.mini_cart_wrapper > a').forEach(function (a) {
         a.addEventListener('click', function (e) {
