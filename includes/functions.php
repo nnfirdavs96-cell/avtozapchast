@@ -1249,7 +1249,7 @@ function smsConfigured(): bool {
 /**
  * Send an SMS. In test mode (no provider configured) the message is written to
  * storage/sms.log and the function returns true so the flow keeps working.
- * Real providers can be wired in here later (config in superadmin settings).
+ * Real providers are dispatched by `sms_provider` (configured in superadmin → Настройки).
  */
 function sendSms(string $phone, string $message): bool {
     $provider = getSetting('sms_provider', '');
@@ -1258,8 +1258,66 @@ function sendSms(string $phone, string $message): bool {
         @file_put_contents(APP_ROOT . '/storage/sms.log', $line, FILE_APPEND | LOCK_EX);
         return true;
     }
-    // Extension point: implement provider HTTP calls here (OSON SMS / SMSC / Twilio …)
+    if ($provider === 'osonsms') {
+        return osonSmsSend($phone, $message)['ok'];
+    }
     return false;
+}
+
+/**
+ * Номер в формате, который ждёт местный SMS-шлюз OsonSMS: 9 цифр БЕЗ кода страны
+ * (напр. 927055684). normalizePhone() отдаёт полный номер с 992 — код страны отрезаем.
+ */
+function osonSmsLocalPhone(string $phone): string {
+    $d = preg_replace('/\D+/', '', $phone);
+    if (strlen($d) > 9) $d = substr($d, -9);
+    return $d;
+}
+
+/**
+ * Отправка через OsonSMS (osonsms.com) — GET sendsms_v1.php с Bearer-токеном (hash).
+ * Креды — ТОЛЬКО из site_settings (суперадмин → Настройки → SMS-шлюз), никогда не в коде/репо.
+ * @return array{ok:bool, error:string, raw:string, msg_id:?string}
+ */
+function osonSmsSend(string $phone, string $message): array {
+    $login  = trim(getSetting('sms_osonsms_login', ''));
+    $hash   = trim(getSetting('sms_osonsms_hash', ''));
+    $sender = trim(getSetting('sms_osonsms_sender', ''));
+    $server = trim(getSetting('sms_osonsms_server', 'https://api.osonsms.com/sendsms_v1.php'));
+
+    if ($login === '' || $hash === '' || $sender === '' || $server === '') {
+        return ['ok' => false, 'error' => 'OsonSMS не настроен: заполните логин, hash и sender в настройках.', 'raw' => '', 'msg_id' => null];
+    }
+    $local = osonSmsLocalPhone($phone);
+    if (strlen($local) !== 9) {
+        return ['ok' => false, 'error' => 'Некорректный номер для OsonSMS (нужно 9 цифр без кода страны): ' . $phone, 'raw' => '', 'msg_id' => null];
+    }
+
+    $params = [
+        'from'         => $sender,
+        'phone_number' => $local,
+        'msg'          => $message,
+        'txn_id'       => uniqid('sms-', true),
+        'login'        => $login,
+    ];
+    $url = $server . '?' . http_build_query($params);
+    $res = httpGet($url, 15, ['Authorization: Bearer ' . $hash]);
+
+    if ($res['error'] !== '' || $res['status'] === 0) {
+        return ['ok' => false, 'error' => 'Сеть: ' . ($res['error'] ?: 'нет ответа от сервера'), 'raw' => $res['body'], 'msg_id' => null];
+    }
+
+    $data = json_decode($res['body']);
+    if (!is_object($data)) {
+        return ['ok' => false, 'error' => 'Неожиданный ответ сервера (HTTP ' . $res['status'] . ')', 'raw' => $res['body'], 'msg_id' => null];
+    }
+    if (isset($data->error)) {
+        $code = $data->error->code ?? 'unknown';
+        $msg  = $data->error->msg ?? 'Unknown error';
+        return ['ok' => false, 'error' => "OsonSMS [{$code}]: {$msg}", 'raw' => $res['body'], 'msg_id' => null];
+    }
+
+    return ['ok' => true, 'error' => '', 'raw' => $res['body'], 'msg_id' => $data->msg_id ?? null];
 }
 
 /**
