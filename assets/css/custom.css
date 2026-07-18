@@ -310,6 +310,15 @@
 .az-account-nav a.active { background: var(--az-red); color: #fff; }
 .az-account-nav a.active i { opacity: 1; }
 .az-account-nav-out { margin-left: auto; color: rgba(255,150,150,0.85) !important; }
+
+/* Значок непрочитанных сообщений в меню (кабинет покупателя + сайдбар админки) */
+.az-nav-badge {
+    display: inline-block; min-width: 18px; text-align: center;
+    background: var(--az-red, #C70909); color: #fff;
+    border-radius: 10px; font-size: 0.68rem; font-weight: 700;
+    line-height: 1; padding: 3px 6px; margin-left: 2px;
+    letter-spacing: 0;
+}
 .az-account-nav-out:hover { background: rgba(199,9,9,0.25) !important; color: #fff !important; }
 .az-account-body { min-width: 0; }
 

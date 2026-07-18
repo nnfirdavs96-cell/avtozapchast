@@ -245,6 +245,9 @@ function renderRoleSidebar(string $active = ''): void {
 
     if (!in_array($role, ['admin', 'manager', 'superadmin'], true)) return;
 
+    require_once __DIR__ . '/messaging.php';
+    $staffUnread = function_exists('staffUnreadCount') ? staffUnreadCount() : 0;
+
     // Role-dependent destinations (the rest are shared pages that allow all admin roles).
     $dashHref     = $role === 'superadmin' ? "$url/superadmin/index.php"
                   : ($role === 'admin' ? "$url/admin/index.php" : "$url/manager/index.php");
@@ -267,6 +270,7 @@ function renderRoleSidebar(string $active = ''): void {
         ]],
         ['label' => 'Продажи', 'items' => [
             ['key' => 'orders',     'href' => "$url/admin/orders.php",         'icon' => 'fa-shopping-bag','label' => 'Заказы'],
+            ['key' => 'messages',   'href' => "$url/admin/messages.php",       'icon' => 'fa-comments',    'label' => 'Сообщения', 'badge' => $staffUnread],
             ['key' => 'delivery',   'href' => "$url/superadmin/delivery.php",  'icon' => 'fa-truck',       'label' => 'Доставка'],
         ]],
         ['label' => 'Контент', 'items' => [
@@ -304,7 +308,7 @@ function renderRoleSidebar(string $active = ''): void {
     // Visibility: dashboard always; permissions/backup/manual are superadmin-only;
     // everything else by userCan() (superadmin always passes).
     $canSee = function (string $key) use ($role): bool {
-        if ($key === 'dashboard') return true;
+        if (in_array($key, ['dashboard', 'messages'], true)) return true;
         if ($role === 'superadmin') return true;
         if (in_array($key, ['permissions', 'backup', 'manual', 'catalog_library'], true)) return false;
         return userCan(permissionAlias($key));
@@ -321,7 +325,8 @@ function renderRoleSidebar(string $active = ''): void {
         }
         foreach ($visible as $it) {
             $cls = $it['key'] === $activeKey ? ' class="active"' : '';
-            echo '<li><a href="' . sanitize($it['href']) . '"' . $cls . '><i class="fa ' . sanitize($it['icon']) . '"></i> ' . sanitize($it['label']) . '</a></li>';
+            $badge = !empty($it['badge']) ? ' <span class="az-nav-badge">' . (int)$it['badge'] . '</span>' : '';
+            echo '<li><a href="' . sanitize($it['href']) . '"' . $cls . '><i class="fa ' . sanitize($it['icon']) . '"></i> ' . sanitize($it['label']) . $badge . '</a></li>';
         }
     }
     echo '<li class="az-sidebar-group">Аккаунт</li>';
@@ -902,9 +907,12 @@ function breadcrumb(array $items): string {
  */
 function renderBuyerAccountNav(string $active = ''): string {
     $url   = APP_URL;
+    require_once __DIR__ . '/messaging.php';
+    $unread = function_exists('customerUnreadCount') ? customerUnreadCount((int)($_SESSION['user_id'] ?? 0)) : 0;
     $items = [
         ['key' => 'dashboard', 'href' => "$url/buyer/index.php",    'icon' => 'fa-th-large',      'label' => t('dashboard')],
         ['key' => 'orders',    'href' => "$url/buyer/orders.php",   'icon' => 'fa-list-alt',      'label' => 'Мои заказы'],
+        ['key' => 'messages',  'href' => "$url/buyer/messages.php", 'icon' => 'fa-comments-o',    'label' => 'Сообщения', 'badge' => $unread],
         ['key' => 'profile',   'href' => "$url/buyer/profile.php",  'icon' => 'fa-user-o',        'label' => 'Профиль'],
         ['key' => 'cart',      'href' => "$url/buyer/cart.php",     'icon' => 'fa-shopping-cart', 'label' => t('shopping_cart')],
         ['key' => 'wishlist',  'href' => "$url/buyer/wishlist.php", 'icon' => 'fa-heart-o',       'label' => t('wishlist')],
@@ -912,9 +920,10 @@ function renderBuyerAccountNav(string $active = ''): string {
     $h = '<nav class="az-account-nav">';
     foreach ($items as $it) {
         $cls = $it['key'] === $active ? ' class="active"' : '';
+        $badge = !empty($it['badge']) ? ' <span class="az-nav-badge">' . (int)$it['badge'] . '</span>' : '';
         $h  .= '<a href="' . sanitize($it['href']) . '"' . $cls . '>'
              . '<i class="fa ' . sanitize($it['icon']) . '"></i> '
-             . sanitize($it['label']) . '</a>';
+             . sanitize($it['label']) . $badge . '</a>';
     }
     $h .= '<a class="az-account-nav-out" href="' . $url . '/auth/logout.php">'
         . '<i class="fa fa-sign-out"></i> ' . sanitize(t('logout')) . '</a>';
