@@ -15,6 +15,14 @@
  * (как показывалось «под заказ», так и показывается) — это только диагностика,
  * чтобы понять, из-за чего конкретно не находится цена (детали действительно
  * нет у поставщика, или, например, расхождение в написании бренда).
+ *
+ * Маппинг брендов: название бренда приходит из каталога Tradesoft и может не
+ * совпадать с тем, как этот же бренд называется у AutoEuro (например, «VAG» vs
+ * «Volkswagen») — тогда searchItems() молча вернёт пусто. Настройка
+ * `autoeuro_brand_map` (строки «ИСХОДНЫЙ = Замена», как OEM-узлы в vin.php)
+ * подменяет название перед запросом к AutoEuro. Редактируется в Суперадмин →
+ * Склад; правильные написания видно через «Быстрый поиск товара» там же и по
+ * логу autoeuro_price_miss.
  */
 require_once __DIR__ . '/PriceProvider.php';
 require_once __DIR__ . '/../autoeuro.php';
@@ -34,9 +42,10 @@ class AutoEuroPriceProvider implements PriceProvider
         $deliveryKey = trim(getSetting('autoeuro_delivery_key', ''));
         if ($deliveryKey === '') return null;
 
-        $res = $ae->searchItems($brand, $oem, $deliveryKey, false, false);
+        $queryBrand = self::mapBrand($brand);
+        $res = $ae->searchItems($queryBrand, $oem, $deliveryKey, false, false);
         if (!is_array($res) || isset($res['error'])) {
-            self::logMiss($brand, $oem, $res);
+            self::logMiss($brand, $queryBrand, $oem, $res);
             return null;
         }
         $offers = isset($res[0]) ? $res : (array)$res;
@@ -59,7 +68,7 @@ class AutoEuroPriceProvider implements PriceProvider
             }
         }
         if ($best === null) {
-            self::logMiss($brand, $oem, $res);
+            self::logMiss($brand, $queryBrand, $oem, $res);
             return null;
         }
 
@@ -71,8 +80,28 @@ class AutoEuroPriceProvider implements PriceProvider
         return $best;
     }
 
+    /**
+     * Подменяет бренд по таблице `autoeuro_brand_map` (строки «ИСХОДНЫЙ = Замена»),
+     * если для него задана замена. Сравнение без учёта регистра и лишних пробелов.
+     */
+    private static function mapBrand(string $brand): string
+    {
+        $raw = trim(getSetting('autoeuro_brand_map', ''));
+        if ($raw === '') return $brand;
+        $key = self::normBrandKey($brand);
+        foreach (preg_split('/\r\n|\r|\n/', $raw) as $line) {
+            $line = trim($line);
+            if ($line === '' || strpos($line, '=') === false) continue;
+            [$from, $to] = array_map('trim', explode('=', $line, 2));
+            if ($from !== '' && $to !== '' && self::normBrandKey($from) === $key) {
+                return $to;
+            }
+        }
+        return $brand;
+    }
+
     /** Пишет случай «цена не найдена» в лог (см. докблок класса). Сбой логирования не влияет на показ цены. */
-    private static function logMiss(string $brand, string $oem, $rawResponse): void
+    private static function logMiss(string $origBrand, string $queryBrand, string $oem, $rawResponse): void
     {
         try {
             $db = getDB();
@@ -86,7 +115,9 @@ class AutoEuroPriceProvider implements PriceProvider
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (id), KEY idx_created (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-            $url = 'brand=' . $brand . '&code=' . $oem;
+            $url = 'brand=' . $origBrand
+                 . ($queryBrand !== $origBrand ? ' (→ ' . $queryBrand . ')' : '')
+                 . '&code=' . $oem;
             $db->prepare("INSERT INTO warehouse_api_log (action, request_url, response_code, response_body, success, created_at) VALUES (?,?,0,?,0,NOW())")
                ->execute(['autoeuro_price_miss', mb_substr($url, 0, 500), mb_substr(json_encode($rawResponse, JSON_UNESCAPED_UNICODE), 0, 2000)]);
         } catch (Exception $e) { /* лог необязателен */ }
@@ -95,5 +126,10 @@ class AutoEuroPriceProvider implements PriceProvider
     private static function norm(string $s): string
     {
         return strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $s));
+    }
+
+    private static function normBrandKey(string $s): string
+    {
+        return strtoupper(trim(preg_replace('/\s+/', ' ', $s)));
     }
 }
