@@ -108,6 +108,13 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     </span>
                 </div>
 
+                <div style="margin-bottom:16px;">
+                    <a href="<?= APP_URL ?>/buyer/messages.php?order=<?= (int)$orderDetail['id'] ?>"
+                       class="az-btn az-btn-outline az-btn-sm">
+                        <i class="fa fa-comments-o"></i> Написать по заказу
+                    </a>
+                </div>
+
                 <?php if (!empty($orderDetail['shipping_address'])): ?>
                 <div style="margin-bottom:16px;padding:12px;background:#f8f9fa;border-radius:6px;font-size:0.875rem;">
                     <strong>Адрес доставки:</strong><br>

@@ -201,6 +201,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $db->commit();
 
+            // Автосообщение-чек в переписку заказа: номер, состав, сумма, способ оплаты.
+            // Привязывается к аккаунту заказа (у гостя — созданному по телефону), покупатель
+            // увидит его в «Сообщения» после входа по этому номеру.
+            require_once dirname(__DIR__) . '/includes/messaging.php';
+            $payLabels = [
+                'cash_on_delivery' => 'при получении',
+                'bank_transfer'    => 'банковский перевод',
+                'online'           => 'онлайн',
+            ];
+            $payLabel = $payLabels[$payMethod] ?? $payMethod;
+            $qty = 0;
+            foreach ($cartItems as $it) { $qty += (int)$it['quantity']; }
+            $receipt = "Заказ #$orderId оформлен.\n"
+                     . "Позиций: $qty\n"
+                     . "Сумма к оплате: " . formatPrice($grandTotal) . "\n"
+                     . "Оплата: $payLabel\n"
+                     . "Мы свяжемся с вами для подтверждения. По этому заказу можно писать прямо здесь.";
+            postSystemMessage((int)$orderUserId, $orderId, $receipt);
+
             flashMessage('success', t('order_placed') . " (#$orderId). Мы свяжемся с вами для подтверждения.");
             // Авторизованный видит детали заказа; гость не залогинен — на главную.
             redirect(isLoggedIn() ? APP_URL . '/buyer/orders.php?id=' . $orderId : APP_URL . '/index.php');

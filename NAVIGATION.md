@@ -164,6 +164,7 @@ php -S localhost:8000       # либо nginx/apache на корень проек
 - **Логика:** `normalizePhone`, `createPhoneOtp`/`verifyPhoneOtp`, `findUserByPhone`,
   троттлинг `registerFailedLogin`/`loginThrottleStatus` (5 неудач → блок 15 мин), `loginUser` (+merge корзины).
 - **БД:** `users` (+`phone_e164`,`pin_hash`; email/пароль опциональны), `phone_otp`, `login_attempts`.
+- **Чат покупатель ↔ менеджер:** `includes/messaging.php` (таблица `messages`; ветка = пара user+order, `order_id=NULL` — поддержка). UI: `buyer/messages.php`, `admin/messages.php`; значок непрочитанного в обоих меню; автосообщение-чек при оформлении заказа.
 - ✅ **SMS — боевой шлюз OsonSMS** подключён (`sendSms()`→`osonSmsSend()`); тест-режим (лог) — фолбэк, если провайдер не выбран (§15).
 - Кнопка «Войти» на форме телефона скрыта до получения кода/пароля/PIN (`phone_login_submit`); Enter в поле телефона запускает «Получить код», а не сабмит формы.
 
