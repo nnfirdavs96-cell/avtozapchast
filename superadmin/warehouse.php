@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'autoeuro_api_key',
             'autoeuro_delivery_key',
             'autoeuro_payer_key',
+            'autoeuro_brand_map',
         ];
         foreach ($fields as $key) {
             $val = trim($_POST[$key] ?? '');
@@ -97,6 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $apiKey      = getSetting('autoeuro_api_key');
 $deliveryKey = getSetting('autoeuro_delivery_key');
 $payerKey    = getSetting('autoeuro_payer_key');
+$brandMap    = getSetting('autoeuro_brand_map');
 $apiEnabled  = getSetting('autoeuro_enabled') === '1';
 
 // Load log
@@ -180,6 +182,21 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                          placeholder="Нажмите «Получить плательщиков» справа">
                   <small class="text-muted">
                     Используется по умолчанию при оформлении заказов.
+                  </small>
+                </div>
+
+                <div class="az-form-group">
+                  <label>Соответствие названий брендов</label>
+                  <textarea name="autoeuro_brand_map" class="form-control" rows="5"
+                            style="font-family:monospace;font-size:0.8rem;"
+                            placeholder="ИСХОДНЫЙ_БРЕНД = Бренд у AutoEuro&#10;VAG = Volkswagen"><?= sanitize($brandMap) ?></textarea>
+                  <small class="text-muted">
+                    Одна пара на строку в формате <code>Бренд из каталога = Бренд у AutoEuro</code>.
+                    Нужно, только когда один и тот же бренд называется по-разному у каталога и у AutoEuro
+                    (тогда цена не находится). Как узнать правильное название: вбейте бренд и артикул в
+                    «Быстрый поиск товара» справа — в ответе видно, под каким именем AutoEuro отдаёт бренд.
+                    Ненайденные цены копятся в логе ниже (<code>autoeuro_price_miss</code>).
+                    Пустое поле — подмена не применяется.
                   </small>
                 </div>
 
