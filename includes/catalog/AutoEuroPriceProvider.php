@@ -8,6 +8,13 @@
  *
  * Требует настроенного AutoEuro (autoeuro_enabled + ключ + delivery_key) и
  * непустого бренда (AutoEuro ищет по паре бренд+код).
+ *
+ * Случаи, когда AutoEuro не вернул цену (ни ошибка API, ни совпадение по
+ * артикулу), логируются в `warehouse_api_log` (action=autoeuro_price_miss) —
+ * видно в Суперадмин → Склад → Лог запросов. Ничего не меняет для покупателя
+ * (как показывалось «под заказ», так и показывается) — это только диагностика,
+ * чтобы понять, из-за чего конкретно не находится цена (детали действительно
+ * нет у поставщика, или, например, расхождение в написании бренда).
  */
 require_once __DIR__ . '/PriceProvider.php';
 require_once __DIR__ . '/../autoeuro.php';
@@ -28,7 +35,10 @@ class AutoEuroPriceProvider implements PriceProvider
         if ($deliveryKey === '') return null;
 
         $res = $ae->searchItems($brand, $oem, $deliveryKey, false, false);
-        if (!is_array($res) || isset($res['error'])) return null;
+        if (!is_array($res) || isset($res['error'])) {
+            self::logMiss($brand, $oem, $res);
+            return null;
+        }
         $offers = isset($res[0]) ? $res : (array)$res;
 
         $want = self::norm($oem);
@@ -48,7 +58,10 @@ class AutoEuroPriceProvider implements PriceProvider
                 ];
             }
         }
-        if ($best === null) return null;
+        if ($best === null) {
+            self::logMiss($brand, $oem, $res);
+            return null;
+        }
 
         $markup = (float)getSetting('global_markup', '0');
         $best['price']   = round($best['price'] * (1 + $markup / 100), 2);
@@ -56,6 +69,27 @@ class AutoEuroPriceProvider implements PriceProvider
         $best['part_id'] = null;
         $best['url']     = null;
         return $best;
+    }
+
+    /** Пишет случай «цена не найдена» в лог (см. докблок класса). Сбой логирования не влияет на показ цены. */
+    private static function logMiss(string $brand, string $oem, $rawResponse): void
+    {
+        try {
+            $db = getDB();
+            $db->exec("CREATE TABLE IF NOT EXISTS warehouse_api_log (
+                id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                action VARCHAR(80) NOT NULL DEFAULT '',
+                request_url VARCHAR(500) NOT NULL DEFAULT '',
+                response_code SMALLINT NOT NULL DEFAULT 0,
+                response_body TEXT DEFAULT NULL,
+                success TINYINT(1) NOT NULL DEFAULT 0,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id), KEY idx_created (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            $url = 'brand=' . $brand . '&code=' . $oem;
+            $db->prepare("INSERT INTO warehouse_api_log (action, request_url, response_code, response_body, success, created_at) VALUES (?,?,0,?,0,NOW())")
+               ->execute(['autoeuro_price_miss', mb_substr($url, 0, 500), mb_substr(json_encode($rawResponse, JSON_UNESCAPED_UNICODE), 0, 2000)]);
+        } catch (Exception $e) { /* лог необязателен */ }
     }
 
     private static function norm(string $s): string
