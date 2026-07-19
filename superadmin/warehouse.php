@@ -27,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'autoeuro_payer_key',
             'autoeuro_brand_map',
             'autoeuro_rub_rate',
+            'autoeuro_markup',
         ];
         foreach ($fields as $key) {
             $val = trim($_POST[$key] ?? '');
@@ -111,6 +112,7 @@ $deliveryKey = getSetting('autoeuro_delivery_key');
 $payerKey    = getSetting('autoeuro_payer_key');
 $brandMap    = getSetting('autoeuro_brand_map');
 $rubRate     = getSetting('autoeuro_rub_rate', '0.11');
+$aeMarkup    = getSetting('autoeuro_markup', '');
 $apiEnabled  = getSetting('autoeuro_enabled') === '1';
 
 // Load log
@@ -195,6 +197,18 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                     Цены AutoEuro приходят в рублях, а на витрине показываются в сомони.
                     Укажите, сколько сомони стоит 1 рубль (напр. <code>0.11</code>), — сайт
                     переведёт цену поставщика в сомони (плюс наценка). Держите курс актуальным.
+                  </small>
+                </div>
+
+                <div class="az-form-group">
+                  <label>Наценка на товары AutoEuro (%)</label>
+                  <input type="text" name="autoeuro_markup" class="form-control"
+                         value="<?= sanitize($aeMarkup) ?>" placeholder="напр. 30">
+                  <small class="text-muted">
+                    Отдельная наценка для деталей от AutoEuro (не со своего склада).
+                    Если пусто — применяется общая наценка из <b>Настройки → Наценка</b>.
+                    Удобно ставить выше своей, т.к. в цену закупки у поставщика ещё
+                    добавляются доставка и хлопоты.
                   </small>
                 </div>
 
