@@ -78,7 +78,8 @@ function formatPrice($priceRub, ?string $currency = null): string {
     if ($currency === 'RUB') {
         return number_format($converted, 0, ',', ' ') . ' ' . $symHtml;
     }
-    return number_format($converted, 2, '.', ',') . ' ' . $symHtml;
+    // Разделитель тысяч — пробел (рус./тадж. формат): «1 474.98 смн», а не «1,474.98».
+    return number_format($converted, 2, '.', ' ') . ' ' . $symHtml;
 }
 
 /**
