@@ -566,8 +566,11 @@ require_once dirname(__DIR__) . '/includes/header.php';
             .vin-pcard-buy{flex:1;display:flex;flex-direction:column;gap:8px;}
             .vin-price{background:var(--vx-red,#C70909);color:#fff;font-weight:800;font-size:1.1rem;text-align:center;border-radius:10px;padding:14px 8px;line-height:1;}
             .vin-price.ph{background:#f3f4f6;color:#9aa3af;font-size:0.85rem;font-weight:600;padding:16px 8px;}
+            /* Под заказ (нет в наличии у поставщика): не красный «купи сейчас», а спокойный янтарный */
+            .vin-price.preorder{background:#b9772a;}
             .vin-stock{font-size:0.72rem;color:#9aa3af;text-align:center;}
             .vin-stock.ok{color:#2e9e44;}
+            .vin-stock.preorder{color:#b9772a;font-weight:600;}
             .vin-cart{display:block;width:100%;background:var(--vx-ink,#181a1f);color:#fff;border:none;border-radius:9px;padding:11px;font-size:0.82rem;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;transition:.15s;}
             .vin-cart:hover{filter:brightness(1.2);color:#fff;}
             .vin-cart[disabled]{background:#ccc;cursor:not-allowed;}
@@ -1577,6 +1580,16 @@ function vinRenderCatalog(d){
     if (window.VX_PRICE_LAZY) vinFillPrices(bodyEl);
 }
 
+/* Формат срока доставки: дата YYYY-MM-DD → «ДД.ММ.ГГГГ»; число → «N дн»; иначе как есть. */
+function vinFmtDelivery(v){
+    if (v === null || v === undefined || v === '') return '';
+    var s = String(v);
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return m[3] + '.' + m[2] + '.' + m[1];
+    if (/^\d+$/.test(s)) return s + ' дн';
+    return s;
+}
+
 /* Ленивая подгрузка цен для деталей не со склада (свой склад → AutoEuro). */
 function vinFillPrices(scope){
     var phs = (scope || document).querySelectorAll('.vin-price-ph');
@@ -1589,17 +1602,27 @@ function vinFillPrices(scope){
             .then(function(r){ return r.json(); })
             .then(function(d){
                 if (!d || !d.found) return;
-                var dlv = d.delivery ? ' · ' + escapeHtml(String(d.delivery)) + ' дн' : '';
+                var inStock = (typeof d.stock === 'number' ? d.stock : parseInt(d.stock || 0, 10)) > 0;
                 var src = d.source === 'warehouse' ? 'склад' : 'поставщик';
-                ph.classList.remove('ph');         // превратить плашку «под заказ» в красный ценник
+                // d.delivery: у AutoEuro это ДАТА (YYYY-MM-DD) — показываем «ДД.ММ.ГГГГ»;
+                // если число — трактуем как дни.
+                var dlvDate = vinFmtDelivery(d.delivery);
+                var label;
+                if (inStock) {
+                    label = 'в наличии · ' + src + (dlvDate ? ' · ' + dlvDate : '');
+                } else {
+                    label = 'под заказ' + (dlvDate ? ' · ожид. ' + dlvDate : '') + ' · ' + src;
+                }
+                ph.classList.remove('ph');
+                if (!inStock) ph.classList.add('preorder');   // янтарный вместо красного
                 // d.price — HTML из formatPrice() (содержит <span> валюты), вставляем как есть.
                 ph.innerHTML = d.price;
                 var buy = ph.closest('.vin-pcard-buy');
                 if (buy) {
                     var st = buy.querySelector('.vin-stock');
-                    if (st) { st.textContent = src + dlv; st.classList.add('ok'); }
+                    if (st) { st.textContent = label; st.classList.add(inStock ? 'ok' : 'preorder'); }
                 } else {
-                    ph.innerHTML = d.price + ' <span style="font-size:0.66rem;color:#888;">' + src + dlv + '</span>';
+                    ph.innerHTML = d.price + ' <span style="font-size:0.66rem;color:' + (inStock ? '#2e9e44' : '#b9772a') + ';">' + label + '</span>';
                 }
             })
             .catch(function(){});
