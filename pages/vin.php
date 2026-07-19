@@ -1552,7 +1552,7 @@ function vinBuildPartsHtml(items){
             }
             html += '<div class="vin-pcard-b">' + phBox + '<div class="vin-pcard-buy">';
             if (it.in_catalog) {
-                html += '<div class="vin-price">' + escapeHtml(it.price) + '</div>';
+                html += '<div class="vin-price">' + it.price + '</div>';
                 html += '<div class="vin-stock' + (it.stock > 0 ? ' ok' : '') + '">' + (it.stock > 0 ? 'в наличии · доставка Худжанд' : 'под заказ') + '</div>';
                 html += '<button type="button" class="vin-cart" onclick="vinAddToCart(' + it.part_id + ',this)"' + (it.stock > 0 ? '' : ' disabled') + '>В корзину</button>';
             } else {
@@ -1592,13 +1592,14 @@ function vinFillPrices(scope){
                 var dlv = d.delivery ? ' · ' + escapeHtml(String(d.delivery)) + ' дн' : '';
                 var src = d.source === 'warehouse' ? 'склад' : 'поставщик';
                 ph.classList.remove('ph');         // превратить плашку «под заказ» в красный ценник
-                ph.innerHTML = escapeHtml(d.price);
+                // d.price — HTML из formatPrice() (содержит <span> валюты), вставляем как есть.
+                ph.innerHTML = d.price;
                 var buy = ph.closest('.vin-pcard-buy');
                 if (buy) {
                     var st = buy.querySelector('.vin-stock');
                     if (st) { st.textContent = src + dlv; st.classList.add('ok'); }
                 } else {
-                    ph.innerHTML = escapeHtml(d.price) + ' <span style="font-size:0.66rem;color:#888;">' + src + dlv + '</span>';
+                    ph.innerHTML = d.price + ' <span style="font-size:0.66rem;color:#888;">' + src + dlv + '</span>';
                 }
             })
             .catch(function(){});
@@ -1618,7 +1619,7 @@ function vinCrosses(article, brand, btn, cid){
             d.items.forEach(function(it){
                 html += '<div class="vin-cross-row"><div class="ci"><b>' + escapeHtml(it.brand || '') + '</b> <span>' + escapeHtml(it.part_number) + '</span>' + (it.is_original ? ' <em>(исходный)</em>' : '') + '</div>';
                 if (it.in_catalog){
-                    html += '<span class="cp">' + escapeHtml(it.price) + '</span>';
+                    html += '<span class="cp">' + it.price + '</span>';
                     html += it.stock > 0
                         ? '<button type="button" class="vin-cart sm" onclick="vinAddToCart(' + it.part_id + ',this)">В корзину</button>'
                         : '<span class="cu">под заказ</span>';
