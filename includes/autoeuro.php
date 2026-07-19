@@ -133,6 +133,35 @@ class AutoEuro
         return $this->request('POST', $url, $body);
     }
 
+    /**
+     * Диагностика: сырой ответ AutoEuro на GET-метод, БЕЗ разбора DATA/ERROR —
+     * чтобы видеть точную структуру (в т.ч. реальный текст ошибки). Только для
+     * отладки из админки. Возвращает ['url','http','body'].
+     */
+    public function debugRaw(string $action, array $params = []): array
+    {
+        $url = self::BASE_URL . '/' . $action . '/' . rawurlencode($this->apiKey) . '/';
+        if ($params) $url .= '?' . http_build_query($params);
+        if (!function_exists('curl_init')) return ['url' => $url, 'http' => 0, 'body' => 'cURL нет'];
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL            => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => self::TIMEOUT,
+            CURLOPT_CONNECTTIMEOUT => 8,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTPHEADER     => ['Accept: application/json', 'key: ' . $this->apiKey],
+        ]);
+        $body = curl_exec($ch);
+        $http = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err  = curl_error($ch);
+        curl_close($ch);
+        // Ключ в URL маскируем, чтобы не светить в выводе диагностики.
+        $safeUrl = str_replace(rawurlencode($this->apiKey), '***', $url);
+        return ['url' => $safeUrl, 'http' => $http, 'curl_error' => $err, 'body' => $body === false ? '' : (string)$body];
+    }
+
     private function request(string $method, string $url, ?array $body = null): array
     {
         if (!function_exists('curl_init')) {

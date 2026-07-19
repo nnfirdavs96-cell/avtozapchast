@@ -50,17 +50,26 @@ if ($deliveryKey === '') {
     exit;
 }
 
+// Диагностика: ?raw=1 — сырой ответ AutoEuro БЕЗ разбора (виден точный текст
+// ошибки/структура). Ключ в URL замаскирован. Работает даже когда обычный
+// разбор дал бы «Ошибка API».
+if (($_REQUEST['raw'] ?? '') === '1') {
+    $dbg = $ae->debugRaw('search_items', [
+        'brand'        => $brand,
+        'code'         => $code,
+        'delivery_key' => $deliveryKey,
+        'with_crosses' => $withCrosses ? 1 : 0,
+        'with_offers'  => $withOffers ? 1 : 0,
+    ]);
+    echo json_encode($dbg, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    exit;
+}
+
 $result = $ae->searchItems($brand, $code, $deliveryKey, $withCrosses, $withOffers);
 
 if (isset($result['error'])) {
     http_response_code(502);
     echo json_encode($result);
-    exit;
-}
-
-// Диагностика: ?raw=1 — вернуть сырой ответ AutoEuro как есть (для разбора структуры).
-if (($_REQUEST['raw'] ?? '') === '1') {
-    echo json_encode(['raw' => $result, 'count_raw' => is_array($result) ? count($result) : 0], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
