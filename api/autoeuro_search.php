@@ -54,13 +54,18 @@ if ($deliveryKey === '') {
 // ошибки/структура). Ключ в URL замаскирован. Работает даже когда обычный
 // разбор дал бы «Ошибка API».
 if (($_REQUEST['raw'] ?? '') === '1') {
-    $dbg = $ae->debugRaw('search_items', [
-        'brand'        => $brand,
-        'code'         => $code,
-        'delivery_key' => $deliveryKey,
-        'with_crosses' => $withCrosses ? 1 : 0,
-        'with_offers'  => $withOffers ? 1 : 0,
-    ]);
+    // ?method=search_brands — какие бренды AutoEuro знает по этому коду (точное написание).
+    if (($_REQUEST['method'] ?? '') === 'search_brands') {
+        $dbg = $ae->debugRaw('search_brands', ['code' => $code]);
+    } else {
+        $dbg = $ae->debugRaw('search_items', [
+            'brand'        => $brand,
+            'code'         => $code,
+            'delivery_key' => $deliveryKey,
+            'with_crosses' => $withCrosses ? 1 : 0,
+            'with_offers'  => $withOffers ? 1 : 0,
+        ]);
+    }
     echo json_encode($dbg, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     exit;
 }
