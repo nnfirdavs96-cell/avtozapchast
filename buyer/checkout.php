@@ -208,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $payLabels = [
                 'cash_on_delivery' => 'при получении',
                 'bank_transfer'    => 'банковский перевод',
-                'online'           => 'онлайн',
+                'online_payment'   => 'онлайн',
             ];
             $payLabel = $payLabels[$payMethod] ?? $payMethod;
             $qty = 0;
