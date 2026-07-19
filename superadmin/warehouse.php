@@ -299,7 +299,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                   <tbody>
                     <?php foreach ($data as $d): if (!is_array($d)) continue; $dk = preg_replace('/\s+/', '', (string)($d['delivery_key'] ?? '')); ?>
                     <tr>
-                      <td><?= sanitize($d['name'] ?? '') ?></td>
+                      <td><?= sanitize($d['delivery_name'] ?? ($d['name'] ?? '')) ?></td>
                       <td><code style="word-break:break-all;font-size:0.68rem;color:#999;"><?= sanitize(mb_substr($dk, 0, 16)) ?>…</code></td>
                       <td style="white-space:nowrap;">
                         <button type="button" class="az-btn az-btn-primary az-btn-sm"
