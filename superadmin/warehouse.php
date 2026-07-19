@@ -26,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'autoeuro_delivery_key',
             'autoeuro_payer_key',
             'autoeuro_brand_map',
+            'autoeuro_rub_rate',
         ];
         foreach ($fields as $key) {
             $val = trim($_POST[$key] ?? '');
@@ -41,6 +42,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $enabled = isset($_POST['autoeuro_enabled']) ? '1' : '0';
         $db->prepare("INSERT INTO site_settings (`key`, `value`) VALUES ('autoeuro_enabled', ?) ON DUPLICATE KEY UPDATE `value`=?, updated_at=NOW()")
            ->execute([$enabled, $enabled]);
+
+        // Сбрасываем кэш цен: смена курса/наценки/ключа должна применяться сразу,
+        // а не ждать истечения TTL (иначе на витрине останутся старые цены).
+        try { $db->exec("DELETE FROM catalog_price_cache"); } catch (Exception $e) {}
 
         flashMessage('success', 'Настройки AutoEuro API сохранены.');
         redirect(APP_URL . '/superadmin/warehouse.php');
@@ -105,6 +110,7 @@ $apiKey      = getSetting('autoeuro_api_key');
 $deliveryKey = getSetting('autoeuro_delivery_key');
 $payerKey    = getSetting('autoeuro_payer_key');
 $brandMap    = getSetting('autoeuro_brand_map');
+$rubRate     = getSetting('autoeuro_rub_rate', '0.11');
 $apiEnabled  = getSetting('autoeuro_enabled') === '1';
 
 // Load log
@@ -178,6 +184,17 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                   <small class="text-muted">
                     Используется по умолчанию при поиске и заказе.
                     Получите через кнопку «Варианты доставки».
+                  </small>
+                </div>
+
+                <div class="az-form-group">
+                  <label>Курс: сомони за 1 рубль</label>
+                  <input type="text" name="autoeuro_rub_rate" class="form-control"
+                         value="<?= sanitize($rubRate) ?>" placeholder="напр. 0.11">
+                  <small class="text-muted">
+                    Цены AutoEuro приходят в рублях, а на витрине показываются в сомони.
+                    Укажите, сколько сомони стоит 1 рубль (напр. <code>0.11</code>), — сайт
+                    переведёт цену поставщика в сомони (плюс наценка). Держите курс актуальным.
                   </small>
                 </div>
 
