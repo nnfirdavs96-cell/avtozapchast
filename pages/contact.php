@@ -50,7 +50,8 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <p><?= sanitize(getSetting('contact_intro', t('about_desc'))) ?></p>
                         <ul>
                             <li><i class="fa fa-fax"></i> <?= sanitize(getSetting('site_address', 'г. Москва, ул. Автомобильная, д. 1')) ?></li>
-                            <li><i class="fa fa-phone"></i> <a href="tel:<?= sanitize(getSetting('site_phone', '+992926122222')) ?>"><?= sanitize(getSetting('site_phone', '+992 92 612-22-22')) ?></a></li>
+                            <?php $cPhone = getSetting('site_phone', '+992 92 612-22-22'); ?>
+                            <li><i class="fa fa-phone"></i> <a href="tel:<?= sanitize(phoneTel($cPhone)) ?>"><?= sanitize(formatPhone($cPhone)) ?></a></li>
                             <li><i class="fa fa-envelope-o"></i> <a href="mailto:<?= sanitize(getSetting('site_email', 'info@avtozapchast.ru')) ?>"><?= sanitize(getSetting('site_email', 'info@avtozapchast.ru')) ?></a></li>
                             <li><i class="fa fa-clock-o"></i> <?= t('mon_fri') ?>: 9:00–20:00 / <?= t('sat_sun') ?>: 10:00–18:00</li>
                         </ul>

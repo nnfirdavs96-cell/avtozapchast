@@ -40,7 +40,7 @@ seedDemoProducts();   // stocks the catalogue with editable demo products (self-
 $categories  = getCategories();
 $catTree     = getCategoryTree($categories);
 $siteName    = getSetting('site_name', t('site_name'));
-$sitePhone   = getSetting('site_phone', '+992 92 612-22-22');
+$sitePhone   = formatPhone(getSetting('site_phone', '+992 92 612-22-22'));
 $pageTitle   = isset($pageTitle) ? $pageTitle : $siteName;
 
 $langs = [
@@ -112,7 +112,7 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
                 <div class="offcanvas_menu_wrapper">
                     <div class="canvas_close"><a href="javascript:void(0)"><i class="ion-android-close"></i></a></div>
                     <div class="call_support">
-                        <p><i class="icon-phone-call"></i> <span><?= t('call_us') ?>: <a href="tel:<?= sanitize($sitePhone) ?>"><?= sanitize($sitePhone) ?></a></span></p>
+                        <p><i class="icon-phone-call"></i> <span><?= t('call_us') ?>: <a href="tel:<?= sanitize(phoneTel($sitePhone)) ?>"><?= sanitize($sitePhone) ?></a></span></p>
                     </div>
                     <div class="header_account">
                         <ul>
@@ -479,7 +479,7 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
                                             <ul class="az-megamenu__list">
                                                 <li><a href="<?= APP_URL ?>/pages/contact.php"><i class="fa fa-envelope-o"></i> Форма обратной связи</a></li>
                                                 <li><a href="<?= APP_URL ?>/pages/contact.php#map"><i class="fa fa-map-o"></i> Схема проезда</a></li>
-                                                <li><a href="tel:<?= sanitize($sitePhone) ?>"><i class="fa fa-phone"></i> <?= sanitize($sitePhone) ?></a></li>
+                                                <li><a href="tel:<?= sanitize(phoneTel($sitePhone)) ?>"><i class="fa fa-phone"></i> <?= sanitize($sitePhone) ?></a></li>
                                                 <li><a href="<?= APP_URL ?>/pages/faq.php"><i class="fa fa-question-circle-o"></i> FAQ</a></li>
                                             </ul>
                                         </div>
@@ -491,7 +491,7 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
                     <div class="col-lg-3">
                         <div class="header_phone">
                             <div class="phone_inner">
-                                <p><?= t('call_us') ?>: <a href="tel:<?= sanitize($sitePhone) ?>"><?= sanitize($sitePhone) ?></a></p>
+                                <p><?= t('call_us') ?>: <a href="tel:<?= sanitize(phoneTel($sitePhone)) ?>"><?= sanitize($sitePhone) ?></a></p>
                             </div>
                         </div>
                     </div>

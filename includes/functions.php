@@ -235,6 +235,26 @@ function sanitize($input): string {
 }
 
 /**
+ * Красивый показ телефона: любой ввод (слитно / с пробелами / с дефисами)
+ * приводится к «+992 XX XXX-XX-XX». Не таджикские/непонятные форматы —
+ * возвращаются как есть (без искажения).
+ */
+function formatPhone($raw): string {
+    $digits = preg_replace('/\D+/', '', (string)$raw);
+    if (strlen($digits) === 12 && strncmp($digits, '992', 3) === 0) {
+        $n = substr($digits, 3); // 9 цифр после кода страны
+        return '+992 ' . substr($n, 0, 2) . ' ' . substr($n, 2, 3) . '-' . substr($n, 5, 2) . '-' . substr($n, 7, 2);
+    }
+    return trim((string)$raw);
+}
+
+/** Телефон для ссылки tel: — только цифры с ведущим «+». */
+function phoneTel($raw): string {
+    $digits = preg_replace('/\D+/', '', (string)$raw);
+    return $digits === '' ? '' : '+' . $digits;
+}
+
+/**
  * Render admin/superadmin/manager sidebar based on current user role.
  * $active is the key of the active link (e.g. 'sliders', 'settings', 'users').
  */

@@ -607,7 +607,7 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="col-lg-4 col-md-7">
                     <div class="newsletter_container col_3">
                         <h3><?= t('contact_us') ?></h3>
-                        <p><?= sanitize(getSetting('site_phone','+992 92 612-22-22')) ?></p>
+                        <p><?= sanitize(formatPhone(getSetting('site_phone','+992 92 612-22-22'))) ?></p>
                         <div class="app_img">
                             <ul>
                                 <li><a href="<?= APP_URL ?>/pages/contact.php" class="az-contact-btn"><?= t('contact') ?></a></li>

@@ -147,7 +147,7 @@ if ($carMode) {
 // ── Expert contacts (for help block + "by parameters" funnel) ──────────────
 $exWa    = preg_replace('/\D/', '', getSetting('site_whatsapp', ''));
 $exTg    = trim(getSetting('site_telegram', ''));
-$exPhone = getSetting('site_phone', '+992 92 612-22-22');
+$exPhone = formatPhone(getSetting('site_phone', '+992 92 612-22-22'));
 
 // ── Curated makes → models for the "by parameters" quick funnel ────────────
 // Real per-vehicle TecDoc matching activates on the paid PartsAPI key (see README);
@@ -882,7 +882,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 <div class="cta">
                     <?php if ($exWa !== ''): ?><a class="vx-wa" href="https://wa.me/<?= sanitize($exWa) ?>" target="_blank" rel="noopener"><i class="fa fa-whatsapp"></i> WhatsApp</a><?php endif; ?>
                     <?php if ($exTg !== ''): ?><a class="vx-tg" href="https://t.me/<?= sanitize(ltrim($exTg,'@')) ?>" target="_blank" rel="noopener"><i class="fa fa-telegram"></i> Telegram</a><?php endif; ?>
-                    <a class="call" href="tel:<?= sanitize($exPhone) ?>"><i class="fa fa-phone"></i> <?= sanitize($exPhone) ?></a>
+                    <a class="call" href="tel:<?= sanitize(phoneTel($exPhone)) ?>"><i class="fa fa-phone"></i> <?= sanitize($exPhone) ?></a>
                 </div>
             </div>
         </div>

@@ -1,5 +1,5 @@
 <?php
-$sitePhone   = isset($sitePhone) ? $sitePhone : getSetting('site_phone', '+992 92 612-22-22');
+$sitePhone   = isset($sitePhone) ? $sitePhone : formatPhone(getSetting('site_phone', '+992 92 612-22-22'));
 $siteEmail   = getSetting('site_email', 'info@autodoc.tj');
 $siteAddress = getSetting('site_address', 'г. Худжанд, Таджикистан');
 $siteTg      = getSetting('site_telegram', '');
@@ -46,7 +46,7 @@ $siteWa      = getSetting('site_whatsapp', '');
                             <div class="footer_contact_inner">
                                 <div class="contact_icone"><img src="<?= APP_URL ?>/assets/img/icon/icon-phone.png" alt=""></div>
                                 <div class="contact_text">
-                                    <p><?= t('call_us') ?>:<br><strong><a href="tel:<?= sanitize($sitePhone) ?>"><?= sanitize($sitePhone) ?></a></strong></p>
+                                    <p><?= t('call_us') ?>:<br><strong><a href="tel:<?= sanitize(phoneTel($sitePhone)) ?>"><?= sanitize($sitePhone) ?></a></strong></p>
                                 </div>
                             </div>
                             <p><?= sanitize($siteAddress) ?><br><a href="mailto:<?= sanitize($siteEmail) ?>"><?= sanitize($siteEmail) ?></a></p>
