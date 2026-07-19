@@ -2,9 +2,10 @@
 /**
  * Цена от поставщика AutoEuro по OEM-номеру — фолбэк, когда детали нет на своём
  * складе. Берём самое дешёвое предложение с точным совпадением артикула,
- * применяем общую наценку (global_markup). Цена AutoEuro — в RUB (как и база
- * проекта), поэтому конвертация валют не нужна: formatPrice() во фронте сам
- * переведёт в сомони.
+ * применяем общую наценку (global_markup). Цена AutoEuro — в РУБЛЯХ, а сайт
+ * показывает сомони (курс TJS=1.0), поэтому переводим по настраиваемому курсу
+ * `autoeuro_rub_rate` (сомони за 1 рубль) — иначе рублёвая цена показывалась бы
+ * как сомони 1:1 (завышение ~9×).
  *
  * Требует настроенного AutoEuro (autoeuro_enabled + ключ + delivery_key) и
  * непустого бренда (AutoEuro ищет по паре бренд+код).
@@ -75,8 +76,15 @@ class AutoEuroPriceProvider implements PriceProvider
             return null;
         }
 
+        // Цена AutoEuro — в РУБЛЯХ. Сайт хранит и показывает цены в сомони (курс
+        // TJS=1.0, прямое ценообразование), поэтому рублёвую цену переводим в
+        // сомони по настраиваемому курсу autoeuro_rub_rate (сомони за 1 рубль),
+        // затем применяем общую наценку. Курс рубля плавает — держите актуальным
+        // в Суперадмин → Склад.
+        $rubRate = (float)str_replace(',', '.', getSetting('autoeuro_rub_rate', '0.11'));
+        if ($rubRate <= 0) $rubRate = 1.0;
         $markup = (float)getSetting('global_markup', '0');
-        $best['price']   = round($best['price'] * (1 + $markup / 100), 2);
+        $best['price']   = round($best['price'] * $rubRate * (1 + $markup / 100), 2);
         $best['source']  = 'autoeuro';
         $best['part_id'] = null;
         $best['url']     = null;
