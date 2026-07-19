@@ -72,6 +72,50 @@ class AutoEuro
     }
 
     /**
+     * Умный поиск: сначала search_brands (терпим к формату кода), чтобы получить
+     * КАНОНИЧНЫЕ бренд+код именно в том виде, как их хранит AutoEuro (например, код
+     * с пробелами «1 987 301 001»), затем search_items уже этими значениями.
+     * search_items формат кода не нормализует, поэтому без этого шага он возвращает
+     * пусто, хотя позиция есть. Если резолв не удался — пробуем как есть.
+     */
+    public function searchItemsSmart(
+        string $brand,
+        string $code,
+        string $deliveryKey,
+        bool $withCrosses = true,
+        bool $withOffers  = true
+    ): array {
+        $canonBrand = $brand;
+        $canonCode  = $code;
+        $brands = $this->searchBrands($code);
+        if (is_array($brands) && !isset($brands['error'])) {
+            $list = isset($brands[0]) ? $brands : (array)$brands;
+            $wantBrand = self::normKey($brand);
+            $wantCode  = self::normKey($code);
+            $fallback  = null;
+            foreach ($list as $it) {
+                if (!is_array($it)) continue;
+                if (self::normKey((string)($it['code'] ?? '')) !== $wantCode) continue; // тот же артикул
+                if ($fallback === null) $fallback = [(string)($it['brand'] ?? $brand), (string)($it['code'] ?? $code)];
+                if (self::normKey((string)($it['brand'] ?? '')) === $wantBrand) {   // точное совпадение бренда
+                    $canonBrand = (string)$it['brand'];
+                    $canonCode  = (string)$it['code'];
+                    $fallback   = null;
+                    break;
+                }
+            }
+            if ($fallback !== null) { $canonBrand = $fallback[0]; $canonCode = $fallback[1]; }
+        }
+        return $this->searchItems($canonBrand, $canonCode, $deliveryKey, $withCrosses, $withOffers);
+    }
+
+    /** Ключ сравнения бренда/кода без учёта регистра, пробелов и разделителей. */
+    private static function normKey(string $s): string
+    {
+        return strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $s));
+    }
+
+    /**
      * @param string $deliveryKey
      * @param string $payerKey
      * @param array  $items       [['offer_key'=>'...','quantity'=>1,'price'=>0,'comment'=>''], ...]

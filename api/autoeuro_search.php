@@ -70,7 +70,10 @@ if (($_REQUEST['raw'] ?? '') === '1') {
     exit;
 }
 
-$result = $ae->searchItems($brand, $code, $deliveryKey, $withCrosses, $withOffers);
+// searchItemsSmart резолвит каноничные бренд+код (AutoEuro хранит код в своём
+// формате, напр. с пробелами) через search_brands, затем ищет — иначе search_items
+// по «сырому» коду возвращает пусто, хотя позиция есть.
+$result = $ae->searchItemsSmart($brand, $code, $deliveryKey, $withCrosses, $withOffers);
 
 if (isset($result['error'])) {
     http_response_code(502);
