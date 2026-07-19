@@ -43,7 +43,9 @@ class AutoEuroPriceProvider implements PriceProvider
         if ($deliveryKey === '') return null;
 
         $queryBrand = self::mapBrand($brand);
-        $res = $ae->searchItems($queryBrand, $oem, $deliveryKey, false, false);
+        // with_offers=1 обязателен: именно предложения несут цену/наличие/срок.
+        // with_crosses=1 расширяет выдачу (точный код всё равно отфильтруем ниже).
+        $res = $ae->searchItems($queryBrand, $oem, $deliveryKey, true, true);
         if (!is_array($res) || isset($res['error'])) {
             self::logMiss($brand, $queryBrand, $oem, $res);
             return null;

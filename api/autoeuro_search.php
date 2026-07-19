@@ -35,7 +35,9 @@ $code        = $p('code');
 $brand       = $p('brand');
 $deliveryKey = $p('delivery_key') ?: getSetting('autoeuro_delivery_key');
 $withCrosses = $p('with_crosses', '1') === '1';
-$withOffers  = $p('with_offers',  '0') === '1';
+// with_offers по умолчанию 1: именно предложения несут цену/наличие/срок.
+// Без него AutoEuro возвращает пустой список (позиция есть на сайте, а API молчит).
+$withOffers  = $p('with_offers',  '1') === '1';
 
 if ($code === '' || $brand === '') {
     http_response_code(400);
@@ -53,6 +55,12 @@ $result = $ae->searchItems($brand, $code, $deliveryKey, $withCrosses, $withOffer
 if (isset($result['error'])) {
     http_response_code(502);
     echo json_encode($result);
+    exit;
+}
+
+// Диагностика: ?raw=1 — вернуть сырой ответ AutoEuro как есть (для разбора структуры).
+if (($_REQUEST['raw'] ?? '') === '1') {
+    echo json_encode(['raw' => $result, 'count_raw' => is_array($result) ? count($result) : 0], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
