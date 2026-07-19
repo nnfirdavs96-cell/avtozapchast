@@ -29,6 +29,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
         foreach ($fields as $key) {
             $val = trim($_POST[$key] ?? '');
+            // Ключи (API/доставка/плательщик) — одна строка без пробелов: вычищаем
+            // любые пробелы/переносы, чтобы кривая вставка не ломала запрос к AutoEuro.
+            // brand_map — многострочное поле, его не трогаем.
+            if ($key !== 'autoeuro_brand_map') {
+                $val = preg_replace('/\s+/', '', $val);
+            }
             $db->prepare("INSERT INTO site_settings (`key`, `value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=?, updated_at=NOW()")
                ->execute([$key, $val, $val]);
         }
@@ -166,9 +172,9 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
 
                 <div class="az-form-group">
                   <label>Ключ способа доставки (delivery_key)</label>
-                  <input type="text" name="autoeuro_delivery_key" class="form-control"
+                  <input type="text" name="autoeuro_delivery_key" id="ae_delivery_key" class="form-control"
                          value="<?= sanitize($deliveryKey) ?>"
-                         placeholder="Нажмите «Получить варианты» справа">
+                         placeholder="Нажмите «Варианты доставки» справа, затем «Выбрать»">
                   <small class="text-muted">
                     Используется по умолчанию при поиске и заказе.
                     Получите через кнопку «Варианты доставки».
@@ -177,9 +183,9 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
 
                 <div class="az-form-group">
                   <label>Ключ плательщика (payer_key)</label>
-                  <input type="text" name="autoeuro_payer_key" class="form-control"
+                  <input type="text" name="autoeuro_payer_key" id="ae_payer_key" class="form-control"
                          value="<?= sanitize($payerKey) ?>"
-                         placeholder="Нажмите «Получить плательщиков» справа">
+                         placeholder="Нажмите «Плательщики» справа, затем «Выбрать»">
                   <small class="text-muted">
                     Используется по умолчанию при оформлении заказов.
                   </small>
@@ -213,6 +219,17 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
               <h4 class="az-card-title">Тест подключения</h4>
             </div>
             <div class="az-card-body">
+              <script>
+              // Вставляет ключ (доставки/плательщика) прямо в поле настроек — без ручного
+              // копирования длинной строки (частая причина «неправильный delivery_key»).
+              function aeSetKey(fieldId, val) {
+                var el = document.getElementById(fieldId);
+                if (!el) return;
+                el.value = (val || '').replace(/\s+/g, '');
+                el.style.background = '#d4edda';
+                el.scrollIntoView({behavior:'smooth', block:'center'});
+              }
+              </script>
               <p style="font-size:0.85rem;color:#666;margin-bottom:16px;">
                 Запросы выполняются с текущим API ключом из настроек. Результаты сохраняются в лог.
               </p>
@@ -276,20 +293,18 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 </table>
 
                 <?php elseif ($testResult['action'] === 'deliveries' && is_array($data)): ?>
-                <p style="font-size:0.8rem;color:#666;margin:8px 0 4px">Скопируйте нужный <code>delivery_key</code> в поле слева:</p>
+                <p style="font-size:0.8rem;color:#666;margin:8px 0 4px">Нажмите <strong>«Выбрать»</strong> у нужного варианта — ключ сам встанет в поле слева. Потом нажмите «Сохранить настройки».</p>
                 <table class="az-table" style="font-size:0.8rem;">
-                  <thead><tr><th>Название</th><th>delivery_key</th></tr></thead>
+                  <thead><tr><th>Название</th><th>delivery_key</th><th></th></tr></thead>
                   <tbody>
-                    <?php foreach ($data as $d): if (!is_array($d)) continue; ?>
+                    <?php foreach ($data as $d): if (!is_array($d)) continue; $dk = preg_replace('/\s+/', '', (string)($d['delivery_key'] ?? '')); ?>
                     <tr>
                       <td><?= sanitize($d['name'] ?? '') ?></td>
-                      <td>
-                        <code style="word-break:break-all;font-size:0.72rem;"
-                              title="Нажмите чтобы скопировать"
-                              onclick="navigator.clipboard.writeText(this.textContent);this.style.background='#d4edda'"
-                              style="cursor:pointer">
-                          <?= sanitize($d['delivery_key'] ?? '') ?>
-                        </code>
+                      <td><code style="word-break:break-all;font-size:0.68rem;color:#999;"><?= sanitize(mb_substr($dk, 0, 16)) ?>…</code></td>
+                      <td style="white-space:nowrap;">
+                        <button type="button" class="az-btn az-btn-primary az-btn-sm"
+                                data-key="<?= htmlspecialchars($dk, ENT_QUOTES) ?>"
+                                onclick="aeSetKey('ae_delivery_key', this.dataset.key)">Выбрать</button>
                       </td>
                     </tr>
                     <?php endforeach; ?>
@@ -297,19 +312,18 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 </table>
 
                 <?php elseif ($testResult['action'] === 'payers' && is_array($data)): ?>
-                <p style="font-size:0.8rem;color:#666;margin:8px 0 4px">Скопируйте нужный <code>payer_key</code> в поле слева:</p>
+                <p style="font-size:0.8rem;color:#666;margin:8px 0 4px">Нажмите <strong>«Выбрать»</strong> у нужного плательщика — ключ сам встанет в поле слева. Потом «Сохранить настройки». (Нужен только для автозаказа.)</p>
                 <table class="az-table" style="font-size:0.8rem;">
-                  <thead><tr><th>Плательщик</th><th>payer_key</th></tr></thead>
+                  <thead><tr><th>Плательщик</th><th>payer_key</th><th></th></tr></thead>
                   <tbody>
-                    <?php foreach ($data as $p): if (!is_array($p)) continue; ?>
+                    <?php foreach ($data as $p): if (!is_array($p)) continue; $pk = preg_replace('/\s+/', '', (string)($p['payer_key'] ?? '')); ?>
                     <tr>
                       <td><?= sanitize($p['payer_name'] ?? '') ?></td>
-                      <td>
-                        <code style="word-break:break-all;font-size:0.72rem;cursor:pointer"
-                              title="Нажмите чтобы скопировать"
-                              onclick="navigator.clipboard.writeText(this.textContent);this.style.background='#d4edda'">
-                          <?= sanitize($p['payer_key'] ?? '') ?>
-                        </code>
+                      <td><code style="word-break:break-all;font-size:0.68rem;color:#999;"><?= sanitize(mb_substr($pk, 0, 16)) ?>…</code></td>
+                      <td style="white-space:nowrap;">
+                        <button type="button" class="az-btn az-btn-primary az-btn-sm"
+                                data-key="<?= htmlspecialchars($pk, ENT_QUOTES) ?>"
+                                onclick="aeSetKey('ae_payer_key', this.dataset.key)">Выбрать</button>
                       </td>
                     </tr>
                     <?php endforeach; ?>
