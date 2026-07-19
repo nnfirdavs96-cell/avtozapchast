@@ -1,5 +1,5 @@
 <?php
-$sitePhone   = isset($sitePhone) ? $sitePhone : getSetting('site_phone', '+992 XX XXX-XX-XX');
+$sitePhone   = isset($sitePhone) ? $sitePhone : getSetting('site_phone', '+992 92 612-22-22');
 $siteEmail   = getSetting('site_email', 'info@autodoc.tj');
 $siteAddress = getSetting('site_address', 'г. Худжанд, Таджикистан');
 $siteTg      = getSetting('site_telegram', '');

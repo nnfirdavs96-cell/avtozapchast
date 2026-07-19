@@ -53,7 +53,7 @@ foreach ($parts as $p) {
 }
 
 $siteName  = getSetting('site_name', t('site_name'));
-$sitePhone = getSetting('site_phone', '+992 92 646-46-46');
+$sitePhone = getSetting('site_phone', '+992 92 612-22-22');
 $today     = date('d.m.Y');
 $carLabel  = trim(($carAttrs['make'] ?? '') . ' ' . ($carAttrs['model'] ?? ''));
 ?><!DOCTYPE html>

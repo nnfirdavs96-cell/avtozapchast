@@ -40,7 +40,7 @@ seedDemoProducts();   // stocks the catalogue with editable demo products (self-
 $categories  = getCategories();
 $catTree     = getCategoryTree($categories);
 $siteName    = getSetting('site_name', t('site_name'));
-$sitePhone   = getSetting('site_phone', '+992 92 646-46-46');
+$sitePhone   = getSetting('site_phone', '+992 92 612-22-22');
 $pageTitle   = isset($pageTitle) ? $pageTitle : $siteName;
 
 $langs = [

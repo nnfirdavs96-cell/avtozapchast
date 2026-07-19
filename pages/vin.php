@@ -147,7 +147,7 @@ if ($carMode) {
 // ── Expert contacts (for help block + "by parameters" funnel) ──────────────
 $exWa    = preg_replace('/\D/', '', getSetting('site_whatsapp', ''));
 $exTg    = trim(getSetting('site_telegram', ''));
-$exPhone = getSetting('site_phone', '+992 92 646-46-46');
+$exPhone = getSetting('site_phone', '+992 92 612-22-22');
 
 // ── Curated makes → models for the "by parameters" quick funnel ────────────
 // Real per-vehicle TecDoc matching activates on the paid PartsAPI key (see README);
