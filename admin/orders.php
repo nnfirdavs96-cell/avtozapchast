@@ -1,11 +1,20 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
+require_once dirname(__DIR__) . '/includes/messaging.php';
 requireRole(['admin', 'manager', 'superadmin']);
 requirePermission('orders');
 
 $db   = getDB();
 $csrf = generateCsrfToken();
 $statuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+
+// Текст автосообщения покупателю при смене статуса (pending не анонсируем).
+$statusMessages = [
+    'processing' => 'Ваш заказ подтверждён и принят в работу. Мы уже занимаемся им.',
+    'shipped'    => 'Ваш заказ отправлен и едет к вам.',
+    'delivered'  => 'Ваш заказ доставлен. Спасибо за покупку!',
+    'cancelled'  => 'Ваш заказ отменён. Если это ошибка — напишите нам прямо здесь.',
+];
 
 // ── POST: change order status ────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -16,7 +25,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $orderId = (int)($_POST['id'] ?? 0);
     $status  = $_POST['status'] ?? '';
     if ($action === 'status' && $orderId && in_array($status, $statuses)) {
+        // Текущий статус и владелец заказа — чтобы не слать сообщение при «пустой» смене.
+        $cur = $db->prepare("SELECT status, user_id FROM orders WHERE id = ? LIMIT 1");
+        $cur->execute([$orderId]);
+        $ord = $cur->fetch();
         $db->prepare("UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?")->execute([$status, $orderId]);
+        // Автосообщение в переписку заказа, только если статус реально изменился.
+        if ($ord && $ord['status'] !== $status && isset($statusMessages[$status])) {
+            postSystemMessage((int)$ord['user_id'], $orderId, $statusMessages[$status]);
+        }
         flashMessage('success', 'Статус заказа обновлён.');
     }
     redirect(APP_URL . '/admin/orders.php' . ($orderId ? "?id=$orderId" : ''));
@@ -185,6 +202,56 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
               </tfoot>
             </table>
           </div>
+
+          <?php
+          // ── Заявка поставщику (ветка «человек в Москве») ──
+          // Готовый текст со списком деталей — менеджер копирует и отправляет
+          // своему человеку в Москве / поставщику в мессенджере. Денег не двигает.
+          $shipAddr = trim(preg_replace('/\s+/', ' ', strip_tags(formatShippingAddress($orderDetail['shipping_address'] ?? ''))));
+          $custName = trim(($orderDetail['username'] ?? '') . '');
+          $zayavka  = "ЗАЯВКА по заказу #" . (int)$orderDetail['id'] . "\n";
+          $zayavka .= "Дата: " . date('d.m.Y H:i', strtotime($orderDetail['created_at'])) . "\n";
+          if ($orderDetail['phone']) $zayavka .= "Покупатель: " . $orderDetail['phone'] . "\n";
+          if ($shipAddr !== '')      $zayavka .= "Доставка: " . $shipAddr . "\n";
+          $zayavka .= "\nДетали:\n";
+          $ln = 1;
+          foreach ($orderItems as $item) {
+              $zayavka .= $ln++ . ". "
+                        . trim(($item['brand_name'] ?? '') . ' ' . ($item['part_number'] ?? ''))
+                        . " — " . ($item['part_name'] ?? '')
+                        . " ×" . (int)$item['quantity'] . "\n";
+          }
+          ?>
+          <div class="az-card" style="margin-top:18px;background:#faf7f2;border:1px solid #ece4d6;">
+            <div class="az-card-body">
+              <h4 style="margin:0 0 4px;font-size:1rem;"><i class="fa fa-paper-plane"></i> Заявка поставщику</h4>
+              <p style="font-size:0.82rem;color:#8a8372;margin:0 0 10px;">
+                Ветка «человек в Москве»: скопируйте заявку и отправьте её своему человеку/поставщику
+                в мессенджере. При необходимости поправьте текст перед отправкой. Денег это не списывает.
+              </p>
+              <textarea id="zayavkaText" rows="<?= max(6, count($orderItems) + 6) ?>"
+                        style="width:100%;font-family:monospace;font-size:0.82rem;padding:10px 12px;border:1px solid #d8d2c4;border-radius:8px;"><?= sanitize($zayavka) ?></textarea>
+              <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" class="az-btn az-btn-primary az-btn-sm" onclick="copyZayavka()">
+                  <i class="fa fa-copy"></i> Скопировать заявку
+                </button>
+                <a class="az-btn az-btn-outline az-btn-sm"
+                   href="<?= APP_URL ?>/admin/messages.php?user=<?= (int)$orderDetail['user_id'] ?>&order=<?= (int)$orderDetail['id'] ?>">
+                  <i class="fa fa-comments-o"></i> Переписка с покупателем
+                </a>
+              </div>
+              <span id="zayavkaCopied" style="display:none;color:#1a7f4e;font-size:0.8rem;margin-left:4px;">Скопировано ✓</span>
+            </div>
+          </div>
+          <script>
+          function copyZayavka(){
+            var t=document.getElementById('zayavkaText'); t.select(); t.setSelectionRange(0,99999);
+            try { document.execCommand('copy'); } catch(e){}
+            if (navigator.clipboard) { navigator.clipboard.writeText(t.value).catch(function(){}); }
+            var m=document.getElementById('zayavkaCopied'); m.style.display='inline';
+            setTimeout(function(){ m.style.display='none'; }, 2000);
+          }
+          </script>
         </div>
       </div>
       <?php endif; ?>
