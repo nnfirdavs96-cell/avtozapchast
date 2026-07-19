@@ -83,7 +83,11 @@ class AutoEuroPriceProvider implements PriceProvider
         // в Суперадмин → Склад.
         $rubRate = (float)str_replace(',', '.', getSetting('autoeuro_rub_rate', '0.11'));
         if ($rubRate <= 0) $rubRate = 1.0;
-        $markup = (float)getSetting('global_markup', '0');
+        // Наценка для AutoEuro: отдельная (autoeuro_markup), если задана; иначе общая
+        // (global_markup). У деталей поставщика нет своей карточки/категории, поэтому
+        // индивидуальную наценку задать негде — эта настройка её заменяет.
+        $aeMk   = trim((string)getSetting('autoeuro_markup', ''));
+        $markup = $aeMk !== '' ? (float)str_replace(',', '.', $aeMk) : (float)getSetting('global_markup', '0');
         $best['price']   = round($best['price'] * $rubRate * (1 + $markup / 100), 2);
         $best['source']  = 'autoeuro';
         $best['part_id'] = null;
