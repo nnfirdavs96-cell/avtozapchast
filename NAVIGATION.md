@@ -355,8 +355,8 @@ Cron: `*/5 * * * * php <APP_ROOT>/superadmin/catalog_library_cron.php`
 - **Parts-Catalogs:** `catalog_pc_key`, `catalog_pc_base`, `catalog_pc_timeout`, `catalog_pc_auth`, `catalog_pc_key_param`, `catalog_pc_schema`, `catalog_pc_lang`.
 - **Библиотека каталога:** `catalog_library_read_first`, `catalog_kp_enabled`, `catalog_compat_suggestions_enabled`, `catalog_demand_enabled`, `catalog_library_autocollect` (§9).
 - **Laximo:** `catalog_laximo_login`, `catalog_laximo_secret`.
-- **Цены:** `catalog_price_autoeuro`, `global_markup`.
-- **AutoEuro:** `autoeuro_enabled`, `autoeuro_api_key`, `autoeuro_delivery_key`, `autoeuro_payer_key`.
+- **Цены:** `catalog_price_autoeuro` (вкл. цены AutoEuro на витрине), `global_markup`.
+- **AutoEuro:** `autoeuro_enabled`, `autoeuro_api_key`, `autoeuro_delivery_key` (московский пункт — агрегирует склады), `autoeuro_payer_key` (для заказа), `autoeuro_rub_rate` (сомони/рубль, ~0.11), `autoeuro_markup` (наценка % на AutoEuro; пусто → `global_markup`), `autoeuro_brand_map` (маппинг брендов).
 - **VIN-декодер:** `vin_search_enabled`, `vin_api_provider`, `vin_api_url`, `vin_api_key`, `vin_api_timeout`.
 - **Auth/SMS:** `auth_email_enabled`, `sms_provider` (пусто = тест-режим, `osonsms` = боевая отправка), `sms_osonsms_login/hash/sender/server`, `phone_countries`.
 - **Онлайн-оплата:** `online_payment_enabled`, `online_discount_type`, `online_discount_value`, `online_free_shipping`.
@@ -387,7 +387,7 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 |---|---|---|---|
 | **Parts-Catalogs / Tradesoft** | OEM-каталог + визуальные схемы (боевой) | `PartsCatalogsAdapter.php` | `catalog_pc_key`; тариф — за VIN/сутки |
 | PartsAPI.ru | детали по VIN, кроссы | `catalog_api.php` | `catalog_api_key`; демо 50 req/сутки/IP |
-| AutoEuro | цены/наличие/заказ поставщика | `autoeuro.php` | `autoeuro_api_key` (+delivery/payer); цены в RUB |
+| AutoEuro | цены/наличие поставщика (боевой, на VIN) | `autoeuro.php`, `AutoEuroPriceProvider.php` | ключ+delivery_key+`catalog_price_autoeuro`; RUB→сомони по `autoeuro_rub_rate`; заказ (`create_order`) не подключён |
 | Laximo | оригинал (каркас) | `LaximoAdapter.php` | логин+секрет |
 | NHTSA | бесплатный VIN-декод | `vin_service.php` | без ключа |
 | SMS-шлюз | коды входа | `sendSms()` | ✅ OsonSMS (боевой); тест-режим — фолбэк без провайдера |
@@ -422,6 +422,10 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 
 - ~~**SMS-отправка** — тест-режим~~ ✅ сделано: боевой шлюз **OsonSMS** подключён (`sendSms()`→`osonSmsSend()`,
   настройки в `superadmin/settings.php`). Тест-режим (`storage/sms.log`) остаётся фолбэком, если `sms_provider` пуст.
+- ~~**Цены AutoEuro**~~ ✅ сделано: цены/наличие поставщика на витрине VIN (`AutoEuroPriceProvider`
+  → `searchItemsSmart` → RUB×`autoeuro_rub_rate`×наценка). **Не подключён автозаказ** (`create_order`,
+  денежная ветка) — закупка вручную через «Заявку поставщику» на карточке заказа. Курс и наценку
+  (`autoeuro_rub_rate`/`autoeuro_markup`) владелец держит актуальными.
 - **Онлайн-оплата** — только маркетинговый чекбокс со скидкой; реального эквайринга/карты/QR нет.
   Нужен провайдер ТДж (Alif/Corti/Eskhata) + редирект + webhook.
 - **SEO-страницы по авто из библиотеки** — не сделано намеренно (риск лицензии Parts-Catalogs).
@@ -727,6 +731,13 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 - **#258** (2026-07-12) — fix(auth): Enter в поле телефона запускает «Получить код», а не сабмит формы
 - **#259** (2026-07-12) — fix(auth): кнопка «Войти» на форме телефона скрыта до кода/пароля/PIN
 - **#260** (2026-07-12) — fix(auth): clearfix `.login_submit` — устранён наезд ссылки PIN-входа на «Войти по паролю»
+- **#263–#264** (2026-07-12) — feat(catalog): CLI-прогрев библиотеки `catalog_library_seed.php` (round-robin по маркам, опция «все схемы»)
+- **#265–#266** (2026-07-19) — feat(autoeuro): лог `autoeuro_price_miss`; маппинг брендов `autoeuro_brand_map`
+- **#267** (2026-07-19) — feat(chat): переписка покупатель↔менеджер (`messages`, поддержка+по заказам, автосообщение-чек)
+- **#268** (2026-07-19) — feat(orders): статусы заказа → автосообщение в чат; блок «Заявка поставщику» (ветка «человек в Москве»)
+- **#269–#279** (2026-07-19) — fix(autoeuro): `with_offers=1`, резолв бренд+код через `search_brands` (`searchItemsSmart`), выбор московского delivery_key (кнопка «Выбрать», чистка пробелов), RUB→сомони по курсу `autoeuro_rub_rate`, «под заказ»+дата при stock=0, разделитель тысяч — пробел
+- **#280** (2026-07-19) — feat(autoeuro): отдельная наценка `autoeuro_markup`
+- **#282–#283** (2026-07-19) — feat(contacts): телефон `+992 92 612-22-22`, авто-формат `formatPhone()`/`phoneTel()`
 
 ---
 
@@ -768,7 +779,8 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 |---|---|---|
 | [`includes/admin-footer.php`](includes/admin-footer.php) | Подвал админки. | — |
 | [`includes/admin-header.php`](includes/admin-header.php) | Единый макет админки (шапка) + сайдбар по ролям. | renderRoleSidebar, userCan |
-| [`includes/autoeuro.php`](includes/autoeuro.php) | Класс AutoEuro: клиент поставщика (баланс/склады/поиск/заказ). | httpGet, настройки autoeuro_* |
+| [`includes/autoeuro.php`](includes/autoeuro.php) | Класс AutoEuro: клиент поставщика. `searchItemsSmart` (search_brands→search_items, with_offers=1), `debugRaw` (диагностика ?raw=1). | httpGet, настройки autoeuro_* |
+| [`includes/messaging.php`](includes/messaging.php) | Чат покупатель↔менеджер: таблица `messages`, ветки поддержки/по заказам, автосообщения, счётчики непрочитанного. | getDB (graceful) |
 | [`includes/cart_lib.php`](includes/cart_lib.php) | Корзина гостя (сессия) и юзера (БД); merge при входе; заказ гостя по телефону. | getDB, cart |
 | [`includes/catalog.php`](includes/catalog.php) | Одна строка — подключает слой каталога (фасад Catalog::). | catalog/Manager.php |
 | [`includes/catalog_api.php`](includes/catalog_api.php) | Класс CatalogApi: боевой PartsAPI (getPartsbyVIN/getCrosses) + enrichItemsFromWarehouse(). | partsapi_catalog_cache, parts |
@@ -851,7 +863,8 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 | [`buyer/cart.php`](buyer/cart.php) | Корзина (доступна гостю). | cart_lib.php |
 | [`buyer/checkout.php`](buyer/checkout.php) | Оформление заказа: адрес, зоны доставки, способы оплаты; заказ гостя по телефону. | cart_lib, delivery_zones, orders, onlinePayment* |
 | [`buyer/index.php`](buyer/index.php) | Дашборд покупателя. | orders |
-| [`buyer/orders.php`](buyer/orders.php) | Список/детали заказов, отмена покупателем. | orders, order_items |
+| [`buyer/orders.php`](buyer/orders.php) | Список/детали заказов, отмена покупателем; кнопка «Написать по заказу». | orders, order_items, messaging |
+| [`buyer/messages.php`](buyer/messages.php) | Переписка покупателя с менеджером: поддержка + ветки по заказам. | messaging (messages) |
 | [`buyer/profile.php`](buyer/profile.php) | Профиль: имя/адрес/город/аватар. | users |
 | [`buyer/wishlist.php`](buyer/wishlist.php) | Избранное. | wishlist |
 
@@ -869,7 +882,8 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 |---|---|---|
 | [`admin/banners.php`](admin/banners.php) | Баннеры + placement (где показывать). | banners |
 | [`admin/index.php`](admin/index.php) | Дашборд + выручка. | orders |
-| [`admin/orders.php`](admin/orders.php) | Заказы + смена статусов. | orders |
+| [`admin/orders.php`](admin/orders.php) | Заказы + смена статусов (→ автосообщение в чат) + блок «Заявка поставщику». | orders, messaging |
+| [`admin/messages.php`](admin/messages.php) | Входящие переписки покупателей (непрочитанные выше), ответ. | messaging (messages) |
 | [`admin/products.php`](admin/products.php) | Товары: фото, цены, наценка. | parts, getEffectiveMarkup |
 | [`admin/sliders.php`](admin/sliders.php) | Блочный редактор слайдера: 9 позиций текста, шрифты, десктоп/мобильный, live-preview. | sliders, normalizeSliderBlocks |
 | [`admin/users.php`](admin/users.php) | Пользователи (для admin). | users |
@@ -896,6 +910,7 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 | [`superadmin/blog.php`](superadmin/blog.php) | Блог (управление на уровне суперадмина). | blog_posts |
 | [`superadmin/catalog_library.php`](superadmin/catalog_library.php) | Библиотека каталога: список авто, экспорт JSON/CSV, сбор схем, тумблеры, аналитика спроса (~671 строка). | catalog_library_*, catalog_demand, PartsCatalogsAdapter |
 | [`superadmin/catalog_library_cron.php`](superadmin/catalog_library_cron.php) | CLI-дособиратель схем библиотеки (по тумблеру автосбора). | PartsCatalogsAdapter::harvestSchemes |
+| [`superadmin/catalog_library_seed.php`](superadmin/catalog_library_seed.php) | CLI-прогрев библиотеки: обход марок/моделей/авто (round-robin), запуск вручную. | pcBrands/pcModels/pcCars, oemNodesForCar |
 | [`superadmin/catalog_library_seed.php`](superadmin/catalog_library_seed.php) | CLI-скрипт прогрева библиотеки: обходит марки/модели/авто (по параметрам, без VIN), сохраняя новые записи. Запускать вручную. | pcBrands, pcModels, pcCars, oemNodesForCar, harvestSchemes |
 | [`superadmin/currencies.php`](superadmin/currencies.php) | Валюты и курсы. | currencies |
 | [`superadmin/delivery.php`](superadmin/delivery.php) | Зоны доставки (город+страна+цена+срок). | delivery_zones |
