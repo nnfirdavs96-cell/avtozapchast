@@ -43,6 +43,48 @@ class PriceAggregator implements PriceProvider
         return $a;
     }
 
+    /**
+     * Несколько предложений с ВЫБОРОМ срока/цены для покупателя. Свой склад — одна
+     * позиция (у нас один остаток), иначе список от AutoEuro. Результат AutoEuro
+     * кэшируем отдельным ключом (…|offers), чтобы не дёргать поставщика повторно.
+     *
+     * @return array<int,array> список вариантов (может быть пустым)
+     */
+    public function offersByOem(string $oem, string $brand = ''): array
+    {
+        $oem = trim($oem);
+        if ($oem === '') return [];
+
+        // 1) Свой склад — приоритет, одна позиция (без вариантов срока).
+        $w = (new WarehousePriceProvider())->priceByOem($oem, $brand);
+        if ($w !== null) {
+            return [[
+                'price'          => (float)$w['price'],
+                'price_raw_rub'  => null,
+                'stock'          => (int)$w['stock'],
+                'in_stock'       => (int)$w['stock'] > 0,
+                'delivery_ae'    => null,
+                'delivery_days'  => 0,
+                'delivery_total' => null,
+                'name'           => $w['name'] ?? null,
+                'source'         => 'warehouse',
+                'part_id'        => $w['part_id'] ?? null,
+                'url'            => $w['url'] ?? null,
+            ]];
+        }
+
+        // 2) AutoEuro — только если включено; список кэшируем.
+        if (!self::autoeuroEnabled()) return [];
+
+        $ck     = self::norm($oem) . '|' . mb_strtolower(trim($brand)) . '|offers';
+        $cached = self::cacheGet($ck);
+        if ($cached !== null) return $cached['found'] ? ($cached['data'] ?? []) : [];
+
+        $list = (new AutoEuroPriceProvider())->offersByOem($oem, $brand);
+        self::cacheSet($ck, $list ?: null);
+        return $list;
+    }
+
     private static function norm(string $s): string
     {
         return strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $s));

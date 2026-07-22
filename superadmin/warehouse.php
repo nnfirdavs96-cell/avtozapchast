@@ -28,6 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'autoeuro_brand_map',
             'autoeuro_rub_rate',
             'autoeuro_markup',
+            'autoeuro_khj_mode',     // 'sum' | 'percent' — режим надбавки Москва→Худжанд
+            'autoeuro_khj_value',    // значение надбавки (сумма в сомони или %)
+            'autoeuro_khj_days',     // срок Москва→Худжанд, дней
+            'autoeuro_offer_mode',   // 'A' (итог) | 'B' (разбивка) — показ срока
+            'autoeuro_offers_limit', // сколько вариантов показывать покупателю
         ];
         foreach ($fields as $key) {
             $val = trim($_POST[$key] ?? '');
@@ -43,6 +48,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $enabled = isset($_POST['autoeuro_enabled']) ? '1' : '0';
         $db->prepare("INSERT INTO site_settings (`key`, `value`) VALUES ('autoeuro_enabled', ?) ON DUPLICATE KEY UPDATE `value`=?, updated_at=NOW()")
            ->execute([$enabled, $enabled]);
+
+        // Тумблер надбавки за доставку Москва→Худжанд (в API AutoEuro доставки нет —
+        // это наша логистика поверх цены поставщика).
+        $khjOn = isset($_POST['autoeuro_khj_enabled']) ? '1' : '0';
+        $db->prepare("INSERT INTO site_settings (`key`, `value`) VALUES ('autoeuro_khj_enabled', ?) ON DUPLICATE KEY UPDATE `value`=?, updated_at=NOW()")
+           ->execute([$khjOn, $khjOn]);
 
         // Сбрасываем кэш цен: смена курса/наценки/ключа должна применяться сразу,
         // а не ждать истечения TTL (иначе на витрине останутся старые цены).
@@ -114,6 +125,13 @@ $brandMap    = getSetting('autoeuro_brand_map');
 $rubRate     = getSetting('autoeuro_rub_rate', '0.11');
 $aeMarkup    = getSetting('autoeuro_markup', '');
 $apiEnabled  = getSetting('autoeuro_enabled') === '1';
+// Доставка Москва→Худжанд + показ вариантов покупателю.
+$khjEnabled  = getSetting('autoeuro_khj_enabled', '0') === '1';
+$khjMode     = getSetting('autoeuro_khj_mode', 'sum');            // 'sum' | 'percent'
+$khjValue    = getSetting('autoeuro_khj_value', '');
+$khjDays     = getSetting('autoeuro_khj_days', '');
+$offerMode   = getSetting('autoeuro_offer_mode', 'A') === 'B' ? 'B' : 'A';
+$offersLimit = getSetting('autoeuro_offers_limit', '3');
 
 // Load log
 $logs = [];
@@ -210,6 +228,58 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                     Удобно ставить выше своей, т.к. в цену закупки у поставщика ещё
                     добавляются доставка и хлопоты.
                   </small>
+                </div>
+
+                <!-- ── Доставка Москва → Худжанд ─────────────────────────── -->
+                <div class="az-form-group" style="border-top:1px dashed #d9c8ee;padding-top:14px;margin-top:4px;">
+                  <div class="form-check mb-8">
+                    <input type="checkbox" name="autoeuro_khj_enabled" id="ae_khj_enabled"
+                           class="form-check-input" value="1" <?= $khjEnabled ? 'checked' : '' ?>>
+                    <label for="ae_khj_enabled" class="form-check-label"><b>Добавлять доставку Москва → Худжанд</b></label>
+                  </div>
+                  <small class="text-muted" style="display:block;margin-bottom:10px;">
+                    В цене AutoEuro заложена доставка только <b>до Москвы</b>. Доставку Москва→Худжанд
+                    (нашу логистику) добавляем сверху: надбавку к цене и дни к сроку. Покупателю
+                    показывается уже итог до Худжанда. Выключите, если заказчик возит сам.
+                  </small>
+
+                  <div class="row" style="margin:0 -6px;">
+                    <div class="col-6" style="padding:0 6px;">
+                      <label style="font-size:0.85rem;">Режим надбавки</label>
+                      <select name="autoeuro_khj_mode" class="form-control">
+                        <option value="sum"     <?= $khjMode !== 'percent' ? 'selected' : '' ?>>Сумма (сомони)</option>
+                        <option value="percent" <?= $khjMode === 'percent' ? 'selected' : '' ?>>Процент (%)</option>
+                      </select>
+                    </div>
+                    <div class="col-6" style="padding:0 6px;">
+                      <label style="font-size:0.85rem;">Значение</label>
+                      <input type="text" name="autoeuro_khj_value" class="form-control"
+                             value="<?= sanitize($khjValue) ?>" placeholder="напр. 150 или 10">
+                    </div>
+                  </div>
+                  <div class="row" style="margin:8px -6px 0;">
+                    <div class="col-6" style="padding:0 6px;">
+                      <label style="font-size:0.85rem;">Срок Москва→Худжанд, дней</label>
+                      <input type="text" name="autoeuro_khj_days" class="form-control"
+                             value="<?= sanitize($khjDays) ?>" placeholder="напр. 14">
+                    </div>
+                    <div class="col-6" style="padding:0 6px;">
+                      <label style="font-size:0.85rem;">Сколько вариантов показывать</label>
+                      <input type="text" name="autoeuro_offers_limit" class="form-control"
+                             value="<?= sanitize($offersLimit) ?>" placeholder="напр. 3">
+                    </div>
+                  </div>
+                  <div class="mt-8">
+                    <label style="font-size:0.85rem;">Показ срока покупателю</label>
+                    <select name="autoeuro_offer_mode" class="form-control">
+                      <option value="A" <?= $offerMode === 'A' ? 'selected' : '' ?>>A — только итог (напр. «до 05.10.2026»)</option>
+                      <option value="B" <?= $offerMode === 'B' ? 'selected' : '' ?>>B — с разбивкой (Москва + N дн → Худжанд)</option>
+                    </select>
+                    <small class="text-muted">
+                      Надбавка = про деньги, срок = про дни — это независимые настройки.
+                      Режим A/B меняет только текст срока, не цену.
+                    </small>
+                  </div>
                 </div>
 
                 <div class="az-form-group">

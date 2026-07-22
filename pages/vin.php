@@ -571,6 +571,17 @@ require_once dirname(__DIR__) . '/includes/header.php';
             .vin-stock{font-size:0.72rem;color:#9aa3af;text-align:center;}
             .vin-stock.ok{color:#2e9e44;}
             .vin-stock.preorder{color:#b9772a;font-weight:600;}
+            /* Выбор варианта доставки/срока (несколько предложений поставщика) */
+            .vin-offers{border-top:1px dashed #e7e9ee;margin-top:2px;padding-top:6px;}
+            .vin-offers-t{font-size:0.68rem;color:#9aa3af;text-align:center;margin-bottom:4px;}
+            .vin-offer{display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid #eceef2;border-radius:9px;margin-bottom:5px;cursor:pointer;transition:.12s;}
+            .vin-offer:hover{border-color:#d7dae0;background:#fafbfc;}
+            .vin-offer.sel{border-color:var(--vx-red,#C70909);background:#fff6f6;}
+            .vin-offer input{margin:0;flex:0 0 auto;accent-color:var(--vx-red,#C70909);}
+            .vin-offer-main{flex:1;min-width:0;}
+            .vin-offer-price{font-weight:800;font-size:0.9rem;color:#181a1f;line-height:1.1;}
+            .vin-offer-meta{font-size:0.66rem;color:#8a9099;margin-top:2px;}
+            .vin-offer.sel .vin-offer-meta{color:#b9772a;}
             .vin-cart{display:block;width:100%;background:var(--vx-ink,#181a1f);color:#fff;border:none;border-radius:9px;padding:11px;font-size:0.82rem;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;transition:.15s;}
             .vin-cart:hover{filter:brightness(1.2);color:#fff;}
             .vin-cart[disabled]{background:#ccc;cursor:not-allowed;}
@@ -1590,7 +1601,25 @@ function vinFmtDelivery(v){
     return s;
 }
 
-/* Ленивая подгрузка цен для деталей не со склада (свой склад → AutoEuro). */
+/* Текст срока для варианта. mode 'B' — с разбивкой (Москва + наши дни → Худжанд);
+   иначе 'A' — только итог до Худжанда. src — 'склад'/'поставщик'. */
+function vinOfferMeta(o, mode, src){
+    var state = o.in_stock ? 'в наличии' : 'под заказ';
+    var total = vinFmtDelivery(o.delivery_total);
+    var ae    = vinFmtDelivery(o.delivery_ae);
+    var days  = parseInt(o.delivery_days || 0, 10);
+    if (mode === 'B' && ae && days > 0) {
+        return state + ' · Москва ' + ae + ' + ' + days + ' дн → Худжанд' + (total ? ' ' + total : '');
+    }
+    var when = total || ae;
+    if (when) return state + (o.in_stock ? ' · до ' : ' · ожид. ') + when + ' · ' + src;
+    return state + ' · ' + src;
+}
+
+/* Ленивая подгрузка цен для деталей не со склада (свой склад → AutoEuro).
+   У поставщика на один артикул много предложений (разные склады) — показываем
+   лучший + компактный выбор вариантов «быстрее-дороже / дешевле-дольше». */
+var VIN_OFFER_SEQ = 0;
 function vinFillPrices(scope){
     var phs = (scope || document).querySelectorAll('.vin-price-ph');
     Array.prototype.forEach.call(phs, function(ph){
@@ -1602,27 +1631,60 @@ function vinFillPrices(scope){
             .then(function(r){ return r.json(); })
             .then(function(d){
                 if (!d || !d.found) return;
-                var inStock = (typeof d.stock === 'number' ? d.stock : parseInt(d.stock || 0, 10)) > 0;
-                var src = d.source === 'warehouse' ? 'склад' : 'поставщик';
-                // d.delivery: у AutoEuro это ДАТА (YYYY-MM-DD) — показываем «ДД.ММ.ГГГГ»;
-                // если число — трактуем как дни.
-                var dlvDate = vinFmtDelivery(d.delivery);
-                var label;
-                if (inStock) {
-                    label = 'в наличии · ' + src + (dlvDate ? ' · ' + dlvDate : '');
-                } else {
-                    label = 'под заказ' + (dlvDate ? ' · ожид. ' + dlvDate : '') + ' · ' + src;
-                }
-                ph.classList.remove('ph');
-                if (!inStock) ph.classList.add('preorder');   // янтарный вместо красного
-                // d.price — HTML из formatPrice() (содержит <span> валюты), вставляем как есть.
-                ph.innerHTML = d.price;
+                var mode = d.offer_mode === 'B' ? 'B' : 'A';
+                var src  = d.source === 'warehouse' ? 'склад' : 'поставщик';
+                // Совместимость: если сервер не прислал options — строим из плоских полей.
+                var options = (d.options && d.options.length) ? d.options : [{
+                    price: d.price, price_raw: d.price_raw,
+                    stock: d.stock, in_stock: (parseInt(d.stock || 0, 10) > 0),
+                    delivery_ae: null, delivery_days: 0, delivery_total: d.delivery, source: d.source
+                }];
                 var buy = ph.closest('.vin-pcard-buy');
-                if (buy) {
-                    var st = buy.querySelector('.vin-stock');
-                    if (st) { st.textContent = label; st.classList.add(inStock ? 'ok' : 'preorder'); }
-                } else {
-                    ph.innerHTML = d.price + ' <span style="font-size:0.66rem;color:' + (inStock ? '#2e9e44' : '#b9772a') + ';">' + label + '</span>';
+                var st  = buy ? buy.querySelector('.vin-stock') : null;
+
+                // Показ выбранного варианта в плашке цены + подпись срока.
+                function apply(o){
+                    ph.classList.remove('ph');
+                    ph.classList.toggle('preorder', !o.in_stock);   // янтарный вместо красного
+                    ph.innerHTML = o.price;                          // HTML из formatPrice() (span валюты)
+                    var meta = vinOfferMeta(o, mode, src);
+                    if (st) {
+                        st.textContent = meta;
+                        st.classList.toggle('ok', !!o.in_stock);
+                        st.classList.toggle('preorder', !o.in_stock);
+                    } else {
+                        ph.innerHTML = o.price + ' <span style="font-size:0.66rem;color:' +
+                            (o.in_stock ? '#2e9e44' : '#b9772a') + ';">' + meta + '</span>';
+                    }
+                }
+                apply(options[0]);
+
+                // Несколько вариантов и мы в карточке товара → рисуем выбор срока/цены.
+                if (buy && options.length > 1) {
+                    var grp = 'vinoff' + (++VIN_OFFER_SEQ);
+                    var box = document.createElement('div');
+                    box.className = 'vin-offers';
+                    var h = '<div class="vin-offers-t">Выберите вариант доставки:</div>';
+                    options.forEach(function(o, i){
+                        var meta = vinOfferMeta(o, mode, src);
+                        h += '<label class="vin-offer' + (i === 0 ? ' sel' : '') + '">' +
+                                '<input type="radio" name="' + grp + '" value="' + i + '"' + (i === 0 ? ' checked' : '') + '>' +
+                                '<span class="vin-offer-main">' +
+                                    '<span class="vin-offer-price">' + o.price + '</span>' +
+                                    '<span class="vin-offer-meta">' + meta + '</span>' +
+                                '</span>' +
+                             '</label>';
+                    });
+                    box.innerHTML = h;
+                    buy.appendChild(box);
+                    box.addEventListener('change', function(e){
+                        if (!e.target || e.target.type !== 'radio') return;
+                        var idx = parseInt(e.target.value, 10);
+                        Array.prototype.forEach.call(box.querySelectorAll('.vin-offer'), function(l, j){
+                            l.classList.toggle('sel', j === idx);
+                        });
+                        apply(options[idx]);
+                    });
                 }
             })
             .catch(function(){});
