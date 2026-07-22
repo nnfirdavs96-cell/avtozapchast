@@ -357,6 +357,7 @@ Cron: `*/5 * * * * php <APP_ROOT>/superadmin/catalog_library_cron.php`
 - **Laximo:** `catalog_laximo_login`, `catalog_laximo_secret`.
 - **Цены:** `catalog_price_autoeuro` (вкл. цены AutoEuro на витрине), `global_markup`.
 - **AutoEuro:** `autoeuro_enabled`, `autoeuro_api_key`, `autoeuro_delivery_key` (московский пункт — агрегирует склады), `autoeuro_payer_key` (для заказа), `autoeuro_rub_rate` (сомони/рубль, ~0.11), `autoeuro_markup` (наценка % на AutoEuro; пусто → `global_markup`), `autoeuro_brand_map` (маппинг брендов).
+- **AutoEuro — доставка Москва→Худжанд** (в API AutoEuro её нет — цена покрывает только склад→Москва): `autoeuro_khj_enabled` (тумблер надбавки), `autoeuro_khj_mode` (`sum`/`percent`), `autoeuro_khj_value` (сумма в сомони или %), `autoeuro_khj_days` (дни к сроку). Показ покупателю: `autoeuro_offer_mode` (`A` — только итог срока / `B` — с разбивкой), `autoeuro_offers_limit` (сколько вариантов показывать, деф. 3).
 - **VIN-декодер:** `vin_search_enabled`, `vin_api_provider`, `vin_api_url`, `vin_api_key`, `vin_api_timeout`.
 - **Auth/SMS:** `auth_email_enabled`, `sms_provider` (пусто = тест-режим, `osonsms` = боевая отправка), `sms_osonsms_login/hash/sender/server`, `phone_countries`.
 - **Онлайн-оплата:** `online_payment_enabled`, `online_discount_type`, `online_discount_value`, `online_free_shipping`.
@@ -387,7 +388,7 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 |---|---|---|---|
 | **Parts-Catalogs / Tradesoft** | OEM-каталог + визуальные схемы (боевой) | `PartsCatalogsAdapter.php` | `catalog_pc_key`; тариф — за VIN/сутки |
 | PartsAPI.ru | детали по VIN, кроссы | `catalog_api.php` | `catalog_api_key`; демо 50 req/сутки/IP |
-| AutoEuro | цены/наличие поставщика (боевой, на VIN) | `autoeuro.php`, `AutoEuroPriceProvider.php` | ключ+delivery_key+`catalog_price_autoeuro`; RUB→сомони по `autoeuro_rub_rate`; заказ (`create_order`) не подключён |
+| AutoEuro | цены/наличие поставщика (боевой, на VIN) | `autoeuro.php`, `AutoEuroPriceProvider.php` | ключ+delivery_key+`catalog_price_autoeuro`; RUB→сомони по `autoeuro_rub_rate`; `offersByOem()` — список вариантов с выбором срока + надбавка/дни Москва→Худжанд (`autoeuro_khj_*`); заказ (`create_order`) не подключён |
 | Laximo | оригинал (каркас) | `LaximoAdapter.php` | логин+секрет |
 | NHTSA | бесплатный VIN-декод | `vin_service.php` | без ключа |
 | SMS-шлюз | коды входа | `sendSms()` | ✅ OsonSMS (боевой); тест-режим — фолбэк без провайдера |
@@ -738,6 +739,7 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 - **#269–#279** (2026-07-19) — fix(autoeuro): `with_offers=1`, резолв бренд+код через `search_brands` (`searchItemsSmart`), выбор московского delivery_key (кнопка «Выбрать», чистка пробелов), RUB→сомони по курсу `autoeuro_rub_rate`, «под заказ»+дата при stock=0, разделитель тысяч — пробел
 - **#280** (2026-07-19) — feat(autoeuro): отдельная наценка `autoeuro_markup`
 - **#282–#283** (2026-07-19) — feat(contacts): телефон `+992 92 612-22-22`, авто-формат `formatPhone()`/`phoneTel()`
+- **#285** (2026-07-22) — feat(autoeuro): умный выбор предложения (наличие → дешёвое, иначе → быстрое под заказ), `offersByOem()` со списком вариантов; доставка Москва→Худжанд (`autoeuro_khj_*`: надбавка сумма/%, дни); выбор варианта покупателем + тумблер срока A/B (`autoeuro_offer_mode`, `autoeuro_offers_limit`)
 
 ---
 
