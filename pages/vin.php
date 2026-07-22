@@ -571,17 +571,59 @@ require_once dirname(__DIR__) . '/includes/header.php';
             .vin-stock{font-size:0.72rem;color:#9aa3af;text-align:center;}
             .vin-stock.ok{color:#2e9e44;}
             .vin-stock.preorder{color:#b9772a;font-weight:600;}
-            /* Выбор варианта доставки/срока (несколько предложений поставщика) */
-            .vin-offers{border-top:1px dashed #e7e9ee;margin-top:2px;padding-top:6px;}
-            .vin-offers-t{font-size:0.68rem;color:#9aa3af;text-align:center;margin-bottom:4px;}
-            .vin-offer{display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid #eceef2;border-radius:9px;margin-bottom:5px;cursor:pointer;transition:.12s;}
-            .vin-offer:hover{border-color:#d7dae0;background:#fafbfc;}
-            .vin-offer.sel{border-color:var(--vx-red,#C70909);background:#fff6f6;}
-            .vin-offer input{margin:0;flex:0 0 auto;accent-color:var(--vx-red,#C70909);}
-            .vin-offer-main{flex:1;min-width:0;}
-            .vin-offer-price{font-weight:800;font-size:0.9rem;color:#181a1f;line-height:1.1;}
-            .vin-offer-meta{font-size:0.66rem;color:#8a9099;margin-top:2px;}
-            .vin-offer.sel .vin-offer-meta{color:#b9772a;}
+            /* Карточка поставщика: цена «от …» + кнопка «Купить» */
+            .vin-buy{display:flex;flex-direction:column;gap:8px;}
+            .vin-buy .vin-from{font-size:0.62rem;font-weight:700;opacity:.85;vertical-align:2px;}
+            .vin-buy-btn i{margin-right:5px;}
+            .vin-buy-btn:not([disabled]){background:var(--vx-red,#C70909);}
+            .vin-buy-btn[disabled]{background:#e7e9ee;color:#9aa3af;cursor:default;}
+
+            /* Модалка выбора доставки (бланк заказа) */
+            .vin-dlv-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(17,19,23,.55);
+                backdrop-filter:blur(2px);align-items:flex-end;justify-content:center;padding:0;}
+            .vin-dlv-modal.open{display:flex;}
+            @media(min-width:560px){.vin-dlv-modal{align-items:center;padding:20px;}}
+            .vin-dlv-card{background:#fff;width:100%;max-width:460px;border-radius:18px 18px 0 0;
+                padding:20px 20px 22px;position:relative;max-height:92vh;overflow-y:auto;
+                box-shadow:0 -8px 40px rgba(0,0,0,.25);animation:vinDlvUp .22s ease;}
+            @media(min-width:560px){.vin-dlv-card{border-radius:18px;animation:vinDlvIn .18s ease;}}
+            @keyframes vinDlvUp{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
+            @keyframes vinDlvIn{from{transform:scale(.96);opacity:0}to{transform:none;opacity:1}}
+            .vin-dlv-x{position:absolute;top:12px;right:12px;width:32px;height:32px;border:none;border-radius:50%;
+                background:#f3f4f6;color:#6b7280;font-size:1.25rem;line-height:1;cursor:pointer;transition:.12s;}
+            .vin-dlv-x:hover{background:#e7e9ee;color:#181a1f;}
+            .vin-dlv-head{margin:2px 34px 14px 0;}
+            .vin-dlv-name{font-weight:800;font-size:1.05rem;color:#181a1f;line-height:1.25;}
+            .vin-dlv-sub{font-size:0.8rem;color:#9aa3af;margin-top:3px;}
+            .vin-dlv-label{font-size:0.74rem;text-transform:uppercase;letter-spacing:.5px;color:#9aa3af;font-weight:700;margin-bottom:8px;}
+            .vin-dlv-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+            .vin-dlv-opt{display:flex;align-items:flex-start;gap:11px;padding:12px 13px;border:1.5px solid #eceef2;
+                border-radius:12px;cursor:pointer;transition:.14s;}
+            .vin-dlv-opt:hover{border-color:#d7dae0;}
+            .vin-dlv-opt.sel{border-color:var(--vx-red,#C70909);background:#fff6f6;box-shadow:0 0 0 3px rgba(199,9,9,.06);}
+            .vin-dlv-radio{flex:0 0 auto;padding-top:2px;}
+            .vin-dlv-radio input{width:18px;height:18px;margin:0;accent-color:var(--vx-red,#C70909);cursor:pointer;}
+            .vin-dlv-body{flex:1;min-width:0;}
+            .vin-dlv-price{display:block;font-weight:800;font-size:1.05rem;color:#181a1f;line-height:1.15;}
+            .vin-dlv-meta{display:block;font-size:0.76rem;color:#8a9099;margin-top:3px;line-height:1.35;}
+            .vin-dlv-opt.sel .vin-dlv-meta{color:#b9772a;font-weight:600;}
+            .vin-dlv-row{margin-bottom:12px;}
+            .vin-dlv-qtywrap label,.vin-dlv-row>label{font-size:0.8rem;color:#6b7280;display:block;margin-bottom:4px;}
+            .vin-dlv-qty{width:90px;padding:9px 11px;border:1.5px solid #e7e9ee;border-radius:9px;font-size:0.9rem;font-weight:700;}
+            .vin-dlv-comment{width:100%;padding:9px 11px;border:1.5px solid #e7e9ee;border-radius:9px;font-size:0.85rem;
+                font-family:inherit;resize:vertical;}
+            .vin-dlv-qty:focus,.vin-dlv-comment:focus{outline:none;border-color:var(--vx-red,#C70909);}
+            .vin-dlv-note{font-size:0.72rem;color:#8a9099;background:#f8f9fb;border-radius:9px;padding:9px 11px;
+                margin-bottom:14px;line-height:1.45;}
+            .vin-dlv-note i{color:#b9772a;margin-right:4px;}
+            .vin-dlv-submit{display:block;width:100%;background:var(--vx-red,#C70909);color:#fff;border:none;border-radius:11px;
+                padding:14px;font-size:0.95rem;font-weight:800;cursor:pointer;transition:.15s;}
+            .vin-dlv-submit:hover{filter:brightness(1.08);}
+            .vin-dlv-submit[disabled]{opacity:.7;cursor:default;}
+            .vin-dlv-ok{background:#effaf1;color:#1f8a3b;border-radius:11px;padding:16px;font-size:0.9rem;text-align:center;line-height:1.5;}
+            .vin-dlv-ok i{font-size:1.4rem;display:block;margin-bottom:6px;}
+            .vin-dlv-ok a{color:#1f8a3b;font-weight:700;text-decoration:underline;}
+            .vin-dlv-err{background:#fdecec;color:#c0392b;border-radius:10px;padding:11px 13px;font-size:0.83rem;text-align:center;}
             .vin-cart{display:block;width:100%;background:var(--vx-ink,#181a1f);color:#fff;border:none;border-radius:9px;padding:11px;font-size:0.82rem;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;transition:.15s;}
             .vin-cart:hover{filter:brightness(1.2);color:#fff;}
             .vin-cart[disabled]{background:#ccc;cursor:not-allowed;}
@@ -910,6 +952,34 @@ require_once dirname(__DIR__) . '/includes/header.php';
 
 </div><!-- /.container -->
 </div><!-- /.vx -->
+
+<!-- ── Модалка выбора доставки (бланк заказа детали у поставщика) ─────────── -->
+<div id="vinDlvModal" class="vin-dlv-modal" onclick="if(event.target===this)vinCloseDelivery()">
+  <div class="vin-dlv-card">
+    <button type="button" class="vin-dlv-x" onclick="vinCloseDelivery()" aria-label="Закрыть">&times;</button>
+    <div class="vin-dlv-head">
+      <div class="vin-dlv-name">Деталь</div>
+      <div class="vin-dlv-sub"></div>
+    </div>
+    <div class="vin-dlv-form">
+      <div class="vin-dlv-label">Выберите вариант доставки</div>
+      <div class="vin-dlv-list"></div>
+      <div class="vin-dlv-row">
+        <div class="vin-dlv-qtywrap">
+          <label>Количество</label>
+          <input type="number" class="vin-dlv-qty" value="1" min="1" max="99" inputmode="numeric">
+        </div>
+      </div>
+      <div class="vin-dlv-row">
+        <label style="font-size:0.8rem;color:#6b7280;display:block;margin-bottom:4px;">Комментарий (необязательно)</label>
+        <textarea class="vin-dlv-comment" rows="2" placeholder="Адрес доставки, пожелания…"></textarea>
+      </div>
+      <div class="vin-dlv-note"><i class="fa fa-info-circle"></i> Это заявка менеджеру: он уточнит наличие у поставщика и свяжется с вами. Оплата — после подтверждения.</div>
+      <button type="button" class="vin-dlv-submit" onclick="vinSubmitDelivery()">Оформить заявку</button>
+    </div>
+    <div class="vin-dlv-msg"></div>
+  </div>
+</div>
 
 <meta name="csrf" content="<?= generateCsrfToken() ?>">
 <script>
@@ -1570,9 +1640,13 @@ function vinBuildPartsHtml(items){
                 html += '<div class="vin-stock' + (it.stock > 0 ? ' ok' : '') + '">' + (it.stock > 0 ? 'в наличии · доставка Худжанд' : 'под заказ') + '</div>';
                 html += '<button type="button" class="vin-cart" onclick="vinAddToCart(' + it.part_id + ',this)"' + (it.stock > 0 ? '' : ' disabled') + '>В корзину</button>';
             } else {
-                html += '<div class="vin-price ph vin-price-ph" data-oem="' + escapeHtml(it.part_number) + '" data-brand="' + escapeHtml(it.brand || '') + '">под заказ</div>';
-                html += '<div class="vin-stock">цена уточняется</div>';
-                html += '<a class="vin-cart ghost" href="<?= APP_URL ?>/search/index.php?q=' + encodeURIComponent(it.part_number) + '">Найти в каталоге</a>';
+                // Деталь у поставщика (не со склада): плашка-заглушка + кнопка «Купить».
+                // vinFillPrices() подставит цену «от …» и включит кнопку → модалка выбора доставки.
+                html += '<div class="vin-buy vin-price-ph" data-oem="' + escapeHtml(it.part_number) + '" data-brand="' + escapeHtml(it.brand || '') + '" data-name="' + escapeHtml(vinExpandAbbr(it.name) || '') + '">';
+                html +=   '<div class="vin-price ph vin-buy-price">цена…</div>';
+                html +=   '<div class="vin-stock vin-buy-stock">уточняется</div>';
+                html +=   '<button type="button" class="vin-cart vin-buy-btn" disabled><i class="fa fa-spinner fa-spin"></i> Загрузка</button>';
+                html += '</div>';
             }
             html += '<button type="button" class="vin-cross-btn" onclick="vinCrosses(\'' + jsAttr(it.part_number) + '\',\'' + jsAttr(it.brand) + '\',this,\'' + cid + '\')"><i class="fa fa-exchange"></i> аналоги по кроссам</button>';
             html += '</div></div><div class="vin-cross-box" id="cross-' + cid + '"></div></div>';
@@ -1601,9 +1675,14 @@ function vinFmtDelivery(v){
     return s;
 }
 
-/* Текст срока для варианта. mode 'B' — с разбивкой (Москва + наши дни → Худжанд);
-   иначе 'A' — только итог до Худжанда. src — 'склад'/'поставщик'. */
-function vinOfferMeta(o, mode, src){
+/* Короткая подпись срока (для карточки/строки кросса). */
+function vinOfferShort(o){
+    var when = vinFmtDelivery(o.delivery_total) || vinFmtDelivery(o.delivery_ae);
+    if (o.in_stock) return 'в наличии' + (when ? ' · до ' + when : '');
+    return 'под заказ' + (when ? ' · ожид. ' + when : '');
+}
+/* Полная подпись срока для строки в модалке. mode 'B' — с разбивкой. */
+function vinOfferFull(o, mode){
     var state = o.in_stock ? 'в наличии' : 'под заказ';
     var total = vinFmtDelivery(o.delivery_total);
     var ae    = vinFmtDelivery(o.delivery_ae);
@@ -1612,14 +1691,12 @@ function vinOfferMeta(o, mode, src){
         return state + ' · Москва ' + ae + ' + ' + days + ' дн → Худжанд' + (total ? ' ' + total : '');
     }
     var when = total || ae;
-    if (when) return state + (o.in_stock ? ' · до ' : ' · ожид. ') + when + ' · ' + src;
-    return state + ' · ' + src;
+    return when ? state + (o.in_stock ? ' · доставка до ' : ' · ожид. ') + when : state;
 }
 
 /* Ленивая подгрузка цен для деталей не со склада (свой склад → AutoEuro).
-   У поставщика на один артикул много предложений (разные склады) — показываем
-   лучший + компактный выбор вариантов «быстрее-дороже / дешевле-дольше». */
-var VIN_OFFER_SEQ = 0;
+   Карточка товара: показываем цену «от …» + кнопку «Купить», детали доставки —
+   в модалке (vinOpenDelivery). Строка кросса: просто лучшая цена. */
 function vinFillPrices(scope){
     var phs = (scope || document).querySelectorAll('.vin-price-ph');
     Array.prototype.forEach.call(phs, function(ph){
@@ -1627,69 +1704,141 @@ function vinFillPrices(scope){
         ph.setAttribute('data-done', '1');
         var oem = ph.getAttribute('data-oem') || '', brand = ph.getAttribute('data-brand') || '';
         if (!oem) return;
+        var isBuy = ph.classList.contains('vin-buy');
         fetch('<?= APP_URL ?>/api/vin_price.php?oem=' + encodeURIComponent(oem) + '&brand=' + encodeURIComponent(brand), { credentials:'same-origin' })
             .then(function(r){ return r.json(); })
             .then(function(d){
-                if (!d || !d.found) return;
+                if (!d || !d.found) {
+                    if (isBuy) {  // поставщик не дал цену — вернуть ссылку на каталог
+                        var btn0 = ph.querySelector('.vin-buy-btn');
+                        ph.querySelector('.vin-buy-price').textContent = 'нет цены';
+                        ph.querySelector('.vin-buy-stock').textContent = 'уточняется';
+                        if (btn0) { btn0.outerHTML = '<a class="vin-cart ghost" href="<?= APP_URL ?>/search/index.php?q=' + encodeURIComponent(oem) + '">Найти в каталоге</a>'; }
+                    }
+                    return;
+                }
                 var mode = d.offer_mode === 'B' ? 'B' : 'A';
-                var src  = d.source === 'warehouse' ? 'склад' : 'поставщик';
-                // Совместимость: если сервер не прислал options — строим из плоских полей.
                 var options = (d.options && d.options.length) ? d.options : [{
                     price: d.price, price_raw: d.price_raw,
                     stock: d.stock, in_stock: (parseInt(d.stock || 0, 10) > 0),
                     delivery_ae: null, delivery_days: 0, delivery_total: d.delivery, source: d.source
                 }];
-                var buy = ph.closest('.vin-pcard-buy');
-                var st  = buy ? buy.querySelector('.vin-stock') : null;
+                var best = options[0];
 
-                // Показ выбранного варианта в плашке цены + подпись срока.
-                function apply(o){
-                    ph.classList.remove('ph');
-                    ph.classList.toggle('preorder', !o.in_stock);   // янтарный вместо красного
-                    ph.innerHTML = o.price;                          // HTML из formatPrice() (span валюты)
-                    var meta = vinOfferMeta(o, mode, src);
-                    if (st) {
-                        st.textContent = meta;
-                        st.classList.toggle('ok', !!o.in_stock);
-                        st.classList.toggle('preorder', !o.in_stock);
-                    } else {
-                        ph.innerHTML = o.price + ' <span style="font-size:0.66rem;color:' +
-                            (o.in_stock ? '#2e9e44' : '#b9772a') + ';">' + meta + '</span>';
+                if (isBuy) {
+                    // Карточка: «от {цена}» + короткий статус + активная кнопка «Купить».
+                    var priceEl = ph.querySelector('.vin-buy-price');
+                    var stockEl = ph.querySelector('.vin-buy-stock');
+                    var btn     = ph.querySelector('.vin-buy-btn');
+                    priceEl.classList.remove('ph');
+                    priceEl.classList.toggle('preorder', !best.in_stock);
+                    priceEl.innerHTML = (options.length > 1 ? '<span class="vin-from">от</span> ' : '') + best.price;
+                    stockEl.textContent = vinOfferShort(best);
+                    stockEl.classList.toggle('ok', !!best.in_stock);
+                    stockEl.classList.toggle('preorder', !best.in_stock);
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa fa-shopping-cart"></i> Купить';
+                        // Данные для модалки — на элементе.
+                        ph._vinOffers = options; ph._vinMode = mode;
+                        ph._vinMeta = { oem: oem, brand: brand, name: ph.getAttribute('data-name') || '' };
+                        btn.addEventListener('click', function(){ vinOpenDelivery(ph); });
                     }
+                    return;
                 }
-                apply(options[0]);
 
-                // Несколько вариантов и мы в карточке товара → рисуем выбор срока/цены.
-                if (buy && options.length > 1) {
-                    var grp = 'vinoff' + (++VIN_OFFER_SEQ);
-                    var box = document.createElement('div');
-                    box.className = 'vin-offers';
-                    var h = '<div class="vin-offers-t">Выберите вариант доставки:</div>';
-                    options.forEach(function(o, i){
-                        var meta = vinOfferMeta(o, mode, src);
-                        h += '<label class="vin-offer' + (i === 0 ? ' sel' : '') + '">' +
-                                '<input type="radio" name="' + grp + '" value="' + i + '"' + (i === 0 ? ' checked' : '') + '>' +
-                                '<span class="vin-offer-main">' +
-                                    '<span class="vin-offer-price">' + o.price + '</span>' +
-                                    '<span class="vin-offer-meta">' + meta + '</span>' +
-                                '</span>' +
-                             '</label>';
-                    });
-                    box.innerHTML = h;
-                    buy.appendChild(box);
-                    box.addEventListener('change', function(e){
-                        if (!e.target || e.target.type !== 'radio') return;
-                        var idx = parseInt(e.target.value, 10);
-                        Array.prototype.forEach.call(box.querySelectorAll('.vin-offer'), function(l, j){
-                            l.classList.toggle('sel', j === idx);
-                        });
-                        apply(options[idx]);
-                    });
-                }
+                // Строка кросса (инлайн): просто лучшая цена + короткий статус.
+                ph.classList.remove('ph');
+                ph.innerHTML = best.price + ' <span style="font-size:0.66rem;color:' +
+                    (best.in_stock ? '#2e9e44' : '#b9772a') + ';">' + vinOfferShort(best) + '</span>';
             })
             .catch(function(){});
     });
 }
+
+/* ── Модалка выбора доставки (бланк заказа детали у поставщика) ─────────── */
+var VIN_DLV_SEL = 0;
+function vinOpenDelivery(ph){
+    var options = ph._vinOffers || [], mode = ph._vinMode || 'A', meta = ph._vinMeta || {};
+    if (!options.length) return;
+    VIN_DLV_SEL = 0;
+    var m = document.getElementById('vinDlvModal');
+    // Заголовок: название + бренд · артикул.
+    m.querySelector('.vin-dlv-name').textContent = meta.name || 'Деталь';
+    m.querySelector('.vin-dlv-sub').textContent  = (meta.brand ? meta.brand + ' · ' : '') + meta.oem;
+    // Варианты.
+    var list = m.querySelector('.vin-dlv-list'), h = '';
+    options.forEach(function(o, i){
+        h += '<label class="vin-dlv-opt' + (i === 0 ? ' sel' : '') + '" data-i="' + i + '">' +
+                '<span class="vin-dlv-radio"><input type="radio" name="vinDlv" value="' + i + '"' + (i === 0 ? ' checked' : '') + '></span>' +
+                '<span class="vin-dlv-body">' +
+                    '<span class="vin-dlv-price">' + o.price + '</span>' +
+                    '<span class="vin-dlv-meta">' + vinOfferFull(o, mode) + '</span>' +
+                '</span>' +
+             '</label>';
+    });
+    list.innerHTML = h;
+    list.onchange = function(e){
+        if (!e.target || e.target.type !== 'radio') return;
+        VIN_DLV_SEL = parseInt(e.target.value, 10);
+        Array.prototype.forEach.call(list.querySelectorAll('.vin-dlv-opt'), function(l, j){
+            l.classList.toggle('sel', j === VIN_DLV_SEL);
+        });
+    };
+    // Кол-во + комментарий сброс.
+    m.querySelector('.vin-dlv-qty').value = 1;
+    m.querySelector('.vin-dlv-comment').value = '';
+    m._vinPh = ph;
+    m.querySelector('.vin-dlv-form').style.display = '';   // восстановить после прошлой успешной заявки
+    m.querySelector('.vin-dlv-msg').textContent = '';
+    m.classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+function vinCloseDelivery(){
+    var m = document.getElementById('vinDlvModal');
+    m.classList.remove('open');
+    document.body.style.overflow = '';
+}
+function vinSubmitDelivery(){
+    var m = document.getElementById('vinDlvModal'), ph = m._vinPh; if (!ph) return;
+    var options = ph._vinOffers || [], meta = ph._vinMeta || {};
+    var o = options[VIN_DLV_SEL]; if (!o) return;
+    var qty = Math.max(1, Math.min(99, parseInt(m.querySelector('.vin-dlv-qty').value || 1, 10)));
+    var comment = m.querySelector('.vin-dlv-comment').value || '';
+    var btn = m.querySelector('.vin-dlv-submit'), orig = btn.innerHTML;
+    var csrf = document.querySelector('meta[name="csrf"]').getAttribute('content');
+    btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Отправка…';
+    fetch('<?= APP_URL ?>/api/vin_order_request.php', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            _csrf: csrf, oem: meta.oem, brand: meta.brand, name: meta.name, qty: qty,
+            price: o.price, price_raw: o.price_raw, delivery_total: o.delivery_total,
+            delivery_ae: o.delivery_ae, delivery_days: o.delivery_days,
+            in_stock: o.in_stock ? 1 : 0, comment: comment
+        })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        if (d.redirect) { window.location.href = d.redirect; return; }
+        btn.disabled = false; btn.innerHTML = orig;
+        var msg = m.querySelector('.vin-dlv-msg');
+        if (d.success) {
+            m.querySelector('.vin-dlv-form').style.display = 'none';
+            msg.innerHTML = '<div class="vin-dlv-ok"><i class="fa fa-check-circle"></i> ' + (d.message || 'Заявка отправлена.') +
+                (d.messages_url ? ' <a href="' + d.messages_url + '">Открыть переписку</a>' : '') + '</div>';
+        } else {
+            msg.innerHTML = '<div class="vin-dlv-err">' + (d.message || 'Не удалось отправить заявку.') + '</div>';
+        }
+    })
+    .catch(function(){ btn.disabled = false; btn.innerHTML = orig; m.querySelector('.vin-dlv-msg').innerHTML = '<div class="vin-dlv-err">Ошибка сети.</div>'; });
+}
+document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') {
+        var m = document.getElementById('vinDlvModal');
+        if (m && m.classList.contains('open')) vinCloseDelivery();
+    }
+});
 function vinCrosses(article, brand, btn, cid){
     var box = document.getElementById('cross-' + cid); if (!box) return;
     if (box.getAttribute('data-open')) { box.innerHTML = ''; box.removeAttribute('data-open'); btn.classList.remove('on'); return; }

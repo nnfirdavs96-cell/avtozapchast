@@ -739,6 +739,7 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 - **#269–#279** (2026-07-19) — fix(autoeuro): `with_offers=1`, резолв бренд+код через `search_brands` (`searchItemsSmart`), выбор московского delivery_key (кнопка «Выбрать», чистка пробелов), RUB→сомони по курсу `autoeuro_rub_rate`, «под заказ»+дата при stock=0, разделитель тысяч — пробел
 - **#280** (2026-07-19) — feat(autoeuro): отдельная наценка `autoeuro_markup`
 - **#282–#283** (2026-07-19) — feat(contacts): телефон `+992 92 612-22-22`, авто-формат `formatPhone()`/`phoneTel()`
+- **#286** (2026-07-22) — feat(ui): кнопка «Купить» + модалка выбора доставки (бланк) на VIN; `api/vin_order_request.php` — заявка менеджеру через `messages` (вход обязателен)
 - **#285** (2026-07-22) — feat(autoeuro): умный выбор предложения (наличие → дешёвое, иначе → быстрое под заказ), `offersByOem()` со списком вариантов; доставка Москва→Худжанд (`autoeuro_khj_*`: надбавка сумма/%, дни); выбор варианта покупателем + тумблер срока A/B (`autoeuro_offer_mode`, `autoeuro_offers_limit`)
 
 ---
