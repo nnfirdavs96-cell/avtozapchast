@@ -571,9 +571,8 @@ require_once dirname(__DIR__) . '/includes/header.php';
             .vin-stock{font-size:0.72rem;color:#9aa3af;text-align:center;}
             .vin-stock.ok{color:#2e9e44;}
             .vin-stock.preorder{color:#b9772a;font-weight:600;}
-            /* Карточка поставщика: цена «от …» + кнопка «Купить» */
+            /* Карточка поставщика: только кнопка «Купить» (цены — в модалке) */
             .vin-buy{display:flex;flex-direction:column;gap:8px;}
-            .vin-buy .vin-from{font-size:0.62rem;font-weight:700;opacity:.85;vertical-align:2px;}
             .vin-buy-btn i{margin-right:5px;}
             .vin-buy-btn:not([disabled]){background:var(--vx-red,#C70909);}
             .vin-buy-btn[disabled]{background:#e7e9ee;color:#9aa3af;cursor:default;}
@@ -1640,11 +1639,9 @@ function vinBuildPartsHtml(items){
                 html += '<div class="vin-stock' + (it.stock > 0 ? ' ok' : '') + '">' + (it.stock > 0 ? 'в наличии · доставка Худжанд' : 'под заказ') + '</div>';
                 html += '<button type="button" class="vin-cart" onclick="vinAddToCart(' + it.part_id + ',this)"' + (it.stock > 0 ? '' : ' disabled') + '>В корзину</button>';
             } else {
-                // Деталь у поставщика (не со склада): плашка-заглушка + кнопка «Купить».
-                // vinFillPrices() подставит цену «от …» и включит кнопку → модалка выбора доставки.
+                // Деталь у поставщика (не со склада): только кнопка «Купить».
+                // vinFillPrices() загрузит варианты и включит кнопку → модалка выбора доставки (там и цены).
                 html += '<div class="vin-buy vin-price-ph" data-oem="' + escapeHtml(it.part_number) + '" data-brand="' + escapeHtml(it.brand || '') + '" data-name="' + escapeHtml(vinExpandAbbr(it.name) || '') + '">';
-                html +=   '<div class="vin-price ph vin-buy-price">цена…</div>';
-                html +=   '<div class="vin-stock vin-buy-stock">уточняется</div>';
                 html +=   '<button type="button" class="vin-cart vin-buy-btn" disabled><i class="fa fa-spinner fa-spin"></i> Загрузка</button>';
                 html += '</div>';
             }
@@ -1711,8 +1708,6 @@ function vinFillPrices(scope){
                 if (!d || !d.found) {
                     if (isBuy) {  // поставщик не дал цену — вернуть ссылку на каталог
                         var btn0 = ph.querySelector('.vin-buy-btn');
-                        ph.querySelector('.vin-buy-price').textContent = 'нет цены';
-                        ph.querySelector('.vin-buy-stock').textContent = 'уточняется';
                         if (btn0) { btn0.outerHTML = '<a class="vin-cart ghost" href="<?= APP_URL ?>/search/index.php?q=' + encodeURIComponent(oem) + '">Найти в каталоге</a>'; }
                     }
                     return;
@@ -1726,16 +1721,8 @@ function vinFillPrices(scope){
                 var best = options[0];
 
                 if (isBuy) {
-                    // Карточка: «от {цена}» + короткий статус + активная кнопка «Купить».
-                    var priceEl = ph.querySelector('.vin-buy-price');
-                    var stockEl = ph.querySelector('.vin-buy-stock');
-                    var btn     = ph.querySelector('.vin-buy-btn');
-                    priceEl.classList.remove('ph');
-                    priceEl.classList.toggle('preorder', !best.in_stock);
-                    priceEl.innerHTML = (options.length > 1 ? '<span class="vin-from">от</span> ' : '') + best.price;
-                    stockEl.textContent = vinOfferShort(best);
-                    stockEl.classList.toggle('ok', !!best.in_stock);
-                    stockEl.classList.toggle('preorder', !best.in_stock);
+                    // Карточка: только активная кнопка «Купить» (цены — в модалке).
+                    var btn = ph.querySelector('.vin-buy-btn');
                     if (btn) {
                         btn.disabled = false;
                         btn.innerHTML = '<i class="fa fa-shopping-cart"></i> Купить';
