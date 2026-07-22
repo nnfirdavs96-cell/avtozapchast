@@ -43,7 +43,8 @@
 | `vin_service.php` | класс `VinService` — декодер VIN (NHTSA / PartsAPI / локальная WMI-база), совместимость, аналоги, история |
 | `catalog.php` | 1 строка: подключает `catalog/Manager.php` → фасад `Catalog::` |
 | `catalog_api.php` | класс `CatalogApi` — боевой PartsAPI (getPartsbyVIN, getCrosses) + публичная `enrichItemsFromWarehouse()` (обогащение складом для ВСЕХ адаптеров) |
-| `autoeuro.php` | класс `AutoEuro` — клиент поставщика (баланс, склады, поиск, заказ) |
+| `autoeuro.php` | класс `AutoEuro` — клиент поставщика (баланс, склады, `searchItems`/`searchItemsSmart`, заказ, `debugRaw`) |
+| `messaging.php` | чат покупатель ↔ менеджер (таблица `messages`, ветки поддержки/по заказам, автосообщения) |
 | `partsapi_cats.php` | константы `PARTSAPI_CATS` (751 товарная группа id→название), `PARTSAPI_POPULAR` |
 | `header.php` / `footer.php` | витринная шапка (меню, мини-корзина, поиск, языки/валюта) / подвал |
 | `admin-header.php` / `admin-footer.php` | единый макет админки; сайдбар по ролям `renderRoleSidebar()` |
@@ -99,6 +100,7 @@
 | `orders.php` | список/детали заказов, отмена покупателем |
 | `profile.php` | профиль (имя/адрес/телефон) |
 | `wishlist.php` | избранное |
+| `messages.php` | переписка с менеджером: поддержка + ветки по заказам (§ чат) |
 | `index.php` | дашборд покупателя |
 
 ### 3.7 `auth/`
@@ -110,7 +112,8 @@
 
 ### 3.8 `admin/` (роль admin) — товары и оформление витрины
 `index.php` (дашборд+выручка), `products.php` (товары+фото+цены+наценка),
-`orders.php` (заказы+статусы), `users.php`, `sliders.php` (слайдер: блочный
+`orders.php` (заказы+статусы+автосообщения+«заявка поставщику»), `users.php`,
+`messages.php` (входящие переписки покупателей), `sliders.php` (слайдер: блочный
 текст-редактор с live-preview, 9 позиций текста, шрифты), `banners.php` (баннеры + placement).
 
 ### 3.9 `manager/` (роль manager) — контент
@@ -183,7 +186,13 @@
 `getCartCount()`, `getMiniCart()`, `getMiniCartTotal()` (все — через cart_lib, работают у гостя), `getWishlistCount()`.
 
 ### Заказы
-`getOrderStatusLabel/Class(status)`, `formatShippingAddress(json)`.
+`getOrderStatusLabel/Class(status)`, `formatShippingAddress(json)`. Смена статуса в `admin/orders.php` шлёт покупателю автосообщение в переписку заказа (подтверждён/отправлен/доставлен/отменён).
+
+### Чат покупатель ↔ менеджер (`includes/messaging.php`)
+Таблица `messages`; ветка = пара (`user_id`, `order_id`): `order_id IS NULL` — общая поддержка, число — переписка по заказу. Отправитель `customer`/`staff`/`system`. Функции: `postMessage`/`postSystemMessage`, `getThreadMessages`, `getCustomerThreads`/`getStaffThreads`, `markThreadRead`, `customerUnreadCount`/`staffUnreadCount`. UI: `buyer/messages.php`, `admin/messages.php`; значок непрочитанного в обоих меню. Автосообщения: «чек» при оформлении (`checkout.php`) и статусы заказа. Вся логика в try/catch — при недоступности БД страница не падает.
+
+### Телефон (показ)
+`formatPhone($raw)` → «+992 XX XXX-XX-XX» из любого ввода; `phoneTel($raw)` → цифры для `tel:`. Номер магазина — настройка `site_phone`.
 
 ### Телефонная авторизация / SMS
 | Функция | Что делает |
@@ -351,7 +360,7 @@ PartsAPI.ru: `getPartsbyVIN(vin, type, cat)` — перебор товарных
 |------|--------|
 | `PriceProvider.php` | интерфейс `priceByOem(oem, brand): ?['price'(RUB),'stock','source','delivery','part_id','url']` |
 | `WarehousePriceProvider.php` | свой склад: нормализованное совпадение `part_number` (без регистра/разделителей) в `parts`, отдаёт цену/сток/ссылку на товар |
-| `AutoEuroPriceProvider.php` | AutoEuro `searchItems(brand, oem)`: самое дешёвое предложение с ТОЧНЫМ совпадением кода + наценка `global_markup`; отдаёт `delivery_time` |
+| `AutoEuroPriceProvider.php` | AutoEuro `searchItemsSmart(brand, oem)`: сперва `search_brands` (резолвит каноничные бренд+код — AutoEuro хранит код в своём формате, напр. с пробелами), затем `search_items` с `with_offers=1` (иначе цен нет). Берёт самое дешёвое предложение с ТОЧНЫМ совпадением кода. Цена в РУБЛЯХ → ×`autoeuro_rub_rate` (сомони/рубль) → ×(1+наценка). Наценка: `autoeuro_markup` если задана, иначе `global_markup`. Маппинг брендов `autoeuro_brand_map`; несовпадения в лог `autoeuro_price_miss`. Отдаёт `stock`/`delivery_time` (дата) |
 | `PriceAggregator.php` | склад (без кэша, живой сток) → если пусто и `catalog_price_autoeuro=1` → AutoEuro (кэш `catalog_price_cache`: найдено 6ч / «не найдено» 1ч) |
 
 ---
@@ -469,7 +478,7 @@ c `#vinSchemeImg`+`#vinSchemeHot`, статус `#vinCatalogStatus`, детал�
 `catalog_price_autoeuro` ('1' — фолбэк цен из AutoEuro), `global_markup` (% наценки по умолчанию).
 
 ### AutoEuro
-`autoeuro_enabled`, `autoeuro_api_key`, `autoeuro_delivery_key`, `autoeuro_payer_key`.
+`autoeuro_enabled`, `autoeuro_api_key`, `autoeuro_delivery_key` (пункт получения — брать московский, он агрегирует все склады), `autoeuro_payer_key` (только для заказа), `autoeuro_rub_rate` (сомони за 1 рубль, по умолч. 0.11), `autoeuro_markup` (наценка % на товары AutoEuro; пусто → `global_markup`), `autoeuro_brand_map` (строки «ИСХОДНЫЙ = Замена» при расхождении названий брендов). Включение цен на витрине — `catalog_price_autoeuro` (стр. VIN-настроек).
 
 ### VIN-декодер
 `vin_search_enabled`, `vin_api_provider` (nhtsa|partsapi|custom), `vin_api_url`
@@ -523,6 +532,8 @@ c `#vinSchemeImg`+`#vinSchemeHot`, статус `#vinCatalogStatus`, детал�
 | `banners` | (сидер) баннеры с placement |
 | `user_permissions` | migrate_permissions (персональные разделы) |
 | `login_attempts` | рантайм (троттлинг входа) |
+| `messages` | рантайм (чат покупатель↔менеджер: user_id, order_id, sender, body, read-флаги) |
+| `warehouse_api_log` | лог тестов AutoEuro + `autoeuro_price_miss` (несовпадения цен) |
 
 ### Рантайм-кэши (создаются кодом, `CREATE TABLE IF NOT EXISTS`)
 | Таблица | Кто пишет | Ключи |
@@ -560,7 +571,7 @@ users, categories, brands, blog, pages, reviews, vin, settings, …) →
 | PartsAPI.ru | данные (детали по VIN, кроссы 428 млн) | `catalog_api.php` | `catalog_api_key`+`vin_api_key`; демо 50 req/сутки/IP (`error_code 5000`) |
 | Laximo | оригинал (каркас) | `LaximoAdapter.php` | логин+секрет |
 | NHTSA | бесплатный VIN-декод (US) | `vin_service.php` | без ключа |
-| AutoEuro | цены/наличие/заказ поставщика | `autoeuro.php` | `autoeuro_api_key` (+delivery/payer key) |
+| AutoEuro | цены/наличие поставщика (боевой, на витрине VIN) | `autoeuro.php`, `AutoEuroPriceProvider.php` | `autoeuro_api_key`+delivery_key+`catalog_price_autoeuro`; заказ (`create_order`) — не подключён |
 | SMS | коды входа | `sendSms()` | боевой шлюз **OsonSMS** (`sms_provider=osonsms`); пусто = ТЕСТ-режим (лог) |
 
 ---
@@ -602,6 +613,7 @@ users, categories, brands, blog, pages, reviews, vin, settings, …) →
 
 ## 14. Известные ограничения / «остаётся»
 - SMS — боевой шлюз OsonSMS подключён (`sendSms()`→`osonSmsSend()`); тест-режим (лог) остаётся, если провайдер не выбран в настройках.
+- **AutoEuro — цены на витрине работают** (`catalog_price_autoeuro=1`, ключ+delivery_key+курс). Не подключено: **автозаказ** у поставщика (`create_order`) — денежная ветка, под явным решением; сейчас закупка — вручную через «Заявку поставщику» на карточке заказа. Владелец держит актуальными `autoeuro_rub_rate` (курс рубля) и `autoeuro_markup` (наценка).
 - Онлайн-оплата фиксирует способ и скидку; реальный платёжный шлюз — отдельная интеграция.
 - Laximo — каркас (ssd-выдача деталей достраивается на боевом аккаунте).
 - У OEM-каталогов НЕТ фото отдельных деталей (только взрыв-схема) — это свойство данных, на карточке показывается кликабельный номер-выноска.
