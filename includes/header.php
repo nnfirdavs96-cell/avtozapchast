@@ -240,7 +240,7 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
                     </div>
                     <div class="col-lg-10 col-md-6 col-sm-6 col-6">
                         <div class="header_right_box">
-                            <div class="search_container">
+                            <div class="search_container has_vin">
                                 <form action="<?= APP_URL ?>/search/index.php" method="GET">
                                     <div class="hover_category">
                                         <select class="select_option" name="cat">
@@ -254,6 +254,11 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
                                         <input name="q" placeholder="<?= t('search_placeholder') ?>" type="text" value="<?= sanitize($_GET['q'] ?? '') ?>">
                                         <button type="submit"><?= t('search') ?></button>
                                     </div>
+                                </form>
+                                <!-- Отдельный поиск по VIN-коду -->
+                                <form action="<?= APP_URL ?>/pages/vin.php" method="GET" class="vin_search_form">
+                                    <input name="vin" type="text" maxlength="17" placeholder="VIN — 17 символов" value="<?= sanitize($_GET['vin'] ?? '') ?>">
+                                    <button type="submit"><i class="fa fa-search"></i> VIN</button>
                                 </form>
                             </div>
                             <div class="header_configure_area">
@@ -495,6 +500,18 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
                             </div>
                         </div>
                     </div>
+                </div>
+                <!-- Прилипающий поиск: появляется, когда шапка «прилипла» при прокрутке
+                     (.sticky ставит тема). Два поля: запчасти + отдельный VIN. -->
+                <div class="sticky_search">
+                    <form action="<?= APP_URL ?>/search/index.php" method="GET" class="ss_form ss_parts">
+                        <input name="q" type="text" placeholder="<?= t('search_placeholder') ?>" value="<?= sanitize($_GET['q'] ?? '') ?>">
+                        <button type="submit" aria-label="<?= t('search') ?>"><i class="fa fa-search"></i></button>
+                    </form>
+                    <form action="<?= APP_URL ?>/pages/vin.php" method="GET" class="ss_form ss_vin">
+                        <input name="vin" type="text" maxlength="17" placeholder="VIN — 17 символов" value="<?= sanitize($_GET['vin'] ?? '') ?>">
+                        <button type="submit">VIN</button>
+                    </form>
                 </div>
             </div>
         </div>
