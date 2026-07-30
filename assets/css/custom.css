@@ -2395,3 +2395,52 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     }
     .slider_content { max-width: 82% !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Двойной поиск (запчасти + VIN) и прилипающий поиск при прокрутке
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Верхняя шапка: рядом с обычным поиском — отдельное поле VIN.
+   Ширину задаём явно (тема давала форме фикс. 830px) — иначе flex-поле схлопнется. */
+.search_container.has_vin { display: flex; gap: 12px; align-items: stretch; width: 860px; }
+@media (min-width: 1200px) and (max-width: 1600px) { .search_container.has_vin { width: 720px; } }
+@media (min-width: 992px)  and (max-width: 1199px) { .search_container.has_vin { width: 540px; } }
+.search_container.has_vin > form { width: auto; }               /* перебиваем фикс. 830px темы */
+.search_container.has_vin > form:first-child { flex: 1 1 auto; min-width: 0; }
+.vin_search_form {
+    display: flex; flex: 0 0 220px; background: #fff; border-radius: 5px; overflow: hidden;
+}
+.vin_search_form input {
+    flex: 1; min-width: 0; border: 0; height: 100%; padding: 0 14px; font-size: .84rem;
+    text-transform: uppercase; letter-spacing: 1px; outline: none; font-family: monospace;
+}
+.vin_search_form button {
+    border: 0; background: #C70909; color: #fff; padding: 0 15px; font-weight: 700;
+    font-size: .8rem; cursor: pointer; white-space: nowrap; transition: .15s;
+}
+.vin_search_form button:hover { background: #A00707; }
+@media (min-width: 992px) and (max-width: 1199px) {
+    .vin_search_form { flex: 0 0 170px; }
+}
+
+/* Прилипающий поиск: скрыт, показывается только когда шапка «прилипла». */
+.sticky_search { display: none; }
+.sticky-header.sticky .sticky_search {
+    display: flex; gap: 10px; align-items: stretch; padding: 9px 0 5px;
+}
+.sticky_search .ss_form { display: flex; background: #fff; border-radius: 6px; overflow: hidden; }
+.sticky_search .ss_parts { flex: 1 1 auto; min-width: 0; }
+.sticky_search .ss_vin  { flex: 0 0 250px; }
+.sticky_search input {
+    flex: 1; min-width: 0; border: 0; height: 42px; padding: 0 14px; font-size: .88rem; outline: none;
+}
+.sticky_search .ss_vin input { text-transform: uppercase; letter-spacing: 1px; font-family: monospace; font-size: .82rem; }
+.sticky_search button {
+    border: 0; background: #C70909; color: #fff; padding: 0 18px; cursor: pointer;
+    font-weight: 700; font-size: .85rem; white-space: nowrap; transition: .15s;
+}
+.sticky_search button:hover { background: #A00707; }
+@media (max-width: 991px) {
+    .sticky_search .ss_vin { flex: 0 0 130px; }
+    .sticky_search input { height: 38px; }
+}
