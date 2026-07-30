@@ -1022,8 +1022,20 @@ class PartsCatalogsAdapter implements CatalogProvider
             $n   = count($j);
             $msg = 'Parts-Catalogs: соединение работает, получено каталогов: ' . $n . '.';
             if (strlen(trim($vin)) === 17) {
-                $car  = $this->vinToCar($vin);
-                $msg .= $car ? ' VIN распознан — авто найдено.' : ' Но этот VIN ключом не распознан.';
+                $car = $this->vinToCar($vin);
+                if ($car) {
+                    $msg .= ' VIN распознан — авто найдено'
+                          . (!empty($car['brand']) ? ' (' . $car['brand'] . ')' : '') . '.';
+                } else {
+                    $msg .= ' Но этот VIN ключом не распознан.';
+                    // Показываем сырой ответ ИМЕННО от декодинга VIN (v1/car/info/) —
+                    // по нему видно, почему: пустой список (нет в базе), ошибка прав
+                    // тарифа, и т.п. Иначе фрагмент ниже показывал бы список каталогов.
+                    [$cj, $cst, $cerr, $craw] = $this->get('v1/car/info/', ['q' => trim($vin)]);
+                    $sample = 'GET v1/car/info/?q=' . trim($vin) . '  (HTTP ' . $cst . ')'
+                            . ($cerr !== '' ? '  ошибка: ' . $cerr : '')
+                            . "\n" . mb_substr((string)$craw, 0, 800);
+                }
             }
             return ['ok' => true, 'count' => $n, 'sample' => $sample, 'message' => $msg];
         }
