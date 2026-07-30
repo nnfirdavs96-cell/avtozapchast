@@ -741,7 +741,10 @@ class PartsCatalogsAdapter implements CatalogProvider
         if (!$this->enabled()) return [];
         $ck = 'brands:' . $this->lang();
         $c  = $this->kvGet($ck, self::TTL_CATS);
-        if ($c !== null) return $c['items'] ?? [];
+        // Пустой кэш считаем промахом: список брендов не бывает легитимно пустым при
+        // рабочем каталоге, а закэшированная пустота (напр. до активации ключа) иначе
+        // «залипла» бы на 30 дней и каскад «По параметрам» оставался бы пустым.
+        if ($c !== null && !empty($c['items'])) return $c['items'];
         [$j] = $this->get('v1/catalogs/');
         $out = [];
         foreach ((is_array($j) ? $j : []) as $b) {
@@ -750,7 +753,7 @@ class PartsCatalogsAdapter implements CatalogProvider
             if ($id === '') continue;
             $out[] = ['id' => $id, 'name' => $nm !== '' ? $nm : $id];
         }
-        $this->kvSet($ck, ['count' => count($out), 'items' => $out]);
+        if ($out) $this->kvSet($ck, ['count' => count($out), 'items' => $out]); // пустое не кэшируем
         return $out;
     }
 
@@ -760,7 +763,7 @@ class PartsCatalogsAdapter implements CatalogProvider
         if (!$this->enabled() || $catalogId === '') return [];
         $ck = 'models:' . $this->lang() . ':' . $catalogId;
         $c  = $this->kvGet($ck, self::TTL_CATS);
-        if ($c !== null) return $c['items'] ?? [];
+        if ($c !== null && !empty($c['items'])) return $c['items']; // пустое = промах (см. pcBrands)
         [$j] = $this->get('v1/catalogs/' . rawurlencode($catalogId) . '/models');
         $out = [];
         foreach ((is_array($j) ? $j : []) as $m) {
@@ -769,7 +772,7 @@ class PartsCatalogsAdapter implements CatalogProvider
             if ($id === '') continue;
             $out[] = ['id' => $id, 'name' => $nm !== '' ? $nm : $id, 'img' => (string)($m['img'] ?? '')];
         }
-        $this->kvSet($ck, ['count' => count($out), 'items' => $out]);
+        if ($out) $this->kvSet($ck, ['count' => count($out), 'items' => $out]); // пустое не кэшируем
         return $out;
     }
 
