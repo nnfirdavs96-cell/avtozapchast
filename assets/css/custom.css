@@ -2588,3 +2588,56 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     .slider_section.mb-80,
     .banner_area.mb-80 { margin-bottom: 16px !important; }
 }
+
+/* ── Мобильная шапка: единый стиль иконок и компактный логотип ────────────
+   Было вразнобой: у бургера рамка, у входа — ничего, у избранного и корзины —
+   сплошные красные квадраты (тема: .header_wishlist a{background:#C70909}).
+   Приводим все четыре к одному виду: прозрачный квадрат с тонкой рамкой,
+   белая иконка, красный бейдж-счётчик. */
+@media (max-width: 991px) {
+    .header_middle .mobile_menu_trigger a,
+    .header_middle .header_auth_mobile .auth-link-mobile,
+    .header_middle .header_wishlist a,
+    .header_middle .mini_cart_wrapper > a {
+        width: 42px !important;
+        height: 42px !important;
+        min-width: 42px;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        background: transparent !important;
+        color: #fff !important;
+        border: 1px solid rgba(255,255,255,.22) !important;
+        border-radius: 9px !important;
+        font-size: 1.25rem;
+        text-decoration: none;
+        transition: background .18s, border-color .18s;
+    }
+    .header_middle .mobile_menu_trigger a:active,
+    .header_middle .header_auth_mobile .auth-link-mobile:active,
+    .header_middle .header_wishlist a:active,
+    .header_middle .mini_cart_wrapper > a:active {
+        background: rgba(255,255,255,.14) !important;
+        border-color: rgba(255,255,255,.4) !important;
+    }
+    /* Ровные промежутки между иконками */
+    .header_middle .header_configure_area { gap: 8px !important; }
+    .header_middle .header_auth_mobile { margin-right: 0 !important; }
+
+    /* Счётчики — компактные красные бейджи в углу */
+    .header_middle .cart_count,
+    .header_middle .wishlist_count {
+        top: -6px !important; right: -6px !important;
+        background: #C70909 !important; color: #fff !important;
+        min-width: 19px; height: 19px; line-height: 19px;
+        font-size: .66rem; font-weight: 700;
+        border: 2px solid #1a1a1a;      /* отбивка от тёмной шапки */
+        border-radius: 50%; padding: 0;
+        left: auto !important;
+    }
+    /* Логотип компактнее — чтобы шапка не занимала пол-экрана */
+    .logo .logo-img { height: 38px !important; width: auto; }
+}
+@media (max-width: 767px) {
+    .logo .logo-img { height: 34px !important; }
+}
