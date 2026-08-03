@@ -2890,3 +2890,48 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
         max-height: 46px !important;
     }
 }
+
+/* ── Крупная промо-карточка «Товары со скидкой» ──────────────────────────
+   У неё своя раскладка: фото слева, текст справа. Раньше стили были inline
+   (flex-wrap:wrap), и вместе с общим правилом карточек (flex-direction:column)
+   получалась колонка С ПЕРЕНОСОМ — содержимое раскладывалось в несколько
+   колонок, вылезало за правый край и оставляло большую пустоту по вертикали.
+   Теперь раскладка задана здесь и общие правила карточек к ней не применяются. */
+.promo_deal {
+    border: 1px solid #eee; border-radius: 8px; padding: 20px;
+    height: 100%;
+    display: flex !important;
+    flex-direction: row !important;      /* перебиваем общее правило карточек */
+    flex-wrap: nowrap !important;
+    align-items: center;
+    gap: 18px;
+    overflow: hidden;                    /* ничего не вылезает наружу */
+}
+.promo_deal > .product_thumb {
+    position: relative;
+    flex: 0 0 42%; max-width: 42%; min-width: 0;
+}
+.promo_deal > .product_content {
+    flex: 1 1 auto; min-width: 0;        /* min-width:0 — иначе текст распирает карточку */
+    padding: 0; display: block;
+}
+.promo_deal .product_name,
+.promo_deal .price_box { min-height: 0; }          /* резервы обычных карточек тут не нужны */
+.promo_deal .product_desc { margin: 10px 0 14px; }
+.promo_deal .action_links { margin-top: 0; }
+.promo_deal .action_links ul { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.promo_deal .action_links .add_to_cart a { white-space: nowrap; }
+
+/* Телефон: фото сверху, текст под ним — в ряд уже не помещается */
+@media (max-width: 767px) {
+    .promo_deal {
+        flex-direction: column !important;
+        align-items: stretch;
+        gap: 14px; padding: 16px;
+    }
+    .promo_deal > .product_thumb { flex: 0 0 auto; max-width: 100%; text-align: center; }
+    .promo_deal > .product_thumb img { max-width: 220px; margin: 0 auto; }
+    .promo_deal .action_links ul { width: 100%; }
+    .promo_deal .action_links .add_to_cart { flex: 1 1 auto; }
+    .promo_deal .action_links .add_to_cart a { display: block; text-align: center; }
+}
