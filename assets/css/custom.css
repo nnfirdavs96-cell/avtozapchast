@@ -2546,3 +2546,45 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     color: #C70909 !important;
     background: #f7f7f7;
 }
+
+/* ── Мобильный/планшет: форма VIN не должна переворачиваться ──────────────
+   Тема на ≤991px делает `.search_container form { flex-direction: column-reverse;
+   align-items: center }` — из-за этого кнопка «VIN» уезжала НАД полем и всё
+   центрировалось. Возвращаем нормальный ряд «поле + кнопка». */
+@media (max-width: 991px) {
+    .header_middle .search_container.has_vin > form,
+    .header_middle .vin_search_form {
+        flex-direction: row !important;
+        align-items: stretch !important;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    /* ≤767 формы стоят друг под другом → каждая во всю ширину.
+       768–991 они в ряд (ширину задаёт flex выше) — width не навязываем. */
+    .header_middle .vin_search_form { background: #fff; }
+    .header_middle .vin_search_form input {
+        flex: 1 1 auto !important; min-width: 0 !important; width: auto !important;
+        height: 42px; font-size: 16px;          /* 16px — иначе iOS зумит при фокусе */
+        text-align: left; letter-spacing: .5px; padding: 0 12px;
+    }
+    .header_middle .vin_search_form button {
+        flex: 0 0 auto !important; min-height: 42px; padding: 0 18px; border-radius: 0;
+    }
+    /* Поле запчастей — тоже строго в ряд, без центрирования */
+    .header_middle .search_container.has_vin .search_box {
+        flex: 1 1 auto !important; min-width: 0 !important; width: 100% !important;
+    }
+}
+
+/* ── Мобильный: ужать вертикальные разрывы между блоками главной ─────────── */
+@media (max-width: 991px) {
+    .slider_section.mb-80,
+    .banner_area.mb-80 { margin-bottom: 22px !important; }
+}
+@media (max-width: 767px) {
+    .header_middle .search_container.has_vin > form,
+    .header_middle .vin_search_form { width: 100% !important; }
+    .header_middle .vin_search_form { margin-top: 8px; }   /* формы стоят друг под другом */
+    .slider_section.mb-80,
+    .banner_area.mb-80 { margin-bottom: 16px !important; }
+}
