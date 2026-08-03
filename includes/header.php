@@ -240,8 +240,15 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
                     </div>
                     <div class="col-lg-10 col-md-6 col-sm-6 col-6">
                         <div class="header_right_box">
-                            <div class="search_container has_vin">
-                                <form action="<?= APP_URL ?>/search/index.php" method="GET">
+                            <div class="search_container has_vin" id="hdrSearch">
+                                <!-- Переключатель режима поиска: виден только на мобильном/планшете,
+                                     где два поля подряд занимали много места и смотрелись громоздко.
+                                     На десктопе оба поля показываются рядом, переключатель не нужен. -->
+                                <div class="msearch_tabs" role="tablist" aria-label="Режим поиска">
+                                    <button type="button" class="mst is-active" data-mode="parts">Запчасти</button>
+                                    <button type="button" class="mst" data-mode="vin">По VIN</button>
+                                </div>
+                                <form action="<?= APP_URL ?>/search/index.php" method="GET" data-mode="parts">
                                     <div class="hover_category">
                                         <select class="select_option" name="cat">
                                             <option value=""><?= t('all_categories') ?></option>
@@ -256,11 +263,30 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
                                     </div>
                                 </form>
                                 <!-- Отдельный поиск по VIN-коду -->
-                                <form action="<?= APP_URL ?>/pages/vin.php" method="GET" class="vin_search_form">
+                                <form action="<?= APP_URL ?>/pages/vin.php" method="GET" class="vin_search_form" data-mode="vin">
                                     <input name="vin" type="text" maxlength="17" placeholder="VIN — 17 символов" value="<?= sanitize($_GET['vin'] ?? '') ?>">
                                     <button type="submit"><i class="fa fa-search"></i> VIN</button>
                                 </form>
                             </div>
+                            <script>
+                            /* Переключатель «Запчасти / По VIN» (мобильный): показываем одну форму
+                               за раз — вместо двух полей подряд. На десктопе переключатель скрыт
+                               CSS-ом, и обе формы видны, поэтому скрипт там ничего не меняет. */
+                            (function(){
+                                var box = document.getElementById('hdrSearch'); if (!box) return;
+                                box.addEventListener('click', function(e){
+                                    var btn = e.target.closest('.mst'); if (!btn) return;
+                                    var mode = btn.getAttribute('data-mode');
+                                    box.querySelectorAll('.mst').forEach(function(b){
+                                        b.classList.toggle('is-active', b === btn);
+                                    });
+                                    box.setAttribute('data-active', mode);
+                                    var f = box.querySelector('form[data-mode="' + mode + '"] input');
+                                    if (f) f.focus();
+                                });
+                                box.setAttribute('data-active', 'parts');
+                            })();
+                            </script>
                             <div class="header_configure_area">
                                 <div class="canvas_open mobile_menu_trigger">
                                     <a href="javascript:void(0)" aria-label="Меню"><i class="fa fa-bars"></i></a>

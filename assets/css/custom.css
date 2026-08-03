@@ -2808,3 +2808,42 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
         background: #C70909 !important; font-size: .88rem;
     }
 }
+
+/* ── Мобильный поиск: один режим за раз + переключатель «Запчасти / По VIN»
+   Два поля подряд занимали много места и выглядели громоздко. Показываем
+   сегментированный переключатель и ОДНО поле — компактно и осмысленно.
+   На десктопе переключатель скрыт, оба поля стоят рядом (места хватает). */
+.msearch_tabs { display: none; }
+
+@media (max-width: 991px) {
+    .msearch_tabs {
+        display: inline-flex;
+        background: rgba(255,255,255,.08);
+        border: 1px solid rgba(255,255,255,.14);
+        border-radius: 999px;
+        padding: 3px;
+        margin-bottom: 9px;
+        gap: 2px;
+    }
+    .msearch_tabs .mst {
+        border: 0; background: transparent; cursor: pointer;
+        color: rgba(255,255,255,.72);
+        font-size: .78rem; font-weight: 600; letter-spacing: .2px;
+        padding: 7px 16px; border-radius: 999px;
+        transition: background .18s, color .18s;
+    }
+    .msearch_tabs .mst.is-active {
+        background: #C70909; color: #fff;
+        box-shadow: 0 2px 8px rgba(199,9,9,.35);
+    }
+    /* Контейнер — колонка: переключатель сверху, активное поле под ним */
+    .header_middle .search_container.has_vin {
+        display: flex !important; flex-direction: column; align-items: stretch;
+    }
+    /* Показываем только форму активного режима */
+    .header_middle .search_container.has_vin[data-active="parts"] form[data-mode="vin"],
+    .header_middle .search_container.has_vin[data-active="vin"]   form[data-mode="parts"] {
+        display: none !important;
+    }
+    .header_middle .vin_search_form { margin-top: 0 !important; }
+}
