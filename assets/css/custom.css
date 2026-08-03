@@ -2496,3 +2496,19 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     .sticky_search .ss_vin input { font-size: 13px; letter-spacing: 0; padding: 0 8px; }
     .sticky_search button { padding: 0 12px; font-size: .8rem; min-height: 38px; }
 }
+
+/* ── Плотность главной: убрать избыточную пустоту между блоками ───────────
+   Тема даёт категориям mb-80 (80px) + серой секции padding-top 75px + отступ
+   заголовка — суммарно ~160px пустоты, смотрится «дырой». Ужимаем, сохраняя
+   воздух. Правится только главная (.categories_product_area/.home_section_bg). */
+.categories_product_area.mb-80 { margin-bottom: 36px; }
+.home_section_bg { padding-top: 44px; }
+
+@media (max-width: 991px) {
+    .categories_product_area.mb-80 { margin-bottom: 26px; }
+    .home_section_bg { padding-top: 32px; }
+}
+@media (max-width: 767px) {
+    .categories_product_area.mb-80 { margin-bottom: 20px; }
+    .home_section_bg { padding-top: 24px; padding-bottom: 40px; }
+}
