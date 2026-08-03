@@ -37,3 +37,10 @@ RewriteRule ^ index.php [QSA,L]
     php_value max_execution_time 60
     php_value memory_limit 256M
 </IfModule>
+
+# Кодировка статики: без этого браузер читает CSS/JS в системной кодировке и
+# русские комментарии показываются кракозябрами (на работу стилей не влияет,
+# но мешает читать файл и искать по нему).
+<IfModule mod_mime.c>
+    AddCharset UTF-8 .css .js
+</IfModule>
