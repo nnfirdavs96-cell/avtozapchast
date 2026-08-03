@@ -2501,14 +2501,14 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
    Тема даёт категориям mb-80 (80px) + серой секции padding-top 75px + отступ
    заголовка — суммарно ~160px пустоты, смотрится «дырой». Ужимаем, сохраняя
    воздух. Правится только главная (.categories_product_area/.home_section_bg). */
-.categories_product_area.mb-80 { margin-bottom: 36px; }
-.home_section_bg { padding-top: 44px; }
+.categories_product_area.mb-80 { margin-bottom: 10px; }
+.home_section_bg { padding-top: 26px; }
 
 @media (max-width: 991px) {
-    .categories_product_area.mb-80 { margin-bottom: 26px; }
-    .home_section_bg { padding-top: 32px; }
+    .categories_product_area.mb-80 { margin-bottom: 8px; }
+    .home_section_bg { padding-top: 22px; }
 }
 @media (max-width: 767px) {
-    .categories_product_area.mb-80 { margin-bottom: 20px; }
-    .home_section_bg { padding-top: 24px; padding-bottom: 40px; }
+    .categories_product_area.mb-80 { margin-bottom: 6px; }
+    .home_section_bg { padding-top: 18px; padding-bottom: 36px; }
 }
