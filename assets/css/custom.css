@@ -2731,3 +2731,33 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     .single_product .product_name { font-size: .8rem; min-height: 2.7em; }
     .single_product .product_name a { font-size: 1em !important; line-height: 1.35; }
 }
+
+/* ── Мобильная шапка: логотип и иконки В ОДНОЙ строке, поиск — во всю ширину
+   Логотип оставался один на строке (иконки+поиск не влезали рядом и переносились),
+   из-за чего он «висел» в углу. Расплющиваем обёртки (display:contents) — тогда
+   иконки и поиск становятся прямыми элементами строки: иконки встают справа от
+   логотипа, а поиск переносится отдельной строкой на всю ширину. */
+@media (max-width: 991px) {
+    .header_middle > .container > .row {
+        display: flex !important; flex-wrap: wrap !important; align-items: center !important;
+    }
+    .header_middle > .container > .row > [class*="col-"]:last-child,
+    .header_middle .header_right_box { display: contents !important; }
+    .header_middle > .container > .row > [class*="col-"]:first-child { flex: 0 0 auto; }
+    .header_middle .header_configure_area { margin-left: auto !important; }
+    .header_middle .search_container.has_vin {
+        flex: 1 0 100% !important; order: 99 !important;
+        margin: 12px 0 0 !important; width: 100% !important; max-width: none !important;
+    }
+}
+
+/* ── Цена: одинаковая высота у товаров со скидкой и без ──────────────────
+   Со скидкой блок цены занимал ДВЕ строки (зачёркнутая старая + новая), без
+   скидки — одну, поэтому кнопки соседних карточек стояли на разной высоте.
+   Резервируем две строки всегда + уменьшаем старую цену, чтобы чаще влезала. */
+.single_product .price_box { min-height: 2.9em; align-content: flex-start; }
+@media (max-width: 991px) {
+    .single_product .price_box { gap: 5px; min-height: 2.8em; }
+    .single_product .price_box .old_price { font-size: .72rem; }
+    .single_product .price_box .current_price { font-size: .92rem; }
+}
