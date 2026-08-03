@@ -2847,3 +2847,46 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     }
     .header_middle .vin_search_form { margin-top: 0 !important; }
 }
+
+/* ── Мобильная шапка: убрать перелив за правый край и «раздутое» поле ─────
+   1) У .row отрицательные отступы (margin:-8px), а контейнеру поиска был задан
+      width:100% — в сумме он вылезал за правый край (корзина обрезалась).
+      Обнуляем отступы строки и не навязываем ширину — только flex-basis.
+   2) Внутри формы оставался посторонний элемент (селект категорий / обёртка
+      JS-плагина), из-за которого поле раздувалось в высокий белый блок.
+      Внутри формы оставляем только поле ввода и кнопку. */
+@media (max-width: 991px) {
+    .header_middle > .container > .row {
+        margin-left: 0 !important; margin-right: 0 !important;
+        max-width: 100%; overflow: hidden;
+    }
+    .header_middle > .container > .row > * {
+        padding-left: 0 !important; padding-right: 0 !important;
+        min-width: 0; max-width: 100%;
+    }
+    .header_middle .search_container.has_vin {
+        flex: 1 1 100% !important;
+        width: auto !important; max-width: 100% !important; min-width: 0;
+    }
+    .header_middle .search_container.has_vin > form { max-width: 100%; min-width: 0; }
+
+    /* Ничего постороннего внутри форм поиска */
+    .header_middle .search_container.has_vin > form > *:not(.search_box):not(input):not(button) {
+        display: none !important;
+    }
+    /* Переключатель прижат влево и не растягивается */
+    .msearch_tabs { align-self: flex-start; flex: 0 0 auto; max-width: 100%; }
+    .header_middle .header_configure_area { flex: 0 0 auto; max-width: 100%; }
+}
+/* Контейнер поиска на мобильном стал КОЛОНКОЙ, поэтому базовое `flex: 0 1 210px`
+   у формы VIN (задумывалось как ШИРИНА в горизонтальной раскладке) начало
+   работать как ВЫСОТА — поле раздувалось в высокий белый блок ~210px.
+   В колонке высоту задаём сами, flex-basis сбрасываем. */
+@media (max-width: 991px) {
+    .header_middle .search_container.has_vin > form,
+    .header_middle .vin_search_form {
+        flex: 0 0 auto !important;
+        height: 46px !important;
+        max-height: 46px !important;
+    }
+}
