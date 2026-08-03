@@ -2501,14 +2501,24 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
    Тема даёт категориям mb-80 (80px) + серой секции padding-top 75px + отступ
    заголовка — суммарно ~160px пустоты, смотрится «дырой». Ужимаем, сохраняя
    воздух. Правится только главная (.categories_product_area/.home_section_bg). */
-.categories_product_area.mb-80 { margin-bottom: 10px; }
-.home_section_bg { padding-top: 26px; }
+.categories_product_area.mb-80,
+.categories_product_area { margin-bottom: 10px !important; padding-bottom: 0 !important; }
+/* Обнуляем возможные отступы внутренних обёрток карусели (owl добавляет свои). */
+.categories_product_area .container,
+.categories_product_area .row,
+.categories_product_area .col-12,
+.categories_product_inner,
+.categories_product_area .owl-stage-outer { margin-bottom: 0 !important; padding-bottom: 0 !important; }
+.categories_product_area .single_categories_product { margin-bottom: 0 !important; }
+.home_section_bg { padding-top: 26px !important; }
 
 @media (max-width: 991px) {
-    .categories_product_area.mb-80 { margin-bottom: 8px; }
-    .home_section_bg { padding-top: 22px; }
+    .categories_product_area.mb-80,
+    .categories_product_area { margin-bottom: 8px !important; }
+    .home_section_bg { padding-top: 22px !important; }
 }
 @media (max-width: 767px) {
-    .categories_product_area.mb-80 { margin-bottom: 6px; }
-    .home_section_bg { padding-top: 18px; padding-bottom: 36px; }
+    .categories_product_area.mb-80,
+    .categories_product_area { margin-bottom: 6px !important; }
+    .home_section_bg { padding-top: 18px !important; padding-bottom: 36px !important; }
 }
