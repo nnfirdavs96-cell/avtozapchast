@@ -2641,3 +2641,57 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 @media (max-width: 767px) {
     .logo .logo-img { height: 34px !important; }
 }
+
+/* ── Карточки товара: одинаковая высота и кнопки на одной линии ───────────
+   Было: у товара со скидкой цена занимает две строки («620.00» + «смн»
+   переносом), карточка становится выше — и кнопка «В корзину» уезжала ниже,
+   чем у соседней. Выравниваем: карточка — колонка на всю высоту, блок кнопок
+   прижат к низу; цена не переносится. */
+.single_product { height: 100%; display: flex; flex-direction: column; }
+.single_product > figure {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    height: 100%;
+}
+.single_product .product_content {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;          /* тянется, чтобы низ карточек совпал */
+}
+.single_product .action_links { margin-top: auto; }  /* кнопки — всегда внизу */
+
+/* В owl-карусели делаем элементы одинаковой высоты (иначе tallest не тянет остальных). */
+.product_carousel.owl-loaded .owl-stage { display: flex; align-items: stretch; }
+.product_carousel.owl-loaded .owl-item { display: flex; }
+.product_carousel.owl-loaded .owl-item > .col-lg-3,
+.product_carousel.owl-loaded .owl-item .product_items { display: flex; flex-direction: column; width: 100%; }
+
+/* Цена и знак валюты — одной строкой, без переноса */
+.price_box .current_price,
+.price_box .old_price { white-space: nowrap; }
+.price_box { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+
+/* Ряд товаров: одинаковая высота колонок */
+.product_area .row { align-items: stretch; }
+
+/* ── Вкладки «Бестселлеры / Рекомендуемые / Новинки» на мобильном ────────
+   Переносились по одной и висели по центру. Делаем один ряд с прокруткой. */
+@media (max-width: 767px) {
+    .product_tab_btn ul.nav {
+        flex-wrap: nowrap !important;
+        justify-content: flex-start !important;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 4px;
+    }
+    .product_tab_btn ul.nav::-webkit-scrollbar { display: none; }
+    .product_tab_btn ul.nav > li { flex: 0 0 auto; }
+    .product_tab_btn ul.nav > li > a {
+        white-space: nowrap !important;
+        font-size: .8rem !important;
+        padding: 8px 12px !important;
+    }
+    .product_tab_btn { margin: 16px 0 !important; }
+}
