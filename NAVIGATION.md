@@ -739,6 +739,10 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 - **#269–#279** (2026-07-19) — fix(autoeuro): `with_offers=1`, резолв бренд+код через `search_brands` (`searchItemsSmart`), выбор московского delivery_key (кнопка «Выбрать», чистка пробелов), RUB→сомони по курсу `autoeuro_rub_rate`, «под заказ»+дата при stock=0, разделитель тысяч — пробел
 - **#280** (2026-07-19) — feat(autoeuro): отдельная наценка `autoeuro_markup`
 - **#282–#283** (2026-07-19) — feat(contacts): телефон `+992 92 612-22-22`, авто-формат `formatPhone()`/`phoneTel()`
+- **#290** (2026-08-03) — feat(header): прилипающий поиск при прокрутке + отдельное поле VIN (двойной поиск вверху и в прилипшей полосе; `.sticky_search` в `custom.css`)
+- **#289** (2026-08-03) — fix(catalog): каскад «По параметрам» не залипает на пустом кэше брендов/моделей (пустое = промах, пустое не кэшируем)
+- **#288** (2026-08-03) — feat(catalog): в тесте Parts-Catalogs показывать сырой ответ VIN-декодинга (`v1/car/info/`) — видно причину нераспознавания
+- **#287** (2026-07-22) — fix(ui): убрать ценник из карточки — оставить только кнопку «Купить»
 - **#286** (2026-07-22) — feat(ui): кнопка «Купить» + модалка выбора доставки (бланк) на VIN; `api/vin_order_request.php` — заявка менеджеру через `messages` (вход обязателен)
 - **#285** (2026-07-22) — feat(autoeuro): умный выбор предложения (наличие → дешёвое, иначе → быстрое под заказ), `offersByOem()` со списком вариантов; доставка Москва→Худжанд (`autoeuro_khj_*`: надбавка сумма/%, дни); выбор варианта покупателем + тумблер срока A/B (`autoeuro_offer_mode`, `autoeuro_offers_limit`)
 
@@ -790,7 +794,7 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 | [`includes/currency.php`](includes/currency.php) | Валюта: активная/курс/символ, formatPrice, convertPrice. | currencies |
 | [`includes/footer.php`](includes/footer.php) | Витринный подвал: соцсети, ссылки, newsletter. | настройки site_* |
 | [`includes/functions.php`](includes/functions.php) | «Сердце» проекта (~1857 строк): auth, роли/права, настройки, httpGet, товары, заказы, SMS/OTP, троттлинг входа, онлайн-оплата, сидеры, dbAddColumnIfMissing. | зовётся везде |
-| [`includes/header.php`](includes/header.php) | Витринная шапка: меню, мини-корзина, поиск, переключатели языка/валюты. | getMiniCart, getCategories |
+| [`includes/header.php`](includes/header.php) | Витринная шапка: меню, мини-корзина, **двойной поиск (запчасти + отдельное поле VIN)**, прилипающий поиск при прокрутке (`.sticky_search`), переключатели языка/валюты. | getMiniCart, getCategories |
 | [`includes/i18n.php`](includes/i18n.php) | Локализация: initLang/t/tField. | lang/*.php, languages |
 | [`includes/manual_pdf.php`](includes/manual_pdf.php) | Генератор PDF-руководства для суперадмина. | superadmin/manual.php |
 | [`includes/nav.php`](includes/nav.php) | Навигационное меню витрины по ролям. | getCategories |

@@ -46,7 +46,7 @@
 | `autoeuro.php` | класс `AutoEuro` — клиент поставщика (баланс, склады, `searchItems`/`searchItemsSmart`, заказ, `debugRaw`) |
 | `messaging.php` | чат покупатель ↔ менеджер (таблица `messages`, ветки поддержки/по заказам, автосообщения) |
 | `partsapi_cats.php` | константы `PARTSAPI_CATS` (751 товарная группа id→название), `PARTSAPI_POPULAR` |
-| `header.php` / `footer.php` | витринная шапка (меню, мини-корзина, поиск, языки/валюта) / подвал |
+| `header.php` / `footer.php` | витринная шапка (меню, мини-корзина, **двойной поиск: запчасти + VIN**, языки/валюта) / подвал. Поиск дублируется в «прилипающей» полосе — при прокрутке остаётся доступен (класс `.sticky` вешает тема, стили `.sticky_search` в `custom.css`) |
 | `admin-header.php` / `admin-footer.php` | единый макет админки; сайдбар по ролям `renderRoleSidebar()` |
 | `nav.php` | навигационное меню витрины |
 | `i18n.php` | `initLang/getLang/loadTranslations/t/tField` |
@@ -360,8 +360,14 @@ PartsAPI.ru: `getPartsbyVIN(vin, type, cat)` — перебор товарных
 |------|--------|
 | `PriceProvider.php` | интерфейс `priceByOem(oem, brand): ?['price'(RUB),'stock','source','delivery','part_id','url']` |
 | `WarehousePriceProvider.php` | свой склад: нормализованное совпадение `part_number` (без регистра/разделителей) в `parts`, отдаёт цену/сток/ссылку на товар |
-| `AutoEuroPriceProvider.php` | AutoEuro `searchItemsSmart(brand, oem)`: сперва `search_brands` (резолвит каноничные бренд+код — AutoEuro хранит код в своём формате, напр. с пробелами), затем `search_items` с `with_offers=1` (иначе цен нет). Берёт самое дешёвое предложение с ТОЧНЫМ совпадением кода. Цена в РУБЛЯХ → ×`autoeuro_rub_rate` (сомони/рубль) → ×(1+наценка). Наценка: `autoeuro_markup` если задана, иначе `global_markup`. Маппинг брендов `autoeuro_brand_map`; несовпадения в лог `autoeuro_price_miss`. Отдаёт `stock`/`delivery_time` (дата) |
-| `PriceAggregator.php` | склад (без кэша, живой сток) → если пусто и `catalog_price_autoeuro=1` → AutoEuro (кэш `catalog_price_cache`: найдено 6ч / «не найдено» 1ч) |
+| `AutoEuroPriceProvider.php` | AutoEuro `searchItemsSmart(brand, oem)`: сперва `search_brands` (резолвит каноничные бренд+код — AutoEuro хранит код в своём формате, напр. с пробелами), затем `search_items` с `with_offers=1` (иначе цен нет). **`offersByOem()`** — список вариантов с ТОЧНЫМ совпадением кода: сперва **в наличии** (по цене), затем **под заказ** (по дате прибытия); дубли по цене+сроку схлопываются, срез до `autoeuro_offers_limit`. **`priceByOem()`** — лучший из списка. Цена в РУБЛЯХ → ×`autoeuro_rub_rate` (сомони/рубль) → ×(1+наценка) → **+ надбавка Москва→Худжанд**. Наценка: `autoeuro_markup` если задана, иначе `global_markup`. Маппинг брендов `autoeuro_brand_map`; несовпадения в лог `autoeuro_price_miss` |
+| `PriceAggregator.php` | склад (без кэша, живой сток) → если пусто и `catalog_price_autoeuro=1` → AutoEuro (кэш `catalog_price_cache`: найдено 6ч / «не найдено» 1ч). `offersByOem()` — то же для списка вариантов (ключ кэша `…|offers`; свой склад = одна позиция) |
+
+**Доставка Москва→Худжанд.** В цене AutoEuro заложена доставка только **склад→Москва**
+(отдельного поля стоимости доставки в API нет — проверено `get_warehouses`; разброс цен
+между предложениями = разные склады). Логистику Москва→Худжанд добавляем сами по
+настройкам `autoeuro_khj_*`: тумблер, надбавка **суммой или процентом**, и **дни** к сроку.
+Покупателю показывается итог **до Худжанда**: `цена + надбавка`, `дата AutoEuro + наши дни`.
 
 ---
 
@@ -391,7 +397,18 @@ PartsAPI.ru: `getPartsbyVIN(vin, type, cat)` — перебор товарных
 `?step=cars&...&parameter=` → `{items:[{carId,catalogId,criteria,name,modelName,brand}]}`.
 
 ### `vin_price.php`
-`GET ?oem=&brand=` → `{success, found, price(строка в валюте), price_raw(RUB), stock, source('warehouse'|'autoeuro'), delivery, part_id, url}`.
+`GET ?oem=&brand=` → `{success, found, price(строка в валюте), price_raw, stock, source('warehouse'|'autoeuro'), delivery, part_id, url,`
+`offer_mode('A'|'B'), options:[{price, price_raw, stock, in_stock, delivery_ae, delivery_days, delivery_total, source}]}`.
+Плоские поля — лучший вариант (обратная совместимость), `options[]` — все варианты для
+выбора покупателем. `delivery_ae` — прибытие в Москву, `delivery_total` — в Худжанд.
+`offer_mode`: `A` — показывать только итоговый срок, `B` — с разбивкой.
+
+### `vin_order_request.php`
+`POST {_csrf, oem, brand, name, qty, price, delivery_total, delivery_ae, delivery_days, in_stock, comment}`
+→ `{success, message, messages_url}` либо `{redirect}` (если не авторизован).
+Заявка на деталь поставщика с выбранным вариантом доставки: у деталей AutoEuro нет
+`part_id`, поэтому обычная корзина неприменима — заявка уходит **менеджеру в переписку**
+(`includes/messaging.php`, ветка поддержки) + подтверждение покупателю. Требует входа.
 
 ### `vin_crosses.php`
 `GET ?article=&brand=` → `{success, count, rate_limited, from_cache,
@@ -479,6 +496,14 @@ c `#vinSchemeImg`+`#vinSchemeHot`, статус `#vinCatalogStatus`, детал�
 
 ### AutoEuro
 `autoeuro_enabled`, `autoeuro_api_key`, `autoeuro_delivery_key` (пункт получения — брать московский, он агрегирует все склады), `autoeuro_payer_key` (только для заказа), `autoeuro_rub_rate` (сомони за 1 рубль, по умолч. 0.11), `autoeuro_markup` (наценка % на товары AutoEuro; пусто → `global_markup`), `autoeuro_brand_map` (строки «ИСХОДНЫЙ = Замена» при расхождении названий брендов). Включение цен на витрине — `catalog_price_autoeuro` (стр. VIN-настроек).
+
+### AutoEuro — доставка Москва→Худжанд и показ вариантов
+В API AutoEuro доставки до Худжанда нет (цена покрывает только склад→Москва), поэтому:
+`autoeuro_khj_enabled` (тумблер надбавки), `autoeuro_khj_mode` (`sum` — сумма в сомони /
+`percent` — процент), `autoeuro_khj_value` (значение), `autoeuro_khj_days` (дни к сроку).
+Показ покупателю: `autoeuro_offer_mode` (`A` — только итог срока / `B` — с разбивкой
+«Москва + N дн → Худжанд»), `autoeuro_offers_limit` (сколько вариантов показывать, деф. 3).
+Все — Суперадмин → Склад; сохранение сбрасывает `catalog_price_cache`.
 
 ### VIN-декодер
 `vin_search_enabled`, `vin_api_provider` (nhtsa|partsapi|custom), `vin_api_url`
@@ -571,7 +596,7 @@ users, categories, brands, blog, pages, reviews, vin, settings, …) →
 | PartsAPI.ru | данные (детали по VIN, кроссы 428 млн) | `catalog_api.php` | `catalog_api_key`+`vin_api_key`; демо 50 req/сутки/IP (`error_code 5000`) |
 | Laximo | оригинал (каркас) | `LaximoAdapter.php` | логин+секрет |
 | NHTSA | бесплатный VIN-декод (US) | `vin_service.php` | без ключа |
-| AutoEuro | цены/наличие поставщика (боевой, на витрине VIN) | `autoeuro.php`, `AutoEuroPriceProvider.php` | `autoeuro_api_key`+delivery_key+`catalog_price_autoeuro`; заказ (`create_order`) — не подключён |
+| AutoEuro | цены/наличие поставщика (боевой, на витрине VIN) | `autoeuro.php`, `AutoEuroPriceProvider.php` | `autoeuro_api_key`+delivery_key+`catalog_price_autoeuro`; RUB→сомони по `autoeuro_rub_rate`; `offersByOem()` — варианты с выбором срока + надбавка/дни Москва→Худжанд (`autoeuro_khj_*`); покупатель оформляет **заявку менеджеру** (`api/vin_order_request.php`). Автозаказ (`create_order`) — не подключён (денежная ветка) |
 | SMS | коды входа | `sendSms()` | боевой шлюз **OsonSMS** (`sms_provider=osonsms`); пусто = ТЕСТ-режим (лог) |
 
 ---
