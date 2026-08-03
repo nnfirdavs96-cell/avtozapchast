@@ -2522,3 +2522,26 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     .categories_product_area { margin-bottom: 6px !important; }
     .home_section_bg { padding-top: 18px !important; padding-bottom: 36px !important; }
 }
+
+/* ── Выпадающие списки шапки (язык/валюта/ссылки) — читаемый текст ────────
+   Тёмная шапка красит ВСЕ ссылки в светлый (.header_top a{color:#e8e8e8}),
+   но эти списки лежат на БЕЛОЙ подложке — текст сливался с фоном.
+   Возвращаем тёмный цвет именно внутри выпадающих панелей. */
+.header_top .dropdown_language li a,
+.header_top .dropdown_currency li a,
+.header_top .dropdown_links li a,
+.header_middle .dropdown_language li a,
+.header_middle .dropdown_currency li a,
+.header_middle .dropdown_links li a {
+    color: #222 !important;
+    opacity: 1 !important;
+}
+.header_top .dropdown_language li a:hover,
+.header_top .dropdown_currency li a:hover,
+.header_top .dropdown_links li a:hover,
+.header_middle .dropdown_language li a:hover,
+.header_middle .dropdown_currency li a:hover,
+.header_middle .dropdown_links li a:hover {
+    color: #C70909 !important;
+    background: #f7f7f7;
+}
