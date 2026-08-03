@@ -2761,3 +2761,50 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     .single_product .price_box .old_price { font-size: .72rem; }
     .single_product .price_box .current_price { font-size: .92rem; }
 }
+
+/* ── Мобильный поиск: аккуратные одинаковые поля без «белого хвоста» ──────
+   У формы запчастей кнопка «Поиск» у темы позиционирована АБСОЛЮТНО
+   (position:absolute; top:0) с высотой 40px, а сама форма выходила выше —
+   под кнопкой оставалась пустая белая полоса. Задаём формам единую высоту и
+   растягиваем содержимое на неё; кнопку возвращаем в обычный поток. */
+@media (max-width: 991px) {
+    .header_middle .search_container.has_vin > form {
+        height: 46px !important;
+        min-height: 46px;
+        background: #fff;
+        border-radius: 9px;
+        overflow: hidden;                 /* отсекает любой «хвост» */
+        box-shadow: 0 1px 3px rgba(0,0,0,.12);
+    }
+    /* Селект категорий и его JS-обёртку на мобильном не показываем */
+    .header_middle .hover_category,
+    .header_middle .nice-select { display: none !important; }
+
+    .header_middle .search_container.has_vin .search_box {
+        display: flex !important; height: 100% !important; flex: 1 1 auto; min-width: 0;
+    }
+    .header_middle .search_box input {
+        flex: 1 1 auto; min-width: 0;
+        height: 100% !important; border: 0; outline: none;
+        font-size: 16px; padding: 0 14px;  /* 16px — iOS не зумит при фокусе */
+        background: transparent;
+    }
+    /* Кнопка — в потоке, во всю высоту поля */
+    .header_middle .search_box button {
+        position: static !important;
+        height: 100% !important;
+        min-width: auto !important;
+        flex: 0 0 auto;
+        border: 0; border-radius: 0 !important;
+        padding: 0 20px !important;
+        font-size: .9rem !important; font-weight: 600;
+        background: #C70909 !important; color: #fff;
+    }
+    /* Поле VIN — та же высота и форма, чтобы поля смотрелись парой */
+    .header_middle .vin_search_form { height: 46px !important; }
+    .header_middle .vin_search_form input { height: 100% !important; font-size: 15px; }
+    .header_middle .vin_search_form button {
+        height: 100% !important; padding: 0 20px !important;
+        background: #C70909 !important; font-size: .88rem;
+    }
+}
