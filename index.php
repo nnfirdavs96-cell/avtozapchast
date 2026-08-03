@@ -391,16 +391,17 @@ require_once __DIR__ . '/includes/header.php';
             </div>
 
             <div class="row">
-                <!-- Крупная промо-карточка -->
+                <!-- Крупная промо-карточка: своя раскладка (фото слева, текст справа),
+                     поэтому отдельный класс — общие правила карточек к ней не применяем. -->
                 <div class="col-lg-5 col-md-6 mb-30">
-                    <div class="single_product" style="border:1px solid #eee;border-radius:6px;padding:22px;height:100%;display:flex;flex-wrap:wrap;align-items:center;">
-                        <div class="product_thumb" style="position:relative;flex:0 0 45%;max-width:45%;">
+                    <div class="single_product promo_deal">
+                        <div class="product_thumb">
                             <a href="<?= partUrl($featDeal) ?>">
                                 <img src="<?= sanitize($featImg) ?>" alt="<?= sanitize($featDeal['name']) ?>" style="width:100%;">
                             </a>
                             <?= productBadges($featDeal) ?>
                         </div>
-                        <div class="product_content" style="flex:1;padding-left:20px;min-width:200px;">
+                        <div class="product_content">
                             <p class="manufacture_product"><a href="<?= APP_URL ?>/catalog/index.php?brand=<?= (int)$featDeal['brand_id'] ?>"><?= sanitize($featDeal['brand_name'] ?? '') ?></a></p>
                             <h4 class="product_name"><a href="<?= partUrl($featDeal) ?>"><?= sanitize(truncate($featDeal['name'], 50)) ?></a></h4>
                             <?= productStarsInline((int)$featDeal['id'], $ratings) ?>
