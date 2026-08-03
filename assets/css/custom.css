@@ -2401,14 +2401,20 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
    ═══════════════════════════════════════════════════════════════════════ */
 
 /* Верхняя шапка: рядом с обычным поиском — отдельное поле VIN.
-   Ширину задаём явно (тема давала форме фикс. 830px) — иначе flex-поле схлопнется. */
-.search_container.has_vin { display: flex; gap: 12px; align-items: stretch; width: 860px; }
-@media (min-width: 1200px) and (max-width: 1600px) { .search_container.has_vin { width: 720px; } }
-@media (min-width: 992px)  and (max-width: 1199px) { .search_container.has_vin { width: 540px; } }
-.search_container.has_vin > form { width: auto; }               /* перебиваем фикс. 830px темы */
-.search_container.has_vin > form:first-child { flex: 1 1 auto; min-width: 0; }
+   Ширина РЕЗИНОВАЯ (flex), а не фиксированная: у темы кнопка «Поиск» абсолютная
+   (min-width 128px) и инпут имеет padding-right 145px — при фикс. ширине контейнера
+   поле «Артикул» схлопывалось, т.к. VIN забирал свою долю. */
+@media (min-width: 992px) {
+    .search_container.has_vin {
+        display: flex; gap: 10px; align-items: stretch;
+        flex: 1 1 auto; min-width: 0; width: auto; max-width: 1100px;
+    }
+    .search_container.has_vin > form { width: auto; }           /* перебиваем фикс. 830px темы */
+    .search_container.has_vin > form:first-child { flex: 1 1 auto; min-width: 260px; }
+}
 .vin_search_form {
-    display: flex; flex: 0 0 220px; background: #fff; border-radius: 5px; overflow: hidden;
+    display: flex; flex: 0 1 210px; min-width: 150px;
+    background: #fff; border-radius: 5px; overflow: hidden;
 }
 .vin_search_form input {
     flex: 1; min-width: 0; border: 0; height: 100%; padding: 0 14px; font-size: .84rem;
@@ -2419,8 +2425,18 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     font-size: .8rem; cursor: pointer; white-space: nowrap; transition: .15s;
 }
 .vin_search_form button:hover { background: #A00707; }
+/* Родитель прижимает содержимое вправо (justify-content:flex-end) — из-за этого
+   резиновый поиск не получал свободное место. Даём ему растянуться.
+   ТОЛЬКО десктоп (≥992px): ниже тема прячет .search_container, а мобильная
+   раскладка .header_right_box задана выше в @media — её перебивать нельзя. */
+@media (min-width: 992px) {
+    .header_right_box { justify-content: space-between; gap: 14px; }
+    .header_right_box .header_configure_area { flex: 0 0 auto; }
+    .search_container.has_vin { margin-right: 20px; }           /* у темы было 40px */
+}
 @media (min-width: 992px) and (max-width: 1199px) {
-    .vin_search_form { flex: 0 0 170px; }
+    .vin_search_form { flex: 0 1 165px; min-width: 130px; }
+    .search_container.has_vin { margin-right: 10px; gap: 8px; }
 }
 
 /* Прилипающий поиск: скрыт, показывается только когда шапка «прилипла». */
@@ -2443,4 +2459,40 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 @media (max-width: 991px) {
     .sticky_search .ss_vin { flex: 0 0 130px; }
     .sticky_search input { height: 38px; }
+}
+
+/* ── Адаптив двойного поиска: планшет и телефон ───────────────────────── */
+
+/* Планшет 768–991px: тема прячет верхний .search_container — показываем его
+   отдельной строкой (как на телефоне), оба поля в ряд. */
+@media (min-width: 768px) and (max-width: 991px) {
+    .header_middle .search_container.has_vin {
+        display: flex !important; flex: 1 0 100%; order: 99;
+        width: 100%; margin: 10px 0 0; gap: 8px;
+    }
+    .header_middle .search_container.has_vin > form:first-child { flex: 1 1 auto; min-width: 0; }
+    .header_middle .hover_category { display: none !important; }
+    .vin_search_form { flex: 0 0 150px; min-width: 0; }
+}
+
+/* Телефон ≤767px: поля друг под другом во всю ширину, крупные тач-цели.
+   (Тема/custom уже делают .search_container отдельной строкой.) */
+@media (max-width: 767px) {
+    .header_middle .search_container.has_vin { display: block; }
+    .header_middle .search_container.has_vin > form { width: 100%; }
+    .vin_search_form { display: flex; width: 100%; margin-top: 8px; }
+    .vin_search_form input {
+        height: 40px; font-size: 16px;            /* 16px — иначе iOS зумит при фокусе */
+        letter-spacing: .5px; border-radius: 4px 0 0 4px;
+    }
+    .vin_search_form button { min-height: 40px; padding: 0 16px; border-radius: 0 4px 4px 0; }
+}
+
+/* Прилипающий поиск — адаптив. На узких экранах VIN-поле уже, но остаётся тач-доступным. */
+@media (max-width: 767px) {
+    .sticky-header.sticky .sticky_search { gap: 6px; padding: 7px 0 4px; }
+    .sticky_search .ss_vin { flex: 0 0 108px; }
+    .sticky_search input { height: 38px; font-size: 16px; padding: 0 10px; }
+    .sticky_search .ss_vin input { font-size: 13px; letter-spacing: 0; padding: 0 8px; }
+    .sticky_search button { padding: 0 12px; font-size: .8rem; min-height: 38px; }
 }

@@ -284,6 +284,58 @@ require_once dirname(__DIR__) . '/includes/header.php';
 .vx-nf .cta a{padding:11px 20px;border-radius:10px;font-weight:600;font-size:.9rem;cursor:pointer;}
 .vx-nf .cta .pr{background:var(--vx-red);color:#fff;}
 .vx-nf .cta .gh{background:#fff;border:1px solid var(--vx-line);color:var(--vx-ink);}
+
+/* ── Модалка выбора доставки (бланк заказа детали у поставщика) ──────────
+   Стили здесь, а НЕ в условном блоке ниже: HTML модалки рендерится всегда,
+   а тот блок выводится только после поиска — иначе модалка показывалась бы
+   голым неотформатированным блоком на странице без поиска. */
+/* Модалка выбора доставки (бланк заказа) */
+.vin-dlv-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(17,19,23,.55);
+    backdrop-filter:blur(2px);align-items:flex-end;justify-content:center;padding:0;}
+.vin-dlv-modal.open{display:flex;}
+@media(min-width:560px){.vin-dlv-modal{align-items:center;padding:20px;}}
+.vin-dlv-card{background:#fff;width:100%;max-width:460px;border-radius:18px 18px 0 0;
+    padding:20px 20px 22px;position:relative;max-height:92vh;overflow-y:auto;
+    box-shadow:0 -8px 40px rgba(0,0,0,.25);animation:vinDlvUp .22s ease;}
+@media(min-width:560px){.vin-dlv-card{border-radius:18px;animation:vinDlvIn .18s ease;}}
+@keyframes vinDlvUp{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
+@keyframes vinDlvIn{from{transform:scale(.96);opacity:0}to{transform:none;opacity:1}}
+.vin-dlv-x{position:absolute;top:12px;right:12px;width:32px;height:32px;border:none;border-radius:50%;
+    background:#f3f4f6;color:#6b7280;font-size:1.25rem;line-height:1;cursor:pointer;transition:.12s;}
+.vin-dlv-x:hover{background:#e7e9ee;color:#181a1f;}
+.vin-dlv-head{margin:2px 34px 14px 0;}
+.vin-dlv-name{font-weight:800;font-size:1.05rem;color:#181a1f;line-height:1.25;}
+.vin-dlv-sub{font-size:0.8rem;color:#9aa3af;margin-top:3px;}
+.vin-dlv-label{font-size:0.74rem;text-transform:uppercase;letter-spacing:.5px;color:#9aa3af;font-weight:700;margin-bottom:8px;}
+.vin-dlv-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+.vin-dlv-opt{display:flex;align-items:flex-start;gap:11px;padding:12px 13px;border:1.5px solid #eceef2;
+    border-radius:12px;cursor:pointer;transition:.14s;}
+.vin-dlv-opt:hover{border-color:#d7dae0;}
+.vin-dlv-opt.sel{border-color:var(--vx-red,#C70909);background:#fff6f6;box-shadow:0 0 0 3px rgba(199,9,9,.06);}
+.vin-dlv-radio{flex:0 0 auto;padding-top:2px;}
+.vin-dlv-radio input{width:18px;height:18px;margin:0;accent-color:var(--vx-red,#C70909);cursor:pointer;}
+.vin-dlv-body{flex:1;min-width:0;}
+.vin-dlv-price{display:block;font-weight:800;font-size:1.05rem;color:#181a1f;line-height:1.15;}
+.vin-dlv-meta{display:block;font-size:0.76rem;color:#8a9099;margin-top:3px;line-height:1.35;}
+.vin-dlv-opt.sel .vin-dlv-meta{color:#b9772a;font-weight:600;}
+.vin-dlv-row{margin-bottom:12px;}
+.vin-dlv-qtywrap label,.vin-dlv-row>label{font-size:0.8rem;color:#6b7280;display:block;margin-bottom:4px;}
+.vin-dlv-qty{width:90px;padding:9px 11px;border:1.5px solid #e7e9ee;border-radius:9px;font-size:0.9rem;font-weight:700;}
+.vin-dlv-comment{width:100%;padding:9px 11px;border:1.5px solid #e7e9ee;border-radius:9px;font-size:0.85rem;
+    font-family:inherit;resize:vertical;}
+.vin-dlv-qty:focus,.vin-dlv-comment:focus{outline:none;border-color:var(--vx-red,#C70909);}
+.vin-dlv-note{font-size:0.72rem;color:#8a9099;background:#f8f9fb;border-radius:9px;padding:9px 11px;
+    margin-bottom:14px;line-height:1.45;}
+.vin-dlv-note i{color:#b9772a;margin-right:4px;}
+.vin-dlv-submit{display:block;width:100%;background:var(--vx-red,#C70909);color:#fff;border:none;border-radius:11px;
+    padding:14px;font-size:0.95rem;font-weight:800;cursor:pointer;transition:.15s;}
+.vin-dlv-submit:hover{filter:brightness(1.08);}
+.vin-dlv-submit[disabled]{opacity:.7;cursor:default;}
+.vin-dlv-ok{background:#effaf1;color:#1f8a3b;border-radius:11px;padding:16px;font-size:0.9rem;text-align:center;line-height:1.5;}
+.vin-dlv-ok i{font-size:1.4rem;display:block;margin-bottom:6px;}
+.vin-dlv-ok a{color:#1f8a3b;font-weight:700;text-decoration:underline;}
+.vin-dlv-err{background:#fdecec;color:#c0392b;border-radius:10px;padding:11px 13px;font-size:0.83rem;text-align:center;}
+
 </style>
 
 <div class="vx">
@@ -577,52 +629,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
             .vin-buy-btn:not([disabled]){background:var(--vx-red,#C70909);}
             .vin-buy-btn[disabled]{background:#e7e9ee;color:#9aa3af;cursor:default;}
 
-            /* Модалка выбора доставки (бланк заказа) */
-            .vin-dlv-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(17,19,23,.55);
-                backdrop-filter:blur(2px);align-items:flex-end;justify-content:center;padding:0;}
-            .vin-dlv-modal.open{display:flex;}
-            @media(min-width:560px){.vin-dlv-modal{align-items:center;padding:20px;}}
-            .vin-dlv-card{background:#fff;width:100%;max-width:460px;border-radius:18px 18px 0 0;
-                padding:20px 20px 22px;position:relative;max-height:92vh;overflow-y:auto;
-                box-shadow:0 -8px 40px rgba(0,0,0,.25);animation:vinDlvUp .22s ease;}
-            @media(min-width:560px){.vin-dlv-card{border-radius:18px;animation:vinDlvIn .18s ease;}}
-            @keyframes vinDlvUp{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
-            @keyframes vinDlvIn{from{transform:scale(.96);opacity:0}to{transform:none;opacity:1}}
-            .vin-dlv-x{position:absolute;top:12px;right:12px;width:32px;height:32px;border:none;border-radius:50%;
-                background:#f3f4f6;color:#6b7280;font-size:1.25rem;line-height:1;cursor:pointer;transition:.12s;}
-            .vin-dlv-x:hover{background:#e7e9ee;color:#181a1f;}
-            .vin-dlv-head{margin:2px 34px 14px 0;}
-            .vin-dlv-name{font-weight:800;font-size:1.05rem;color:#181a1f;line-height:1.25;}
-            .vin-dlv-sub{font-size:0.8rem;color:#9aa3af;margin-top:3px;}
-            .vin-dlv-label{font-size:0.74rem;text-transform:uppercase;letter-spacing:.5px;color:#9aa3af;font-weight:700;margin-bottom:8px;}
-            .vin-dlv-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
-            .vin-dlv-opt{display:flex;align-items:flex-start;gap:11px;padding:12px 13px;border:1.5px solid #eceef2;
-                border-radius:12px;cursor:pointer;transition:.14s;}
-            .vin-dlv-opt:hover{border-color:#d7dae0;}
-            .vin-dlv-opt.sel{border-color:var(--vx-red,#C70909);background:#fff6f6;box-shadow:0 0 0 3px rgba(199,9,9,.06);}
-            .vin-dlv-radio{flex:0 0 auto;padding-top:2px;}
-            .vin-dlv-radio input{width:18px;height:18px;margin:0;accent-color:var(--vx-red,#C70909);cursor:pointer;}
-            .vin-dlv-body{flex:1;min-width:0;}
-            .vin-dlv-price{display:block;font-weight:800;font-size:1.05rem;color:#181a1f;line-height:1.15;}
-            .vin-dlv-meta{display:block;font-size:0.76rem;color:#8a9099;margin-top:3px;line-height:1.35;}
-            .vin-dlv-opt.sel .vin-dlv-meta{color:#b9772a;font-weight:600;}
-            .vin-dlv-row{margin-bottom:12px;}
-            .vin-dlv-qtywrap label,.vin-dlv-row>label{font-size:0.8rem;color:#6b7280;display:block;margin-bottom:4px;}
-            .vin-dlv-qty{width:90px;padding:9px 11px;border:1.5px solid #e7e9ee;border-radius:9px;font-size:0.9rem;font-weight:700;}
-            .vin-dlv-comment{width:100%;padding:9px 11px;border:1.5px solid #e7e9ee;border-radius:9px;font-size:0.85rem;
-                font-family:inherit;resize:vertical;}
-            .vin-dlv-qty:focus,.vin-dlv-comment:focus{outline:none;border-color:var(--vx-red,#C70909);}
-            .vin-dlv-note{font-size:0.72rem;color:#8a9099;background:#f8f9fb;border-radius:9px;padding:9px 11px;
-                margin-bottom:14px;line-height:1.45;}
-            .vin-dlv-note i{color:#b9772a;margin-right:4px;}
-            .vin-dlv-submit{display:block;width:100%;background:var(--vx-red,#C70909);color:#fff;border:none;border-radius:11px;
-                padding:14px;font-size:0.95rem;font-weight:800;cursor:pointer;transition:.15s;}
-            .vin-dlv-submit:hover{filter:brightness(1.08);}
-            .vin-dlv-submit[disabled]{opacity:.7;cursor:default;}
-            .vin-dlv-ok{background:#effaf1;color:#1f8a3b;border-radius:11px;padding:16px;font-size:0.9rem;text-align:center;line-height:1.5;}
-            .vin-dlv-ok i{font-size:1.4rem;display:block;margin-bottom:6px;}
-            .vin-dlv-ok a{color:#1f8a3b;font-weight:700;text-decoration:underline;}
-            .vin-dlv-err{background:#fdecec;color:#c0392b;border-radius:10px;padding:11px 13px;font-size:0.83rem;text-align:center;}
+
             .vin-cart{display:block;width:100%;background:var(--vx-ink,#181a1f);color:#fff;border:none;border-radius:9px;padding:11px;font-size:0.82rem;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;transition:.15s;}
             .vin-cart:hover{filter:brightness(1.2);color:#fff;}
             .vin-cart[disabled]{background:#ccc;cursor:not-allowed;}
