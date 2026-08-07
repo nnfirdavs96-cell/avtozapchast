@@ -424,7 +424,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                             </a>
                                         </h4>
                                         <?= priceBox($part) ?>
-                                        <?= productStarsInline((int)$part['id'], $ratings) ?>
+                                        <div class="rating_slot"><?= productStarsInline((int)$part['id'], $ratings) ?></div>
                                     </div>
                                     <div class="action_links">
                                         <ul>
@@ -524,7 +524,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                             </a>
                                         </h4>
                                         <?= priceBox($part) ?>
-                                        <?= productStarsInline((int)$part['id'], $ratings) ?>
+                                        <div class="rating_slot"><?= productStarsInline((int)$part['id'], $ratings) ?></div>
                                     </div>
                                     <div class="action_links">
                                         <ul>

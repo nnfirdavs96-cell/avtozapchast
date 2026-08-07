@@ -3118,21 +3118,26 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .shop_wrapper .single_product .price_box { min-height: 44px !important; align-content: flex-start; }
 .shop_wrapper .single_product .product_thumb { aspect-ratio: 4 / 3; padding: 14px; }
 
-/* ── Десктоп: единая белая полоса поиска (запчасти + VIN слиты в один блок) ──
-   По референсу владельца: никакого зазора/тени между полями — один сплошной
-   белый блок с тонкой разделительной чертой, кнопка поиска запчастей —
-   компактная (только иконка), справа VIN с кнопкой-меткой. Выпадающий список
-   категорий скрыт визуально (в референсе его нет), но остаётся в форме и
-   отправляется как обычно, если когда-то понадобится развернуть обратно. */
+/* ── Десктоп: ДВА РАЗДЕЛЬНЫХ поля поиска (запчасти и VIN) ─────────────────
+   Владелец явно попросил не сливать их в один блок — каждое поле своя белая
+   карточка с собственным скруглением и лёгкой тенью, между ними видимый
+   промежуток. Кнопка поиска запчастей — компактная (только иконка). Выпадающий
+   список категорий скрыт визуально (не нужен на этой строке), но остаётся в
+   форме на случай возврата. */
 @media (min-width: 992px) {
     .search_unibar {
-        display: flex; align-items: stretch;
-        background: #fff; border-radius: 8px; overflow: hidden;
-        height: 50px; flex: 1 1 auto; min-width: 0;
+        display: flex; align-items: stretch; gap: 12px;
+        flex: 1 1 auto; min-width: 0;
+        background: transparent; border-radius: 0; overflow: visible;  /* больше НЕ единая полоса */
+        height: 50px;
     }
     .search_unibar form { display: flex; height: 100%; }
-    .search_unibar form[data-mode="parts"] { flex: 1 1 auto; min-width: 240px; }
-    .search_unibar .hover_category { display: none; }              /* как в референсе — скрыт */
+    .search_unibar form[data-mode="parts"] {
+        flex: 1 1 auto; min-width: 240px;
+        background: #fff; border-radius: 8px; overflow: hidden;
+        box-shadow: 0 2px 8px rgba(20,22,30,.08);
+    }
+    .search_unibar .hover_category { display: none; }
     .search_unibar .search_box { display: flex; flex: 1 1 auto; height: 100%; min-width: 0; }
     .search_unibar .search_box input {
         flex: 1 1 auto; min-width: 0; height: 100%;
@@ -3147,11 +3152,11 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     }
     .search_unibar .search_box button:hover { background: #A00707; }
 
-    /* Разделительная черта между полями — единственная граница внутри полосы */
+    /* Отдельная карточка VIN — своё скругление, тень и промежуток от первого поля */
     .search_unibar .vin_search_form {
         flex: 0 0 260px; min-width: 260px;
-        border-radius: 0; background: transparent;
-        box-shadow: inset 1px 0 0 #ececf0;
+        border-radius: 8px; background: #fff; overflow: hidden;
+        box-shadow: 0 2px 8px rgba(20,22,30,.08);
     }
     .search_unibar .vin_search_form input {
         flex: 1 1 auto; min-width: 0; height: 100%;
@@ -3185,3 +3190,33 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     .sticky_search .ss_vin { box-shadow: inset 1px 0 0 #ececf0; }
     .sticky_search { background: #fff; border-radius: 8px; overflow: hidden; }
 }
+
+/* ── Каталог: третий источник разной высоты карточек — рейтинг ────────────
+   Найдена ещё одна причина «зазора»: если товар отзывов не имеет,
+   productStarsInline() возвращает ПУСТУЮ строку — элемента в DOM нет вовсе.
+   Стоит хотя бы одному товару в ряду иметь отзыв (звёзды+счётчик добавляют
+   строку) — Bootstrap растягивает ВЕСЬ ряд под него, а у карточек без отзывов
+   перед кнопкой появляется зазор. catalog/index.php оборачивает вызов в
+   .rating_slot, который рендерится ВСЕГДА — резервируем ему высоту здесь. */
+.shop_wrapper .single_product .rating_slot { min-height: 20px; }
+
+/* ── Финальный, авторитетный стиль кнопки «В корзину» (каталог) ─────────── */
+.shop_wrapper .single_product .action_links li.add_to_cart a {
+    display: block !important; text-align: center !important;
+    background: #C70909 !important; color: #fff !important;
+    font-weight: 700 !important; font-size: 13px !important;
+    letter-spacing: .4px !important; text-transform: uppercase !important;
+    padding: 14px 10px !important; border-radius: 10px !important;
+    box-shadow: 0 3px 10px rgba(199,9,9,.22) !important;
+    transition: background .16s, box-shadow .16s, transform .16s !important;
+}
+.shop_wrapper .single_product .action_links li.add_to_cart a:hover {
+    background: #A00707 !important;
+    box-shadow: 0 5px 16px rgba(199,9,9,.32) !important;
+    transform: translateY(-1px);
+}
+
+/* ── Фото: плавный зум внутри рамки при наведении (без всплывающих окошек) ── */
+.shop_wrapper .single_product .product_thumb { overflow: hidden; }
+.shop_wrapper .single_product .product_thumb img { transition: transform .25s ease; }
+.shop_wrapper .single_product:hover .product_thumb img { transform: scale(1.06); }
