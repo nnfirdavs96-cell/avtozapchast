@@ -2976,3 +2976,65 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     .shop_wrapper > [class*="col-"] { margin-bottom: 14px; }
     .shop_wrapper .single_product .grid_content { padding: 12px 14px 14px; }
 }
+
+/* ── Каталог: кнопка ВСЕГДА в карточке + аккуратная типографика ───────────
+   Тема прячет .action_links (position:absolute; visibility:hidden) и по наведению
+   выдвигает вниз (bottom:-55px) — на тач-экранах недоступно, а с overflow:hidden
+   кнопка обрезалась краем плитки. Возвращаем кнопку в НОРМАЛЬНЫЙ поток: всегда
+   видна, прижата к низу, во всю ширину. */
+.shop_wrapper .single_product .action_links {
+    position: static !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    box-shadow: none !important;
+    margin-top: auto;
+    padding: 0 16px 16px;
+}
+.shop_wrapper .single_product .action_links ul {
+    display: flex; align-items: stretch; gap: 8px; margin: 0; padding: 0; list-style: none;
+}
+.shop_wrapper .single_product .action_links li { margin: 0 !important; }
+.shop_wrapper .single_product .action_links li.add_to_cart { flex: 1 1 auto; }
+.shop_wrapper .single_product .action_links li.add_to_cart a {
+    display: block; text-align: center;
+    background: #C70909; color: #fff;
+    font-weight: 600; font-size: 13px; letter-spacing: .3px;
+    text-transform: uppercase;
+    padding: 12px 10px; border-radius: 8px;
+    white-space: nowrap; transition: background .16s;
+}
+.shop_wrapper .single_product .action_links li.add_to_cart a:hover { background: #A00707; }
+.shop_wrapper .single_product .action_links li.wishlist a {
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; flex: 0 0 44px;
+    border: 1px solid #e3e3ea; border-radius: 8px;
+    color: #8a8a95; font-size: 16px; transition: .16s;
+}
+.shop_wrapper .single_product .action_links li.wishlist a:hover {
+    border-color: #C70909; color: #C70909;
+}
+
+/* Типографика карточки — единый Rubik, чёткая иерархия */
+.shop_wrapper .single_product .grid_content { padding-bottom: 12px; }
+.shop_wrapper .single_product .manufacture_product {
+    margin-bottom: 4px !important;
+    font-size: 11px !important; line-height: 1.3 !important;
+    text-transform: uppercase; letter-spacing: .6px;
+}
+.shop_wrapper .single_product .manufacture_product a {
+    color: #9a9aa4 !important; font-weight: 600;
+}
+.shop_wrapper .single_product .manufacture_product a:hover { color: #C70909 !important; }
+.shop_wrapper .single_product .product_name a,
+.shop_wrapper .single_product .product_name h4 a {
+    color: #23242b !important; font-weight: 500 !important;
+    font-size: 14px !important; line-height: 1.4 !important;
+    display: block; margin-bottom: 8px;
+}
+.shop_wrapper .single_product .price_box { margin-top: 2px; }
+.shop_wrapper .single_product .price_box .current_price {
+    color: #C70909; font-weight: 700; font-size: 17px;
+}
+.shop_wrapper .single_product .price_box .old_price {
+    color: #b3b3bb; font-size: 12px; text-decoration: line-through; font-weight: 400;
+}
