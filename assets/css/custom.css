@@ -2951,16 +2951,17 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .shop_wrapper .single_product {
     height: 100%;
     background: #fff;
-    border: 1px solid #ececf0;
+    border: 1px solid #e7e7ee;
     border-radius: 12px;
     overflow: hidden;
     display: flex; flex-direction: column;
+    box-shadow: 0 3px 12px rgba(20,22,30,.08);   /* постоянная тень — плитки «парят» */
     transition: box-shadow .18s, border-color .18s, transform .18s;
 }
 .shop_wrapper .single_product:hover {
-    border-color: #dcdce2;
-    box-shadow: 0 6px 22px rgba(20,22,30,.10);
-    transform: translateY(-2px);
+    border-color: #d3d3dc;
+    box-shadow: 0 10px 28px rgba(20,22,30,.14);  /* при наведении заметно сильнее */
+    transform: translateY(-3px);
 }
 .shop_wrapper .single_product > figure { flex: 1 1 auto; display: flex; flex-direction: column; margin: 0; }
 .shop_wrapper .single_product .product_thumb { border-radius: 0; }
