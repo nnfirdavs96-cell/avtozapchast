@@ -3110,5 +3110,78 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 }
 .shop_wrapper .single_product .product_name a,
 .shop_wrapper .single_product .product_name h4 a { min-height: 2.4em !important; }
-.shop_wrapper .single_product .price_box { min-height: 22px !important; }
+/* Резервируем ВЫСОТУ ПОД 2 СТРОКИ ВСЕГДА (старая+новая цена) — не только у
+   товаров со скидкой. Раньше карточка со скидкой (2 строки) была выше соседних
+   (1 строка), а .row{align-items:stretch} тянул ВЕСЬ ряд под неё — у карточек
+   без скидки перед кнопкой появлялся большой пустой зазор. Теперь все карточки
+   в ряду изначально одной высоты независимо от наличия скидки — зазора нет. */
+.shop_wrapper .single_product .price_box { min-height: 44px !important; align-content: flex-start; }
 .shop_wrapper .single_product .product_thumb { aspect-ratio: 4 / 3; padding: 14px; }
+
+/* ── Десктоп: единая белая полоса поиска (запчасти + VIN слиты в один блок) ──
+   По референсу владельца: никакого зазора/тени между полями — один сплошной
+   белый блок с тонкой разделительной чертой, кнопка поиска запчастей —
+   компактная (только иконка), справа VIN с кнопкой-меткой. Выпадающий список
+   категорий скрыт визуально (в референсе его нет), но остаётся в форме и
+   отправляется как обычно, если когда-то понадобится развернуть обратно. */
+@media (min-width: 992px) {
+    .search_unibar {
+        display: flex; align-items: stretch;
+        background: #fff; border-radius: 8px; overflow: hidden;
+        height: 50px; flex: 1 1 auto; min-width: 0;
+    }
+    .search_unibar form { display: flex; height: 100%; }
+    .search_unibar form[data-mode="parts"] { flex: 1 1 auto; min-width: 240px; }
+    .search_unibar .hover_category { display: none; }              /* как в референсе — скрыт */
+    .search_unibar .search_box { display: flex; flex: 1 1 auto; height: 100%; min-width: 0; }
+    .search_unibar .search_box input {
+        flex: 1 1 auto; min-width: 0; height: 100%;
+        border: 0; background: transparent; padding: 0 16px 0 18px;
+        font-size: .92rem; color: #23242b; opacity: 1;
+    }
+    .search_unibar .search_box button {
+        position: static; height: 100%; width: 50px; min-width: 50px;
+        border: 0; background: #C70909; color: #fff; font-size: 1rem;
+        display: flex; align-items: center; justify-content: center;
+        padding: 0; border-radius: 0; transition: background .16s;
+    }
+    .search_unibar .search_box button:hover { background: #A00707; }
+
+    /* Разделительная черта между полями — единственная граница внутри полосы */
+    .search_unibar .vin_search_form {
+        flex: 0 0 260px; min-width: 260px;
+        border-radius: 0; background: transparent;
+        box-shadow: inset 1px 0 0 #ececf0;
+    }
+    .search_unibar .vin_search_form input {
+        flex: 1 1 auto; min-width: 0; height: 100%;
+        border: 0; background: transparent; padding: 0 14px;
+        font-size: .82rem; letter-spacing: .4px; color: #23242b;
+        font-family: monospace;
+    }
+    .search_unibar .vin_search_form input::placeholder { color: #9aa0ab; opacity: 1; }
+    .search_unibar .vin_search_form button {
+        height: 100%; padding: 0 20px; border: 0; border-radius: 0;
+        background: #C70909; color: #fff; font-weight: 700; font-size: .84rem;
+        transition: background .16s;
+    }
+    .search_unibar .vin_search_form button:hover { background: #A00707; }
+}
+
+/* ── Каталог: убрать иконку «быстрый просмотр» (глаз) с фото ─────────────
+   По наведению тема показывает поверх фото красный квадрат с иконкой глаза —
+   смотрится как отдельное всплывающее окошко. Не нужна — у карточки уже есть
+   клик по фото (переход на товар) и отдельная кнопка избранного. */
+.shop_wrapper .single_product .quick_button { display: none !important; }
+
+/* ── Десктоп: sticky-поиск тоже единой белой полосой (как основной) ──────
+   На узких экранах два отдельных белых поля с зазором ок (тач-цели), но на
+   десктопе — сливаем в один блок с тонкой чертой-разделителем, без зазора. */
+@media (min-width: 992px) {
+    .sticky-header.sticky .sticky_search { gap: 0; }
+    .sticky_search .ss_form {
+        border-radius: 0; background: transparent;
+    }
+    .sticky_search .ss_vin { box-shadow: inset 1px 0 0 #ececf0; }
+    .sticky_search { background: #fff; border-radius: 8px; overflow: hidden; }
+}
