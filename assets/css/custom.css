@@ -3076,3 +3076,39 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 
 /* Значок «-N%» и «глаз» аккуратно в углах фото */
 .shop_wrapper .single_product .product_thumb .quick_button { z-index: 3; }
+
+/* ── Десктоп: поле VIN той же высоты, что поле запчастей ──────────────────
+   У поля запчастей высота 50px задаёт тема (.search_box input{height:50px}).
+   У VIN высота не была задана вовсе — на ≥992px схлопывалась до высоты текста,
+   поля были РАЗНОЙ высоты. Выравниваем и скругления, и цвет кнопки — пара. */
+@media (min-width: 992px) {
+    .search_container.has_vin .vin_search_form { height: 50px; }
+    .search_container.has_vin .vin_search_form input { height: 100%; }
+    .search_container.has_vin .vin_search_form button { height: 100%; border-radius: 0 5px 5px 0; }
+    .search_container.has_vin .vin_search_form { border-radius: 5px; }
+}
+
+/* ── Каталог: убрать пустоту над кнопкой, кнопка — во всю ширину ─────────
+   Раньше сердечко занимало место рядом с кнопкой, а разница в длине названий
+   создавала большой пустой зазор перед кнопкой. Сердечко переносим на само
+   фото (плавающая иконка в углу — привычный паттерн), кнопка — на всю ширину.
+   Резервы высоты у названия/цены уменьшены, чтобы зазор был меньше. */
+.shop_wrapper .single_product .product_thumb { position: relative; }
+.shop_wrapper .single_product .wishlist_float {
+    position: absolute; top: 10px; right: 10px; z-index: 4;
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: #fff; color: #b8b8c0; font-size: 15px;
+    box-shadow: 0 2px 6px rgba(20,22,30,.14);
+    transition: color .16s, box-shadow .16s;
+}
+.shop_wrapper .single_product .wishlist_float:hover { color: #C70909; box-shadow: 0 4px 10px rgba(199,9,9,.22); }
+.shop_wrapper .single_product .action_links li.wishlist { display: none; }  /* дублировала бы сердечко на фото */
+.shop_wrapper .single_product .action_links li.add_to_cart { flex: 1 1 100%; }
+.shop_wrapper .single_product .action_links li.add_to_cart a {
+    padding: 13px 10px; font-size: 12.5px; border-radius: 9px;
+}
+.shop_wrapper .single_product .product_name a,
+.shop_wrapper .single_product .product_name h4 a { min-height: 2.4em !important; }
+.shop_wrapper .single_product .price_box { min-height: 22px !important; }
+.shop_wrapper .single_product .product_thumb { aspect-ratio: 4 / 3; padding: 14px; }
