@@ -2939,3 +2939,39 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     .promo_deal .action_links .add_to_cart { flex: 1 1 auto; }
     .promo_deal .action_links .add_to_cart a { display: block; text-align: center; }
 }
+
+/* ── Каталог: карточки как отдельные плитки (рамка + тень + отступы) ──────
+   Раньше карточки сливались с фоном — не было границ и промежутков.
+   Оформляем каждую в белую плитку с тонкой рамкой, скруглением и лёгкой тенью;
+   между плитками — воздух. Только в листинге каталога (.shop_wrapper), чтобы
+   не трогать карусели на главной. */
+.shop_wrapper { row-gap: 0; }
+.shop_wrapper > [class*="col-"] { margin-bottom: 22px; }
+
+.shop_wrapper .single_product {
+    height: 100%;
+    background: #fff;
+    border: 1px solid #ececf0;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    transition: box-shadow .18s, border-color .18s, transform .18s;
+}
+.shop_wrapper .single_product:hover {
+    border-color: #dcdce2;
+    box-shadow: 0 6px 22px rgba(20,22,30,.10);
+    transform: translateY(-2px);
+}
+.shop_wrapper .single_product > figure { flex: 1 1 auto; display: flex; flex-direction: column; margin: 0; }
+.shop_wrapper .single_product .product_thumb { border-radius: 0; }
+/* Внутренний контент — с полями, кнопка прижата к низу */
+.shop_wrapper .single_product .grid_content { padding: 14px 16px 16px; display: flex; flex-direction: column; flex: 1 1 auto; }
+.shop_wrapper .single_product .action_links { margin-top: auto; }
+
+@media (max-width: 991px) {
+    .shop_wrapper > [class*="col-"] { margin-bottom: 16px; }
+}
+@media (max-width: 767px) {
+    .shop_wrapper > [class*="col-"] { margin-bottom: 14px; }
+    .shop_wrapper .single_product .grid_content { padding: 12px 14px 14px; }
+}
