@@ -248,25 +248,30 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
                                     <button type="button" class="mst is-active" data-mode="parts">Запчасти</button>
                                     <button type="button" class="mst" data-mode="vin">По VIN</button>
                                 </div>
-                                <form action="<?= APP_URL ?>/search/index.php" method="GET" data-mode="parts">
-                                    <div class="hover_category">
-                                        <select class="select_option" name="cat">
-                                            <option value=""><?= t('all_categories') ?></option>
-                                            <?php foreach ($categories as $cat): ?>
-                                            <option value="<?= (int)$cat['id'] ?>" <?= (isset($_GET['cat']) && $_GET['cat']==$cat['id'])?'selected':'' ?>><?= sanitize(tField($cat,'name')) ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="search_box">
-                                        <input name="q" placeholder="<?= t('search_placeholder') ?>" type="text" value="<?= sanitize($_GET['q'] ?? '') ?>">
-                                        <button type="submit"><?= t('search') ?></button>
-                                    </div>
-                                </form>
-                                <!-- Отдельный поиск по VIN-коду -->
-                                <form action="<?= APP_URL ?>/pages/vin.php" method="GET" class="vin_search_form" data-mode="vin">
-                                    <input name="vin" type="text" maxlength="17" placeholder="VIN — 17 символов" value="<?= sanitize($_GET['vin'] ?? '') ?>">
-                                    <button type="submit"><i class="fa fa-search"></i> VIN</button>
-                                </form>
+                                <!-- Единая белая полоса на десктопе: оба поля визуально слиты в один
+                                     блок (тонкая разделительная черта между ними, без зазора/тени),
+                                     кнопка поиска запчастей — компактная, только иконка. -->
+                                <div class="search_unibar">
+                                    <form action="<?= APP_URL ?>/search/index.php" method="GET" data-mode="parts">
+                                        <div class="hover_category">
+                                            <select class="select_option" name="cat">
+                                                <option value=""><?= t('all_categories') ?></option>
+                                                <?php foreach ($categories as $cat): ?>
+                                                <option value="<?= (int)$cat['id'] ?>" <?= (isset($_GET['cat']) && $_GET['cat']==$cat['id'])?'selected':'' ?>><?= sanitize(tField($cat,'name')) ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="search_box">
+                                            <input name="q" placeholder="<?= t('search_placeholder') ?>" type="text" value="<?= sanitize($_GET['q'] ?? '') ?>">
+                                            <button type="submit" aria-label="<?= t('search') ?>"><i class="fa fa-search"></i></button>
+                                        </div>
+                                    </form>
+                                    <!-- Отдельный поиск по VIN-коду -->
+                                    <form action="<?= APP_URL ?>/pages/vin.php" method="GET" class="vin_search_form" data-mode="vin">
+                                        <input name="vin" type="text" maxlength="17" placeholder="VIN — 17 символов" value="<?= sanitize($_GET['vin'] ?? '') ?>">
+                                        <button type="submit">VIN</button>
+                                    </form>
+                                </div>
                             </div>
                             <script>
                             /* Переключатель «Запчасти / По VIN» (мобильный): показываем одну форму
