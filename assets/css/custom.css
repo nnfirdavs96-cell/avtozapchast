@@ -3287,3 +3287,24 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .sidebar_widget .widget_categories input[type="checkbox"] {
     accent-color: #C70909; margin-right: 8px; vertical-align: middle;
 }
+
+/* ── Каталог: убрать зазор перед кнопкой окончательно ─────────────────────
+   Корень: карточку тянет на высоту ряда (.row{align-items:stretch}), а кнопка
+   прижата к низу (margin-top:auto) — вся лишняя высота ряда падает ПУСТОТОЙ
+   ПЕРЕД кнопкой. Резервы высот у названия/цены/рейтинга уменьшали разброс, но
+   не убирали его полностью. Решаем прямо: карточки НЕ растягиваем по ряду —
+   каждая ровно по своему содержимому, кнопка идёт сразу за ценой. */
+.shop_wrapper { align-items: flex-start !important; }
+.shop_wrapper > [class*="col-"] { display: block !important; }
+.shop_wrapper .single_product { height: auto !important; }
+.shop_wrapper .single_product > figure { flex: 0 0 auto !important; height: auto !important; }
+.shop_wrapper .single_product .grid_content { flex: 0 0 auto !important; }
+.shop_wrapper .single_product .action_links {
+    margin-top: 0 !important;            /* больше НЕ прижимаем к низу */
+    padding-top: 14px !important;        /* ровный отступ от цены/рейтинга */
+}
+/* Резервы под название/цену оставляем небольшими, чтобы соседи в ряду были
+   близки по высоте, но без принудительной растяжки. */
+.shop_wrapper .single_product .product_name a,
+.shop_wrapper .single_product .product_name h4 a { min-height: 2.6em !important; }
+.shop_wrapper .single_product .price_box { min-height: 40px !important; }
