@@ -425,7 +425,6 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                     </div>
                                     <div class="action_links">
                                         <ul>
-                                            <?php if (isLoggedIn()): ?>
                                             <li class="add_to_cart">
                                                 <a href="javascript:void(0)" onclick="addToCart(<?= (int)$part['id'] ?>)" title="<?= t('add_to_cart') ?>">
                                                     <?= t('add_to_cart') ?>
@@ -436,11 +435,6 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                     <i class="icon-heart"></i>
                                                 </a>
                                             </li>
-                                            <?php else: ?>
-                                            <li class="add_to_cart">
-                                                <a href="<?= APP_URL ?>/auth/login.php"><?= t('login') ?></a>
-                                            </li>
-                                            <?php endif; ?>
                                         </ul>
                                     </div>
                                 </div>
@@ -466,8 +460,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                         <p class="text_available"><?= t('availability') ?>: <span><?= $stock['label'] ?></span></p>
                                         <div class="action_links">
                                             <ul>
-                                                <?php if (isLoggedIn()): ?>
-                                                <li class="add_to_cart">
+                                            <li class="add_to_cart">
                                                     <a href="javascript:void(0)" onclick="addToCart(<?= (int)$part['id'] ?>)" title="<?= t('add_to_cart') ?>">
                                                         <?= t('add_to_cart') ?>
                                                     </a>
@@ -477,11 +470,6 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                         <i class="icon-heart"></i> <?= t('add_to_wishlist') ?>
                                                     </a>
                                                 </li>
-                                                <?php else: ?>
-                                                <li class="add_to_cart">
-                                                    <a href="<?= APP_URL ?>/auth/login.php"><?= t('login') ?></a>
-                                                </li>
-                                                <?php endif; ?>
                                             </ul>
                                         </div>
                                     </div>
@@ -534,7 +522,6 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                     </div>
                                     <div class="action_links">
                                         <ul>
-                                            <?php if (isLoggedIn()): ?>
                                             <li class="add_to_cart">
                                                 <a href="javascript:void(0)" onclick="addToCart(<?= (int)$part['id'] ?>)" title="<?= t('add_to_cart') ?>">
                                                     <?= t('add_to_cart') ?>
@@ -545,11 +532,6 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                     <i class="icon-heart"></i>
                                                 </a>
                                             </li>
-                                            <?php else: ?>
-                                            <li class="add_to_cart">
-                                                <a href="<?= APP_URL ?>/auth/login.php"><?= t('login') ?></a>
-                                            </li>
-                                            <?php endif; ?>
                                         </ul>
                                     </div>
                                 </div>
@@ -575,8 +557,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                         <p class="text_available"><?= t('availability') ?>: <span><?= $stock['label'] ?></span></p>
                                         <div class="action_links">
                                             <ul>
-                                                <?php if (isLoggedIn()): ?>
-                                                <li class="add_to_cart">
+                                            <li class="add_to_cart">
                                                     <a href="javascript:void(0)" onclick="addToCart(<?= (int)$part['id'] ?>)" title="<?= t('add_to_cart') ?>">
                                                         <?= t('add_to_cart') ?>
                                                     </a>
@@ -586,11 +567,6 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                         <i class="icon-heart"></i> <?= t('add_to_wishlist') ?>
                                                     </a>
                                                 </li>
-                                                <?php else: ?>
-                                                <li class="add_to_cart">
-                                                    <a href="<?= APP_URL ?>/auth/login.php"><?= t('login') ?></a>
-                                                </li>
-                                                <?php endif; ?>
                                             </ul>
                                         </div>
                                     </div>

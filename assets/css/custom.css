@@ -2654,7 +2654,11 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     flex: 1 1 auto;
     height: 100%;
 }
-.single_product .product_content {
+/* ВАЖНО: не трогаем варианты .grid_content/.list_content — тема показывает
+   только один из них (`.product_content.list_content{display:none}`), а наш файл
+   грузится позже и с той же «силой» перебивал скрытие → в каталоге бренд, цена и
+   кнопка дублировались. Правило только для обычных карточек (главная и т.п.). */
+.single_product .product_content:not(.grid_content):not(.list_content) {
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;          /* тянется, чтобы низ карточек совпал */
