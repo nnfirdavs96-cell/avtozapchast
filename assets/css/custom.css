@@ -335,8 +335,7 @@
     .az-account-nav-out { margin-left: 0; }
 }
 
-/* ============================================================
- * Mazlay storefront — только то, чего нет в style.css Mazlay
+/* ===================================================== * Mazlay storefront — только то, чего нет в style.css Mazlay
  * ============================================================ */
 
 /* Тёмный фон всей шапки под логотип AutoDoc */
@@ -1123,8 +1122,7 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
 /* Кнопки в шаблонных страницах */
 .button:hover { background: #a00707 !important; color: #fff !important; }
 
-/* ============================================================
- * MOBILE RESPONSIVE — iPhone 15 Pro Max baseline (430 px)
+/* ===================================================== * MOBILE RESPONSIVE — iPhone 15 Pro Max baseline (430 px)
  * ============================================================ */
 
 /* ─── Универсальный reset для мобилки ─── */
@@ -1890,8 +1888,7 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
 
 
 
-/* ============================================================
- * === MOBILE FIX === (доп. правки по обратной связи от QA)
+/* ===================================================== * === MOBILE FIX === (доп. правки по обратной связи от QA)
  * Все правки — только для мобильных, десктоп не трогаем
  * ============================================================ */
 @media (max-width: 767px) {
@@ -2327,8 +2324,7 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
 }
 .pwd_login_toggle { font-size: 13px; }
 
-/* ============================================================
- * === RESPONSIVE AUDIT FIXES === (адаптивность по UX-аудиту 06.2026)
+/* ===================================================== * === RESPONSIVE AUDIT FIXES === (адаптивность по UX-аудиту 06.2026)
  * Доводка планшета, тач-таргетов и якорей под sticky-шапку.
  * Десктоп-вид не меняется; правки добавочные.
  * ============================================================ */
@@ -3118,21 +3114,26 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .shop_wrapper .single_product .price_box { min-height: 44px !important; align-content: flex-start; }
 .shop_wrapper .single_product .product_thumb { aspect-ratio: 4 / 3; padding: 14px; }
 
-/* ── Десктоп: единая белая полоса поиска (запчасти + VIN слиты в один блок) ──
-   По референсу владельца: никакого зазора/тени между полями — один сплошной
-   белый блок с тонкой разделительной чертой, кнопка поиска запчастей —
-   компактная (только иконка), справа VIN с кнопкой-меткой. Выпадающий список
-   категорий скрыт визуально (в референсе его нет), но остаётся в форме и
-   отправляется как обычно, если когда-то понадобится развернуть обратно. */
+/* ── Десктоп: ДВА РАЗДЕЛЬНЫХ поля поиска (запчасти и VIN) ─────────────────
+   Владелец явно попросил не сливать их в один блок — каждое поле своя белая
+   карточка с собственным скруглением и лёгкой тенью, между ними видимый
+   промежуток. Кнопка поиска запчастей — компактная (только иконка). Выпадающий
+   список категорий скрыт визуально (не нужен на этой строке), но остаётся в
+   форме на случай возврата. */
 @media (min-width: 992px) {
     .search_unibar {
-        display: flex; align-items: stretch;
-        background: #fff; border-radius: 8px; overflow: hidden;
-        height: 50px; flex: 1 1 auto; min-width: 0;
+        display: flex; align-items: stretch; gap: 12px;
+        flex: 1 1 auto; min-width: 0;
+        background: transparent; border-radius: 0; overflow: visible;  /* больше НЕ единая полоса */
+        height: 50px;
     }
     .search_unibar form { display: flex; height: 100%; }
-    .search_unibar form[data-mode="parts"] { flex: 1 1 auto; min-width: 240px; }
-    .search_unibar .hover_category { display: none; }              /* как в референсе — скрыт */
+    .search_unibar form[data-mode="parts"] {
+        flex: 1 1 auto; min-width: 240px;
+        background: #fff; border-radius: 8px; overflow: hidden;
+        box-shadow: 0 2px 8px rgba(20,22,30,.08);
+    }
+    .search_unibar .hover_category { display: none; }
     .search_unibar .search_box { display: flex; flex: 1 1 auto; height: 100%; min-width: 0; }
     .search_unibar .search_box input {
         flex: 1 1 auto; min-width: 0; height: 100%;
@@ -3147,11 +3148,11 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     }
     .search_unibar .search_box button:hover { background: #A00707; }
 
-    /* Разделительная черта между полями — единственная граница внутри полосы */
+    /* Отдельная карточка VIN — своё скругление, тень и промежуток от первого поля */
     .search_unibar .vin_search_form {
         flex: 0 0 260px; min-width: 260px;
-        border-radius: 0; background: transparent;
-        box-shadow: inset 1px 0 0 #ececf0;
+        border-radius: 8px; background: #fff; overflow: hidden;
+        box-shadow: 0 2px 8px rgba(20,22,30,.08);
     }
     .search_unibar .vin_search_form input {
         flex: 1 1 auto; min-width: 0; height: 100%;
@@ -3184,4 +3185,105 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     }
     .sticky_search .ss_vin { box-shadow: inset 1px 0 0 #ececf0; }
     .sticky_search { background: #fff; border-radius: 8px; overflow: hidden; }
+}
+
+/* ── Каталог: третий источник разной высоты карточек — рейтинг ────────────
+   Найдена ещё одна причина «зазора»: если товар отзывов не имеет,
+   productStarsInline() возвращает ПУСТУЮ строку — элемента в DOM нет вовсе.
+   Стоит хотя бы одному товару в ряду иметь отзыв (звёзды+счётчик добавляют
+   строку) — Bootstrap растягивает ВЕСЬ ряд под него, а у карточек без отзывов
+   перед кнопкой появляется зазор. catalog/index.php оборачивает вызов в
+   .rating_slot, который рендерится ВСЕГДА — резервируем ему высоту здесь. */
+.shop_wrapper .single_product .rating_slot { min-height: 20px; }
+
+/* ── Финальный, авторитетный стиль кнопки «В корзину» (каталог) ─────────── */
+.shop_wrapper .single_product .action_links li.add_to_cart a {
+    display: block !important; text-align: center !important;
+    background: #C70909 !important; color: #fff !important;
+    font-weight: 700 !important; font-size: 13px !important;
+    letter-spacing: .4px !important; text-transform: uppercase !important;
+    padding: 14px 10px !important; border-radius: 10px !important;
+    box-shadow: 0 3px 10px rgba(199,9,9,.22) !important;
+    transition: background .16s, box-shadow .16s, transform .16s !important;
+}
+.shop_wrapper .single_product .action_links li.add_to_cart a:hover {
+    background: #A00707 !important;
+    box-shadow: 0 5px 16px rgba(199,9,9,.32) !important;
+    transform: translateY(-1px);
+}
+
+/* ── Фото: плавный зум внутри рамки при наведении (без всплывающих окошек) ── */
+.shop_wrapper .single_product .product_thumb { overflow: hidden; }
+.shop_wrapper .single_product .product_thumb img { transition: transform .25s ease; }
+.shop_wrapper .single_product:hover .product_thumb img { transform: scale(1.06); }
+/* ── Сайдбар каталога: карточка с тенью + прилипание при прокрутке ────────
+   Раньше — голый список без визуального разделения, обычные синие ссылки, и
+   при скролле вниз сайдбар просто уезжал вместе со страницей. Оформляем как
+   единую белую карточку (тень, скругление), причёсываем типографику фильтров,
+   на десктопе — sticky (остаётся в поле зрения, но не наезжает на шапку). */
+@media (min-width: 992px) {
+    .sidebar_widget {
+        background: #fff;
+        border: 1px solid #ececf0;
+        border-radius: 12px;
+        box-shadow: 0 3px 14px rgba(20,22,30,.07);
+        padding: 22px 22px 6px;
+        position: sticky;
+        top: 90px;                                  /* ниже прилипающей шапки */
+        max-height: calc(100vh - 110px);
+        overflow-y: auto;
+    }
+    .sidebar_widget::-webkit-scrollbar { width: 6px; }
+    .sidebar_widget::-webkit-scrollbar-thumb { background: #e3e3ea; border-radius: 4px; }
+}
+
+/* Заголовки виджетов — единый стиль */
+.sidebar_widget .widget_list { margin-bottom: 22px; }
+.sidebar_widget .widget_list h3 {
+    font-size: 13px !important; font-weight: 700 !important;
+    letter-spacing: .6px; text-transform: uppercase;
+    color: #23242b; margin-bottom: 14px !important;
+    padding-bottom: 10px !important;
+    border-bottom: 1px solid #eeeef2 !important;
+}
+
+/* Списки категорий/брендов */
+.sidebar_widget .cat_widget_scroll,
+.sidebar_widget .brand_widget_scroll { list-style: none; margin: 0; padding: 0; }
+.sidebar_widget .cat_widget_scroll > li > a,
+.sidebar_widget .cat_parent_row > a,
+.sidebar_widget .cat_children li a {
+    display: block; padding: 7px 0;
+    color: #4a4a55 !important; font-size: 13.5px; text-decoration: none !important;
+    transition: color .14s, padding-left .14s;
+}
+.sidebar_widget .cat_widget_scroll > li > a:hover,
+.sidebar_widget .cat_parent_row > a:hover,
+.sidebar_widget .cat_children li a:hover { color: #C70909 !important; padding-left: 3px; }
+.sidebar_widget .active_categorie > a,
+.sidebar_widget .active_categorie > .cat_parent_row > a {
+    color: #C70909 !important; font-weight: 700 !important;
+}
+
+/* Фильтр по цене — аккуратные поля и кнопка */
+.sidebar_widget .widget_filter .price_range_inputs input {
+    height: 38px !important; border: 1px solid #e3e3ea !important; border-radius: 8px !important;
+    padding: 0 12px !important; font-size: 13px; text-align: center;
+    box-shadow: none !important; transition: border-color .14s;
+}
+.sidebar_widget .widget_filter .price_range_inputs input:focus {
+    border-color: #C70909 !important; outline: none;
+}
+.sidebar_widget .widget_filter .price_range_inputs span { color: #b3b3bb; }
+.sidebar_widget .widget_filter button[type="submit"] {
+    width: 100%; height: 40px; border: 0; border-radius: 8px;
+    background: #181a1f; color: #fff; font-weight: 600; font-size: 13px;
+    cursor: pointer; transition: background .16s;
+}
+.sidebar_widget .widget_filter button[type="submit"]:hover { background: #C70909; }
+.sidebar_widget .price_reset_link:hover { color: #C70909 !important; }
+
+/* Чекбоксы брендов/наличия — выровнены с текстом */
+.sidebar_widget .widget_categories input[type="checkbox"] {
+    accent-color: #C70909; margin-right: 8px; vertical-align: middle;
 }
