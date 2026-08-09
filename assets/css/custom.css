@@ -3403,22 +3403,27 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
         will-change: transform;
     }
     .shop_wrapper .single_product:hover {
-        transform: scale(1.045) translateY(-4px);
-        border-color: #d3d3dc !important;
-        box-shadow: 0 18px 40px rgba(20,22,30,.18), 0 4px 10px rgba(20,22,30,.08) !important;
-        transition-delay: 1s;                     /* задержка ПЕРЕД срабатыванием */
+        transform: scale(1.10) translateY(-6px) !important;   /* заметно больше — как у Kinoflex */
+        border-color: #C70909 !important;
+        box-shadow: 0 28px 60px rgba(20,22,30,.28), 0 8px 20px rgba(20,22,30,.14) !important;
+        transition-delay: .4s !important;         /* задержка меньше — не ждать секунду */
     }
     /* Название при наведении получает красный акцент — как у Kinoflex подпись */
     .shop_wrapper .single_product .product_name a { transition: color .18s; }
     .shop_wrapper .single_product:hover .product_name a {
-        color: #C70909 !important; transition-delay: 1s;
+        color: #C70909 !important; transition-delay: .4s;
     }
     /* Кнопка «В корзину» на hover — глубже тень и слабый подъём */
     .shop_wrapper .single_product .action_links li.add_to_cart a { transition: box-shadow .18s; }
     .shop_wrapper .single_product:hover .action_links li.add_to_cart a {
-        box-shadow: 0 6px 18px rgba(199,9,9,.32) !important; transition-delay: 1s;
+        box-shadow: 0 8px 22px rgba(199,9,9,.42) !important; transition-delay: .4s;
     }
     /* Сердечко и значок скидки остаются в углах фото */
     .shop_wrapper .single_product .wishlist_float { transition: color .18s, box-shadow .18s; }
-    .shop_wrapper .single_product:hover .wishlist_float { color: #C70909; transition-delay: 1s; }
+    .shop_wrapper .single_product:hover .wishlist_float { color: #C70909; transition-delay: .4s; }
 }
+
+/* Раннее hover-правило (без медиа) — было слабее и без !important, перебивало
+   наш заметный «Kinoflex-скейл» в 992+ по source order. Явно обнуляем transform
+   там, чтобы работал более сильный из блока 992+ (у него теперь !important). */
+.shop_wrapper .single_product:hover { transform: none; }
