@@ -3308,3 +3308,21 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .shop_wrapper .single_product .product_name a,
 .shop_wrapper .single_product .product_name h4 a { min-height: 2.6em !important; }
 .shop_wrapper .single_product .price_box { min-height: 40px !important; }
+
+/* ── Каталог: убрать РЕЗЕРВЫ высоты — они и были источником пустоты ───────
+   Резервы (min-height под цену/название/рейтинг) добавлялись, чтобы карточки
+   были равной высоты при растягивании ряда. Но растягивание убрано (#317),
+   поэтому резервы бесполезны и создают пустоту: у товара без скидки цена в
+   ОДНУ строку, а зарезервировано под ДВЕ → пустое место под ценой, которое
+   визуально «отрывает» кнопку. Обнуляем все резервы + плотные отступы. */
+.shop_wrapper .single_product .price_box {
+    min-height: 0 !important; margin: 2px 0 0 !important;
+}
+.shop_wrapper .single_product .product_name a,
+.shop_wrapper .single_product .product_name h4 a {
+    min-height: 0 !important; margin-bottom: 6px !important;
+}
+.shop_wrapper .single_product .rating_slot { min-height: 0 !important; }
+.shop_wrapper .single_product .rating_slot:empty { display: none !important; }
+.shop_wrapper .single_product .product_content_inner { padding-bottom: 0 !important; }
+.shop_wrapper .single_product .action_links { padding-top: 12px !important; }
