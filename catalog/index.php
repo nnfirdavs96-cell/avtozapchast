@@ -224,8 +224,10 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         </form>
                     </div>
 
-                    <!-- Brand (Manufacturer) checkboxes widget -->
-                    <div class="widget_list widget_categories">
+                    <!-- Brand (Manufacturer) checkboxes widget: свой класс widget_brands —
+                         список брендов длинный (десятки строк), сворачивается по умолчанию,
+                         чтобы не «съедать» весь сайдбар (см. .widget_list.widget_brands в JS). -->
+                    <div class="widget_list widget_categories widget_brands">
                         <h3><?= t('filter_by_brand') ?></h3>
                         <ul class="brand_widget_scroll">
                             <li class="<?= !$brandId ? 'active_categorie' : '' ?>">
