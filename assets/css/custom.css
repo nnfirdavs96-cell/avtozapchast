@@ -3215,7 +3215,8 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 /* ── Фото: плавный зум внутри рамки при наведении (без всплывающих окошек) ── */
 .shop_wrapper .single_product .product_thumb { overflow: hidden; }
 .shop_wrapper .single_product .product_thumb img { transition: transform .25s ease; }
-.shop_wrapper .single_product:hover .product_thumb img { transform: scale(1.06); }
+/* Отключено: внутренний зум картинки заменён «Kinoflex-style» скейлом всей плитки.
+   .shop_wrapper .single_product:hover .product_thumb img { transform: scale(1.06); } */
 /* ── Сайдбар каталога: карточка с тенью + прилипание при прокрутке ────────
    Раньше — голый список без визуального разделения, обычные синие ссылки, и
    при скролле вниз сайдбар просто уезжал вместе со страницей. Оформляем как
@@ -3376,4 +3377,37 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
         box-shadow: 0 2px 8px rgba(20,22,30,.10);
     }
     .sticky_search .ss_vin { box-shadow: 0 2px 8px rgba(20,22,30,.10); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Каталог — hover-эффект «как у Kinoflex»: карточка приподнимается,
+   плавно увеличивается и «выходит на передний план» с усиленной тенью.
+   БЕЗ изменений разметки — только CSS. Только десктоп (нет hover на touch).
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (min-width: 992px) and (hover: hover) {
+    .shop_wrapper > [class*="col-"] {
+        transition: z-index 0s .18s;             /* z-index возвращается ПОСЛЕ анимации */
+    }
+    .shop_wrapper > [class*="col-"]:hover {
+        z-index: 5;
+        transition: z-index 0s 0s;                /* сразу выходит наверх, чтобы не обрезалось */
+    }
+    .shop_wrapper .single_product {
+        transform-origin: center center;
+        transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+        will-change: transform;
+    }
+    .shop_wrapper .single_product:hover {
+        transform: scale(1.045) translateY(-4px);
+        border-color: #d3d3dc !important;
+        box-shadow: 0 18px 40px rgba(20,22,30,.18), 0 4px 10px rgba(20,22,30,.08) !important;
+    }
+    /* Название при наведении получает красный акцент — как у Kinoflex подпись */
+    .shop_wrapper .single_product:hover .product_name a { color: #C70909 !important; }
+    /* Кнопка «В корзину» на hover — глубже тень и слабый подъём */
+    .shop_wrapper .single_product:hover .action_links li.add_to_cart a {
+        box-shadow: 0 6px 18px rgba(199,9,9,.32) !important;
+    }
+    /* Сердечко и значок скидки остаются в углах фото */
+    .shop_wrapper .single_product:hover .wishlist_float { color: #C70909; }
 }
