@@ -3326,3 +3326,54 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .shop_wrapper .single_product .rating_slot:empty { display: none !important; }
 .shop_wrapper .single_product .product_content_inner { padding-bottom: 0 !important; }
 .shop_wrapper .single_product .action_links { padding-top: 12px !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Каталог: финальная выверка карточек (равный размер без зазора) + мелочи
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* 1. РАВНЫЙ РАЗМЕР без пустоты. Секрет: делаем ВСЕ секции карточки одинаковой
+   высоты — тогда карточки равны сами по себе, без растяжки и без резервов-дыр.
+   • Название — ровно 2 строки (line-clamp, длинное — с многоточием).
+   • Цена — ВСЕГДА одна строка: старую и новую цену ставим В РЯД (раньше со
+     скидкой они вставали в 2 строки и карточка становилась выше). */
+.shop_wrapper > [class*="col-"] { display: flex !important; }
+.shop_wrapper .single_product { height: auto !important; width: 100%; }
+.shop_wrapper .single_product .product_name a,
+.shop_wrapper .single_product .product_name h4 a {
+    display: -webkit-box !important; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; min-height: 2.6em !important; margin-bottom: 8px !important;
+    line-height: 1.3;
+}
+.shop_wrapper .single_product .price_box {
+    display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important;
+    align-items: baseline; gap: 8px; min-height: 0 !important; margin: 0 0 2px !important;
+}
+.shop_wrapper .single_product .price_box .old_price { font-size: 12px; order: 1; }
+.shop_wrapper .single_product .price_box .current_price { order: 2; }
+
+/* 2. ТЕКСТ КНОПКИ ПО ЦЕНТРУ. Был прижат книзу, т.к. ссылка тянулась выше строки
+   текста. Делаем flex-центрирование и фиксированную высоту. */
+.shop_wrapper .single_product .action_links li.add_to_cart a {
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    height: 46px !important; padding: 0 12px !important; line-height: 1 !important;
+}
+
+/* 3. СКИДКА и СЕРДЕЧКО не пересекаются: значок «-N%» — в левый верхний угол,
+   сердечко остаётся справа (стандартная раскладка). */
+.shop_wrapper .single_product .label_product {
+    position: absolute !important; top: 10px !important; left: 10px !important;
+    right: auto !important; bottom: auto !important; z-index: 4;
+}
+.shop_wrapper .single_product .wishlist_float { top: 10px; right: 10px; }
+
+/* 4. Прилипающий поиск при прокрутке — как основной: ДВА раздельных блока с
+   промежутком, а не слитая полоса (отменяем прежнее объединение). */
+@media (min-width: 992px) {
+    .sticky-header.sticky .sticky_search { gap: 12px; }
+    .sticky_search { background: transparent; border-radius: 0; overflow: visible; }
+    .sticky_search .ss_form {
+        border-radius: 8px; background: #fff; overflow: hidden;
+        box-shadow: 0 2px 8px rgba(20,22,30,.10);
+    }
+    .sticky_search .ss_vin { box-shadow: 0 2px 8px rgba(20,22,30,.10); }
+}
