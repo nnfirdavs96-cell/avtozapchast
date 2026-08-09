@@ -446,25 +446,30 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.key === 'Escape' || e.keyCode === 27) closeMiniCart();
     });
 
-    // ── Filter sidebar accordion: на мобиле каждый widget_list — collapsible
-    if (isMobile()) {
-        document.querySelectorAll('.sidebar_widget .widget_list').forEach(function (w) {
-            var h = w.querySelector('h3');
-            if (!h) return;
-            var body = document.createElement('div');
-            body.className = 'widget_body';
-            while (h.nextSibling) body.appendChild(h.nextSibling);
-            w.appendChild(body);
-            body.style.display = 'none';
-            h.style.cursor = 'pointer';
-            h.classList.add('widget_toggle');
-            h.addEventListener('click', function () {
-                var open = body.style.display !== 'none';
-                body.style.display = open ? 'none' : 'block';
-                h.classList.toggle('open', !open);
-            });
+    // ── Filter sidebar accordion: каждый widget_list — collapsible (десктоп и мобиле).
+    // Список брендов (.widget_brands) — десятки строк, «съедал» весь сайдбар без
+    // возможности свернуть — сворачиваем его ПО УМОЛЧАНИЮ; остальные виджеты
+    // (категории/цена/наличие) остаются открытыми, но тоже сворачиваемы кликом на h3.
+    // Только .shop_area (каталог) — блог использует тот же класс .sidebar_widget
+    // для своих виджетов («Последние записи» и т.п.), их не трогаем.
+    document.querySelectorAll('.shop_area .sidebar_widget .widget_list').forEach(function (w) {
+        var h = w.querySelector('h3');
+        if (!h) return;
+        var startClosed = w.classList.contains('widget_brands') || isMobile();
+        var body = document.createElement('div');
+        body.className = 'widget_body';
+        while (h.nextSibling) body.appendChild(h.nextSibling);
+        w.appendChild(body);
+        body.style.display = startClosed ? 'none' : 'block';
+        h.style.cursor = 'pointer';
+        h.classList.add('widget_toggle');
+        h.classList.toggle('open', !startClosed);
+        h.addEventListener('click', function () {
+            var open = body.style.display !== 'none';
+            body.style.display = open ? 'none' : 'block';
+            h.classList.toggle('open', !open);
         });
-    }
+    });
 
 });
 
