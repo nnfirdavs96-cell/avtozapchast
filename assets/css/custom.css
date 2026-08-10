@@ -3578,18 +3578,38 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .product_carousel .single_product .quick_button,
 .product_items .single_product .quick_button { display: none !important; }
 
-/* Hover-эффект «Kinoflex» — тоже для главной, только десктоп */
+/* Hover на главной — БЕЗ скейла: у карусели owl-stage-outer имеет overflow:hidden,
+   и увеличенная карточка обрезалась (наезд на соседей, кнопка «В корзину» уходила
+   за край). Оставляем только тень+рамку+красное название — эффект «оживает» без
+   вылезания за границы. */
 @media (min-width: 992px) {
-    .product_carousel > .col-lg-3,
-    .product_items { transition: z-index 0s .4s; }
     .product_carousel .single_product:hover,
     .product_items .single_product:hover {
-        transform: scale(1.06) translateY(-4px);
         border-color: #C70909;
-        box-shadow: 0 20px 44px rgba(20,22,30,.22), 0 6px 14px rgba(20,22,30,.10);
-        transition-delay: .4s;
-        z-index: 5;
+        box-shadow: 0 12px 28px rgba(20,22,30,.16), 0 4px 10px rgba(20,22,30,.08);
+        transition-delay: .3s;
     }
     .product_carousel .single_product:hover .product_name a,
     .product_items .single_product:hover .product_name a { color: #C70909 !important; }
+}
+
+/* Сердечко на главной — плавающая иконка в углу фото (как в каталоге),
+   а не квадратная кнопка рядом с «В корзину» — тогда кнопка занимает всю ширину. */
+.product_carousel .single_product .product_thumb,
+.product_items .single_product .product_thumb { position: relative; }
+.product_carousel .single_product .action_links li.wishlist,
+.product_items .single_product .action_links li.wishlist { display: none; }
+.product_carousel .single_product .action_links li.add_to_cart,
+.product_items .single_product .action_links li.add_to_cart { flex: 1 1 100%; }
+
+/* Плавающее сердечко на фото — общая для главной кнопка избранного.
+   Разметки нет, поэтому подкладываем через ::before. Кликается через action_links → wishlist,
+   поэтому реальный клик сохраняем — просто скрываем визуально нижнюю кнопку. Пока показываем
+   ТОЛЬКО значок «-N%» в углу; полноценное сердечко на фото — отдельной правкой в разметке. */
+
+/* Значок «-N%» на карточке главной — в левый верхний угол, чтобы не налезать
+   на плавающее сердечко в правом (аналогично каталогу). */
+.product_carousel .single_product .label_product,
+.product_items .single_product .label_product {
+    position: absolute; top: 10px; left: 10px; right: auto; bottom: auto; z-index: 4;
 }

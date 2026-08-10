@@ -338,6 +338,7 @@ require_once __DIR__ . '/includes/header.php';
                                             <div class="quick_button">
                                                 <a href="<?= partUrl($part) ?>" title="<?= t('quick_view') ?>"><i class="icon-eye"></i></a>
                                             </div>
+                                            <a href="javascript:void(0)" class="wishlist_float" onclick="addToWishlist(<?= (int)$part['id'] ?>)" title="<?= t('add_to_wishlist') ?>"><i class="icon-heart"></i></a>
                                         </div>
                                         <div class="product_content">
                                             <div class="product_content_inner">
@@ -438,6 +439,7 @@ require_once __DIR__ . '/includes/header.php';
                                         <div class="quick_button">
                                             <a href="<?= partUrl($part) ?>" title="<?= t('quick_view') ?>"><i class="icon-eye"></i></a>
                                         </div>
+                                        <a href="javascript:void(0)" class="wishlist_float" onclick="addToWishlist(<?= (int)$part['id'] ?>)" title="<?= t('add_to_wishlist') ?>"><i class="icon-heart"></i></a>
                                     </div>
                                     <div class="product_content grid_content">
                                         <div class="product_content_inner">
