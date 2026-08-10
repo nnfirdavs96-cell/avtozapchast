@@ -3755,63 +3755,60 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     .sticky-header.sticky .header_phone a { color: #fff; font-weight: 600; }
 }
 
-/* ── Мега-меню «Все категории» — читаемый текст подкатегорий ─────────────
-   На белом фоне выпадашки текст подкатегорий выглядел бледным, «сливался».
-   Задаём явные цвета: заголовки категорий — тёмные полужирные, подкатегории —
-   средний серый, при наведении — красный акцент. Считываемо и опрятно. */
-.categories_menu_toggle > ul > li > a {
-    color: #23242b !important;
-    font-weight: 700;
+/* ── Мега-меню «МАГАЗИН» (.az-megamenu) — читаемость и высота под вьюпорт ──
+   Настоящая выпадашка использует разметку .az-megamenu (не .categories_menu_toggle).
+   Проблема 1: ссылки меню лежат внутри .main_menu nav ul li a, поэтому правило
+   прилипшей шапки (.sticky-header.sticky .main_menu nav ul li a { color:#e8e8e8 })
+   красило текст подкатегорий в почти белый — при прокрутке текст «сливался» с
+   белым фоном выпадашки. Ставим ЯВНЫЕ тёмные цвета с !important, они бьют
+   правило шапки (там без !important) и в обычном, и в прилипшем состоянии.
+   Проблема 2: на 100% масштабе список не помещался в экран — ограничиваем
+   высоту вьюпортом и даём внутреннюю прокрутку. */
+
+/* Заголовки категорий — уверенный тёмный, читаемо всегда */
+.az-megamenu .az-megamenu__head,
+.sticky-header.sticky .az-megamenu .az-megamenu__head {
+    color: #1a1a1f !important;
+    font-weight: 700 !important;
 }
-.categories_menu_toggle > ul > li > a:hover { color: #C70909 !important; }
-.categories_menu_toggle > ul > li ul.categories_mega_menu > li > a {
+/* Подкатегории — средний серый, при наведении красный акцент */
+.az-megamenu .az-megamenu__sub li a,
+.sticky-header.sticky .az-megamenu .az-megamenu__sub li a {
     color: #4a4a55 !important;
     font-weight: 500 !important;
-    text-transform: none !important;
-    letter-spacing: normal;
-    transition: color .14s, padding-left .14s;
 }
-.categories_menu_toggle > ul > li ul.categories_mega_menu > li > a:hover {
+.az-megamenu .az-megamenu__sub li a:hover,
+.sticky-header.sticky .az-megamenu .az-megamenu__sub li a:hover {
     color: #C70909 !important;
-    padding-left: 3px;
 }
-/* Заголовки категорий и счётчики — уверенные тёмные */
-.categories_menu_toggle .cat_head,
-.categories_menu_toggle .cat_count,
-.categories_menu_toggle .menu_item_children > a { color: #23242b !important; }
+/* Одноколоночные пункты, промо-ссылки и футер — тоже фиксируем цвет */
+.az-megamenu .az-megamenu__list li a,
+.sticky-header.sticky .az-megamenu .az-megamenu__list li a { color: #333 !important; }
+.az-megamenu .az-megamenu__list li a:hover,
+.sticky-header.sticky .az-megamenu .az-megamenu__list li a:hover { color: #C70909 !important; }
+.az-megamenu .az-mega-links a,
+.sticky-header.sticky .az-megamenu .az-mega-links a { color: #444 !important; }
+.az-megamenu .az-mega-links a:hover,
+.sticky-header.sticky .az-megamenu .az-mega-links a:hover { color: #d32f2f !important; }
+.az-megamenu .az-megamenu__footer a,
+.sticky-header.sticky .az-megamenu .az-megamenu__footer a { color: #555 !important; }
+.az-megamenu .az-megamenu__footer a:hover,
+.sticky-header.sticky .az-megamenu .az-megamenu__footer a:hover { color: #d32f2f !important; }
+.az-megamenu .az-mega-promo__btn,
+.sticky-header.sticky .az-megamenu .az-mega-promo__btn { color: #d32f2f !important; }
 
-/* ── Мега-меню «Все категории» — компактнее и адаптивная высота ───────────
-   На 100% масштабе выпадающее мега-меню было слишком высоким — верхняя часть
-   упиралась в шапку, приходилось уменьшать масштаб браузера, чтобы увидеть
-   весь список. Ограничиваем высоту вьюпортом (за вычетом высоты шапки) и
-   даём прокрутку внутри; строки ссылок компактнее. */
+/* Высота под вьюпорт + компактный ритм строк */
 @media (min-width: 992px) {
-    /* Основная выпадашка мега-меню */
-    .categories_menu_toggle > ul > li:hover ul.categories_mega_menu,
-    .categories_menu_toggle > ul > li:hover .wide-megamenu,
-    .categories_menu_toggle .wide-megamenu,
-    .categories_menu_toggle ul.categories_mega_menu {
-        max-height: calc(100vh - 180px);          /* минус ~180px под шапку */
+    .az-megamenu--wide { max-height: none; }
+    .az-megamenu--wide .az-megamenu__inner {
+        max-height: calc(100vh - 170px);   /* минус высота шапки */
         overflow-y: auto;
         overflow-x: hidden;
     }
-    /* Компактный ритм строк — заголовки и подкатегории */
-    .categories_menu_toggle > ul > li ul.categories_mega_menu > li > a {
-        line-height: 24px !important;
-        margin-bottom: 4px !important;
-        padding: 4px 0 !important;
-        font-size: 12.5px !important;
-    }
-    .categories_menu_toggle .wide-megamenu h5,
-    .categories_menu_toggle .wide-megamenu .cat_head {
-        margin: 6px 0 8px !important;
-        font-size: 13px !important;
-    }
+    .az-megamenu__group { margin-bottom: 7px !important; }
+    .az-megamenu__col .az-megamenu__list li a { padding: 5px 16px !important; }
+    .az-megamenu__sub li a { padding-top: 4px !important; padding-bottom: 4px !important; }
     /* Тонкий скролл внутри мега-меню */
-    .categories_menu_toggle .wide-megamenu::-webkit-scrollbar,
-    .categories_menu_toggle ul.categories_mega_menu::-webkit-scrollbar { width: 6px; }
-    .categories_menu_toggle .wide-megamenu::-webkit-scrollbar-thumb,
-    .categories_menu_toggle ul.categories_mega_menu::-webkit-scrollbar-thumb {
-        background: #d9d9d9; border-radius: 3px;
-    }
+    .az-megamenu__inner::-webkit-scrollbar { width: 6px; }
+    .az-megamenu__inner::-webkit-scrollbar-thumb { background: #d9d9d9; border-radius: 3px; }
 }
