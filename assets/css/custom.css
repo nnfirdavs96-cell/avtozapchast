@@ -3754,3 +3754,28 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     .sticky-header.sticky .header_phone p { margin: 0; font-size: .84rem; color: #b3b3bb; }
     .sticky-header.sticky .header_phone a { color: #fff; font-weight: 600; }
 }
+
+/* ── Мега-меню «Все категории» — читаемый текст подкатегорий ─────────────
+   На белом фоне выпадашки текст подкатегорий выглядел бледным, «сливался».
+   Задаём явные цвета: заголовки категорий — тёмные полужирные, подкатегории —
+   средний серый, при наведении — красный акцент. Считываемо и опрятно. */
+.categories_menu_toggle > ul > li > a {
+    color: #23242b !important;
+    font-weight: 700;
+}
+.categories_menu_toggle > ul > li > a:hover { color: #C70909 !important; }
+.categories_menu_toggle > ul > li ul.categories_mega_menu > li > a {
+    color: #4a4a55 !important;
+    font-weight: 500 !important;
+    text-transform: none !important;
+    letter-spacing: normal;
+    transition: color .14s, padding-left .14s;
+}
+.categories_menu_toggle > ul > li ul.categories_mega_menu > li > a:hover {
+    color: #C70909 !important;
+    padding-left: 3px;
+}
+/* Заголовки категорий и счётчики — уверенные тёмные */
+.categories_menu_toggle .cat_head,
+.categories_menu_toggle .cat_count,
+.categories_menu_toggle .menu_item_children > a { color: #23242b !important; }
