@@ -3712,3 +3712,45 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     transition: transform .35s ease;
 }
 .banner_area .single_banner:hover .banner_thumb img { transform: scale(1.04); }
+
+/* ── Прилипающая полоса при прокрутке — легче и элегантнее ───────────────
+   Тема даёт rgba(34,34,34,.8) — сплошную тяжёлую тёмную плашку. Делаем стекло:
+   полупрозрачный фон + backdrop-blur, тонкая нижняя граница, компактная кнопка
+   «Все категории» вместо растянутой красной плашки, ровные пропорции меню. */
+@media (min-width: 992px) {
+    .sticky-header.sticky {
+        background: rgba(24, 26, 31, .72) !important;
+        backdrop-filter: saturate(1.4) blur(10px);
+        -webkit-backdrop-filter: saturate(1.4) blur(10px);
+        box-shadow: 0 1px 0 rgba(255,255,255,.04), 0 8px 24px rgba(0,0,0,.18) !important;
+        border-bottom: 1px solid rgba(255,255,255,.06);
+        padding: 6px 20px !important;
+    }
+    /* «Все категории» — компактнее, не на всю высоту */
+    .sticky-header.sticky .categories_title {
+        background: #C70909 !important;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(199,9,9,.35);
+    }
+    .sticky-header.sticky .categories_title h2 {
+        font-size: .82rem !important;
+        font-weight: 700 !important;
+        letter-spacing: .3px;
+        line-height: 40px !important;
+        padding: 0 18px 0 44px !important;
+        white-space: nowrap;
+        margin: 0 !important;
+    }
+    /* Меню в прилипшей полосе — более лёгкие ссылки */
+    .sticky-header.sticky .main_menu nav ul li a {
+        padding: 10px 14px !important;
+        font-size: .88rem;
+        color: #e8e8e8;
+        transition: color .16s;
+    }
+    .sticky-header.sticky .main_menu nav ul li a:hover { color: #ff5a5a; }
+    /* Телефон справа — акцент */
+    .sticky-header.sticky .header_phone p { margin: 0; font-size: .84rem; color: #b3b3bb; }
+    .sticky-header.sticky .header_phone a { color: #fff; font-weight: 600; }
+}
