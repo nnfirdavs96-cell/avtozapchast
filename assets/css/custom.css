@@ -3634,3 +3634,32 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .product_items .single_product:hover {
     box-shadow: 0 6px 16px rgba(20,22,30,.14), 0 2px 6px rgba(20,22,30,.06) !important;
 }
+
+/* ── Главная: убрать «margin-top: auto» у кнопки (та же причина, что была в
+   каталоге, #317/#318) ────────────────────────────────────────────────────
+   Общее правило `.single_product .action_links { margin-top: auto }` (без
+   привязки к контексту) толкает кнопку к низу флекс-колонки поверх уже
+   заданного padding-top:12px — получается двойной отступ и кнопка «висит»
+   слишком низко. Обнуляем именно для карточек главной. */
+.product_carousel .single_product .action_links,
+.product_items .single_product .action_links {
+    margin-top: 0 !important;
+}
+
+/* ── Главная: полноценное оформление сердечка на фото (было только
+   position:relative у контейнера, сам .wishlist_float не стилизован —
+   показывался пустым квадратом без кружка/иконки). Копируем стиль каталога. */
+.product_carousel .single_product .wishlist_float,
+.product_items .single_product .wishlist_float {
+    position: absolute; top: 10px; right: 10px; z-index: 4;
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: #fff; color: #b8b8c0; font-size: 15px;
+    box-shadow: 0 2px 6px rgba(20,22,30,.14);
+    transition: color .16s, box-shadow .16s;
+    text-decoration: none;
+}
+.product_carousel .single_product .wishlist_float:hover,
+.product_items .single_product .wishlist_float:hover {
+    color: #C70909; box-shadow: 0 4px 10px rgba(199,9,9,.22);
+}
