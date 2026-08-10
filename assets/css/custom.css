@@ -3686,3 +3686,29 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     padding: 0 16px 16px !important;
     margin-top: 0 !important;
 }
+
+/* ── Три баннера на главной («AutoDoc Магазин») — плитки с рамкой/тенью ──
+   Раньше картинки стояли впритык, «плоско» и выглядели как просто вставленные
+   изображения. Оформляем как аккуратные плитки: рамка, скругление, тень;
+   на hover — плавный подъём и глубже тень (общий стиль с карточками товара). */
+.banner_area .single_banner {
+    margin: 0;
+    background: #fff;
+    border: 1px solid #e7e7ee;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 3px 12px rgba(20,22,30,.08);
+    transition: box-shadow .22s, transform .22s, border-color .22s;
+}
+.banner_area .single_banner:hover {
+    border-color: #d3d3dc;
+    box-shadow: 0 10px 24px rgba(20,22,30,.14), 0 4px 10px rgba(20,22,30,.08);
+    transform: translateY(-3px);
+}
+.banner_area .banner_thumb { border-radius: 12px; overflow: hidden; }
+.banner_area .banner_thumb a { display: block; }
+.banner_area .banner_thumb img {
+    display: block; width: 100%; height: auto;
+    transition: transform .35s ease;
+}
+.banner_area .single_banner:hover .banner_thumb img { transform: scale(1.04); }
