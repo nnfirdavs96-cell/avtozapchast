@@ -3663,3 +3663,13 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .product_items .single_product .wishlist_float:hover {
     color: #C70909; box-shadow: 0 4px 10px rgba(199,9,9,.22);
 }
+
+/* ── Главная: убрать padding-bottom у product_content_inner ───────────────
+   Тема даёт `.product_content_inner { padding: 10px 15px 20px }` — эти 20px
+   снизу резервировали место под action_links, которая у темы `position: absolute;
+   bottom: 0`. Мы вернули кнопку в поток (#325), а padding остался — стал
+   пустотой между ценой и кнопкой. Обнуляем. */
+.product_carousel .single_product .product_content_inner,
+.product_items .single_product .product_content_inner {
+    padding: 0 !important;
+}
