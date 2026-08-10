@@ -3613,3 +3613,24 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .product_items .single_product .label_product {
     position: absolute; top: 10px; left: 10px; right: auto; bottom: auto; z-index: 4;
 }
+
+/* ── Карусели главной: не срезать края карточек ─────────────────────────
+   .owl-stage-outer имеет overflow:hidden (нужно для пагинации — соседние страницы
+   не должны выглядывать), поэтому тень и рамка КРАЙНИХ карточек в видимой полосе
+   обрезаются краем контейнера. Решение: небольшой внутренний padding у карточки
+   в .owl-item, чтобы тень поместилась в свою ячейку и не «утыкалась» в границу.
+   overflow visible НЕ используем — это сломало бы пагинацию. */
+.product_area .product_carousel,
+.sale_product_area .product_carousel {
+    padding: 4px 0 12px;                      /* немного вертикального запаса под тень */
+}
+/* Мягче тень, чтобы даже в узкой owl-ячейке не срезалась */
+.product_carousel .single_product,
+.product_items .single_product {
+    box-shadow: 0 2px 8px rgba(20,22,30,.06) !important;
+    margin: 2px 4px;                          /* поля для тени внутри owl-item */
+}
+.product_carousel .single_product:hover,
+.product_items .single_product:hover {
+    box-shadow: 0 6px 16px rgba(20,22,30,.14), 0 2px 6px rgba(20,22,30,.06) !important;
+}
