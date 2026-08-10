@@ -3448,3 +3448,148 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 }
 .shop_area .sidebar_widget .widget_list > h3.open::after { transform: translateY(-50%) rotate(180deg); color: #C70909; }
 .shop_area .sidebar_widget .widget_list .widget_body { padding-top: 4px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Единый вид карточек товара — главная + каталог + категория + поиск
+   Раньше плитки-стили (#309–#319) применялись только в .shop_wrapper (каталог),
+   а карточки в каруселях главной оставались голыми. Даём одинаковое базовое
+   оформление ВСЕМ .single_product, а специфику .shop_wrapper оставляем как есть.
+   ═══════════════════════════════════════════════════════════════════════ */
+.product_carousel .single_product,
+.product_items .single_product {
+    background: #fff;
+    border: 1px solid #e7e7ee;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 3px 12px rgba(20,22,30,.08);
+    transition: box-shadow .22s, border-color .22s, transform .22s;
+    transition-delay: 0s;
+    display: flex; flex-direction: column;
+    height: 100%;
+    position: relative;
+}
+.product_carousel .single_product > figure,
+.product_items .single_product > figure {
+    display: flex; flex-direction: column; margin: 0; flex: 1 1 auto;
+}
+.product_carousel .single_product .product_thumb,
+.product_items .single_product .product_thumb {
+    background: #fff; aspect-ratio: 4/3;
+    display: flex; align-items: center; justify-content: center;
+    padding: 14px; overflow: hidden;
+    border-bottom: 1px solid #f1f1f4;
+    position: relative;
+}
+.product_carousel .single_product .product_thumb img,
+.product_items .single_product .product_thumb img {
+    max-width: 100%; max-height: 100%;
+    width: auto !important; height: auto !important;
+    object-fit: contain;
+}
+.product_carousel .single_product .grid_content,
+.product_items .single_product .grid_content {
+    padding: 15px 16px 16px !important;
+    display: flex; flex-direction: column;
+    background: #fff;
+}
+/* Скрываем список-вариант, он в разметке есть для «view=list» */
+.product_carousel .single_product .list_content,
+.product_items .single_product .list_content { display: none; }
+/* Убираем hover-выдвижение action_links темы (то же, что делали в каталоге) */
+.product_carousel .single_product .action_links,
+.product_items .single_product .action_links {
+    position: static !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    box-shadow: none !important;
+    padding: 12px 0 0 !important;
+}
+.product_carousel .single_product .action_links ul,
+.product_items .single_product .action_links ul {
+    display: flex; align-items: stretch; gap: 8px; margin: 0; padding: 0; list-style: none;
+}
+.product_carousel .single_product .action_links li,
+.product_items .single_product .action_links li { margin: 0 !important; }
+.product_carousel .single_product .action_links li.add_to_cart,
+.product_items .single_product .action_links li.add_to_cart { flex: 1 1 100%; }
+.product_carousel .single_product .action_links li.add_to_cart a,
+.product_items .single_product .action_links li.add_to_cart a {
+    display: flex !important; align-items: center; justify-content: center;
+    height: 46px; padding: 0 12px; line-height: 1;
+    background: #C70909; color: #fff;
+    font-weight: 700; font-size: 13px; letter-spacing: .4px;
+    text-transform: uppercase; border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(199,9,9,.22);
+    transition: background .16s, box-shadow .16s;
+    text-decoration: none;
+}
+.product_carousel .single_product .action_links li.add_to_cart a:hover,
+.product_items .single_product .action_links li.add_to_cart a:hover {
+    background: #A00707;
+    box-shadow: 0 5px 16px rgba(199,9,9,.32);
+}
+.product_carousel .single_product .action_links li.wishlist a,
+.product_items .single_product .action_links li.wishlist a {
+    display: flex; align-items: center; justify-content: center;
+    width: 46px; height: 46px; flex: 0 0 46px;
+    border: 1px solid #e3e3ea; border-radius: 10px;
+    color: #8a8a95; font-size: 16px; transition: .16s;
+    background: #fff; text-decoration: none;
+}
+.product_carousel .single_product .action_links li.wishlist a:hover,
+.product_items .single_product .action_links li.wishlist a:hover {
+    border-color: #C70909; color: #C70909;
+}
+/* Типографика — как в каталоге (Rubik, единая иерархия) */
+.product_carousel .single_product .manufacture_product,
+.product_items .single_product .manufacture_product {
+    margin-bottom: 4px !important;
+    font-size: 11px !important; line-height: 1.3 !important;
+    text-transform: uppercase; letter-spacing: .6px;
+}
+.product_carousel .single_product .manufacture_product a,
+.product_items .single_product .manufacture_product a {
+    color: #9a9aa4 !important; font-weight: 600; text-decoration: none;
+}
+.product_carousel .single_product .manufacture_product a:hover,
+.product_items .single_product .manufacture_product a:hover { color: #C70909 !important; }
+.product_carousel .single_product .product_name a,
+.product_items .single_product .product_name a {
+    color: #23242b !important; font-weight: 500 !important;
+    font-size: 14px !important; line-height: 1.4 !important;
+    display: -webkit-box !important; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; min-height: 2.6em; margin-bottom: 8px !important;
+    text-decoration: none;
+}
+.product_carousel .single_product .price_box,
+.product_items .single_product .price_box {
+    display: flex; flex-wrap: nowrap; align-items: baseline; gap: 8px;
+    margin: 0 0 2px;
+}
+.product_carousel .single_product .price_box .current_price,
+.product_items .single_product .price_box .current_price {
+    color: #C70909; font-weight: 700; font-size: 17px; white-space: nowrap;
+}
+.product_carousel .single_product .price_box .old_price,
+.product_items .single_product .price_box .old_price {
+    color: #b3b3bb; font-size: 12px; text-decoration: line-through; font-weight: 400; white-space: nowrap;
+}
+/* Убираем «глаз» быстрого просмотра (как в каталоге) */
+.product_carousel .single_product .quick_button,
+.product_items .single_product .quick_button { display: none !important; }
+
+/* Hover-эффект «Kinoflex» — тоже для главной, только десктоп */
+@media (min-width: 992px) {
+    .product_carousel > .col-lg-3,
+    .product_items { transition: z-index 0s .4s; }
+    .product_carousel .single_product:hover,
+    .product_items .single_product:hover {
+        transform: scale(1.06) translateY(-4px);
+        border-color: #C70909;
+        box-shadow: 0 20px 44px rgba(20,22,30,.22), 0 6px 14px rgba(20,22,30,.10);
+        transition-delay: .4s;
+        z-index: 5;
+    }
+    .product_carousel .single_product:hover .product_name a,
+    .product_items .single_product:hover .product_name a { color: #C70909 !important; }
+}
