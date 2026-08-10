@@ -3779,3 +3779,39 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .categories_menu_toggle .cat_head,
 .categories_menu_toggle .cat_count,
 .categories_menu_toggle .menu_item_children > a { color: #23242b !important; }
+
+/* ── Мега-меню «Все категории» — компактнее и адаптивная высота ───────────
+   На 100% масштабе выпадающее мега-меню было слишком высоким — верхняя часть
+   упиралась в шапку, приходилось уменьшать масштаб браузера, чтобы увидеть
+   весь список. Ограничиваем высоту вьюпортом (за вычетом высоты шапки) и
+   даём прокрутку внутри; строки ссылок компактнее. */
+@media (min-width: 992px) {
+    /* Основная выпадашка мега-меню */
+    .categories_menu_toggle > ul > li:hover ul.categories_mega_menu,
+    .categories_menu_toggle > ul > li:hover .wide-megamenu,
+    .categories_menu_toggle .wide-megamenu,
+    .categories_menu_toggle ul.categories_mega_menu {
+        max-height: calc(100vh - 180px);          /* минус ~180px под шапку */
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    /* Компактный ритм строк — заголовки и подкатегории */
+    .categories_menu_toggle > ul > li ul.categories_mega_menu > li > a {
+        line-height: 24px !important;
+        margin-bottom: 4px !important;
+        padding: 4px 0 !important;
+        font-size: 12.5px !important;
+    }
+    .categories_menu_toggle .wide-megamenu h5,
+    .categories_menu_toggle .wide-megamenu .cat_head {
+        margin: 6px 0 8px !important;
+        font-size: 13px !important;
+    }
+    /* Тонкий скролл внутри мега-меню */
+    .categories_menu_toggle .wide-megamenu::-webkit-scrollbar,
+    .categories_menu_toggle ul.categories_mega_menu::-webkit-scrollbar { width: 6px; }
+    .categories_menu_toggle .wide-megamenu::-webkit-scrollbar-thumb,
+    .categories_menu_toggle ul.categories_mega_menu::-webkit-scrollbar-thumb {
+        background: #d9d9d9; border-radius: 3px;
+    }
+}
