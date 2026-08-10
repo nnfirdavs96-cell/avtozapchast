@@ -3671,5 +3671,18 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
    пустотой между ценой и кнопкой. Обнуляем. */
 .product_carousel .single_product .product_content_inner,
 .product_items .single_product .product_content_inner {
+    padding: 15px 16px 12px !important;    /* воздух вокруг названия/цены;
+                                              нижний 12px = отступ до кнопки */
+}
+/* Внешний grid_content — обнуляем, чтобы не удваивать поля с inner */
+.product_carousel .single_product .grid_content,
+.product_items .single_product .grid_content {
     padding: 0 !important;
+}
+/* Action_links — только горизонтальные поля до края плитки; отступ сверху
+   уже задан padding-bottom у inner. */
+.product_carousel .single_product .action_links,
+.product_items .single_product .action_links {
+    padding: 0 16px 16px !important;
+    margin-top: 0 !important;
 }
