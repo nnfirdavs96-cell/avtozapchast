@@ -3800,10 +3800,16 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 /* Высота под вьюпорт + компактный ритм строк */
 @media (min-width: 992px) {
     .az-megamenu--wide { max-height: none; }
+    /* В обычном состоянии полоса меню стоит ниже (топбар+средняя шапка),
+       выпадашка открывается ~180px от верха — оставляем больший запас. */
     .az-megamenu--wide .az-megamenu__inner {
-        max-height: calc(100vh - 170px);   /* минус высота шапки */
+        max-height: calc(100vh - 210px);
         overflow-y: auto;
         overflow-x: hidden;
+    }
+    /* В прилипшем состоянии полоса зафиксирована у верха — запаса нужно меньше. */
+    .sticky-header.sticky .az-megamenu--wide .az-megamenu__inner {
+        max-height: calc(100vh - 80px);
     }
     .az-megamenu__group { margin-bottom: 7px !important; }
     .az-megamenu__col .az-megamenu__list li a { padding: 5px 16px !important; }
