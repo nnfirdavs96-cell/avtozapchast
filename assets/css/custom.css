@@ -1062,6 +1062,16 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
 /* ── Позиционирование контейнера header_bottom: нужен relative для wide-megamenu ── */
 .header_bottom .container { position: relative; }
 
+/* Глобальная защита от горизонтальной прокрутки на десктопе.
+   Раньше html,body { overflow-x:hidden } стояло только в мобильной медиа-
+   выборке (@media max-width:991px), поэтому на десктопе скрытые off-screen
+   элементы (панель offcanvas-меню, широкая выпадашка мега-меню position:absolute
+   visibility:hidden) добавляли ширину прокрутки — страница становилась шире
+   вьюпорта и обрезалась по краям при 100%. Ставим защиту и для десктопа.
+   Sticky на сайте реализован через JS-класс .sticky (position:fixed), а не
+   CSS position:sticky, поэтому overflow-x:hidden на body его не ломает. */
+html, body { overflow-x: hidden; max-width: 100%; }
+
 /* sticky-header не должен обрезать выпадающее мега-меню */
 .sticky-header { overflow: visible !important; }
 .header_bottom  { overflow: visible !important; }
