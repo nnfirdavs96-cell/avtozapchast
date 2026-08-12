@@ -1066,11 +1066,13 @@ a.az-contact-btn:hover { background: #222; color: #fff !important; }
    Раньше html,body { overflow-x:hidden } стояло только в мобильной медиа-
    выборке (@media max-width:991px), поэтому на десктопе скрытые off-screen
    элементы (панель offcanvas-меню, широкая выпадашка мега-меню position:absolute
-   visibility:hidden) добавляли ширину прокрутки — страница становилась шире
-   вьюпорта и обрезалась по краям при 100%. Ставим защиту и для десктопа.
-   Sticky на сайте реализован через JS-класс .sticky (position:fixed), а не
-   CSS position:sticky, поэтому overflow-x:hidden на body его не ломает. */
-html, body { overflow-x: hidden; max-width: 100%; }
+   visibility:hidden) добавляли ширину прокрутки — страница обрезалась по краям.
+   ВАЖНО: используем overflow-x:CLIP, а не HIDDEN. hidden превращает корень в
+   scroll-контейнер и ломает прилипающую шапку (.sticky-header становится
+   position:fixed по классу .sticky от темы — при hidden она переставала
+   появляться при прокрутке). clip обрезает горизонтальный вылет, но НЕ создаёт
+   scroll-контейнер, поэтому fixed-шапка и поиск/VIN работают как прежде. */
+html, body { overflow-x: clip; }
 
 /* sticky-header не должен обрезать выпадающее мега-меню */
 .sticky-header { overflow: visible !important; }
