@@ -37,6 +37,70 @@ $dStmt  = $db->prepare("SELECT p.*, b.name AS brand_name, c.name AS category_nam
 $dStmt->execute($params);
 $parts  = $dStmt->fetchAll();
 
+// ── Добор из AutoEuro по артикулу ────────────────────────────────────────────
+// Наш поиск ищет по своему каталогу; вдобавок, если запрос похож на АРТИКУЛ,
+// добираем предложения у поставщика AutoEuro (то, чего у нас нет на складе) и
+// показываем их карточками ниже. По названию (кириллица) AutoEuro не ищет.
+$aeCards = [];
+$aeMode  = getSetting('autoeuro_offer_mode', 'A') === 'B' ? 'B' : 'A';
+$looksLikeArticle = $q !== ''
+    && mb_strlen($q) >= 3 && mb_strlen($q) <= 40
+    && preg_match('/\d/', $q)            // есть хотя бы одна цифра
+    && !preg_match('/[а-яё]/iu', $q);    // не кириллическое название
+if ($looksLikeArticle && getSetting('autoeuro_enabled') === '1') {
+    require_once dirname(__DIR__) . '/includes/catalog/AutoEuroPriceProvider.php';
+    @set_time_limit(30);
+    try {
+        $prov  = new AutoEuroPriceProvider();
+        $cards = $prov->offersByArticle($q, 8);
+    } catch (Throwable $e) {
+        $cards = [];
+    }
+
+    // Фото-гибрид: если такой артикул уже есть в нашем каталоге — берём наше фото,
+    // иначе аккуратная заглушка. Со временем каталог растёт — фото прибавляется.
+    $imgStmt = $db->prepare(
+        "SELECT images FROM parts
+         WHERE is_active=1
+           AND UPPER(REPLACE(REPLACE(REPLACE(part_number,' ',''),'-',''),'.','')) = ?
+         LIMIT 1"
+    );
+    foreach ($cards as $c) {
+        $normCode = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $c['code']));
+        $img = '';
+        if ($normCode !== '') {
+            $imgStmt->execute([$normCode]);
+            $row = $imgStmt->fetch();
+            if ($row && !empty($row['images'])) $img = productImageUrl($row['images']);
+        }
+        if ($img === '') $img = APP_URL . '/assets/img/product/placeholder.jpg';
+
+        // Варианты форматируем как api/vin_price.php — для модалки и заявки.
+        $opts = [];
+        foreach ($c['offers'] as $o) {
+            $opts[] = [
+                'price'          => formatPrice((float)$o['price']),
+                'price_raw'      => $o['price'],
+                'stock'          => $o['stock'],
+                'in_stock'       => !empty($o['in_stock']),
+                'delivery_ae'    => $o['delivery_ae'] ?? null,
+                'delivery_days'  => $o['delivery_days'] ?? 0,
+                'delivery_total' => $o['delivery_total'] ?? null,
+                'source'         => 'autoeuro',
+            ];
+        }
+        if (!$opts) continue;
+        $aeCards[] = [
+            'brand'   => $c['brand'],
+            'code'    => $c['code'],
+            'name'    => $c['name'],
+            'image'   => $img,
+            'best'    => $opts[0],
+            'options' => $opts,
+        ];
+    }
+}
+
 require_once dirname(__DIR__) . '/includes/header.php';
 ?>
 <meta name="csrf" content="<?php echo generateCsrfToken(); ?>">
@@ -46,7 +110,10 @@ require_once dirname(__DIR__) . '/includes/header.php';
   <div class="container">
     <div class="section_title">
       <h2><?php echo t('search'); ?><?php if ($q): ?>: <em>"<?php echo sanitize($q); ?>"</em><?php endif; ?></h2>
-      <p style="color:#888;font-size:0.9rem"><?php echo sprintf('%s %d %s', t('showing'), $total, t('results')); ?></p>
+      <p style="color:#888;font-size:0.9rem"><?php
+        echo sprintf('%s %d %s', t('showing'), $total, t('results'));
+        if (!empty($aeCards)) echo ' + ' . count($aeCards) . ' у поставщика';
+      ?></p>
     </div>
 
     <!-- Search form -->
@@ -63,13 +130,14 @@ require_once dirname(__DIR__) . '/includes/header.php';
       </form>
     </div>
 
-    <?php if (empty($parts)): ?>
+    <?php if (empty($parts) && empty($aeCards)): ?>
     <div style="text-align:center;padding:60px">
       <i class="icon-search" style="font-size:4rem;color:#eee;display:block;margin-bottom:20px"></i>
       <p style="color:#aaa"><?php echo t('no_records'); ?></p>
       <a href="<?php echo APP_URL; ?>/catalog/index.php" class="button" style="margin-top:16px"><?php echo t('shop'); ?></a>
     </div>
     <?php else: ?>
+    <?php if (!empty($parts)): ?>
     <div class="row shop_wrapper">
       <?php foreach ($parts as $part):
         $stock = getStockStatus((int)$part['stock']);
@@ -106,7 +174,10 @@ require_once dirname(__DIR__) . '/includes/header.php';
       <?php endforeach; ?>
     </div>
     <?php echo paginationHtml(['pages'=>$pages,'current'=>$page], APP_URL.'/search/index.php?'.http_build_query(array_filter(['q'=>$q,'cat'=>$catId?$catId:'']))); ?>
-    <?php endif; ?>
+    <?php endif; /* !empty($parts) */ ?>
+
+    <?php if (!empty($aeCards)) { include dirname(__DIR__) . '/includes/parts/supplier_cards.php'; } ?>
+    <?php endif; /* empty($parts) && empty($aeCards) */ ?>
   </div>
 </div>
 

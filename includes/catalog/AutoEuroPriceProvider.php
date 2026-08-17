@@ -92,10 +92,91 @@ class AutoEuroPriceProvider implements PriceProvider
             return [];
         }
         $offers = isset($res[0]) ? $res : (array)$res;
+        $out    = $this->buildOffers($offers, $oem);
+        if (!$out) self::logMiss($brand, $queryBrand, $oem, $res);
+        return $out;
+    }
 
-        // Разбор предложений. Отдельной платы за доставку в API нет (проверено
-        // get_warehouses) — цена уже привязана к складу+пункту (доставка склад→Москва
-        // зашита в цену). delivery_time — дата прибытия В МОСКВУ.
+    /**
+     * Поиск по одному АРТИКУЛУ (без бренда) — для главного поисковика витрины.
+     * AutoEuro ищет по паре бренд+код, поэтому сперва search_brands($oem) отдаёт
+     * все бренды, у которых есть этот артикул; затем по каждому бренду тянем
+     * предложения (search_items) и собираем ОДНУ карточку на бренд (лучшее
+     * предложение + список вариантов для модалки). Кроссы отбрасываем — только
+     * точный артикул. Карточки сортируем: сперва наличие, потом по цене.
+     *
+     * @return array<int,array{brand:string,code:string,name:string,best:array,offers:array}>
+     */
+    public function offersByArticle(string $oem, int $maxBrands = 8): array
+    {
+        $oem = trim($oem);
+        if ($oem === '') return [];
+
+        $ae = AutoEuro::fromSettings();
+        if (!$ae) return [];
+        $deliveryKey = trim(getSetting('autoeuro_delivery_key', ''));
+        if ($deliveryKey === '') return [];
+
+        $brands = $ae->searchBrands($oem);
+        if (!is_array($brands) || isset($brands['error'])) return [];
+        $list = isset($brands[0]) ? $brands : (array)$brands;
+
+        $want      = self::norm($oem);
+        $cards     = [];
+        $seenBrand = [];
+        // Бюджет запросов: не дёргаем search_items больше, чем нужно — иначе на
+        // популярный артикул с десятками брендов страница поиска встанет. Берём
+        // не более maxBrands РАЗНЫХ брендов (столько же HTTP-запросов максимум).
+        $attempts   = 0;
+        $maxAttempts = max(1, $maxBrands);
+        foreach ($list as $b) {
+            if (!is_array($b)) continue;
+            $brandName = trim((string)($b['brand'] ?? ''));
+            $code      = trim((string)($b['code'] ?? ''));
+            if ($brandName === '' || $code === '') continue;
+            if (self::norm($code) !== $want) continue;          // только точный артикул, без кроссов
+            $bkey = self::normBrandKey($brandName);
+            if (isset($seenBrand[$bkey])) continue;
+            $seenBrand[$bkey] = true;
+
+            if ($attempts >= $maxAttempts) break;
+            $attempts++;
+            // Каноничные бренд+код уже есть из search_brands → зовём search_items напрямую
+            // (без crosses), не гоняя search_brands ещё раз через searchItemsSmart.
+            $raw = $ae->searchItems($brandName, $code, $deliveryKey, false, true);
+            if (!is_array($raw) || isset($raw['error'])) continue;
+            $rawOffers = isset($raw[0]) ? $raw : (array)$raw;
+            $offers    = $this->buildOffers($rawOffers, $oem);
+            if (!$offers) continue;
+
+            $cards[] = [
+                'brand'  => $brandName,
+                'code'   => $code,
+                'name'   => (string)($offers[0]['name'] ?? ($b['name'] ?? '')),
+                'best'   => $offers[0],
+                'offers' => $offers,
+            ];
+        }
+
+        usort($cards, function ($a, $b) {
+            $ai = $a['best']['in_stock'] ? 0 : 1;
+            $bi = $b['best']['in_stock'] ? 0 : 1;
+            return $ai === $bi ? ($a['best']['price'] <=> $b['best']['price']) : ($ai <=> $bi);
+        });
+        return $cards;
+    }
+
+    /**
+     * Разбор сырых предложений AutoEuro в упорядоченный список вариантов
+     * (в СОМОНИ, с курсом+наценкой+надбавкой и полным сроком до Худжанда).
+     * Сперва наличие (по цене), затем под заказ (по дате). Дубли (цена+срок)
+     * схлопываются, режется до autoeuro_offers_limit. Пусто → [].
+     */
+    private function buildOffers(array $offers, string $oem): array
+    {
+        // Отдельной платы за доставку в API нет (проверено get_warehouses) — цена уже
+        // привязана к складу+пункту (доставка склад→Москва зашита в цену).
+        // delivery_time — дата прибытия В МОСКВУ.
         $want     = self::norm($oem);
         $inStock  = [];
         $preorder = [];
@@ -121,10 +202,7 @@ class AutoEuroPriceProvider implements PriceProvider
             return $da === $db ? ($a['price_rub'] <=> $b['price_rub']) : strcmp($da, $db);
         });
         $ordered = array_merge($inStock, $preorder);
-        if (!$ordered) {
-            self::logMiss($brand, $queryBrand, $oem, $res);
-            return [];
-        }
+        if (!$ordered) return [];
 
         $khjDays = self::khjDays();
         $limit   = (int)getSetting('autoeuro_offers_limit', '3');

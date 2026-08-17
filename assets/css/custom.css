@@ -3830,3 +3830,136 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     .az-megamenu__inner::-webkit-scrollbar { width: 6px; }
     .az-megamenu__inner::-webkit-scrollbar-thumb { background: #d9d9d9; border-radius: 3px; }
 }
+
+/* ═══ Карточки поставщика AutoEuro на странице поиска (.sup-*) ═══════════════
+   Добор из AutoEuro по артикулу: показываем предложения поставщика карточками
+   с фото (наше фото, если артикул есть в каталоге, иначе заглушка). Кнопка
+   «Купить» открывает модалку выбора доставки → заявка менеджеру. */
+.sup-section { margin-top: 34px; }
+.sup-head { border-top: 1px solid #ececf2; padding-top: 22px; margin-bottom: 18px; }
+.sup-head h3 {
+    font-size: 1.15rem; font-weight: 700; color: #23242b; margin: 0 0 4px;
+    letter-spacing: .2px;
+}
+.sup-head h3 span {
+    color: #C70909; font-weight: 800;
+}
+.sup-head p { color: #7a7a86; font-size: .84rem; margin: 0; max-width: 720px; }
+
+/* Карточка-плитка (в едином стиле с каталогом) */
+.single_product.sup-card {
+    background: #fff; border: 1px solid #e7e7ee; border-radius: 12px;
+    overflow: hidden; height: 100%;
+    box-shadow: 0 2px 10px rgba(20,22,30,.05);
+    transition: box-shadow .2s, border-color .2s, transform .2s;
+    display: flex; flex-direction: column;
+}
+.single_product.sup-card:hover {
+    border-color: #f1c2c2;
+    box-shadow: 0 10px 26px rgba(20,22,30,.12);
+    transform: translateY(-3px);
+}
+.single_product.sup-card > figure { margin: 0; display: flex; flex-direction: column; height: 100%; }
+.sup-thumb {
+    position: relative; background: #f6f6f9; padding: 14px;
+    display: flex; align-items: center; justify-content: center;
+}
+.sup-thumb img {
+    width: 100%; height: 170px; object-fit: contain; display: block;
+}
+.sup-badge {
+    position: absolute; top: 10px; left: 10px;
+    font-size: .66rem; font-weight: 700; letter-spacing: .3px;
+    padding: 3px 9px; border-radius: 20px; text-transform: uppercase;
+}
+.sup-badge.in  { background: #e6f6ea; color: #1f8a3b; }
+.sup-badge.pre { background: #fdf1e3; color: #b9772a; }
+
+.sup-card .product_content { padding: 0; display: flex; flex-direction: column; flex: 1; }
+.sup-card .product_content_inner { padding: 13px 15px 10px; flex: 1; }
+.sup-card .manufacture_product {
+    font-size: .72rem; color: #9a9aa6; text-transform: uppercase;
+    letter-spacing: .4px; margin: 0 0 3px; font-weight: 600;
+}
+.sup-card .product_name {
+    font-size: .86rem; font-weight: 600; line-height: 1.32; color: #2b2c34;
+    margin: 0 0 4px; min-height: 2.2em;
+}
+.sup-art { font-size: .74rem; color: #9a9aa6; margin: 0 0 8px; font-family: monospace; }
+.sup-price { font-size: 1.02rem; color: #23242b; }
+.sup-price strong { color: #C70909; font-weight: 800; }
+.sup-eta { font-size: .74rem; color: #6b7280; margin: 6px 0 0; }
+.sup-eta i { color: #b9772a; margin-right: 3px; }
+
+.sup-card .action_links { padding: 0 15px 15px; margin: 0; }
+.sup-buy-btn {
+    width: 100%; height: 44px; border: 0; border-radius: 9px;
+    background: #C70909; color: #fff; font-weight: 700; font-size: .86rem;
+    cursor: pointer; transition: background .16s, box-shadow .16s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.sup-buy-btn:hover { background: #a80707; box-shadow: 0 6px 16px rgba(199,9,9,.28); }
+.sup-buy-btn i { font-size: .9rem; }
+
+/* ── Модалка выбора доставки (.sup-dlv-*) ─────────────────────────────────── */
+.sup-dlv-modal {
+    position: fixed; inset: 0; z-index: 100000;
+    background: rgba(18,20,26,.55); backdrop-filter: blur(3px);
+    display: none; align-items: center; justify-content: center; padding: 18px;
+}
+.sup-dlv-modal.open { display: flex; }
+.sup-dlv-card {
+    background: #fff; border-radius: 16px; width: 100%; max-width: 460px;
+    max-height: 90vh; overflow-y: auto; position: relative;
+    box-shadow: 0 24px 60px rgba(0,0,0,.3); padding: 24px 24px 22px;
+    animation: supDlvIn .2s ease;
+}
+@keyframes supDlvIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.sup-dlv-x {
+    position: absolute; top: 12px; right: 14px; border: 0; background: none;
+    font-size: 1.7rem; line-height: 1; color: #b0b0bb; cursor: pointer;
+}
+.sup-dlv-x:hover { color: #23242b; }
+.sup-dlv-name { font-size: 1.05rem; font-weight: 700; color: #23242b; padding-right: 26px; }
+.sup-dlv-sub { font-size: .8rem; color: #9a9aa6; margin-top: 2px; font-family: monospace; }
+.sup-dlv-label { font-size: .82rem; font-weight: 600; color: #6b7280; margin: 18px 0 8px; }
+.sup-dlv-list { display: flex; flex-direction: column; gap: 8px; }
+.sup-dlv-opt {
+    display: flex; align-items: center; gap: 11px; cursor: pointer;
+    border: 1.5px solid #e7e7ee; border-radius: 11px; padding: 11px 13px;
+    transition: border-color .14s, background .14s; margin: 0;
+}
+.sup-dlv-opt.sel { border-color: #C70909; background: #fef6f6; }
+.sup-dlv-radio input { accent-color: #C70909; width: 16px; height: 16px; }
+.sup-dlv-body { display: flex; flex-direction: column; gap: 2px; }
+.sup-dlv-price { font-weight: 800; color: #C70909; font-size: .98rem; }
+.sup-dlv-meta { font-size: .74rem; color: #6b7280; }
+.sup-dlv-row { margin-top: 14px; }
+.sup-dlv-row label { font-size: .8rem; color: #6b7280; display: block; margin-bottom: 4px; }
+.sup-dlv-qty {
+    width: 90px; padding: 9px 11px; border: 1px solid #dcdce4; border-radius: 8px; font-size: .9rem;
+}
+.sup-dlv-comment {
+    width: 100%; padding: 9px 11px; border: 1px solid #dcdce4; border-radius: 8px;
+    font-size: .85rem; resize: vertical; font-family: inherit;
+}
+.sup-dlv-note {
+    font-size: .76rem; color: #8a6d3b; background: #fdf8ec; border-radius: 8px;
+    padding: 9px 11px; margin: 14px 0; line-height: 1.4;
+}
+.sup-dlv-note i { color: #b9772a; margin-right: 4px; }
+.sup-dlv-submit {
+    width: 100%; height: 46px; border: 0; border-radius: 10px;
+    background: #C70909; color: #fff; font-weight: 700; font-size: .92rem; cursor: pointer;
+    transition: background .16s;
+}
+.sup-dlv-submit:hover { background: #a80707; }
+.sup-dlv-submit:disabled { opacity: .7; cursor: default; }
+.sup-dlv-ok  { background: #e9f7ee; color: #1f8a3b; border-radius: 9px; padding: 14px; font-size: .86rem; text-align: center; margin-top: 6px; }
+.sup-dlv-ok a { color: #1f8a3b; font-weight: 700; text-decoration: underline; }
+.sup-dlv-err { background: #fdecec; color: #c0392b; border-radius: 9px; padding: 12px; font-size: .84rem; text-align: center; margin-top: 6px; }
+
+@media (max-width: 575px) {
+    .sup-thumb img { height: 130px; }
+    .sup-card .product_name { min-height: 0; }
+}
