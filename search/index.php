@@ -109,7 +109,7 @@ if ($aeOn && $q !== '') {
     } else {
         // Запрос-название/бренд: ищем в НАШЕМ словаре названий (без AutoEuro).
         // Цену подгрузим на карточке живьём — тут только название/бренд/артикул.
-        $dict = AutoEuroPriceProvider::dictionarySearch($q, 12);
+        $dict = AutoEuroPriceProvider::dictionarySearch($q, 8);
         foreach ($dict as $d) {
             $code = (string)($d['oem'] ?? '');
             if ($code === '') continue;

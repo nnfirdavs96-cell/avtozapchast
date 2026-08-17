@@ -394,23 +394,45 @@ class AutoEuroPriceProvider implements PriceProvider
      * подходящие по названию или бренду — по ним цену подгрузим отдельно, живьём.
      * @return array<int,array{oem:string,brand:string,name:string}>
      */
-    public static function dictionarySearch(string $q, int $limit = 12): array
+    public static function dictionarySearch(string $q, int $limit = 8): array
     {
         $q = trim($q);
         if (mb_strlen($q) < 2) return [];
+
+        // Совпадение ПО СЛОВАМ, а не по точной фразе: AutoEuro отдаёт названия в
+        // своём порядке («Колодки Тормозные Дисковые»), поэтому запрос «тормозные
+        // колодки» должен найти его по обоим словам в любом порядке. Каждое слово
+        // (от 2 символов, максимум 5 слов) обязано встретиться в названии ИЛИ
+        // бренде. Одно слово — как раньше, по подстроке.
+        $words = array_filter(
+            array_map('trim', preg_split('/\s+/u', $q) ?: []),
+            static fn($w) => mb_strlen($w) >= 2
+        );
+        if (!$words) $words = [$q];
+        $words = array_slice(array_values($words), 0, 5);
+
+        $conds  = [];
+        $params = [];
+        foreach ($words as $w) {
+            $conds[]  = '(name LIKE ? OR brand LIKE ?)';
+            $like     = '%' . $w . '%';
+            $params[] = $like;
+            $params[] = $like;
+        }
+        $where = implode(' AND ', $conds);
+
         try {
             $db = getDB();
-            $like = '%' . $q . '%';
             // Дедуп по артикулу: одно и то же название с разных брендов не плодим.
             $st = $db->prepare(
                 "SELECT oem, MIN(brand) AS brand, name
                    FROM ae_part_dictionary
-                  WHERE name LIKE ? OR brand LIKE ?
+                  WHERE $where
                GROUP BY oem_key, name
                ORDER BY MAX(hits) DESC, MAX(updated_at) DESC
                   LIMIT " . (int)$limit
             );
-            $st->execute([$like, $like]);
+            $st->execute($params);
             return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (Exception $e) {
             return [];
