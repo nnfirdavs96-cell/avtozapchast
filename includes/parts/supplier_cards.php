@@ -139,7 +139,7 @@ $fmtD = static fn($d) => preg_match('/^(\d{4})-(\d{2})-(\d{2})/', (string)$d, $m
           btn.innerHTML = '<i class="fa fa-shopping-cart"></i> Купить';
           if(card){
             var pr = card.querySelector('.sup-price');
-            if(pr){ pr.classList.remove('sup-price-load'); pr.innerHTML = 'от <strong>'+esc(best.price)+'</strong>'; }
+            if(pr){ pr.classList.remove('sup-price-load'); pr.innerHTML = 'от <strong>'+best.price+'</strong>'; }
             var thumb = card.querySelector('.sup-thumb');
             if(thumb && !thumb.querySelector('.sup-badge')){
               var b = document.createElement('span');
@@ -175,7 +175,7 @@ $fmtD = static fn($d) => preg_match('/^(\d{4})-(\d{2})-(\d{2})/', (string)$d, $m
     SUP_OPTS.forEach(function(o,i){
       h += '<label class="sup-dlv-opt'+(i===0?' sel':'')+'" data-i="'+i+'">'
          + '<span class="sup-dlv-radio"><input type="radio" name="supDlv" value="'+i+'"'+(i===0?' checked':'')+'></span>'
-         + '<span class="sup-dlv-body"><span class="sup-dlv-price">'+esc(o.price)+'</span>'
+         + '<span class="sup-dlv-body"><span class="sup-dlv-price">'+o.price+'</span>'
          + '<span class="sup-dlv-meta">'+esc(offerFull(o))+'</span></span></label>';
     });
     list.innerHTML = h;
