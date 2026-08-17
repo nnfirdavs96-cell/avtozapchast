@@ -3891,7 +3891,18 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .sup-eta { font-size: .74rem; color: #6b7280; margin: 6px 0 0; }
 .sup-eta i { color: #b9772a; margin-right: 3px; }
 
-.sup-card .action_links { padding: 0 15px 15px; margin: 0; }
+/* Тема делает .action_links абсолютным (bottom:-55px, показ по наведению) — из-за
+   overflow:hidden карточки кнопка обрезалась. Возвращаем в поток и всегда видима. */
+.sup-card .action_links {
+    position: static !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+    left: auto !important; right: auto !important; bottom: auto !important;
+    width: auto !important;
+    padding: 0 15px 15px;
+    margin: 0;
+}
 .sup-buy-btn {
     width: 100%; height: 44px; border: 0; border-radius: 9px;
     background: #C70909; color: #fff; font-weight: 700; font-size: .86rem;
