@@ -37,25 +37,22 @@ $dStmt  = $db->prepare("SELECT p.*, b.name AS brand_name, c.name AS category_nam
 $dStmt->execute($params);
 $parts  = $dStmt->fetchAll();
 
-// ── Добор из AutoEuro по артикулу ────────────────────────────────────────────
-// Наш поиск ищет по своему каталогу; вдобавок, если запрос похож на АРТИКУЛ,
-// добираем предложения у поставщика AutoEuro (то, чего у нас нет на складе) и
-// показываем их карточками ниже. По названию (кириллица) AutoEuro не ищет.
+// ── Добор из AutoEuro ────────────────────────────────────────────────────────
+// Два режима:
+//  • Запрос-АРТИКУЛ → спрашиваем AutoEuro напрямую, карточки с готовой ценой.
+//  • Запрос-НАЗВАНИЕ/бренд → ищем в НАШЕМ словаре названий (наполняется без
+//    нагрузки на AutoEuro), карточки показываем сразу, а цену подгружаем живьём
+//    (api/vin_price.php) — цену у себя не храним, только названия.
 $aeCards = [];
 $aeMode  = getSetting('autoeuro_offer_mode', 'A') === 'B' ? 'B' : 'A';
+$aeOn    = getSetting('autoeuro_enabled') === '1';
 $looksLikeArticle = $q !== ''
     && mb_strlen($q) >= 3 && mb_strlen($q) <= 40
     && preg_match('/\d/', $q)            // есть хотя бы одна цифра
     && !preg_match('/[а-яё]/iu', $q);    // не кириллическое название
-if ($looksLikeArticle && getSetting('autoeuro_enabled') === '1') {
+
+if ($aeOn && $q !== '') {
     require_once dirname(__DIR__) . '/includes/catalog/AutoEuroPriceProvider.php';
-    @set_time_limit(30);
-    try {
-        $prov  = new AutoEuroPriceProvider();
-        $cards = $prov->offersByArticle($q, 8);
-    } catch (Throwable $e) {
-        $cards = [];
-    }
 
     // Фото-гибрид: если такой артикул уже есть в нашем каталоге — берём наше фото,
     // иначе аккуратная заглушка. Со временем каталог растёт — фото прибавляется.
@@ -65,39 +62,67 @@ if ($looksLikeArticle && getSetting('autoeuro_enabled') === '1') {
            AND UPPER(REPLACE(REPLACE(REPLACE(part_number,' ',''),'-',''),'.','')) = ?
          LIMIT 1"
     );
-    foreach ($cards as $c) {
-        $normCode = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $c['code']));
-        $img = '';
+    $hybridImg = static function (string $code) use ($imgStmt): string {
+        $normCode = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $code));
         if ($normCode !== '') {
             $imgStmt->execute([$normCode]);
             $row = $imgStmt->fetch();
-            if ($row && !empty($row['images'])) $img = productImageUrl($row['images']);
+            if ($row && !empty($row['images'])) return productImageUrl($row['images']);
         }
-        if ($img === '') $img = APP_URL . '/assets/img/product/placeholder.jpg';
+        return APP_URL . '/assets/img/product/placeholder.jpg';
+    };
 
-        // Варианты форматируем как api/vin_price.php — для модалки и заявки.
-        $opts = [];
-        foreach ($c['offers'] as $o) {
-            $opts[] = [
-                'price'          => formatPrice((float)$o['price']),
-                'price_raw'      => $o['price'],
-                'stock'          => $o['stock'],
-                'in_stock'       => !empty($o['in_stock']),
-                'delivery_ae'    => $o['delivery_ae'] ?? null,
-                'delivery_days'  => $o['delivery_days'] ?? 0,
-                'delivery_total' => $o['delivery_total'] ?? null,
-                'source'         => 'autoeuro',
+    if ($looksLikeArticle) {
+        // Запрос-артикул: живой запрос к AutoEuro, цена сразу.
+        @set_time_limit(30);
+        try {
+            $prov  = new AutoEuroPriceProvider();
+            $cards = $prov->offersByArticle($q, 8);
+        } catch (Throwable $e) {
+            $cards = [];
+        }
+        foreach ($cards as $c) {
+            $opts = [];
+            foreach ($c['offers'] as $o) {
+                $opts[] = [
+                    'price'          => formatPrice((float)$o['price']),
+                    'price_raw'      => $o['price'],
+                    'stock'          => $o['stock'],
+                    'in_stock'       => !empty($o['in_stock']),
+                    'delivery_ae'    => $o['delivery_ae'] ?? null,
+                    'delivery_days'  => $o['delivery_days'] ?? 0,
+                    'delivery_total' => $o['delivery_total'] ?? null,
+                    'source'         => 'autoeuro',
+                ];
+            }
+            if (!$opts) continue;
+            $aeCards[] = [
+                'brand'   => $c['brand'],
+                'code'    => $c['code'],
+                'name'    => $c['name'],
+                'image'   => $hybridImg($c['code']),
+                'lazy'    => false,
+                'best'    => $opts[0],
+                'options' => $opts,
             ];
         }
-        if (!$opts) continue;
-        $aeCards[] = [
-            'brand'   => $c['brand'],
-            'code'    => $c['code'],
-            'name'    => $c['name'],
-            'image'   => $img,
-            'best'    => $opts[0],
-            'options' => $opts,
-        ];
+    } else {
+        // Запрос-название/бренд: ищем в НАШЕМ словаре названий (без AutoEuro).
+        // Цену подгрузим на карточке живьём — тут только название/бренд/артикул.
+        $dict = AutoEuroPriceProvider::dictionarySearch($q, 8);
+        foreach ($dict as $d) {
+            $code = (string)($d['oem'] ?? '');
+            if ($code === '') continue;
+            $aeCards[] = [
+                'brand'   => (string)($d['brand'] ?? ''),
+                'code'    => $code,
+                'name'    => (string)($d['name'] ?? ''),
+                'image'   => $hybridImg($code),
+                'lazy'    => true,       // цену тянем на клиенте через api/vin_price.php
+                'best'    => null,
+                'options' => [],
+            ];
+        }
     }
 }
 

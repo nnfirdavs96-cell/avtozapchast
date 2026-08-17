@@ -93,7 +93,12 @@ class AutoEuroPriceProvider implements PriceProvider
         }
         $offers = isset($res[0]) ? $res : (array)$res;
         $out    = $this->buildOffers($offers, $oem);
-        if (!$out) self::logMiss($brand, $queryBrand, $oem, $res);
+        if (!$out) {
+            self::logMiss($brand, $queryBrand, $oem, $res);
+        } else {
+            // Ленивое обучение словаря названий (без лишних запросов — уже спросили).
+            self::rememberName($oem, $brand, $out[0]['name'] ?? '');
+        }
         return $out;
     }
 
@@ -149,13 +154,16 @@ class AutoEuroPriceProvider implements PriceProvider
             $offers    = $this->buildOffers($rawOffers, $oem);
             if (!$offers) continue;
 
+            $cardName = (string)($offers[0]['name'] ?? ($b['name'] ?? ''));
             $cards[] = [
                 'brand'  => $brandName,
                 'code'   => $code,
-                'name'   => (string)($offers[0]['name'] ?? ($b['name'] ?? '')),
+                'name'   => $cardName,
                 'best'   => $offers[0],
                 'offers' => $offers,
             ];
+            // Ленивое обучение словаря: запомнили «артикул+бренд → название».
+            self::rememberName($code, $brandName, $cardName);
         }
 
         usort($cards, function ($a, $b) {
@@ -331,6 +339,104 @@ class AutoEuroPriceProvider implements PriceProvider
             $db->prepare("INSERT INTO warehouse_api_log (action, request_url, response_code, response_body, success, created_at) VALUES (?,?,0,?,0,NOW())")
                ->execute(['autoeuro_price_miss', mb_substr($url, 0, 500), mb_substr(json_encode($rawResponse, JSON_UNESCAPED_UNICODE), 0, 2000)]);
         } catch (Exception $e) { /* лог необязателен */ }
+    }
+
+    // ── Словарь названий «артикул → название» ────────────────────────────────
+    // Наполняется БЕЗ нагрузки на AutoEuro: только именами, что и так пришли при
+    // реальных поисках по артикулу (ленивое обучение) + засев из Tradesoft-схем.
+    // Массовых запросов к AutoEuro нет → бан не грозит. Хранится только НАЗВАНИЕ
+    // (артикул+бренд), цена НЕ хранится — она всегда живая из AutoEuro.
+
+    /** Создаёт таблицу словаря при первом обращении (idempotent). */
+    private static function ensureDictTable(PDO $db): void
+    {
+        static $done = false;
+        if ($done) return;
+        $db->exec("CREATE TABLE IF NOT EXISTS ae_part_dictionary (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            oem_key VARCHAR(64) NOT NULL,
+            oem VARCHAR(64) NOT NULL,
+            brand VARCHAR(120) NOT NULL DEFAULT '',
+            name VARCHAR(255) NOT NULL DEFAULT '',
+            source VARCHAR(20) NOT NULL DEFAULT 'search',
+            hits INT UNSIGNED NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uk_oem_brand (oem_key, brand),
+            KEY idx_name (name)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        $done = true;
+    }
+
+    /** Сохраняет «артикул(+бренд) → название» в словарь (upsert). Сбой не критичен. */
+    public static function rememberName(string $oem, string $brand, ?string $name, string $source = 'search'): void
+    {
+        $oem   = trim($oem);
+        $name  = trim((string)$name);
+        $brand = trim($brand);
+        if ($oem === '' || $name === '') return;
+        $key = self::norm($oem);
+        if ($key === '') return;
+        try {
+            $db = getDB();
+            self::ensureDictTable($db);
+            $db->prepare("INSERT INTO ae_part_dictionary (oem_key, oem, brand, name, source, hits)
+                VALUES (?,?,?,?,?,1)
+                ON DUPLICATE KEY UPDATE name=VALUES(name), oem=VALUES(oem),
+                    hits=hits+1, updated_at=NOW()")
+               ->execute([$key, $oem, $brand, mb_substr($name, 0, 255), $source]);
+        } catch (Exception $e) { /* словарь необязателен */ }
+    }
+
+    /**
+     * Поиск по словарю НАЗВАНИЙ (наша база, без AutoEuro). Возвращает позиции,
+     * подходящие по названию или бренду — по ним цену подгрузим отдельно, живьём.
+     * @return array<int,array{oem:string,brand:string,name:string}>
+     */
+    public static function dictionarySearch(string $q, int $limit = 8): array
+    {
+        $q = trim($q);
+        if (mb_strlen($q) < 2) return [];
+
+        // Совпадение ПО СЛОВАМ, а не по точной фразе: AutoEuro отдаёт названия в
+        // своём порядке («Колодки Тормозные Дисковые»), поэтому запрос «тормозные
+        // колодки» должен найти его по обоим словам в любом порядке. Каждое слово
+        // (от 2 символов, максимум 5 слов) обязано встретиться в названии ИЛИ
+        // бренде. Одно слово — как раньше, по подстроке.
+        $words = array_filter(
+            array_map('trim', preg_split('/\s+/u', $q) ?: []),
+            static fn($w) => mb_strlen($w) >= 2
+        );
+        if (!$words) $words = [$q];
+        $words = array_slice(array_values($words), 0, 5);
+
+        $conds  = [];
+        $params = [];
+        foreach ($words as $w) {
+            $conds[]  = '(name LIKE ? OR brand LIKE ?)';
+            $like     = '%' . $w . '%';
+            $params[] = $like;
+            $params[] = $like;
+        }
+        $where = implode(' AND ', $conds);
+
+        try {
+            $db = getDB();
+            // Дедуп по артикулу: одно и то же название с разных брендов не плодим.
+            $st = $db->prepare(
+                "SELECT oem, MIN(brand) AS brand, name
+                   FROM ae_part_dictionary
+                  WHERE $where
+               GROUP BY oem_key, name
+               ORDER BY MAX(hits) DESC, MAX(updated_at) DESC
+                  LIMIT " . (int)$limit
+            );
+            $st->execute($params);
+            return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (Exception $e) {
+            return [];
+        }
     }
 
     private static function norm(string $s): string
