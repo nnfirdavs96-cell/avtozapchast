@@ -3974,3 +3974,14 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     .sup-thumb img { height: 130px; }
     .sup-card .product_name { min-height: 0; }
 }
+
+/* Кнопка «Показать ещё» под карточками поставщика */
+.sup-more-wrap { text-align: center; margin: 6px 0 34px; }
+#supMoreBtn {
+    min-width: 220px; height: 48px; padding: 0 28px;
+    border: 1.5px solid #C70909; border-radius: 26px; background: #fff;
+    color: #C70909; font-weight: 700; font-size: .92rem; cursor: pointer;
+    transition: background .16s, color .16s, box-shadow .16s;
+}
+#supMoreBtn:hover { background: #C70909; color: #fff; box-shadow: 0 8px 20px rgba(199,9,9,.25); }
+#supMoreBtn[data-busy] { opacity: .7; cursor: default; }

@@ -1,25 +1,23 @@
 <?php
 /**
- * Карточки предложений поставщика AutoEuro для страницы поиска.
+ * Блок карточек поставщика AutoEuro на странице поиска.
  *
- * Ожидает в области видимости:
- *   $aeCards — массив карточек из search/index.php, каждая:
- *     ['brand','code','name','image','lazy'=>bool,'best'=>opt|null,'options'=>[opt,...]]
- *     opt = ['price'(строка),'price_raw','stock','in_stock',
- *            'delivery_ae','delivery_days','delivery_total','source']
- *   $aeMode  — 'A' (итог срока) | 'B' (разбивка).
+ * Ожидает: $aeCards (карточки), $aeMode ('A'|'B'), и для поиска по названию —
+ * $aeIsName(bool), $aeHasMore(bool), $aePageSize(int), $q(строка запроса).
  *
- * Два вида карточек:
- *   • lazy=false (поиск по артикулу) — цена уже посчитана на сервере (data-offers).
- *   • lazy=true  (поиск по названию/словарю) — цена подгружается на клиенте через
- *     api/vin_price.php (у себя цену не храним, только названия).
- *
- * «Купить» → модалка выбора доставки → POST api/vin_order_request.php (заявка
- * менеджеру). CSS — .sup-* в assets/css/custom.css. Нужен <meta name="csrf">.
+ * Карточки: lazy=false (поиск по артикулу) — цена готова; lazy=true (поиск по
+ * названию) — цена подгружается живьём (api/vin_price.php). Кнопка «Показать ещё»
+ * (только для поиска по названию) дозагружает следующие порции (api/supplier_search.php).
+ * «Купить» → модалка → POST api/vin_order_request.php. Нужен <meta name="csrf">.
  */
 if (empty($aeCards)) return;
-$aeMode = ($aeMode ?? 'A') === 'B' ? 'B' : 'A';
-$fmtD = static fn($d) => preg_match('/^(\d{4})-(\d{2})-(\d{2})/', (string)$d, $m) ? "$m[3].$m[2].$m[1]" : '';
+require_once dirname(__DIR__) . '/parts/supplier_card_render.php';
+
+$aeMode     = ($aeMode ?? 'A') === 'B' ? 'B' : 'A';
+$aeIsName   = !empty($aeIsName);
+$aeHasMore  = !empty($aeHasMore);
+$aePageSize = (int)($aePageSize ?? 8);
+$aeQ        = (string)($q ?? '');
 ?>
 <div class="sup-section">
   <div class="sup-head">
@@ -27,54 +25,20 @@ $fmtD = static fn($d) => preg_match('/^(\d{4})-(\d{2})-(\d{2})/', (string)$d, $m
     <p>Детали, которых нет на нашем складе — привозим под заказ. Нажмите «Купить», и менеджер оформит заявку и уточнит доставку до Худжанда.</p>
   </div>
 
-  <div class="row sup-grid">
-    <?php foreach ($aeCards as $c):
-      $lazy     = !empty($c['lazy']);
-      $best     = $c['best'] ?? null;
-      $optsJson = htmlspecialchars(json_encode($c['options'] ?? [], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
-      $title    = $c['name'] !== '' ? $c['name'] : $c['code'];
-      $eta      = $best ? $fmtD($best['delivery_total'] ?? '') : '';
-    ?>
-    <div class="col-lg-3 col-md-4 col-6 mb-4">
-      <article class="single_product sup-card<?php echo $lazy ? ' sup-lazy' : ''; ?>">
-        <figure>
-          <div class="product_thumb sup-thumb">
-            <img src="<?php echo sanitize($c['image']); ?>" alt="<?php echo sanitize($title); ?>" loading="lazy">
-            <?php if (!$lazy): ?>
-            <span class="sup-badge <?php echo $best['in_stock'] ? 'in' : 'pre'; ?>">
-              <?php echo $best['in_stock'] ? 'В наличии' : 'Под заказ'; ?>
-            </span>
-            <?php endif; ?>
-          </div>
-          <div class="product_content grid_content">
-            <div class="product_content_inner">
-              <p class="manufacture_product"><?php echo sanitize($c['brand']); ?></p>
-              <h4 class="product_name"><?php echo sanitize(truncate($title, 55)); ?></h4>
-              <p class="sup-art"><?php echo sanitize($c['code']); ?></p>
-              <?php if ($lazy): ?>
-              <div class="sup-price sup-price-load">цена <span class="sup-dots">…</span></div>
-              <?php else: ?>
-              <div class="sup-price">от <strong><?php echo $best['price']; ?></strong></div>
-              <?php if ($eta !== ''): ?>
-              <p class="sup-eta"><i class="fa fa-truck"></i> в Худжанде ≈ <?php echo $eta; ?></p>
-              <?php endif; ?>
-              <?php endif; ?>
-            </div>
-            <div class="action_links">
-              <button type="button" class="sup-buy-btn"<?php echo $lazy ? ' data-lazy="1" disabled' : ''; ?>
-                      data-oem="<?php echo sanitize($c['code']); ?>"
-                      data-brand="<?php echo sanitize($c['brand']); ?>"
-                      data-name="<?php echo sanitize($c['name']); ?>"
-                      data-offers="<?php echo $optsJson; ?>">
-                <i class="fa fa-shopping-cart"></i> <?php echo $lazy ? 'Загрузка…' : 'Купить'; ?>
-              </button>
-            </div>
-          </div>
-        </figure>
-      </article>
-    </div>
-    <?php endforeach; ?>
+  <div class="row sup-grid" id="supGrid">
+    <?php foreach ($aeCards as $c) { echo supplierCardHtml($c); } ?>
   </div>
+
+  <?php if ($aeIsName && $aeHasMore): ?>
+  <div class="sup-more-wrap">
+    <button type="button" id="supMoreBtn"
+            data-q="<?php echo htmlspecialchars($aeQ, ENT_QUOTES, 'UTF-8'); ?>"
+            data-offset="<?php echo (int)$aePageSize; ?>"
+            data-limit="<?php echo (int)$aePageSize; ?>">
+      Показать ещё
+    </button>
+  </div>
+  <?php endif; ?>
 </div>
 
 <!-- ── Модалка выбора доставки (заявка на деталь поставщика) ─────────────────── -->
@@ -119,19 +83,21 @@ $fmtD = static fn($d) => preg_match('/^(\d{4})-(\d{2})-(\d{2})/', (string)$d, $m
     }
     return st + (eta ? ' · '+eta : '');
   }
-  function offerShort(o){ return (o.in_stock ? 'в наличии' : 'под заказ') + (o.delivery_total ? ' · ≈ '+fmtDate(o.delivery_total) : ''); }
 
-  /* ── Ленивая подгрузка цены для карточек из словаря (поиск по названию) ──── */
-  function supLoadPrices(){
-    var btns = document.querySelectorAll('.sup-buy-btn[data-lazy="1"]');
+  /* ── Ленивая подгрузка цены для карточек словаря (в т.ч. дозагруженных) ──── */
+  function supLoadPrices(scope){
+    var root = scope || document;
+    var btns = root.querySelectorAll('.sup-buy-btn[data-lazy="1"]');
     Array.prototype.forEach.call(btns, function(btn){
+      if (btn.getAttribute('data-loading')) return;
+      btn.setAttribute('data-loading','1');
       var card = btn.closest('.sup-card');
       var oem = btn.getAttribute('data-oem')||'', brand = btn.getAttribute('data-brand')||'';
       if(!oem){ if(card) card.remove(); return; }
       fetch(SUP_URL+'/api/vin_price.php?oem='+encodeURIComponent(oem)+'&brand='+encodeURIComponent(brand), {credentials:'same-origin'})
         .then(function(r){ return r.json(); })
         .then(function(d){
-          if(!d || !d.found || !d.options || !d.options.length){ if(card) card.remove(); return; }  // нет у поставщика → убрать
+          if(!d || !d.found || !d.options || !d.options.length){ if(card) card.remove(); return; }
           var opts = d.options, best = opts[0];
           btn.setAttribute('data-offers', JSON.stringify(opts));
           btn.removeAttribute('data-lazy');
@@ -160,7 +126,38 @@ $fmtD = static fn($d) => preg_match('/^(\d{4})-(\d{2})-(\d{2})/', (string)$d, $m
     });
   }
   if (document.readyState !== 'loading') supLoadPrices();
-  else document.addEventListener('DOMContentLoaded', supLoadPrices);
+  else document.addEventListener('DOMContentLoaded', function(){ supLoadPrices(); });
+
+  /* ── Кнопка «Показать ещё» — дозагрузка следующей порции карточек ────────── */
+  var moreBtn = document.getElementById('supMoreBtn');
+  if (moreBtn){
+    moreBtn.addEventListener('click', function(){
+      if (moreBtn.getAttribute('data-busy')) return;
+      moreBtn.setAttribute('data-busy','1');
+      var q = moreBtn.getAttribute('data-q')||'';
+      var offset = parseInt(moreBtn.getAttribute('data-offset')||'0',10);
+      var limit  = parseInt(moreBtn.getAttribute('data-limit')||'8',10);
+      var orig = moreBtn.textContent;
+      moreBtn.textContent = 'Загрузка…';
+      fetch(SUP_URL+'/api/supplier_search.php?q='+encodeURIComponent(q)+'&offset='+offset+'&limit='+limit, {credentials:'same-origin'})
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          moreBtn.removeAttribute('data-busy');
+          moreBtn.textContent = orig;
+          if(!d || !d.html){ moreBtn.parentNode.removeChild(moreBtn); return; }
+          var grid = document.getElementById('supGrid');
+          var tmp = document.createElement('div');
+          tmp.innerHTML = d.html;
+          var added = [];
+          while (tmp.firstElementChild){ var el = tmp.firstElementChild; grid.appendChild(el); added.push(el); }
+          // подгрузить цены только для новых карточек
+          added.forEach(function(el){ supLoadPrices(el); });
+          if (d.has_more){ moreBtn.setAttribute('data-offset', String(d.next_offset)); }
+          else { moreBtn.parentNode.removeChild(moreBtn); }
+        })
+        .catch(function(){ moreBtn.removeAttribute('data-busy'); moreBtn.textContent = orig; });
+    });
+  }
 
   /* ── Модалка выбора доставки ──────────────────────────────────────────────── */
   window.supOpenDelivery = function(btn){
