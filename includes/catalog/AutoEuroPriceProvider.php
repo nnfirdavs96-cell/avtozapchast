@@ -411,19 +411,41 @@ class AutoEuroPriceProvider implements PriceProvider
         if (!$words) $words = [$q];
         $words = array_slice(array_values($words), 0, 5);
 
-        $conds  = [];
-        $params = [];
-        foreach ($words as $w) {
-            $conds[]  = '(name LIKE ? OR brand LIKE ?)';
-            $like     = '%' . $w . '%';
-            $params[] = $like;
-            $params[] = $like;
-        }
-        $where = implode(' AND ', $conds);
-
         try {
             $db = getDB();
-            // Дедуп по артикулу: одно и то же название с разных брендов не плодим.
+
+            // 1) Быстрый путь — полнотекстовый индекс (на 200k+ строк LIKE медленный).
+            //    Каждое слово от 3 символов — обязательное, с префиксом (+слово*).
+            $ftWords = array_filter($words, static fn($w) => mb_strlen($w) >= 3);
+            if ($ftWords) {
+                $boolean = implode(' ', array_map(static fn($w) => '+' . $w . '*', $ftWords));
+                try {
+                    $st = $db->prepare(
+                        "SELECT oem, MIN(brand) AS brand, name
+                           FROM ae_part_dictionary
+                          WHERE MATCH(name) AGAINST (? IN BOOLEAN MODE)
+                       GROUP BY oem_key, name
+                       ORDER BY MAX(hits) DESC
+                          LIMIT " . (int)$limit
+                    );
+                    $st->execute([$boolean]);
+                    $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+                    if ($rows) return $rows;
+                } catch (Exception $e) {
+                    // нет FULLTEXT-индекса (старый словарь) → уходим на LIKE ниже
+                }
+            }
+
+            // 2) Фолбэк — LIKE по каждому слову (медленнее, но работает без индекса).
+            $conds  = [];
+            $params = [];
+            foreach ($words as $w) {
+                $conds[]  = '(name LIKE ? OR brand LIKE ?)';
+                $like     = '%' . $w . '%';
+                $params[] = $like;
+                $params[] = $like;
+            }
+            $where = implode(' AND ', $conds);
             $st = $db->prepare(
                 "SELECT oem, MIN(brand) AS brand, name
                    FROM ae_part_dictionary
