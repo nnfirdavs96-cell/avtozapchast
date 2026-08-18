@@ -394,10 +394,12 @@ class AutoEuroPriceProvider implements PriceProvider
      * подходящие по названию или бренду — по ним цену подгрузим отдельно, живьём.
      * @return array<int,array{oem:string,brand:string,name:string}>
      */
-    public static function dictionarySearch(string $q, int $limit = 8): array
+    public static function dictionarySearch(string $q, int $limit = 8, int $offset = 0): array
     {
         $q = trim($q);
         if (mb_strlen($q) < 2) return [];
+        $limit  = max(1, $limit);
+        $offset = max(0, $offset);
 
         // Совпадение ПО СЛОВАМ, а не по точной фразе: AutoEuro отдаёт названия в
         // своём порядке («Колодки Тормозные Дисковые»), поэтому запрос «тормозные
@@ -425,12 +427,14 @@ class AutoEuroPriceProvider implements PriceProvider
                            FROM ae_part_dictionary
                           WHERE MATCH(name) AGAINST (? IN BOOLEAN MODE)
                        GROUP BY oem_key, name
-                       ORDER BY MAX(hits) DESC
-                          LIMIT " . (int)$limit
+                       ORDER BY MAX(hits) DESC, oem_key
+                          LIMIT " . (int)$offset . ", " . (int)$limit
                     );
                     $st->execute([$boolean]);
-                    $rows = $st->fetchAll(PDO::FETCH_ASSOC);
-                    if ($rows) return $rows;
+                    // FULLTEXT сработал (индекс есть) — отдаём его результат как есть,
+                    // включая пустую страницу (значит, дальше ничего нет). На LIKE
+                    // уходим только если индекса нет (исключение ниже).
+                    return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
                 } catch (Exception $e) {
                     // нет FULLTEXT-индекса (старый словарь) → уходим на LIKE ниже
                 }
@@ -452,7 +456,7 @@ class AutoEuroPriceProvider implements PriceProvider
                   WHERE $where
                GROUP BY oem_key, name
                ORDER BY MAX(hits) DESC, MAX(updated_at) DESC
-                  LIMIT " . (int)$limit
+                  LIMIT " . (int)$offset . ", " . (int)$limit
             );
             $st->execute($params);
             return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];

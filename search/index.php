@@ -46,6 +46,9 @@ $parts  = $dStmt->fetchAll();
 $aeCards = [];
 $aeMode  = getSetting('autoeuro_offer_mode', 'A') === 'B' ? 'B' : 'A';
 $aeOn    = getSetting('autoeuro_enabled') === '1';
+$aeIsName  = false;   // поиск по названию (словарь) → доступна кнопка «Показать ещё»
+$aeHasMore = false;   // есть ли ещё карточки за пределами первой порции
+$aePageSize = 8;
 $looksLikeArticle = $q !== ''
     && mb_strlen($q) >= 3 && mb_strlen($q) <= 40
     && preg_match('/\d/', $q)            // есть хотя бы одна цифра
@@ -109,7 +112,9 @@ if ($aeOn && $q !== '') {
     } else {
         // Запрос-название/бренд: ищем в НАШЕМ словаре названий (без AutoEuro).
         // Цену подгрузим на карточке живьём — тут только название/бренд/артикул.
-        $dict = AutoEuroPriceProvider::dictionarySearch($q, 8);
+        $aeIsName = true;
+        $dict = AutoEuroPriceProvider::dictionarySearch($q, $aePageSize, 0);
+        $aeHasMore = count($dict) === $aePageSize;   // полная порция → возможно, есть ещё
         foreach ($dict as $d) {
             $code = (string)($d['oem'] ?? '');
             if ($code === '') continue;
