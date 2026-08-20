@@ -270,8 +270,11 @@ function renderRoleSidebar(string $active = ''): void {
 
     // Продавцы на модерации (маркетплейс) — бейдж в меню. Таблицы может ещё не быть.
     $sellersPending = 0;
-    try { $sellersPending = (int)getDB()->query("SELECT COUNT(*) FROM sellers WHERE status='pending'")->fetchColumn(); }
-    catch (Exception $e) { /* до миграции таблицы нет */ }
+    $productsPending = 0;
+    try {
+        $sellersPending  = (int)getDB()->query("SELECT COUNT(*) FROM sellers WHERE status='pending'")->fetchColumn();
+        $productsPending = (int)getDB()->query("SELECT COUNT(*) FROM parts WHERE seller_id IS NOT NULL AND moderation_status='pending'")->fetchColumn();
+    } catch (Exception $e) { /* до миграции таблиц нет */ }
 
     // Role-dependent destinations (the rest are shared pages that allow all admin roles).
     $dashHref     = $role === 'superadmin' ? "$url/superadmin/index.php"
@@ -296,6 +299,7 @@ function renderRoleSidebar(string $active = ''): void {
         ['label' => 'Продажи', 'items' => [
             ['key' => 'orders',     'href' => "$url/admin/orders.php",         'icon' => 'fa-shopping-bag','label' => 'Заказы'],
             ['key' => 'sellers',    'href' => "$url/admin/sellers.php",        'icon' => 'fa-briefcase',   'label' => 'Продавцы', 'badge' => $sellersPending],
+            ['key' => 'moderation', 'href' => "$url/admin/product_moderation.php",'icon' => 'fa-check-square-o','label' => 'Модерация товаров', 'badge' => $productsPending],
             ['key' => 'messages',   'href' => "$url/admin/messages.php",       'icon' => 'fa-comments',    'label' => 'Сообщения', 'badge' => $staffUnread],
             ['key' => 'delivery',   'href' => "$url/superadmin/delivery.php",  'icon' => 'fa-truck',       'label' => 'Доставка'],
         ]],
@@ -335,7 +339,7 @@ function renderRoleSidebar(string $active = ''): void {
     // everything else by userCan() (superadmin always passes).
     $canSee = function (string $key) use ($role): bool {
         if (in_array($key, ['dashboard', 'messages'], true)) return true;
-        if ($key === 'sellers') return in_array($role, ['admin', 'superadmin'], true);
+        if (in_array($key, ['sellers', 'moderation'], true)) return in_array($role, ['admin', 'superadmin'], true);
         if ($role === 'superadmin') return true;
         if (in_array($key, ['permissions', 'backup', 'manual', 'catalog_library'], true)) return false;
         return userCan(permissionAlias($key));
