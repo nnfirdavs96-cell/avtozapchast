@@ -10,11 +10,14 @@ if (!$id) {
 $db   = getDB();
 $stmt = $db->prepare(
     "SELECT p.*, b.name AS brand_name, b.country AS brand_country,
-            c.name AS category_name, c.slug AS category_slug
+            c.name AS category_name, c.slug AS category_slug,
+            s.shop_name AS seller_shop, s.slug AS seller_slug
      FROM parts p
      LEFT JOIN brands b ON b.id = p.brand_id
      LEFT JOIN categories c ON c.id = p.category_id
-     WHERE p.id = ? AND p.is_active = 1"
+     LEFT JOIN sellers s ON s.id = p.seller_id
+     WHERE p.id = ? AND p.is_active = 1
+       AND (p.seller_id IS NULL OR p.moderation_status = 'active')"
 );
 $stmt->execute([$id]);
 $part = $stmt->fetch();
@@ -222,6 +225,15 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                     <?= t('category') ?>:
                                     <a href="<?= APP_URL ?>/catalog/category.php?slug=<?= urlencode($part['category_slug'] ?? '') ?>">
                                         <?= sanitize($part['category_name']) ?>
+                                    </a>
+                                </span>
+                                <?php endif; ?>
+                                <?php if (!empty($part['seller_shop'])): ?>
+                                &nbsp;&nbsp;
+                                <span class="product_seller">
+                                    Продавец:
+                                    <a href="<?= APP_URL ?>/seller_shop.php?slug=<?= urlencode($part['seller_slug'] ?? '') ?>">
+                                        <i class="fa fa-briefcase"></i> <?= sanitize($part['seller_shop']) ?>
                                     </a>
                                 </span>
                                 <?php endif; ?>

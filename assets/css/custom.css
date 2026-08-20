@@ -4108,3 +4108,12 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     .sl-stats { grid-template-columns: repeat(2,1fr); }
     .sl-form-grid { grid-template-columns: 1fr; }
 }
+
+/* Продавец на странице товара + шапка магазина */
+.product_seller a { color: #C70909; font-weight: 600; }
+.product_seller i { font-size: .8rem; }
+.sl-shop-head { display: flex; align-items: center; gap: 18px; background: #fff; border: 1px solid #e7e7ee; border-radius: 14px; padding: 22px 24px; margin-bottom: 26px; }
+.sl-shop-logo { width: 64px; height: 64px; flex-shrink: 0; border-radius: 14px; background: #fdeeee; color: #C70909; display: flex; align-items: center; justify-content: center; font-size: 1.7rem; }
+.sl-shop-name { font-size: 1.4rem; font-weight: 800; color: #23242b; margin: 0; }
+.sl-shop-meta { color: #8a8a95; font-size: .86rem; margin: 3px 0 0; }
+.sl-shop-desc { color: #55555f; font-size: .88rem; margin: 8px 0 0; }
