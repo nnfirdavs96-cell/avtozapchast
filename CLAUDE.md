@@ -40,3 +40,53 @@ Interpret creatively and make unexpected choices that feel genuinely designed fo
 **IMPORTANT**: Match implementation complexity to the aesthetic vision. Maximalist designs need elaborate code with extensive animations and effects. Minimalist or refined designs need restraint, precision, and careful attention to spacing, typography, and subtle details. Elegance comes from executing the vision well.
 
 Remember: Claude is capable of extraordinary creative work. Don't hold back, show what can truly be created when thinking outside the box and committing fully to a distinctive vision.
+---
+
+# Контекст проекта autodoc.tj (для работы в этом репозитории)
+
+> Раздел выше — общие правила фронтенд-дизайна. Ниже — конкретика этого проекта.
+> Полные карты: **ARCHITECTURE.md** (кодовая база), **NAVIGATION.md** (full-stack + история PR),
+> **README.md** (установка/эксплуатация), **CATALOG_PLAN.md** (каталог и поиск).
+
+## Что это
+**AutoDoc / autodoc.tj** — интернет-магазин автозапчастей для Таджикистана, который
+развивается в **нишевый маркетплейс** (мультипродавец, модель Ozon/WB).
+
+## Стек и принципы
+- **PHP 8 без фреймворка**, MySQL/MariaDB через PDO, каждая страница — отдельный файл.
+- Шаблон **Mazlay** (Bootstrap 4 + jQuery + Owl Carousel), шрифт **Rubik**.
+- Все наши стили — **`assets/css/custom.css`** (cache-busting через `?v=filemtime`).
+  Файлы темы `assets/mazlay-*` не редактируем — только перебиваем в `custom.css`.
+- Миграции **идемпотентны** (`CREATE TABLE IF NOT EXISTS`, `dbAddColumnIfMissing()`).
+
+## Жёсткие правила
+1. **Секреты — никогда в git.** API-ключи и пароли живут в таблице `site_settings`
+   (форма в суперадминке) или в git-ignored `config/db_credentials.php`.
+2. **В `main` не пушить напрямую** — ветка → PR → squash-merge.
+3. **Не ломать рабочее.** Витрина должна работать после любого коммита; правки витрины
+   делать точечно, не трогая логику AutoEuro/цен без явной задачи.
+4. **Массовый перебор чужих API и парсинг сайтов поставщиков запрещён** — это бан рабочего
+   аккаунта. Массовые данные берём из официальных выгрузок (прайс-лист AutoEuro).
+
+## Ключевые подсистемы
+| Подсистема | Где | Суть |
+|---|---|---|
+| VIN + каталог OEM | `pages/vin.php`, `includes/catalog/` | VIN → авто → узлы → схемы → OEM (провайдер Tradesoft/Parts-Catalogs) |
+| Цены поставщика | `includes/catalog/AutoEuroPriceProvider.php` | AutoEuro: RUB → сомони по курсу + наценка + **надбавка Москва→Худжанд** (`autoeuro_khj_*`) |
+| Поиск витрины | `search/index.php`, `includes/parts/supplier_cards.php` | артикул → живой AutoEuro; название/бренд → словарь `ae_part_dictionary` (цена всё равно живая) |
+| Маркетплейс | `seller/`, `admin/sellers.php`, `admin/product_moderation.php` | продавцы выкладывают товары → модерация → каталог |
+| Заявки менеджеру | `api/vin_order_request.php`, `includes/messaging.php` | «Купить» у поставщика = заявка в переписку, не автозаказ |
+
+## Что важно помнить про данные
+- **AutoEuro API ищет только по артикулу** и **не отдаёт фото**. Поиск по названию работает
+  через наш словарь; фото — наше по совпадению артикула, иначе заглушка.
+- **Цены поставщика не кэшируем надолго** — они меняются; храним только названия.
+
+## Стадия
+Фаза 1 маркетплейса (продавцы, товары, модерация) — **готова**. Дальше: заказы с
+разбивкой по продавцам (Фаза 2), онлайн-оплата + комиссия/выплаты (Фаза 3, упирается в
+эквайринг в Таджикистане), отзывы/возвраты (Фаза 4).
+
+## Язык общения
+Заказчик пишет по-русски — **отвечать по-русски**. Комментарии в коде — по-русски,
+объясняющие *почему*, а не *что*.
