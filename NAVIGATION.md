@@ -122,8 +122,10 @@ php -S localhost:8000       # либо nginx/apache на корень проек
 | `catalog/` | Витрина: `index.php` (список+фильтры), `category.php`, `part.php` (карточка товара) |
 | `search/` | Страница поиска по товарам |
 | `buyer/` | Кабинет покупателя: `cart`, `checkout`, `orders`, `profile`, `wishlist`, `index` |
-| `auth/` | `login`, `register`, `logout` (email+пароль / телефон+SMS/PIN) |
-| `admin/` | Роль **admin**: `products`, `orders`, `sliders`, `banners`, `users`, `index` |
+| `auth/` | `login`, `register`, `logout` (email+пароль / телефон+SMS/PIN; регистрация с выбором **Покупатель / Продавец**) |
+| `seller/` | Роль **seller** (маркетплейс): `index` (обзор магазина), `products` (мои товары), `product_edit` (добавить/изменить) |
+| `includes/parts/` | Блоки витрины: `supplier_cards.php` (карточки AutoEuro + модалка + «Показать ещё»), `supplier_card_render.php` (общий рендер карточки) |
+| `admin/` | Роль **admin**: `products`, `orders`, `sliders`, `banners`, `users`, `index`, **`sellers`** (модерация продавцов), **`product_moderation`** (модерация листингов) |
 | `manager/` | Роль **manager**: `parts`, `categories`, `brands`, `blog`, `pages`, `reviews`, `index` |
 | `superadmin/` | Роль **superadmin**: `settings`, `vin`, `warehouse`, `delivery`, `currencies`, `languages`, `permissions`, `users`, `backup`(+cron+lib), `manual`, `catalog_library`(+cron), `index` |
 | `lang/` | Переводы `ru`/`tg`/`en` |
@@ -132,6 +134,7 @@ php -S localhost:8000       # либо nginx/apache на корень проек
 | `deploy/timeweb/` | Конфиги/скрипты прод-деплоя |
 | `assets/` | `css/custom.css` (наши правки), `js/app.js`+`main.js`, `mazlay-*` (шаблон), `img`, `uploads/` |
 | `index.php` (корень) | Главная (слайдер, скидки, категории) + **фолбэк-роутер ЧПУ** `/product/{id}-{slug}` |
+| `seller_shop.php` (корень) | Публичная витрина магазина продавца (`?slug=`) |
 | `sitemap.php` / `robots.txt` / `.htaccess` | SEO + правила ЧПУ (Apache) |
 | корень `*.md` | Документация (этот файл, ARCHITECTURE, README, CATALOG_PLAN, CHANGES, CLAUDE) |
 | корень (мусор) | `diag_partsapi.php`, `fix_vin_catalog.php`, `setup_catalog.php` (одноразовые), `*.zip`, `logo.png` |
@@ -247,6 +250,8 @@ php -S localhost:8000       # либо nginx/apache на корень проек
 | `review_submit.php` / `shop_review_submit.php` | отзыв на товар / на магазин |
 | `upload.php` | загрузка изображений (только сотрудникам) |
 | `autoeuro_search.php` / `autoeuro_order.php` | прокси к AutoEuro |
+| `supplier_search.php` | дозагрузка карточек поставщика по названию (кнопка «Показать ещё»): `?q=&offset=&limit=` → `{html, has_more, next_offset, count}` |
+| `vin_order_request.php` | заявка менеджеру на деталь поставщика (используется и VIN-страницей, и блоком поиска) |
 
 Эндпоинты **тонкие** — вся логика в адаптерах (`includes/catalog/`) и `functions.php`.
 
@@ -345,6 +350,16 @@ Cron: `*/5 * * * * php <APP_ROOT>/superadmin/catalog_library_cron.php`
 | `partsapi_catalog_cache` | CatalogApi (PartsAPI по VIN) |
 | `partsapi_kv_cache` | PC-адаптер (`pc:car/nodes/parts/scheme/brands/models/...`) |
 | `catalog_price_cache` | PriceAggregator (AutoEuro) |
+| `ae_part_dictionary` | словарь названий «артикул+бренд → название» (`FULLTEXT(name)`). Пишут: `rememberName()` (лениво из ответов API) и импорт прайса. **Цены не хранит** |
+
+### Маркетплейс (`sql/marketplace_phase1.sql`)
+| Таблица / колонка | Что |
+|---|---|
+| `users.role` | + значение `seller` |
+| `sellers` | магазин: `user_id`(UNIQUE), `shop_name`, `slug`(UNIQUE), `phone`, `description`, `logo`, `status`(pending/approved/blocked), `commission_percent`, `reject_reason` |
+| `parts.seller_id` | NULL = наш каталог, иначе товар продавца |
+| `parts.moderation_status` | draft/pending/active/rejected, DEFAULT `active` (старые товары остаются видимыми) |
+| `parts.reject_reason` | причина отклонения листинга |
 
 ---
 
@@ -371,6 +386,7 @@ Cron: `*/5 * * * * php <APP_ROOT>/superadmin/catalog_library_cron.php`
 | Роль | Доступ |
 |---|---|
 | `buyer` | кабинет `buyer/` (заказы, профиль, избранное, корзина) |
+| `seller` | кабинет `seller/`: свой магазин и свои товары. Гейт `requireSeller()`; добавление товаров — только при `sellers.status='approved'`; загрузка фото через `api/upload.php?type=products` |
 | `manager` | контент: товары/категории/бренды/блог/страницы/отзывы (`manager/`) |
 | `admin` | + товары/наценки/слайдеры/баннеры/заказы/пользователи (`admin/`) |
 | `superadmin` | всё + настройки/VIN/каталог/склад/доставка/валюты/языки/права/бэкапы/библиотека (`superadmin/`) |
@@ -435,14 +451,29 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 - **Локализация VIN-результатов** — каркас через `t()`, часть текстов блока результатов на русском.
 - **Мусор в корне** — `diag_partsapi.php`, `fix_vin_catalog.php`, `setup_catalog.php`, `*.zip` (кандидаты на удаление).
 - **Нет тестов/CI** — валидация только `php -l` / `node --check` вручную.
+- ~~**Поиск только по своему каталогу**~~ ✅ сделано: поиск по **артикулу** добирает предложения
+  AutoEuro (`offersByArticle`), поиск по **названию/бренду** — по словарю `ae_part_dictionary`
+  (импорт прайса `superadmin/ae_dict_import_csv.php`, 229k названий) + кнопка «Показать ещё».
+  Цена всегда живая из API (у себя не кэшируется).
+- **Фото деталей поставщика** — API AutoEuro и прайс фото **не содержат**. Показывается наше
+  фото по совпадению артикула, иначе заглушка. Полные фото = TecDoc-лицензия либо поставщик
+  со встроенным каталогом (Emex/Autopiter).
+- **Маркетплейс — Фаза 1 готова** (продавцы, их товары, модерация, витрина магазина).
+  Осталось: buy-box (одна деталь — много продавцов; сейчас `parts.part_number` UNIQUE),
+  разбивка заказа по продавцам + кабинет заказов продавца (Фаза 2), онлайн-оплата +
+  комиссия/выплаты (Фаза 3), отзывы о продавцах, возвраты/споры (Фаза 4).
+- **Неиспользуемые методы AutoEuro API**: `create_order` (автозаказ), `get_orders`/`get_statuses`
+  (трекинг), `get_payers`, `get_brands` — все завязаны на денежную ветку, включаются пачкой
+  вместе с онлайн-оплатой.
 
 ---
 
-## 16. Полная история PR #1–253
+## 16. Полная история PR #1–349
 
 Все PR влиты в `main` (squash). Хронологически, сгруппировано по эпохам развития.
 Ранние PR (#1–172) — базовая витрина/CMS/адаптив; #173–218 — каталог по VIN и универсальная
-архитектура провайдеров; #219–253 — интерактивные схемы и библиотека каталога.
+архитектура провайдеров; #219–253 — интерактивные схемы и библиотека каталога; #254–319 — витрина/адаптив/карточки;
+#320–349 — поиск по поставщику AutoEuro (артикул + название) и **маркетплейс Фаза 1**.
 
 ### #1–#24 · Фундамент: мультиязычный магазин, админка, мобильная адаптация (7–11 мая)
 
@@ -739,6 +770,44 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 - **#269–#279** (2026-07-19) — fix(autoeuro): `with_offers=1`, резолв бренд+код через `search_brands` (`searchItemsSmart`), выбор московского delivery_key (кнопка «Выбрать», чистка пробелов), RUB→сомони по курсу `autoeuro_rub_rate`, «под заказ»+дата при stock=0, разделитель тысяч — пробел
 - **#280** (2026-07-19) — feat(autoeuro): отдельная наценка `autoeuro_markup`
 - **#282–#283** (2026-07-19) — feat(contacts): телефон `+992 92 612-22-22`, авто-формат `formatPhone()`/`phoneTel()`
+### #320–#349 · Витрина: hover-эффекты и мега-меню; поиск по поставщику AutoEuro; маркетплейс Фаза 1 (7–18 августа)
+
+**Маркетплейс (мультипродавец, Фаза 1 — фундамент):**
+- **#349** (2026-08-18) — feat(marketplace): продавец на витрине — «Продавец: Магазин» на карточке товара + публичная страница магазина `seller_shop.php?slug=`; закрыт прямой доступ к непроверенным листингам
+- **#348** (2026-08-18) — feat(marketplace): модерация товаров `admin/product_moderation.php` (одобрить → публикация / отклонить с причиной), бейдж «на проверке» в меню
+- **#347** (2026-08-18) — feat(marketplace): кабинет продавца `seller/` — обзор со статусом магазина и счётчиками, «Мои товары», форма добавления/правки (до 6 фото); витрина скрывает листинги, пока не `active`
+- **#346** (2026-08-18) — feat(marketplace): регистрация с выбором **Покупатель / Продавец** + модерация продавцов `admin/sellers.php` (одобрить/блок/комиссия)
+- **#345** (2026-08-18) — feat(marketplace): схема БД — роль `seller`, таблица `sellers`, `parts.seller_id`/`moderation_status`/`reject_reason` (`sql/marketplace_phase1.sql`, только добавления)
+
+**Поиск по поставщику AutoEuro (артикул + название):**
+- **#344** (2026-08-18) — feat(search): кнопка «Показать ещё» — дозагрузка карточек порциями (8 → 16 → 24…), `api/supplier_search.php`, общий рендер карточки; цены остаются живыми
+- **#343** (2026-08-18) — feat(search): импорт прайс-листа AutoEuro (CSV) в словарь названий `superadmin/ae_dict_import_csv.php` + `FULLTEXT`-поиск по словам (боевой прайс: 229 127 названий)
+- **#342** (2026-08-18) — fix(search): кнопка «Купить» была обрезана (тема держит `.action_links` абсолютным, hover-reveal); цена в модалке выводилась как HTML-текст
+- **#341** (2026-08-18) — feat(search): CLI-добор названий через API по уже известным артикулам `superadmin/ae_dict_batch.php` (порции + пауза + пропуск известных — без риска бана)
+- **#340** (2026-08-18) — feat(search): поиск по **названию/бренду** через свой словарь `ae_part_dictionary` (ленивое обучение из ответов API), цена подгружается живьём
+- **#339** (2026-08-18) — feat(search): поиск по **артикулу** добирает предложения AutoEuro и показывает их карточками с фото (`offersByArticle`, фото-гибрид: наше фото по артикулу иначе заглушка), «Купить» → модалка → заявка менеджеру
+
+**Витрина: мега-меню, прокрутка, карточки:**
+- **#338** (2026-08-12) — fix(css): `overflow-x: clip` вместо `hidden` — `hidden` на корне создаёт scroll-контейнер и ломает прилипающую шапку (пропадал поиск/VIN при прокрутке)
+- **#337** (2026-08-12) — fix(css): горизонтальный вылет страницы на десктопе (защита `overflow-x` стояла только в мобильной медиа-выборке — контент обрезался по краям при 100%)
+- **#336** (2026-08-12) — fix(header): высота мега-меню зависит от состояния — вверху страницы `calc(100vh - 210px)`, в прилипшем `calc(100vh - 80px)`
+- **#335** (2026-08-12) — fix(header): читаемый текст мега-меню — **правильные селекторы `.az-megamenu*`** (#333/#334 били по `.categories_menu_toggle` и не применялись) + перебит цвет прилипшей шапки, из-за которого текст «сливался» при прокрутке
+- **#334** (2026-08-12) — fix(header): попытка вписать мега-меню в экран при 100% (селекторы оказались не те — исправлено в #336)
+- **#333** (2026-08-12) — fix(header): попытка сделать текст мега-меню читаемым (селекторы оказались не те — исправлено в #335)
+- **#332** (2026-08-11) — style(sticky-header): элегантная прилипающая полоса — стекло (`backdrop-filter`), компактная кнопка «Все категории»
+- **#331** (2026-08-11) — style(home): три баннера — плитки с рамкой, тенью и hover-эффектом
+- **#330** (2026-08-11) — fix(home): плотная карточка как на референсе — воздух + кнопка сразу за ценой (`product_content_inner: 15px 16px 12px`)
+- **#329** (2026-08-11) — fix(home): убрать нижний padding у `.product_content_inner` — источник зазора перед кнопкой
+- **#328** (2026-08-11) — fix(home): кнопка «В корзину» слишком низко (`margin-top: auto`) + сердечко на фото без стиля
+- **#327** (2026-08-10) — fix(home): карточки в карусели уходили за край и обрезались
+- **#326** (2026-08-10) — fix(home): карточки в карусели вылезали за границы (`.owl-stage-outer` — `overflow: hidden`, `scale()` обрезался) + сердечко на фото
+- **#325** (2026-08-10) — style(home): единый вид карточек — как в каталоге (рамка, тень, кнопка, hover)
+- **#324** (2026-08-10) — feat(catalog): сворачиваемый список брендов в сайдбаре (как категории)
+- **#323** (2026-08-09) — style(catalog): усилить hover — скейл 1.1, глубокая тень, красная рамка, задержка .4с
+- **#322** (2026-08-09) — fix(catalog): hover-эффект — убрать `@media (hover: hover)` (блокировал на части систем) + задержка
+- **#321** (2026-08-09) — style(catalog): hover-эффект «как у Kinoflex» — карточка приподнимается
+- **#320** (2026-08-08) — docs: актуализация всех `.md` — история PR #291–#319 и раздел про CSS-ловушки
+
 - **#319** (2026-08-07) — fix(catalog,header): равные карточки без зазора (цена **со скидкой в 1 строку** — старая+новая в ряд), центр кнопки «В корзину» (flex+height 46px), значок «-N%» слева / сердечко справа, sticky-поиск раздельными блоками
 - **#318** (2026-08-07) — fix(catalog): убрать резервы `min-height` под цену/название/рейтинг — после отмены растягивания ряда они превратились в пустоту под ценой
 - **#317** (2026-08-07) — fix(catalog): карточки НЕ растягивать по ряду (`align-items: flex-start`), кнопка через `padding-top` вместо `margin-top: auto`
@@ -911,6 +980,13 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 | [`auth/login.php`](auth/login.php) | Вход: email+пароль ИЛИ телефон (SMS-код/PIN); троттлинг 5 неудач→15 мин. | verifyPhoneOtp, loginThrottle*, loginUser |
 | [`auth/logout.php`](auth/logout.php) | Выход (очистка сессии). | — |
 | [`auth/register.php`](auth/register.php) | Регистрация: телефон (SMS) или email. | createPhoneOtp, users |
+
+### seller/ — роль seller (маркетплейс)
+| Файл | Назначение | Связи |
+|---|---|---|
+| `index.php` | обзор кабинета: статус магазина, счётчики товаров, «Как это работает» | `includes/seller.php`, `seller_nav.php` |
+| `products.php` | мои товары со статусами модерации, удаление | `parts` (WHERE seller_id) |
+| `product_edit.php` | добавить/изменить товар → `moderation_status='pending'` | `api/upload.php?type=products`, `getBrands()`, `getCategories()` |
 
 ### admin/ — роль admin
 
