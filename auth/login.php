@@ -6,6 +6,7 @@ if (isLoggedIn()) {
     $role = $_SESSION['role'] ?? 'buyer';
     $redirectMap = [
         'buyer'      => APP_URL . '/buyer/index.php',
+        'seller'     => APP_URL . '/seller/index.php',
         'manager'    => APP_URL . '/manager/index.php',
         'admin'      => APP_URL . '/admin/index.php',
         'superadmin' => APP_URL . '/superadmin/index.php',
@@ -31,6 +32,7 @@ $redirectAfterLogin = function (array $user) {
     }
     $map = [
         'buyer'      => APP_URL . '/buyer/index.php',
+        'seller'     => APP_URL . '/seller/index.php',
         'manager'    => APP_URL . '/manager/index.php',
         'admin'      => APP_URL . '/admin/index.php',
         'superadmin' => APP_URL . '/superadmin/index.php',

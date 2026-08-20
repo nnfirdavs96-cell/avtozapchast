@@ -18,21 +18,21 @@ $categories = $db->query("SELECT * FROM categories WHERE is_active=1 AND parent_
 
 $featParts = $db->query("SELECT p.*, b.name AS brand_name, c.name AS category_name
     FROM parts p LEFT JOIN brands b ON b.id=p.brand_id LEFT JOIN categories c ON c.id=p.category_id
-    WHERE p.is_active=1 ORDER BY p.created_at DESC LIMIT 10")->fetchAll();
+    WHERE p.is_active=1 AND (p.seller_id IS NULL OR p.moderation_status='active') ORDER BY p.created_at DESC LIMIT 10")->fetchAll();
 
 $bestParts = $db->query("SELECT p.*, b.name AS brand_name,
         (SELECT COALESCE(SUM(oi.quantity),0) FROM order_items oi
          JOIN orders o ON o.id=oi.order_id
          WHERE oi.part_id=p.id AND o.status<>'cancelled') AS sold_qty
     FROM parts p LEFT JOIN brands b ON b.id=p.brand_id
-    WHERE p.is_active=1 ORDER BY sold_qty DESC, p.stock DESC, p.created_at DESC LIMIT 10")->fetchAll();
+    WHERE p.is_active=1 AND (p.seller_id IS NULL OR p.moderation_status='active') ORDER BY sold_qty DESC, p.stock DESC, p.created_at DESC LIMIT 10")->fetchAll();
 
 $newParts = $db->query("SELECT p.*, b.name AS brand_name FROM parts p
-    LEFT JOIN brands b ON b.id=p.brand_id WHERE p.is_active=1 ORDER BY p.created_at DESC, p.id DESC LIMIT 10")->fetchAll();
+    LEFT JOIN brands b ON b.id=p.brand_id WHERE p.is_active=1 AND (p.seller_id IS NULL OR p.moderation_status='active') ORDER BY p.created_at DESC, p.id DESC LIMIT 10")->fetchAll();
 
 $saleParts = $db->query("SELECT p.*, b.name AS brand_name FROM parts p
     LEFT JOIN brands b ON b.id=p.brand_id
-    WHERE p.is_active=1 AND p.old_price IS NOT NULL AND p.old_price > p.price
+    WHERE p.is_active=1 AND (p.seller_id IS NULL OR p.moderation_status='active') AND p.old_price IS NOT NULL AND p.old_price > p.price
     ORDER BY (p.old_price - p.price)/p.old_price DESC LIMIT 10")->fetchAll();
 
 $ratings = getProductRatings(array_merge(
