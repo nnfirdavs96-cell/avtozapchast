@@ -15,7 +15,7 @@ if ($q !== '' && preg_match('/^[A-HJ-NPR-Z0-9]{17}$/i', $q)) {
 $pageTitle = t('search') . ($q ? ': ' . $q : '') . ' — ' . getSetting('site_name');
 
 $db     = getDB();
-$where  = ['p.is_active=1'];
+$where  = ['p.is_active=1', "(p.seller_id IS NULL OR p.moderation_status='active')"];
 $params = [];
 
 if ($q !== '') {

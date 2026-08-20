@@ -22,9 +22,11 @@ if (!in_array($type, $allowed)) {
     exit;
 }
 
-// Buyers may only upload their own avatar; staff can upload all content types.
-$isStaff = in_array($_SESSION['role'] ?? '', ['manager', 'admin', 'superadmin']);
-if (!$isStaff && $type !== 'avatars') {
+// Buyers may only upload their own avatar; staff can upload all content types;
+// sellers (marketplace) may upload product images for their own listings.
+$isStaff  = in_array($_SESSION['role'] ?? '', ['manager', 'admin', 'superadmin']);
+$isSeller = ($_SESSION['role'] ?? '') === 'seller';
+if (!$isStaff && !($isSeller && $type === 'products') && $type !== 'avatars') {
     http_response_code(403);
     echo json_encode(['error' => 'Доступ запрещён']);
     exit;
