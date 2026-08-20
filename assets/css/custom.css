@@ -3985,3 +3985,20 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 }
 #supMoreBtn:hover { background: #C70909; color: #fff; box-shadow: 0 8px 20px rgba(199,9,9,.25); }
 #supMoreBtn[data-busy] { opacity: .7; cursor: default; }
+
+/* Переключатель типа аккаунта на регистрации (Покупатель / Продавец) */
+.acct_type_toggle {
+    display: flex; gap: 8px; margin: 0 0 20px; padding: 5px;
+    background: #f2f2f6; border-radius: 12px;
+}
+.acct_type_btn {
+    flex: 1; padding: 11px 10px; border: 0; border-radius: 9px; cursor: pointer;
+    background: transparent; color: #6b7280; font-weight: 700; font-size: .9rem;
+    transition: background .16s, color .16s, box-shadow .16s;
+}
+.acct_type_btn i { margin-right: 6px; }
+.acct_type_btn.active {
+    background: #fff; color: #C70909;
+    box-shadow: 0 2px 8px rgba(20,22,30,.1);
+}
+.account_seller_form .pwd-field { position: relative; display: block; }
