@@ -508,7 +508,13 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
             <div style="color:#999;margin-top:2px;">Тянет недостающие схемы порциями с паузами — не выжигает лимит; собранное хранится навсегда.</div>
             <?php
               // Дерево, упёршееся в лимит, почти наверняка обрезано — предупреждаем явно.
-              $nodesLimit = PartsCatalogsAdapter::nodesLimit();
+              // ВАЖНО: читаем настройку напрямую, без PartsCatalogsAdapter::nodesLimit() —
+              // класс адаптера подключается ЛЕНИВО (Manager.php:76, только внутри
+              // Catalog::provider()), а на странице просмотра провайдер не вызывается,
+              // поэтому статический вызов ронял страницу (обрывался вывод после текста).
+              $nodesLimit = (int)getSetting('catalog_nodes_limit', '300');
+              if ($nodesLimit <= 0)   $nodesLimit = 300;
+              if ($nodesLimit > 2000) $nodesLimit = 2000;
               if ((int)$mg['total'] > 0 && (int)$mg['total'] >= $nodesLimit):
             ?>
             <div style="color:#b9772a;margin-top:6px;">
