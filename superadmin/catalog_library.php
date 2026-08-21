@@ -9,6 +9,7 @@
 require_once dirname(__DIR__) . '/config/config.php';
 requireRole(['superadmin']);
 require_once dirname(__DIR__) . '/includes/catalog.php';
+require_once dirname(__DIR__) . '/includes/parts/car_card.php';
 
 $db     = getDB();
 $csrf   = generateCsrfToken();
@@ -482,9 +483,15 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
     <?php if ($action === 'view' && $viewCar): ?>
     <!-- ── Просмотр одного авто ──────────────────────────────────────────── -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <?php
+            // Название берём из тех же атрибутов, что и карточка ниже, — чтобы в шапке
+            // была «Lexus RX 350», а не голый хеш. Технические ID оставляем мелко:
+            // они нужны для CLI-команд (пересчёт дерева, диагностика).
+            $vcAttrs = carCardAttrs($viewCar);
+        ?>
         <h2 style="margin:0;font-size:1.05rem;">
-            <?= sanitize($viewCar['brand'] ?: '—') ?>
-            <span style="color:#aaa;font-weight:400;font-size:0.85rem;">
+            <?= sanitize(carCardTitle($vcAttrs, $viewCar)) ?>
+            <span style="color:#aaa;font-weight:400;font-size:0.78rem;display:block;margin-top:3px;">
                 <?= sanitize($viewCar['catalog_id']) ?> / <?= sanitize($viewCar['car_id']) ?>
                 <?php if ($viewCar['vin']): ?> · VIN <?= sanitize($viewCar['vin']) ?><?php endif; ?>
             </span>
@@ -495,6 +502,8 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
             <a href="?action=list" class="az-btn az-btn-secondary az-btn-sm">← Список</a>
         </div>
     </div>
+
+    <?php carCardFull($viewCar); ?>
 
     <?php
         $mg = clMissingGroups($db, $viewCar['catalog_id'], $viewCar['car_id']);
@@ -674,51 +683,22 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
         </form>
     </div>
 
-    <div class="az-card" style="padding:0;overflow:hidden;">
-        <div style="overflow-x:auto;">
-            <table class="az-table">
-                <thead>
-                    <tr>
-                        <th>Марка</th>
-                        <th>VIN</th>
-                        <th>catalogId / carId</th>
-                        <th style="text-align:center;">Узлов</th>
-                        <th style="text-align:center;">Схем</th>
-                        <th>Обновлено</th>
-                        <th style="text-align:center;">Действия</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php if (empty($cars)): ?>
-                    <tr><td colspan="7" style="text-align:center;color:#aaa;padding:28px;">Пока пусто — библиотека наполняется автоматически при каждом реальном поиске по VIN или по параметрам.</td></tr>
-                <?php else: ?>
-                    <?php foreach ($cars as $c): ?>
-                    <tr>
-                        <td><strong><?= sanitize($c['brand'] ?: '—') ?></strong></td>
-                        <td>
-                            <?php if ($c['vin']): ?>
-                                <code style="font-size:0.75rem;"><?= sanitize($c['vin']) ?></code>
-                            <?php else: ?>
-                                <span style="color:#aaa;font-size:0.72rem;font-style:italic;" title="Найдено по марке/модели без VIN — так работает поиск «по параметрам»">без VIN (по параметрам)</span>
-                            <?php endif; ?>
-                        </td>
-                        <td style="color:#888;font-size:0.78rem;"><?= sanitize($c['catalog_id']) ?> / <?= sanitize($c['car_id']) ?></td>
-                        <td style="text-align:center;"><?= (int)($c['nodes_count'] ?? 0) ?></td>
-                        <td style="text-align:center;"><?= (int)($c['schemes_count'] ?? 0) ?></td>
-                        <td style="color:#888;font-size:0.8rem;"><?= sanitize($c['updated_at']) ?></td>
-                        <td style="text-align:center;white-space:nowrap;">
-                            <a href="?action=view&catalog_id=<?= urlencode($c['catalog_id']) ?>&car_id=<?= urlencode($c['car_id']) ?>"
-                               class="az-btn az-btn-secondary az-btn-sm"><i class="fa fa-eye"></i></a>
-                            <a href="?action=export_car&catalog_id=<?= urlencode($c['catalog_id']) ?>&car_id=<?= urlencode($c['car_id']) ?>"
-                               class="az-btn az-btn-primary az-btn-sm"><i class="fa fa-download"></i></a>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
+    <?php if (empty($cars)): ?>
+    <div class="az-card" style="text-align:center;color:#aaa;padding:36px;">
+        Пока пусто — библиотека наполняется автоматически при каждом реальном поиске по VIN или по параметрам.
     </div>
+    <?php else: ?>
+    <?php
+        // Лимит читаем из настроек напрямую: класс адаптера подключается лениво
+        // (Manager.php — только внутри Catalog::provider()), а здесь провайдер не нужен.
+        $ccLimit = (int)getSetting('catalog_nodes_limit', '300');
+        if ($ccLimit <= 0)   $ccLimit = 300;
+        if ($ccLimit > 2000) $ccLimit = 2000;
+    ?>
+    <div class="cc-grid">
+        <?php foreach ($cars as $c) { carCardTile($c, $ccLimit); } ?>
+    </div>
+    <?php endif; ?>
     <?php if ($pages > 1): ?>
     <div style="display:flex;justify-content:center;margin-top:16px;">
         <ul class="pagination">
