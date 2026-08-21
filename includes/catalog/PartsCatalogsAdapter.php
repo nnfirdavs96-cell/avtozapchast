@@ -525,10 +525,38 @@ class PartsCatalogsAdapter implements CatalogProvider
         return $nodes;
     }
 
+    /**
+     * Потолок числа узлов при обходе дерева (`catalog_nodes_limit`).
+     * Раньше было жёстко 120 — и у «богатых» авто каталог резался почти вдвое
+     * (замер: Lexus — 229 реальных узлов, сохранялось 120, терялось 109).
+     * Диагностика реального размера дерева: `superadmin/pc_tree_probe.php`.
+     * Значение 0/пусто = дефолт 300; верхняя граница 2000 — предохранитель от
+     * бесконечного обхода (каждая ветка = отдельный запрос к API).
+     */
+    public static function nodesLimit(): int
+    {
+        $v = (int)getSetting('catalog_nodes_limit', '300');
+        if ($v <= 0)   $v = 300;
+        if ($v > 2000) $v = 2000;
+        return $v;
+    }
+
+    /**
+     * Максимальная глубина дерева (`catalog_nodes_depth`, по умолчанию 5).
+     * По замерам узлы лежат на глубине 1–4, поэтому 5 берём с запасом.
+     */
+    public static function nodesDepth(): int
+    {
+        $v = (int)getSetting('catalog_nodes_depth', '5');
+        if ($v <= 0)  $v = 5;
+        if ($v > 12)  $v = 12;
+        return $v;
+    }
+
     /** Рекурсивный обход groups2 до листьев (hasParts=true). Ограничение глубины/кол-ва. */
     private function collectLeaves(array $car, string $groupId, array &$out, int $depth, array &$seen = []): void
     {
-        if ($depth > 4 || count($out) >= 120) return;
+        if ($depth > self::nodesDepth() || count($out) >= self::nodesLimit()) return;
         // Один и тот же лист/ветка дерева бывает достижим сразу из нескольких родительских
         // групп (общий узел в двух категориях у PC) — без этой защиты он и попадал бы в
         // список узлов (и в очередь на сбор схем) по нескольку раз с одинаковым groupId.
@@ -552,7 +580,7 @@ class PartsCatalogsAdapter implements CatalogProvider
             } else {
                 $this->collectLeaves($car, $gid, $out, $depth + 1, $seen);
             }
-            if (count($out) >= 120) return;
+            if (count($out) >= self::nodesLimit()) return;
         }
     }
 

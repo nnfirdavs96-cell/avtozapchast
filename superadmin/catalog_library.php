@@ -88,6 +88,46 @@ if ($action === 'collect_batch') {
     exit;
 }
 
+// ── Пересчёт дерева узлов авто (после поднятия catalog_nodes_limit) ──────────
+//    У авто, сохранённых со старым жёстким потолком 120, в библиотеке лежит
+//    ОБРЕЗАННОЕ дерево, и оно возвращается из библиотеки раньше, чем идёт запрос
+//    к API — само не обновится. Здесь чистим сохранённые узлы + kv-кэш и заново
+//    обходим дерево уже с актуальным лимитом. Схемы НЕ трогаем (собранное остаётся).
+if ($action === 'recount_nodes' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        flashMessage('danger', 'Ошибка CSRF.'); redirect(APP_URL . '/superadmin/catalog_library.php');
+    }
+    $catalogId = trim($_POST['catalog_id'] ?? '');
+    $carId     = trim($_POST['car_id'] ?? '');
+    $back = APP_URL . '/superadmin/catalog_library.php?action=view&catalog_id=' . urlencode($catalogId) . '&car_id=' . urlencode($carId);
+
+    $car = clFetchOne($db, "SELECT * FROM catalog_library_cars WHERE catalog_id=? AND car_id=?", [$catalogId, $carId]);
+    $prov = Catalog::provider();
+    if (!$car || !($prov instanceof PartsCatalogsAdapter) || !$prov->enabled()) {
+        flashMessage('danger', 'Авто не найдено или провайдер Parts-Catalogs выключен.');
+        redirect($back);
+    }
+
+    $st = $db->prepare("SELECT nodes_count FROM catalog_library_nodes WHERE catalog_id=? AND car_id=?");
+    $st->execute([$catalogId, $carId]);
+    $wasNodes = (int)$st->fetchColumn();
+
+    // Сбрасываем сохранённое дерево и kv-кэш узлов, иначе вернётся старый обрезанный список.
+    $db->prepare("DELETE FROM catalog_library_nodes WHERE catalog_id=? AND car_id=?")->execute([$catalogId, $carId]);
+    $db->prepare("DELETE FROM partsapi_kv_cache WHERE k LIKE ?")->execute(['nodes:%:' . $catalogId . ':' . $carId]);
+
+    @set_time_limit(300);
+    $nodes = $prov->oemNodesForCar($carId, $catalogId, (string)($car['criteria'] ?? ''), (string)($car['brand'] ?? ''));
+    $now   = count($nodes);
+    if ($now > 0) {
+        flashMessage('success', "Дерево пересчитано: было {$wasNodes} узлов, стало {$now}"
+            . ($now >= PartsCatalogsAdapter::nodesLimit() ? ' — упёрлось в лимит, можно поднять «узлов макс.»' : '') . '.');
+    } else {
+        flashMessage('danger', 'Обход дерева вернул пусто (лимит API или сбой). Старое дерево удалено — повторите позже.');
+    }
+    redirect($back);
+}
+
 // ── Тумблер шага 1: библиотека — источник чтения до API. Аварийный откат к старому
 //    поведению (TTL-кэш → API) без деплоя кода, если библиотека вдруг начнёт мешать. ──
 if ($action === 'toggle_library_read' && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -466,11 +506,31 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
             Собрано схем: <b id="clHave"><?= (int)$mg['have'] ?></b> из <b><?= (int)$mg['total'] ?></b> узлов.
             <?php if ($collectDone): ?><span style="color:#2e7d32;">— всё собрано.</span><?php endif; ?>
             <div style="color:#999;margin-top:2px;">Тянет недостающие схемы порциями с паузами — не выжигает лимит; собранное хранится навсегда.</div>
+            <?php
+              // Дерево, упёршееся в лимит, почти наверняка обрезано — предупреждаем явно.
+              $nodesLimit = PartsCatalogsAdapter::nodesLimit();
+              if ((int)$mg['total'] > 0 && (int)$mg['total'] >= $nodesLimit):
+            ?>
+            <div style="color:#b9772a;margin-top:6px;">
+                ⚠️ Узлов ровно <?= (int)$mg['total'] ?> — это текущий лимит «узлов макс.».
+                Дерево, скорее всего, <b>обрезано</b>: поднимите лимит в
+                <a href="<?= APP_URL ?>/superadmin/vin.php">VIN-поиск → Полнота дерева</a> и пересчитайте.
+            </div>
+            <?php endif; ?>
         </div>
         <div style="display:flex;align-items:center;gap:12px;">
             <div id="clProgWrap" style="display:none;width:160px;height:8px;background:#eef0f3;border-radius:6px;overflow:hidden;">
                 <div id="clProgBar" style="height:100%;width:0;background:#d32f2f;transition:width .3s;"></div>
             </div>
+            <form method="post" action="?action=recount_nodes" style="display:inline;"
+                  onsubmit="return confirm('Заново обойти дерево узлов этого авто?\n\nСобранные схемы сохранятся. Обход занимает 1–3 минуты и тарифный VIN-лимит не тратит.');">
+                <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
+                <input type="hidden" name="catalog_id" value="<?= sanitize($viewCar['catalog_id']) ?>">
+                <input type="hidden" name="car_id" value="<?= sanitize($viewCar['car_id']) ?>">
+                <button type="submit" class="az-btn az-btn-secondary az-btn-sm" title="Пересчитать дерево узлов с текущим лимитом">
+                    <i class="fa fa-refresh"></i> Пересчитать дерево
+                </button>
+            </form>
             <button type="button" id="clCollectBtn" class="az-btn az-btn-primary az-btn-sm"
                     data-catalog="<?= sanitize($viewCar['catalog_id']) ?>" data-car="<?= sanitize($viewCar['car_id']) ?>"
                     onclick="clCollectAll(this)" <?= $collectDone ? 'disabled' : '' ?>>

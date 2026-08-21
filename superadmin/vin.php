@@ -45,7 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach (['catalog_api_key', 'catalog_api_max_groups', 'catalog_api_base', 'catalog_api_timeout',
                   'catalog_laximo_login', 'catalog_laximo_secret',
                   'catalog_pc_key', 'catalog_pc_base', 'catalog_pc_timeout',
-                  'catalog_pc_auth', 'catalog_pc_key_param', 'catalog_pc_lang'] as $key) {
+                  'catalog_pc_auth', 'catalog_pc_key_param', 'catalog_pc_lang',
+                  'catalog_nodes_limit', 'catalog_nodes_depth'] as $key) {
             setSetting($key, trim($_POST[$key] ?? ''));
         }
         // OEM-узлы для дерева каталога (строки «1191=Кузов»). Переводы строк сохраняем.
@@ -605,6 +606,28 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                             <option value="en" <?= $pcLang==='en'?'selected':'' ?>>English (en)</option>
                         </select>
                     </div>
+                    <!-- Глубина дерева узлов: раньше было жёстко 120/глубина 4, из-за чего
+                         каталог «богатых» авто резался почти вдвое (замер: Lexus 229 узлов). -->
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;">
+                        <span style="font-size:.85rem;color:#555;">Полнота дерева узлов:</span>
+                        <input type="number" name="catalog_nodes_limit" min="50" max="2000" step="50"
+                               value="<?= sv2($settings,'catalog_nodes_limit','300') ?>"
+                               style="width:110px;" title="Максимум узлов на авто (0/пусто = 300, потолок 2000)">
+                        <span style="font-size:.8rem;color:#888;">узлов макс.</span>
+                        <input type="number" name="catalog_nodes_depth" min="1" max="12"
+                               value="<?= sv2($settings,'catalog_nodes_depth','5') ?>"
+                               style="width:80px;" title="Максимальная глубина дерева (по замерам узлы лежат на 1–4)">
+                        <span style="font-size:.8rem;color:#888;">глубина</span>
+                    </div>
+                    <small style="color:#888;display:block;margin-top:4px;">
+                        Сколько узлов максимум собирать у одного авто. Раньше было жёстко <b>120</b> — у машин
+                        с большим каталогом терялась почти половина (замер Lexus: <b>229</b> реальных узлов).
+                        Узнать реальный размер дерева конкретного авто:
+                        <code>php superadmin/pc_tree_probe.php --lib</code> (только чтение, VIN-лимит не тратит).<br>
+                        ⚠️ Каждая ветка дерева — отдельный запрос к API (у Lexus обход стоил 163 запроса, ~80 сек),
+                        поэтому потолок 2000 оставлен как предохранитель.
+                    </small>
+
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px;">
                         <input type="checkbox" name="catalog_pc_schema" value="1"
                                <?= ($settings['catalog_pc_schema'] ?? '1') === '1' ? 'checked' : '' ?>>
