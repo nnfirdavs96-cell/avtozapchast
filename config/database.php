@@ -13,8 +13,18 @@ if (!defined('DB_USER')) define('DB_USER', 'avtouser');
 if (!defined('DB_PASS')) define('DB_PASS', 'Avto@2024!');
 if (!defined('DB_NAME')) define('DB_NAME', 'avtozapchast');
 
-function getDB() {
+/**
+ * Соединение с БД (singleton).
+ *
+ * $reconnect=true — принудительно создать новое соединение. Нужно длительным
+ * CLI-скриптам (сбор каталога, импорт прайса): между запросами к БД они минутами
+ * ходят по HTTP, MySQL успевает закрыть простаивающее соединение по wait_timeout,
+ * и следующий запрос падает с «MySQL server has gone away». Статик держал мёртвый
+ * PDO и сам не восстанавливался — процесс умирал. См. dbKeepAlive().
+ */
+function getDB(bool $reconnect = false) {
     static $pdo = null;
+    if ($reconnect) $pdo = null;
     if ($pdo === null) {
         try {
             $pdo = new PDO(
@@ -31,4 +41,19 @@ function getDB() {
         }
     }
     return $pdo;
+}
+
+/**
+ * Проверить соединение и восстановить его, если MySQL уже закрыл сессию.
+ * Вызывать в долгих CLI-скриптах перед блоками работы с БД — на обычных
+ * страницах не нужно (там запрос живёт секунды). Дешёвый `SELECT 1`.
+ */
+function dbKeepAlive(): PDO {
+    try {
+        $pdo = getDB();
+        $pdo->query('SELECT 1');
+        return $pdo;
+    } catch (PDOException $e) {
+        return getDB(true);   // соединение умерло — поднимаем заново
+    }
 }

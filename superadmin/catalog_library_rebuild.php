@@ -121,20 +121,36 @@ if ($what === 'all' || $what === 'recount') {
             $rid = (string)$car['car_id'];
             $was = (int)$car['nodes_count'];
 
-            $db->prepare("DELETE FROM catalog_library_nodes WHERE catalog_id=? AND car_id=?")->execute([$cid, $rid]);
-            $db->prepare("DELETE FROM partsapi_kv_cache WHERE k LIKE ?")->execute(['nodes:%:' . $cid . ':' . $rid]);
+            try {
+                // Обход дерева — это минуты HTTP-запросов, за которые MySQL успевает
+                // закрыть простаивающее соединение. Поднимаем его перед КАЖДОЙ машиной
+                // (до записей) и ещё раз после обхода — иначе «server has gone away».
+                $db = dbKeepAlive();
+                $db->prepare("DELETE FROM catalog_library_nodes WHERE catalog_id=? AND car_id=?")->execute([$cid, $rid]);
+                $db->prepare("DELETE FROM partsapi_kv_cache WHERE k LIKE ?")->execute(['nodes:%:' . $cid . ':' . $rid]);
 
-            $nodes = $prov->oemNodesForCar($rid, $cid, (string)($car['criteria'] ?? ''), (string)($car['brand'] ?? ''));
-            $now   = count($nodes);
-            $done++;
+                $nodes = $prov->oemNodesForCar($rid, $cid, (string)($car['criteria'] ?? ''), (string)($car['brand'] ?? ''));
+                $now   = count($nodes);
+                $db    = dbKeepAlive();
+                $done++;
 
-            if ($now === 0) {
-                rlog(sprintf('  %-14s %s: ПУСТО (лимит API или сбой) — дерево удалено, повторите позже',
-                    $car['brand'] ?: '—', substr($rid, 0, 10)));
-            } else {
-                rlog(sprintf('  %-14s %s: %d → %d узлов%s',
-                    $car['brand'] ?: '—', substr($rid, 0, 10), $was, $now,
-                    $now >= $limit ? '  ← упёрлось в лимит, поднимите «узлов макс.»' : ''));
+                // Печатаем лимит, который реально видит адаптер — чтобы расхождение
+                // «в шапке 1000, а обход встал на 300» было видно сразу.
+                $effLimit = PartsCatalogsAdapter::nodesLimit();
+                if ($now === 0) {
+                    rlog(sprintf('  %-14s %s: ПУСТО (лимит API или сбой) — дерево удалено, повторите позже',
+                        $car['brand'] ?: '—', substr($rid, 0, 10)));
+                } else {
+                    rlog(sprintf('  %-14s %s: %d → %d узлов (лимит %d)%s',
+                        $car['brand'] ?: '—', substr($rid, 0, 10), $was, $now, $effLimit,
+                        $now >= $effLimit ? '  ← упёрлось в лимит, поднимите «узлов макс.»' : ''));
+                }
+            } catch (Throwable $e) {
+                // Одна проблемная машина не должна убивать весь прогон.
+                $done++;
+                rlog(sprintf('  %-14s %s: ОШИБКА — %s', $car['brand'] ?: '—', substr($rid, 0, 10),
+                    mb_substr($e->getMessage(), 0, 120)));
+                try { $db = getDB(true); } catch (Throwable $e2) { rlog('  Не удалось восстановить соединение с БД — выходим.'); break; }
             }
             if ($pauseMs > 0) usleep($pauseMs * 1000);
         }
@@ -164,6 +180,8 @@ if ($what === 'all' || $what === 'schemes') {
             $cid = (string)$car['catalog_id'];
             $rid = (string)$car['car_id'];
 
+            try {
+            $db = dbKeepAlive();   // фаза идёт часами — соединение надо оживлять
             $n = $db->prepare("SELECT nodes_json FROM catalog_library_nodes WHERE catalog_id=? AND car_id=?");
             $n->execute([$cid, $rid]);
             $nodes = json_decode(($n->fetchColumn() ?: '[]'), true) ?: [];
@@ -184,18 +202,25 @@ if ($what === 'all' || $what === 'schemes') {
             $res  = $prov->harvestSchemes($cid, $rid, (string)($car['criteria'] ?? ''),
                                           (string)($car['brand'] ?? ''), $take, count($take), $pauseMs);
             $fetched += $res['fetched'];
+            $db = dbKeepAlive();
             rlog(sprintf('  %-14s %s: +%d схем (было %d из %d)%s',
                 $car['brand'] ?: '—', substr($rid, 0, 10), $res['fetched'],
                 (int)$car['have'], (int)$car['nodes_count'],
                 $res['rate_limited'] ? '  ← STOP: лимит API' : ''));
 
             if ($res['rate_limited']) { rlog('Достигнут лимит API — останавливаемся, запустите позже.'); break; }
+            } catch (Throwable $e) {
+                rlog(sprintf('  %-14s %s: ОШИБКА — %s', $car['brand'] ?: '—', substr($rid, 0, 10),
+                    mb_substr($e->getMessage(), 0, 120)));
+                try { $db = getDB(true); } catch (Throwable $e2) { rlog('  Не удалось восстановить соединение с БД — выходим.'); break; }
+            }
         }
         rlog("Фаза 2 завершена: собрано схем за запуск — $fetched.");
     }
 }
 
 // ── Итог ─────────────────────────────────────────────────────────────────────
+$db     = dbKeepAlive();   // после часов работы соединение почти наверняка отвалилось
 $cars   = (int)$db->query("SELECT COUNT(*) FROM catalog_library_cars")->fetchColumn();
 $trees  = (int)$db->query("SELECT COUNT(*) FROM catalog_library_nodes")->fetchColumn();
 $sch    = (int)$db->query("SELECT COUNT(*) FROM catalog_library_schemes")->fetchColumn();
