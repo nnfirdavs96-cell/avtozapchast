@@ -3678,8 +3678,15 @@ mysql -u USER -p DBNAME < sql/marketplace_phase2.sql
 уже получает при доставке.
 
 ```bash
-mysql -u USER -p DBNAME < sql/marketplace_phase3_payouts.sql
+php sql/apply.php sql/marketplace_phase3_payouts.sql
 ```
+
+> `sql/apply.php` берёт доступы к БД из `config/db_credentials.php` — того же файла,
+> откуда их берёт сайт. Логин и пароль не попадают в командную строку, а значит и в
+> `~/.bash_history` (на боевом сервере он append-only и не чистится). Повторный запуск
+> безопасен: «таблица уже есть» считается успехом, а не ошибкой.
+> Классический путь тоже работает, если подставить реальные значения:
+> `mysql -u ПОЛЬЗОВАТЕЛЬ -p БАЗА < sql/marketplace_phase3_payouts.sql`
 
 **Модель — журнал, а не поле «баланс»:**
 

@@ -1183,6 +1183,8 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 | [`sql/only_tjs_currency.sql`](sql/only_tjs_currency.sql) | SQL-миграция (структура/данные БД). Идемпотентна; на проде часто накатывается рантаймом. | — |
 | [`sql/rename_to_autodoc.sql`](sql/rename_to_autodoc.sql) | SQL-миграция (структура/данные БД). Идемпотентна; на проде часто накатывается рантаймом. | — |
 | [`sql/rename_to_avtodoc.sql`](sql/rename_to_avtodoc.sql) | SQL-миграция (структура/данные БД). Идемпотентна; на проде часто накатывается рантаймом. | — |
+| [`sql/apply.php`](sql/apply.php) | CLI-накат миграции без ввода доступов: берёт их из `config/db_credentials.php`, поэтому пароль не оседает в `~/.bash_history` (на бою он append-only). Повторный запуск безопасен — «уже существует» считается успехом. | config/database.php |
+| [`sql/marketplace_phase3_payouts.sql`](sql/marketplace_phase3_payouts.sql) | Фаза 3a: журнал `seller_ledger` + реестр `seller_payouts`. Только добавления. | seller_ledger, seller_payouts |
 | [`sql/schema.sql`](sql/schema.sql) | SQL-миграция (структура/данные БД). Идемпотентна; на проде часто накатывается рантаймом. | — |
 | [`sql/schema_autoeuro.sql`](sql/schema_autoeuro.sql) | SQL-миграция (структура/данные БД). Идемпотентна; на проде часто накатывается рантаймом. | — |
 | [`sql/schema_v2.sql`](sql/schema_v2.sql) | SQL-миграция (структура/данные БД). Идемпотентна; на проде часто накатывается рантаймом. | — |
