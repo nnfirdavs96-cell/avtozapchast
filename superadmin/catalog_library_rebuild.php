@@ -20,8 +20,12 @@
  * Запуск:
  *   php superadmin/catalog_library_rebuild.php [что] [бюджет_авто] [бюджет_схем] [пауза_мс]
  *
- *   что           — all (по умолчанию) | recount | schemes | plan
- *                   plan = ничего не делать, только показать объём работ
+ *   что           — all (по умолчанию) | recount | schemes | plan | revin
+ *                   plan  = ничего не делать, только показать объём работ
+ *                   revin = починить авто с протухшим токеном комплектации
+ *                           (404 «Комплектация не найдена») повторной расшифровкой
+ *                           VIN. ⚠️ ЕДИНСТВЕННЫЙ режим, который ТРАТИТ ТАРИФ:
+ *                           1 запрос на авто. Количество ограничивает «бюджет_авто».
  *   бюджет_авто   — сколько авто пересчитать за запуск (по умолчанию 10)
  *   бюджет_схем   — сколько схем дотянуть за запуск (по умолчанию 300)
  *   пауза_мс      — пауза между запросами (по умолчанию 300)
@@ -46,7 +50,7 @@ $what        = strtolower(trim((string)($argv[1] ?? 'all')));
 $carsBudget  = (int)($argv[2] ?? 10);
 $schemeBudget= (int)($argv[3] ?? 300);
 $pauseMs     = max(0, (int)($argv[4] ?? 300));
-if (!in_array($what, ['all', 'recount', 'schemes', 'plan'], true)) $what = 'all';
+if (!in_array($what, ['all', 'recount', 'schemes', 'plan', 'revin'], true)) $what = 'all';
 
 // ── Защита от параллельного запуска ──────────────────────────────────────────
 // Два прогона одновременно = двойная нагрузка на API Tradesoft и гонка за одни и
@@ -150,6 +154,63 @@ if ($what === 'plan') {
     echo "Режим plan — ничего не изменено.\n";
     echo "Запуск работы:  php superadmin/catalog_library_rebuild.php all {$carsBudget} {$schemeBudget} {$pauseMs}\n";
     exit(0);
+}
+
+// ── Режим revin: починка авто с протухшим токеном комплектации ───────────────
+// Parts-Catalogs зашивает в `criteria` ВРЕМЕННЫЙ токен (напр. «17*WA1V…(2017!31a3cee7»).
+// Когда он протухает, groups2 отдаёт 404 «Комплектация не найдена» — и с criteria,
+// и без него. Вылечить можно только новой расшифровкой VIN.
+// ⚠️ ЭТО ЕДИНСТВЕННЫЙ РЕЖИМ, КОТОРЫЙ ТРАТИТ ТАРИФ: 1 запрос на авто.
+if ($what === 'revin') {
+    $broken = $db->query(
+        "SELECT c.catalog_id, c.car_id, c.vin, c.brand
+           FROM catalog_library_cars c
+           LEFT JOIN catalog_library_nodes n ON n.catalog_id=c.catalog_id AND n.car_id=c.car_id
+          WHERE n.nodes_count IS NULL AND c.vin IS NOT NULL AND c.vin <> ''
+       ORDER BY c.updated_at DESC"
+    )->fetchAll();
+
+    $limitCars = $carsBudget > 0 ? $carsBudget : 10;
+    $todo      = min(count($broken), $limitCars);
+    rlog('── Починка через повторную расшифровку VIN ──');
+    rlog("Авто с VIN и без дерева: " . count($broken) . ", будет обработано: $todo");
+    rlog("⚠️ ВНИМАНИЕ: будет израсходовано до $todo запросов ТАРИФА (по 1 на VIN).");
+    if (!$broken) { rlog('Чинить нечего.'); }
+
+    $used = 0; $ok = 0;
+    foreach ($broken as $car) {
+        if ($used >= $limitCars) break;
+        $vin = (string)$car['vin'];
+        try {
+            $db   = dbKeepAlive();
+            $used++;
+            $fresh = $prov->decodeVinFresh($vin);          // ← тратит 1 запрос тарифа
+            if (!$fresh) {
+                rlog(sprintf('  %-14s %s: VIN не расшифровался — пропуск', $car['brand'] ?: '—', $vin));
+                if ($pauseMs > 0) usleep($pauseMs * 1000);
+                continue;
+            }
+            $newCat = $fresh['catalogId']; $newCar = $fresh['carId'];
+            $moved  = ($newCar !== (string)$car['car_id'] || $newCat !== (string)$car['catalog_id']);
+
+            $nodes = $prov->rewalkNodes($newCar, $newCat, (string)$fresh['criteria'], (string)$fresh['brand']);
+            $db    = dbKeepAlive();
+            if ($nodes) {
+                $prov->storeNodes($newCar, $newCat, $nodes);
+                $ok++;
+                rlog(sprintf('  %-14s %s: OK — %d узлов%s', $car['brand'] ?: '—', $vin, count($nodes),
+                    $moved ? ' (carId сменился, старая запись осталась в списке)' : ''));
+            } else {
+                rlog(sprintf('  %-14s %s: свежий токен получен, но дерево пустое — повторите позже',
+                    $car['brand'] ?: '—', $vin));
+            }
+        } catch (Throwable $e) {
+            rlog(sprintf('  %-14s %s: ОШИБКА — %s', $car['brand'] ?: '—', $vin, mb_substr($e->getMessage(), 0, 100)));
+            try { $db = getDB(true); } catch (Throwable $e2) { break; }
+        }
+        if ($pauseMs > 0) usleep($pauseMs * 1000);
+    }
+    rlog("Готово. Израсходовано запросов тарифа: $used, восстановлено деревьев: $ok.");
 }
 
 // ── Фаза 1: пересчёт деревьев ────────────────────────────────────────────────
