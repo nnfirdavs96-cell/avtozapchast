@@ -16,6 +16,15 @@ $st = $db->prepare("SELECT moderation_status, COUNT(*) c FROM parts WHERE seller
 $st->execute([$sid]);
 foreach ($st as $r) { $counts[$r['moderation_status']] = (int)$r['c']; $counts['total'] += (int)$r['c']; }
 
+// Заказы продавца (маркетплейс, Фаза 2). Новые — то, что ждёт реакции.
+// Таблицы может не быть, если миграция Фазы 2 не применена — тогда просто нули.
+$ordNew = $ordTotal = 0;
+try {
+    $os = $db->prepare("SELECT COUNT(*) t, SUM(status='pending') n FROM order_sellers WHERE seller_id = ?");
+    $os->execute([(int)$seller['id']]);
+    if ($r = $os->fetch()) { $ordTotal = (int)$r['t']; $ordNew = (int)$r['n']; }
+} catch (Throwable $e) { $ordNew = $ordTotal = 0; }
+
 [$scls, $slabel, $shint] = sellerStatusInfo($seller['status']);
 $approved = $seller['status'] === 'approved';
 
@@ -51,6 +60,10 @@ require_once dirname(__DIR__) . '/includes/header.php';
       <div class="sl-stat"><span class="sl-stat-n sl-green"><?= $counts['active'] ?></span><span class="sl-stat-l">Опубликовано</span></div>
       <div class="sl-stat"><span class="sl-stat-n sl-amber"><?= $counts['pending'] ?></span><span class="sl-stat-l">На проверке</span></div>
       <div class="sl-stat"><span class="sl-stat-n sl-red"><?= $counts['rejected'] ?></span><span class="sl-stat-l">Отклонено</span></div>
+      <a href="<?= APP_URL ?>/seller/orders.php" class="sl-stat" style="text-decoration:none;">
+        <span class="sl-stat-n <?= $ordNew > 0 ? 'sl-amber' : '' ?>"><?= $ordNew ?></span>
+        <span class="sl-stat-l">Новых заказов<?= $ordTotal > 0 ? ' (всего ' . $ordTotal . ')' : '' ?></span>
+      </a>
     </div>
 
     <!-- Действие -->
