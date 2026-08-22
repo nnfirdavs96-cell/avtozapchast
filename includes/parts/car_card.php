@@ -71,6 +71,9 @@ if (!function_exists('carCardCss')) {
 .cc-titlewrap{position:relative;z-index:2;margin-top:auto;padding-top:10px;}
 .cc-ttl{font-size:.94rem;font-weight:800;line-height:1.25;text-shadow:0 2px 8px rgba(0,0,0,.45);
         display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;}
+/* Заголовок — ссылка на карточку авто (кнопки «Открыть» больше нет) */
+a.cc-ttl-link{color:#fff!important;text-decoration:none;transition:color .15s;}
+a.cc-ttl-link:hover{color:#ff8a8a!important;text-decoration:underline;}
 .cc-sub{font-size:.73rem;opacity:.72;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .cc-nodata{display:inline-block;font-size:.66rem;color:#ffc9c9;background:rgba(255,255,255,.09);
            border-radius:20px;padding:2px 8px;margin-top:6px;}
@@ -111,7 +114,7 @@ if (!function_exists('carCardTile')) {
      * Плитка авто для списка.
      * $row — строка catalog_library_cars + nodes_count / schemes_count.
      */
-    function carCardTile(array $row, int $nodesLimit = 300): void
+    function carCardTile(array $row, int $nodesLimit = 300, string $csrf = ''): void
     {
         carCardCss();
         $attrs  = carCardAttrs($row);
@@ -130,7 +133,8 @@ if (!function_exists('carCardTile')) {
         <span class="cc-wm"><?= sanitize($wm) ?></span>
         <span class="cc-badge">Parts-Catalogs</span>
         <div class="cc-titlewrap">
-          <div class="cc-ttl" title="<?= sanitize($title) ?>"><?= sanitize($title) ?></div>
+          <a class="cc-ttl cc-ttl-link" href="?action=view&<?= $qs ?>"
+             title="<?= sanitize($title) ?> — открыть карточку"><?= sanitize($title) ?></a>
           <?php if ($sub !== ''): ?><div class="cc-sub"><?= sanitize($sub) ?></div><?php endif; ?>
           <?php if ($noData): ?><div class="cc-nodata">нет данных модели</div><?php endif; ?>
         </div>
@@ -162,8 +166,26 @@ if (!function_exists('carCardTile')) {
           <span><?= sanitize(mb_substr((string)($row['updated_at'] ?? ''), 0, 10)) ?></span>
         </div>
         <div class="cc-acts">
-          <a href="?action=view&<?= $qs ?>" class="az-btn az-btn-secondary az-btn-sm"><i class="fa fa-eye"></i> Открыть</a>
-          <a href="?action=export_car&<?= $qs ?>" class="az-btn az-btn-primary az-btn-sm" title="Скачать JSON"><i class="fa fa-download"></i></a>
+          <!-- Пересчёт — обычная форма: перезагрузка страницы со статусом во флеш-сообщении. -->
+          <form method="post" action="?action=recount_nodes" style="flex:1;margin:0;"
+                onsubmit="return confirm('Заново обойти дерево узлов этого авто?\n\nСобранные схемы сохранятся. Занимает 1–3 минуты, тарифный VIN-лимит не тратит.');">
+            <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
+            <input type="hidden" name="catalog_id" value="<?= sanitize((string)$row['catalog_id']) ?>">
+            <input type="hidden" name="car_id" value="<?= sanitize((string)$row['car_id']) ?>">
+            <input type="hidden" name="return_to" value="list">
+            <button type="submit" class="az-btn az-btn-secondary az-btn-sm" style="width:100%;"
+                    title="Пересчитать дерево узлов с текущим лимитом">
+              <i class="fa fa-refresh"></i> Пересчитать
+            </button>
+          </form>
+          <!-- Сбор схем — порциями через AJAX, прогресс идёт в полосу этой же плитки. -->
+          <button type="button" class="az-btn az-btn-primary az-btn-sm cc-collect" style="flex:1;"
+                  data-catalog="<?= sanitize((string)$row['catalog_id']) ?>"
+                  data-car="<?= sanitize((string)$row['car_id']) ?>"
+                  <?= ($done || $nodes === 0) ? 'disabled' : '' ?>
+                  title="<?= $nodes === 0 ? 'Сначала пересчитайте дерево' : 'Догрузить недостающие схемы' ?>">
+            <i class="fa fa-cloud-download"></i> <?= $done ? 'Готово' : 'Собрать схемы' ?>
+          </button>
         </div>
       </div>
     </div>
@@ -225,6 +247,75 @@ if (!function_exists('carCardFull')) {
         <?php endif; ?>
       </div>
     </div>
+        <?php
+    }
+}
+
+if (!function_exists('carCardListScript')) {
+    /**
+     * JS для сетки плиток: кнопка «Собрать схемы» тянет недостающие схемы порциями
+     * через `?action=collect_batch` и обновляет прогресс-полосу СВОЕЙ плитки.
+     * Печатать один раз после сетки. $csrf — токен для POST.
+     *
+     * Строго ПО ОДНОЙ машине за раз: параллельный сбор в нескольких плитках
+     * означал бы кратную нагрузку на API Tradesoft.
+     */
+    function carCardListScript(string $csrf): void
+    {
+        ?>
+<script>
+(function(){
+  var BUSY = false;
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest ? e.target.closest('.cc-collect') : null;
+    if (!btn || btn.disabled) return;
+    e.preventDefault();
+    if (BUSY) { alert('Сбор уже идёт для другой машины — дождитесь окончания.'); return; }
+    BUSY = true;
+
+    var tile = btn.closest('.cc-tile');
+    var bar  = tile ? tile.querySelector('.cc-bar i') : null;
+    var stat = tile ? tile.querySelector('.cc-stat') : null;
+    var orig = btn.innerHTML;
+    btn.disabled = true;
+
+    function step(){
+      var body = new FormData();
+      body.append('csrf_token', <?= json_encode($csrf) ?>);
+      body.append('catalog_id', btn.getAttribute('data-catalog'));
+      body.append('car_id',     btn.getAttribute('data-car'));
+      fetch('?action=collect_batch', { method:'POST', body: body, credentials:'same-origin' })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d.error){
+            btn.innerHTML = '<i class="fa fa-exclamation-triangle"></i> ' + (d.message || d.error);
+            btn.disabled = false; BUSY = false; return;
+          }
+          if (typeof d.have === 'number' && d.total){
+            var pct = Math.round(d.have / d.total * 100);
+            if (bar)  bar.style.width = pct + '%';
+            if (stat) stat.innerHTML = '<i class="fa fa-picture-o" style="color:#C70909;"></i> Схемы: <b>' +
+                                       d.have + '</b> из <b>' + d.total + '</b>';
+          }
+          if (d.rate_limited){
+            btn.innerHTML = '<i class="fa fa-clock-o"></i> Пауза (лимит API)';
+            btn.disabled = false; BUSY = false; return;
+          }
+          if (d.done || (d.remaining || 0) <= 0){
+            btn.innerHTML = '<i class="fa fa-check"></i> Готово';
+            if (bar) bar.parentNode.classList.add('done');
+            BUSY = false; return;
+          }
+          btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Осталось ' + d.remaining;
+          step();
+        })
+        .catch(function(){ btn.innerHTML = orig; btn.disabled = false; BUSY = false; });
+    }
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Собираю…';
+    step();
+  });
+})();
+</script>
         <?php
     }
 }
