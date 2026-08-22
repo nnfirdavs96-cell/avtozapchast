@@ -16,7 +16,11 @@ $pageTitle   = isset($pageTitle) ? $pageTitle : ($siteName . ' — Panel');
     <link rel="icon" type="image/png" href="<?= APP_URL ?>/assets/img/logo/avtodoc-favicon.png">
     <link rel="stylesheet" href="<?= MAZLAY_CSS ?>/plugins.css">
     <link rel="stylesheet" href="<?= MAZLAY_CSS ?>/style.css">
-    <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/custom.css">
+    <?php /* Cache-busting по времени файла — как на витрине (header.php). Без него
+             браузер держит старую копию custom.css, и новые стили админки просто не
+             приезжают: так модалка выплаты рисовалась как обычный блок на странице. */ ?>
+    <?php $cssV = @filemtime(APP_ROOT . '/assets/css/custom.css') ?: time(); ?>
+    <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/custom.css?v=<?= $cssV ?>">
     <meta name="csrf" content="<?= generateCsrfToken() ?>">
 </head>
 <body class="az-body">

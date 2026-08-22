@@ -142,7 +142,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
       <div class="az-card">
         <div class="az-card-body">
           <p><b>Раздел не активирован.</b> Примените миграцию финансов:</p>
-          <pre style="background:#f6f6f8;padding:12px;border-radius:8px;overflow:auto;">mysql -u USER -p БАЗА &lt; sql/marketplace_phase3_payouts.sql</pre>
+          <pre style="background:#f6f6f8;padding:12px;border-radius:8px;overflow:auto;">php sql/apply.php sql/marketplace_phase3_payouts.sql</pre>
           <p class="text-muted mb-0">После этого нажмите «Пересчитать начисления» — заказы, доставленные раньше, попадут в балансы.</p>
         </div>
       </div>
@@ -258,7 +258,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
       </div>
 
       <!-- Модалка выплаты -->
-      <div class="az-modal" id="payoutModal">
+      <div class="az-modal" id="payoutModal" style="display:none;">
         <div class="az-modal-box">
           <form method="post">
             <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
@@ -318,7 +318,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
       </div>
 
       <!-- Модалка корректировки -->
-      <div class="az-modal" id="adjustModal">
+      <div class="az-modal" id="adjustModal" style="display:none;">
         <div class="az-modal-box">
           <form method="post">
             <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
@@ -354,18 +354,23 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
         document.getElementById('pmMax').textContent = max;
         var a = document.getElementById('pmAmount');
         a.max = max; a.value = max;               // по умолчанию гасим весь долг
-        document.getElementById('payoutModal').classList.add('open');
+        document.getElementById('payoutModal').style.display = 'flex';
       }
-      function payoutClose() { document.getElementById('payoutModal').classList.remove('open'); }
+      function payoutClose() { document.getElementById('payoutModal').style.display = 'none'; }
       function adjustOpen(id, shop) {
         document.getElementById('amSeller').value = id;
         document.getElementById('amShop').textContent = shop;
-        document.getElementById('adjustModal').classList.add('open');
+        document.getElementById('adjustModal').style.display = 'flex';
       }
-      function adjustClose() { document.getElementById('adjustModal').classList.remove('open'); }
+      function adjustClose() { document.getElementById('adjustModal').style.display = 'none'; }
       // Клик по затемнению закрывает — но не клик внутри самой формы.
       document.querySelectorAll('.az-modal').forEach(function (m) {
-        m.addEventListener('click', function (e) { if (e.target === m) m.classList.remove('open'); });
+        m.addEventListener('click', function (e) { if (e.target === m) m.style.display = 'none'; });
+      });
+      // Esc закрывает любую открытую модалку.
+      document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        document.querySelectorAll('.az-modal').forEach(function (m) { m.style.display = 'none'; });
       });
       </script>
 

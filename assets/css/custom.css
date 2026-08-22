@@ -4195,11 +4195,14 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 
 /* Админка → модалка (выплата, корректировка).
    Своя, а не bootstrap-овская: админка не грузит JS бутстрапа. */
+/* Показ/скрытие переключается инлайновым style.display из JS, а не классом:
+   админка подключает CSS одним файлом, и если он не доехал (кэш, 404), модалка
+   с классовым переключением развернулась бы прямо в поток страницы. */
 .az-modal {
     display: none; position: fixed; inset: 0; z-index: 1200;
+    align-items: flex-start; justify-content: center;
     background: rgba(20, 20, 26, .55); padding: 20px; overflow-y: auto;
 }
-.az-modal.open { display: flex; align-items: flex-start; justify-content: center; }
 .az-modal-box {
     background: #fff; border-radius: 12px; padding: 24px;
     width: 100%; max-width: 480px; margin: auto;
