@@ -59,16 +59,21 @@ if (!function_exists('carCardCss')) {
 .cc-tile{background:#fff;border:1px solid #e7e9ee;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;
          box-shadow:0 2px 10px rgba(20,22,30,.05);transition:box-shadow .2s,border-color .2s,transform .2s;}
 .cc-tile:hover{border-color:#f1c2c2;box-shadow:0 10px 26px rgba(20,22,30,.12);transform:translateY(-3px);}
-/* Тёмная «шапка» с вотермарком марки — как на VIN-странице */
+/* Тёмная «шапка». Бейдж — в потоке (раньше был absolute и длинный заголовок на него
+   налезал), заголовок прижат книзу и обрезан двумя строками, поэтому все шапки
+   одинаковой высоты. Вотермарк — внизу справа, сильно приглушён, чтобы не мешал тексту. */
 .cc-head{position:relative;background:radial-gradient(120% 120% at 20% 18%,#2a2f3a,#14161b 72%);color:#fff;
-         padding:16px 16px 14px;min-height:104px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;}
-.cc-wm{position:absolute;right:10px;top:10px;z-index:0;font-size:1.9rem;font-weight:900;letter-spacing:.02em;
-       text-transform:uppercase;line-height:1;pointer-events:none;white-space:nowrap;color:rgba(255,255,255,.10);}
-.cc-badge{position:absolute;left:14px;top:12px;z-index:2;background:#C70909;color:#fff;font-size:.6rem;font-weight:800;
-          letter-spacing:.04em;padding:3px 9px;border-radius:20px;text-transform:uppercase;}
-.cc-ttl{position:relative;z-index:2;font-size:1.02rem;font-weight:800;line-height:1.15;text-shadow:0 2px 8px rgba(0,0,0,.4);}
-.cc-sub{position:relative;z-index:2;font-size:.76rem;opacity:.75;margin-top:4px;}
-.cc-nodata{position:relative;z-index:2;font-size:.72rem;color:#ffb3b3;margin-top:4px;}
+         padding:12px 14px 13px;min-height:122px;display:flex;flex-direction:column;overflow:hidden;}
+.cc-wm{position:absolute;right:-4px;bottom:-6px;z-index:0;font-size:2rem;font-weight:900;letter-spacing:.02em;
+       text-transform:uppercase;line-height:1;pointer-events:none;white-space:nowrap;color:rgba(255,255,255,.055);}
+.cc-badge{position:relative;z-index:2;align-self:flex-start;background:#C70909;color:#fff;font-size:.56rem;font-weight:800;
+          letter-spacing:.05em;padding:3px 9px;border-radius:20px;text-transform:uppercase;line-height:1.4;}
+.cc-titlewrap{position:relative;z-index:2;margin-top:auto;padding-top:10px;}
+.cc-ttl{font-size:.94rem;font-weight:800;line-height:1.25;text-shadow:0 2px 8px rgba(0,0,0,.45);
+        display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;}
+.cc-sub{font-size:.73rem;opacity:.72;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cc-nodata{display:inline-block;font-size:.66rem;color:#ffc9c9;background:rgba(255,255,255,.09);
+           border-radius:20px;padding:2px 8px;margin-top:6px;}
 /* Тело: прогресс + мета */
 .cc-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:9px;flex:1;}
 .cc-meta{font-size:.74rem;color:#8a8f99;display:flex;justify-content:space-between;gap:8px;}
@@ -84,9 +89,10 @@ if (!function_exists('carCardCss')) {
 .cc-full{display:grid;grid-template-columns:minmax(230px,.55fr) minmax(0,1.45fr);border-radius:16px;overflow:hidden;
          border:1px solid #e7e9ee;background:#fff;box-shadow:0 3px 14px rgba(20,22,30,.07);margin-bottom:16px;}
 @media(max-width:820px){.cc-full{grid-template-columns:1fr;}}
-.cc-full .cc-head{min-height:150px;padding:20px;}
-.cc-full .cc-wm{font-size:2.5rem;top:44px;}
-.cc-full .cc-ttl{font-size:1.45rem;}
+.cc-full .cc-head{min-height:158px;padding:18px 20px;}
+.cc-full .cc-wm{font-size:2.6rem;}
+.cc-full .cc-ttl{font-size:1.3rem;-webkit-line-clamp:3;}   /* на крупной карточке места больше */
+.cc-full .cc-sub{white-space:normal;}
 .cc-rows{display:grid;grid-template-columns:1fr 1fr;align-content:center;}
 @media(max-width:820px){.cc-rows{grid-template-columns:1fr;}}
 .cc-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid #edeff2;min-width:0;}
@@ -121,11 +127,13 @@ if (!function_exists('carCardTile')) {
         ?>
     <div class="cc-tile">
       <div class="cc-head">
-        <span class="cc-badge">Parts-Catalogs</span>
         <span class="cc-wm"><?= sanitize($wm) ?></span>
-        <div class="cc-ttl"><?= sanitize($title) ?></div>
-        <?php if ($sub !== ''): ?><div class="cc-sub"><?= sanitize($sub) ?></div><?php endif; ?>
-        <?php if ($noData): ?><div class="cc-nodata">нет данных модели</div><?php endif; ?>
+        <span class="cc-badge">Parts-Catalogs</span>
+        <div class="cc-titlewrap">
+          <div class="cc-ttl" title="<?= sanitize($title) ?>"><?= sanitize($title) ?></div>
+          <?php if ($sub !== ''): ?><div class="cc-sub"><?= sanitize($sub) ?></div><?php endif; ?>
+          <?php if ($noData): ?><div class="cc-nodata">нет данных модели</div><?php endif; ?>
+        </div>
       </div>
       <div class="cc-body">
         <div class="cc-stat">
@@ -183,11 +191,13 @@ if (!function_exists('carCardFull')) {
         ?>
     <div class="cc-full">
       <div class="cc-head">
-        <span class="cc-badge">Parts-Catalogs</span>
         <span class="cc-wm"><?= sanitize($wm) ?></span>
-        <div class="cc-ttl"><?= sanitize($title) ?></div>
-        <?php if ($sub !== ''): ?><div class="cc-sub"><?= sanitize($sub) ?></div><?php endif; ?>
-        <?php if (!$rows): ?><div class="cc-nodata">нет данных модели (авто заведено по параметрам)</div><?php endif; ?>
+        <span class="cc-badge">Parts-Catalogs</span>
+        <div class="cc-titlewrap">
+          <div class="cc-ttl"><?= sanitize($title) ?></div>
+          <?php if ($sub !== ''): ?><div class="cc-sub"><?= sanitize($sub) ?></div><?php endif; ?>
+          <?php if (!$rows): ?><div class="cc-nodata">нет данных модели (авто заведено по параметрам)</div><?php endif; ?>
+        </div>
       </div>
       <div class="cc-rows">
         <?php if ($rows): foreach ($rows as [$label, $icon, $v]): ?>
