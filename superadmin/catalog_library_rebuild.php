@@ -48,6 +48,30 @@ $schemeBudget= (int)($argv[3] ?? 300);
 $pauseMs     = max(0, (int)($argv[4] ?? 300));
 if (!in_array($what, ['all', 'recount', 'schemes', 'plan'], true)) $what = 'all';
 
+// ── Защита от параллельного запуска ──────────────────────────────────────────
+// Два прогона одновременно = двойная нагрузка на API Tradesoft и гонка за одни и
+// те же авто: список кандидатов у них одинаковый, поэтому один удаляет дерево,
+// пока другой его обходит. Держим файловую блокировку на время работы; режим
+// plan только читает, ему блокировка не нужна.
+$lockFh = null;
+if ($what !== 'plan') {
+    $lockPath = sys_get_temp_dir() . '/autodoc_catalog_rebuild.lock';
+    $lockFh   = @fopen($lockPath, 'c');
+    if ($lockFh === false || !flock($lockFh, LOCK_EX | LOCK_NB)) {
+        exit("Другой прогон уже запущен (блокировка $lockPath).\n"
+           . "Проверьте:  ps aux | grep catalog_library_rebuild | grep -v grep\n"
+           . "Дождитесь окончания или остановите его, затем запустите снова.\n");
+    }
+    ftruncate($lockFh, 0);
+    fwrite($lockFh, (string)getmypid());
+    // Блокировка снимается автоматически при завершении процесса (в т.ч. по kill).
+    register_shutdown_function(function () use ($lockFh, $lockPath) {
+        @flock($lockFh, LOCK_UN);
+        @fclose($lockFh);
+        @unlink($lockPath);
+    });
+}
+
 $prov = Catalog::provider();
 if (!($prov instanceof PartsCatalogsAdapter) || !$prov->enabled()) {
     exit("Провайдер Parts-Catalogs выключен или не выбран (Суперадмин → VIN-поиск).\n");
