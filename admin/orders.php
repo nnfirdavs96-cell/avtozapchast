@@ -41,7 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // ── View order detail ────────────────────────────────────────────────────────
 $viewId      = (int)($_GET['id'] ?? 0);
-$orderDetail = null;
+$orderDetail  = null;
+$orderSellers = [];   // подзаказы по продавцам (маркетплейс, Фаза 2)
 $orderItems  = [];
 if ($viewId) {
     $stmt = $db->prepare(
@@ -60,6 +61,24 @@ if ($viewId) {
         );
         $iStmt->execute([$viewId]);
         $orderItems = $iStmt->fetchAll();
+
+        // Подзаказы по продавцам (маркетплейс, Фаза 2): админу нужно видеть, кто
+        // из продавцов что везёт, в каком статусе и сколько с этого комиссии —
+        // особенно при разборе споров. Нет миграции → блок просто не показывается.
+        try {
+            $osStmt = $db->prepare(
+                "SELECT os.*, s.shop_name, s.slug, u.phone AS seller_phone, u.email AS seller_email
+                   FROM order_sellers os
+                   LEFT JOIN sellers s ON s.id = os.seller_id
+                   LEFT JOIN users u   ON u.id = s.user_id
+                  WHERE os.order_id = ?
+               ORDER BY (os.seller_id IS NULL) DESC, s.shop_name"
+            );
+            $osStmt->execute([$viewId]);
+            $orderSellers = $osStmt->fetchAll();
+        } catch (Throwable $e) {
+            $orderSellers = [];
+        }
     }
 }
 
@@ -129,6 +148,65 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
           <a href="<?= APP_URL ?>/admin/orders.php" class="az-btn az-btn-outline az-btn-sm">← Все заказы</a>
         </div>
         <div class="az-card-body">
+          <?php if (!empty($orderSellers)): ?>
+          <?php
+            $osLabels = ['pending'=>'В обработке','processing'=>'Собирается',
+                         'shipped'=>'Отправлен','delivered'=>'Доставлен','cancelled'=>'Отменён'];
+            $commTotal = 0.0;
+            foreach ($orderSellers as $os) $commTotal += (float)$os['commission_amount'];
+          ?>
+          <div class="mb-16" style="border:1px solid #e7e7ee;border-radius:10px;padding:12px 14px;background:#fafafc;">
+            <div style="font-weight:700;margin-bottom:8px;font-size:.9rem;">
+              <i class="fa fa-briefcase" style="color:#C70909;"></i> Разбивка по продавцам
+              <?php if ($commTotal > 0): ?>
+              <span style="font-weight:400;color:#666;font-size:.85rem;">· комиссия площадки: <b><?= formatPrice($commTotal) ?></b></span>
+              <?php endif; ?>
+            </div>
+            <div class="table-responsive">
+              <table class="az-table" style="font-size:.82rem;margin:0;">
+                <thead>
+                  <tr>
+                    <th>Продавец</th>
+                    <th>Контакт</th>
+                    <th style="text-align:right;">Сумма</th>
+                    <th style="text-align:right;">Комиссия</th>
+                    <th style="text-align:right;">К выплате</th>
+                    <th>Статус</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php foreach ($orderSellers as $os): ?>
+                  <tr>
+                    <td>
+                      <?php if (!empty($os['seller_id'])): ?>
+                        <strong><?= sanitize($os['shop_name'] ?: 'Магазин #' . (int)$os['seller_id']) ?></strong>
+                      <?php else: ?>
+                        <span style="color:#666;">Наш каталог</span>
+                      <?php endif; ?>
+                    </td>
+                    <td style="color:#888;">
+                      <?= sanitize($os['seller_phone'] ?? '') ?>
+                      <?php if (!empty($os['seller_email'])): ?><br><small><?= sanitize($os['seller_email']) ?></small><?php endif; ?>
+                    </td>
+                    <td style="text-align:right;"><?= formatPrice((float)$os['subtotal']) ?></td>
+                    <td style="text-align:right;color:#666;">
+                      <?= (float)$os['commission_percent'] > 0
+                            ? rtrim(rtrim(number_format((float)$os['commission_percent'], 2, '.', ''), '0'), '.') . '% · ' . formatPrice((float)$os['commission_amount'])
+                            : '—' ?>
+                    </td>
+                    <td style="text-align:right;font-weight:700;"><?= formatPrice((float)$os['payout_amount']) ?></td>
+                    <td><span class="sl-badge sl-badge-<?= sanitize($os['status']) ?>"><?= $osLabels[$os['status']] ?? sanitize($os['status']) ?></span></td>
+                  </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            </div>
+            <div style="font-size:.76rem;color:#999;margin-top:8px;">
+              Статусы частей меняют сами продавцы в своём кабинете. Выплаты пока не автоматизированы (Фаза 3).
+            </div>
+          </div>
+          <?php endif; ?>
+
           <div class="row mb-16">
             <div class="col-md-4">
               <strong>Покупатель:</strong><br>
