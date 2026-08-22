@@ -138,15 +138,27 @@ if (!function_exists('carCardTile')) {
       <div class="cc-body">
         <div class="cc-stat">
           <i class="fa fa-picture-o" style="color:#C70909;"></i>
-          Схемы: <b><?= $have ?></b> из <b><?= $nodes ?></b>
-          <?php if ($done): ?><span style="color:#2e9e44;">· готово</span><?php endif; ?>
+          <?php if ($nodes > 0): ?>
+            Схемы: <b><?= $have ?></b> из <b><?= $nodes ?></b>
+            <?php if ($done): ?><span style="color:#2e9e44;">· готово</span><?php endif; ?>
+          <?php else: ?>
+            <?php /* Дерева нет: показывать «1 из 0» бессмысленно — это выглядит как поломка.
+                     Так бывает у авто, чьё дерево ещё не собрано или было потеряно. */ ?>
+            Схемы: <b><?= $have ?></b> · <span class="cc-warn">дерево не собрано</span>
+          <?php endif; ?>
         </div>
+        <?php if ($nodes > 0): ?>
         <div class="cc-bar <?= $done ? 'done' : '' ?>"><i style="width:<?= $pct ?>%"></i></div>
+        <?php endif; ?>
         <?php if ($nodes > 0 && $nodes >= $nodesLimit): ?>
         <div class="cc-warn">⚠️ дерево, вероятно, обрезано лимитом</div>
         <?php endif; ?>
         <div class="cc-meta">
-          <span><?= $row['vin'] ? sanitize((string)$row['vin']) : 'по параметрам' ?></span>
+          <?php if ($row['vin']): ?>
+            <span title="Авто найдено поиском по VIN — номер сохранён"><?= sanitize((string)$row['vin']) ?></span>
+          <?php else: ?>
+            <span title="Авто найдено по марке/модели/году — VIN никто не вводил, поэтому его нет. На работу каталога это не влияет: узлы и схемы тянутся по carId.">по параметрам</span>
+          <?php endif; ?>
           <span><?= sanitize(mb_substr((string)($row['updated_at'] ?? ''), 0, 10)) ?></span>
         </div>
         <div class="cc-acts">
