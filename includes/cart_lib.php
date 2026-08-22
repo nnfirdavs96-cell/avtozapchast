@@ -80,6 +80,25 @@ function cartClearAny(PDO $db): void
 }
 
 /** Детализированные позиции (join parts), только активные товары. */
+/**
+ * Есть ли в `parts` колонка seller_id (миграция маркетплейса, Фаза 1).
+ * Результат кэшируется на запрос — проверка идёт в information_schema.
+ */
+function cartHasSellerColumn(PDO $db): bool
+{
+    static $has = null;
+    if ($has !== null) return $has;
+    try {
+        $has = (bool)$db->query(
+            "SELECT COUNT(*) FROM information_schema.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'parts' AND COLUMN_NAME = 'seller_id'"
+        )->fetchColumn();
+    } catch (\Throwable $e) {
+        $has = false;
+    }
+    return $has;
+}
+
 function cartDetailedItems(PDO $db): array
 {
     $map = cartRawMap($db);
@@ -88,7 +107,13 @@ function cartDetailedItems(PDO $db): array
         $ids = array_keys($map);
         $ph  = implode(',', array_fill(0, count($ids), '?'));
         $st  = $db->prepare(
+            // seller_id нужен оформлению заказа: корзина делится на подзаказы по
+            // продавцам (маркетплейс, Фаза 2). NULL = товар нашего каталога.
+            // Колонку подставляем ТОЛЬКО если миграция Фазы 1 применена: иначе
+            // запрос упал бы, а catch ниже вернул бы пустую корзину — то есть
+            // покупатель потерял бы содержимое корзины на ровном месте.
             "SELECT p.id, p.name, p.price, p.images, p.stock, p.part_number,
+                    " . (cartHasSellerColumn($db) ? 'p.seller_id,' : 'NULL AS seller_id,') . "
                     b.name AS brand_name
                FROM parts p LEFT JOIN brands b ON b.id = p.brand_id
               WHERE p.is_active = 1 AND p.id IN ($ph)"

@@ -61,6 +61,22 @@ try {
     $hasShippingCostCol = false;
 }
 
+// Готова ли схема маркетплейса (Фаза 2): таблица подзаказов + колонки в order_items.
+// Если миграция не применена — оформление работает по-старому, без разбивки.
+$hasOrderSellers = false;
+try {
+    $hasOrderSellers = (bool)$db->query(
+        "SELECT COUNT(*) FROM information_schema.TABLES
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'order_sellers'"
+    )->fetchColumn()
+    && (bool)$db->query(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'order_items' AND COLUMN_NAME = 'order_seller_id'"
+    )->fetchColumn();
+} catch (Throwable $e) {
+    $hasOrderSellers = false;
+}
+
 // Load user profile for prefilling (только для авторизованного; гость — пустые поля)
 $profile = [];
 if (!empty($user['id'])) {
@@ -182,18 +198,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ));
             $orderId = (int)$db->lastInsertId();
 
-            // Insert order items
-            $itmStmt = $db->prepare(
-                "INSERT INTO order_items (order_id, part_id, quantity, unit_price)
-                 VALUES (?, ?, ?, ?)"
-            );
-            foreach ($cartItems as $item) {
-                $itmStmt->execute([
-                    $orderId,
-                    $item['part_id'],
-                    $item['quantity'],
-                    $item['price'],
-                ]);
+            // ── Позиции заказа + разбивка по продавцам (маркетплейс, Фаза 2) ──
+            // Корзина может содержать товары разных продавцов. Заказ покупателя
+            // остаётся один, но внутри создаётся ПОДЗАКАЗ на каждого продавца —
+            // со своим статусом, суммой и комиссией. Иначе продавец не видит,
+            // что у него купили, и не может управлять своей частью.
+            // Ключ группы: seller_id товара; 0 = наш каталог (seller_id IS NULL).
+            if ($hasOrderSellers) {
+                $bySeller = [];
+                foreach ($cartItems as $item) {
+                    $sid = isset($item['seller_id']) && $item['seller_id'] !== null ? (int)$item['seller_id'] : 0;
+                    $bySeller[$sid][] = $item;
+                }
+
+                // Ставки комиссии продавцов. Фиксируем ЗДЕСЬ и записываем в подзаказ:
+                // если ставку потом изменят, история оформленных заказов не поедет.
+                $rates    = [];
+                $realIds  = array_values(array_filter(array_keys($bySeller)));
+                if ($realIds) {
+                    $ph = implode(',', array_fill(0, count($realIds), '?'));
+                    $rs = $db->prepare("SELECT id, commission_percent FROM sellers WHERE id IN ($ph)");
+                    $rs->execute($realIds);
+                    foreach ($rs->fetchAll() as $r) $rates[(int)$r['id']] = (float)$r['commission_percent'];
+                }
+
+                $osStmt = $db->prepare(
+                    "INSERT INTO order_sellers
+                        (order_id, seller_id, status, subtotal, commission_percent,
+                         commission_amount, payout_amount, created_at, updated_at)
+                     VALUES (?, ?, 'pending', ?, ?, ?, ?, NOW(), NOW())"
+                );
+                $itmStmt = $db->prepare(
+                    "INSERT INTO order_items (order_id, part_id, seller_id, order_seller_id, quantity, unit_price)
+                     VALUES (?, ?, ?, ?, ?, ?)"
+                );
+
+                foreach ($bySeller as $sid => $items) {
+                    $subtotal = 0.0;
+                    foreach ($items as $it) $subtotal += (float)$it['price'] * (int)$it['quantity'];
+                    $pct    = $sid > 0 ? (float)($rates[$sid] ?? 0) : 0.0;   // с нашего каталога комиссии нет
+                    $comm   = round($subtotal * $pct / 100, 2);
+                    $payout = round($subtotal - $comm, 2);
+
+                    $osStmt->execute([$orderId, $sid > 0 ? $sid : null, $subtotal, $pct, $comm, $payout]);
+                    $osId = (int)$db->lastInsertId();
+
+                    foreach ($items as $it) {
+                        $itmStmt->execute([
+                            $orderId, $it['part_id'], $sid > 0 ? $sid : null, $osId,
+                            $it['quantity'], $it['price'],
+                        ]);
+                    }
+                }
+            } else {
+                // Миграция Фазы 2 ещё не применена — пишем как раньше, заказ рабочий.
+                $itmStmt = $db->prepare(
+                    "INSERT INTO order_items (order_id, part_id, quantity, unit_price)
+                     VALUES (?, ?, ?, ?)"
+                );
+                foreach ($cartItems as $item) {
+                    $itmStmt->execute([$orderId, $item['part_id'], $item['quantity'], $item['price']]);
+                }
             }
 
             // Clear cart (гость → сессия, авторизованный → БД)
