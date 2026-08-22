@@ -100,7 +100,10 @@ if ($action === 'recount_nodes' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $catalogId = trim($_POST['catalog_id'] ?? '');
     $carId     = trim($_POST['car_id'] ?? '');
-    $back = APP_URL . '/superadmin/catalog_library.php?action=view&catalog_id=' . urlencode($catalogId) . '&car_id=' . urlencode($carId);
+    // С плитки списка возвращаемся в список, со страницы авто — на неё же.
+    $back = ($_POST['return_to'] ?? '') === 'list'
+        ? APP_URL . '/superadmin/catalog_library.php?action=list'
+        : APP_URL . '/superadmin/catalog_library.php?action=view&catalog_id=' . urlencode($catalogId) . '&car_id=' . urlencode($carId);
 
     $car = clFetchOne($db, "SELECT * FROM catalog_library_cars WHERE catalog_id=? AND car_id=?", [$catalogId, $carId]);
     $prov = Catalog::provider();
@@ -696,8 +699,9 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
         if ($ccLimit > 2000) $ccLimit = 2000;
     ?>
     <div class="cc-grid">
-        <?php foreach ($cars as $c) { carCardTile($c, $ccLimit); } ?>
+        <?php foreach ($cars as $c) { carCardTile($c, $ccLimit, $csrf); } ?>
     </div>
+    <?php carCardListScript($csrf); ?>
     <?php endif; ?>
     <?php if ($pages > 1): ?>
     <div style="display:flex;justify-content:center;margin-top:16px;">
