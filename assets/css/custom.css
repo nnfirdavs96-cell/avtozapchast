@@ -4117,3 +4117,43 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .sl-shop-name { font-size: 1.4rem; font-weight: 800; color: #23242b; margin: 0; }
 .sl-shop-meta { color: #8a8a95; font-size: .86rem; margin: 3px 0 0; }
 .sl-shop-desc { color: #55555f; font-size: .88rem; margin: 8px 0 0; }
+
+/* ═══ Кабинет продавца — заказы (маркетплейс, Фаза 2) ═══════════════════════ */
+.sl-order {
+    background: #fff; border: 1px solid #e7e7ee; border-radius: 14px;
+    padding: 14px 16px; margin-bottom: 14px;
+    box-shadow: 0 2px 10px rgba(20,22,30,.05);
+}
+.sl-order-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid #f0f0f5;
+}
+.sl-order-date { color: #9a9aa6; font-size: .8rem; margin-left: 10px; }
+.sl-order-items { padding: 10px 0; display: flex; flex-direction: column; gap: 7px; }
+.sl-order-item {
+    display: grid; grid-template-columns: 1fr auto auto auto; gap: 10px;
+    align-items: center; font-size: .85rem;
+}
+@media (max-width: 575px) {
+    .sl-order-item { grid-template-columns: 1fr auto; }
+    .sl-oi-art { display: none; }
+}
+.sl-oi-name { color: #2b2c34; font-weight: 600; }
+.sl-oi-art  { color: #9a9aa6; font-family: monospace; font-size: .78rem; }
+.sl-oi-qty  { color: #6b7280; }
+.sl-oi-sum  { font-weight: 700; color: #14161b; }
+.sl-order-money {
+    display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
+    padding: 10px 0; border-top: 1px solid #f0f0f5; font-size: .85rem;
+}
+.sl-order-money b { color: #C70909; }
+.sl-muted { color: #9a9aa6; font-size: .8rem; }
+.sl-order-buyer { font-size: .82rem; color: #4a4a55; padding: 8px 0; }
+.sl-order-buyer i { color: #aab0b8; margin-right: 3px; }
+.sl-order-acts { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid #f0f0f5; margin: 0; }
+/* Статусы подзаказа */
+.sl-badge-pending    { background: #fdf1e3; color: #b9772a; }
+.sl-badge-processing { background: #e7f0fd; color: #2f6bb5; }
+.sl-badge-shipped    { background: #ede7fd; color: #6b4fbb; }
+.sl-badge-delivered  { background: #e6f6ea; color: #1f8a3b; }
+.sl-badge-cancelled  { background: #fdecec; color: #c0392b; }
