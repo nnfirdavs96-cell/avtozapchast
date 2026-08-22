@@ -1535,7 +1535,7 @@ function vinScaleHot(img, hot){
 function vinRenderScheme(d){
     var statusEl = document.getElementById('vinCatalogStatus'), bodyEl = document.getElementById('vinCatalogBody'), countEl = document.getElementById('vinCatalogCount');
     var panel = document.getElementById('vinSchemePanel');
-    if (d.rate_limited) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;color:#b8860b;"><i class="fa fa-clock-o"></i> Превышен суточный лимит запросов. Попробуйте позже.</div>'; return; }
+    if (d.rate_limited) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;color:#b8860b;"><i class="fa fa-clock-o"></i> Каталог по этому узлу временно недоступен. Попробуйте позже или напишите менеджеру — подберём деталь вручную.</div>'; return; }
     var parts = d.parts || [];
     // Диаграмма (если картинка есть)
     if (panel && d.img) {
@@ -1662,7 +1662,7 @@ function vinBuildPartsHtml(items){
 function vinRenderCatalog(d){
     var statusEl = document.getElementById('vinCatalogStatus'), bodyEl = document.getElementById('vinCatalogBody'), countEl = document.getElementById('vinCatalogCount');
     window.VIN_SCHEME = null; window.VIN_HOT = {};  // каталог PartsAPI без схемы — вырезок нет
-    if (d.rate_limited) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;color:#b8860b;"><i class="fa fa-clock-o"></i> Каталог временно недоступен: превышен суточный лимит запросов. Попробуйте позже.</div>'; return; }
+    if (d.rate_limited) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;color:#b8860b;"><i class="fa fa-clock-o"></i> Каталог по этому автомобилю временно недоступен. Попробуйте позже или напишите менеджеру — подберём деталь вручную.</div>'; return; }
     if (!d.success || !d.items || d.items.length === 0) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;">В этом узле по данному VIN запчасти не найдены. Выберите другой узел или нажмите «Все узлы».</div>'; return; }
     statusEl.style.display = 'none'; countEl.textContent = '(' + d.count + ')';
     bodyEl.innerHTML = vinBuildPartsHtml(d.items) + '<p style="text-align:center;color:#bbb;font-size:0.76rem;margin:6px 0 32px;"><i class="fa fa-plug"></i> Оригинальный каталог TecDoc / PartsAPI' + (d.from_cache ? ' · из кэша' : '') + '</p>';
@@ -1841,7 +1841,7 @@ function vinCrosses(article, brand, btn, cid){
     fetch('<?= APP_URL ?>/api/vin_crosses.php?article=' + encodeURIComponent(article) + '&brand=' + encodeURIComponent(brand), { credentials:'same-origin' })
         .then(function(r){ return r.json(); })
         .then(function(d){
-            if (d.rate_limited){ box.innerHTML = '<div style="color:#b8860b;font-size:0.8rem;">Превышен лимит запросов. Попробуйте позже.</div>'; return; }
+            if (d.rate_limited){ box.innerHTML = '<div style="color:#b8860b;font-size:0.8rem;">Аналоги временно недоступны. Попробуйте позже.</div>'; return; }
             if (!d.success || !d.items || d.items.length === 0){ box.innerHTML = '<div style="color:#aaa;font-size:0.8rem;">Аналоги (кроссы) не найдены.</div>'; return; }
             var html = '<div class="vin-cross-h"><i class="fa fa-exchange"></i> Аналоги по кроссам (' + d.count + ')</div>';
             d.items.forEach(function(it){
@@ -1879,7 +1879,7 @@ function vinLoadPcNodes(){
         .then(function(d){
             if (!d.success || !d.nodes || !d.nodes.length) {
                 if (grid) grid.innerHTML = '';
-                if (statusEl) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;">Узлы для этого автомобиля не найдены. Проверьте данные или ключ Parts-Catalogs.</div>'; }
+                if (statusEl) { statusEl.style.display = 'block'; statusEl.innerHTML = '<div style="font-size:0.9rem;">Каталог по этому автомобилю пока недоступен. Напишите менеджеру — подберём деталь по VIN вручную.</div>'; }
                 return;
             }
             var ch = '', sh = '';
