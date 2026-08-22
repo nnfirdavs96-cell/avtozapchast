@@ -173,39 +173,28 @@ if ($what === 'all' || $what === 'recount') {
                 // (до записей) и ещё раз после обхода — иначе «server has gone away».
                 $db = dbKeepAlive();
 
-                // Сохраняем текущее дерево ПЕРЕД удалением: если обход вернёт пусто
-                // (лимит API/сбой сети), старое дерево надо вернуть на место, иначе
-                // авто останется вообще без узлов — так в прошлом прогоне потерялось
-                // 15 деревьев (86 → 71).
-                $bk = $db->prepare("SELECT nodes_count, nodes_json FROM catalog_library_nodes WHERE catalog_id=? AND car_id=?");
-                $bk->execute([$cid, $rid]);
-                $backup = $bk->fetch() ?: null;
-
-                $db->prepare("DELETE FROM catalog_library_nodes WHERE catalog_id=? AND car_id=?")->execute([$cid, $rid]);
-                $db->prepare("DELETE FROM partsapi_kv_cache WHERE k LIKE ?")->execute(['nodes:%:' . $cid . ':' . $rid]);
-
-                $nodes = $prov->oemNodesForCar($rid, $cid, (string)($car['criteria'] ?? ''), (string)($car['brand'] ?? ''));
+                // СНАЧАЛА обходим дерево, ПОТОМ заменяем сохранённое. Раньше было
+                // наоборот (удалить → обойти), и любое прерывание посреди обхода
+                // (kill, обрыв связи) оставляло авто вообще без узлов — так потерялись
+                // 15 деревьев, а затем и дерево Volvo при остановке процесса.
+                // rewalkNodes() не читает библиотеку и ничего не пишет — чистый обход.
+                $nodes = $prov->rewalkNodes($rid, $cid, (string)($car['criteria'] ?? ''), (string)($car['brand'] ?? ''));
                 $now   = count($nodes);
                 $db    = dbKeepAlive();
                 $done++;
 
-                // Обход не дал ничего — откатываем удаление.
-                if ($now === 0 && $backup !== null) {
-                    $db->prepare("INSERT INTO catalog_library_nodes (catalog_id, car_id, nodes_count, nodes_json)
-                                  VALUES (?,?,?,?)
-                                  ON DUPLICATE KEY UPDATE nodes_count=VALUES(nodes_count), nodes_json=VALUES(nodes_json)")
-                       ->execute([$cid, $rid, (int)$backup['nodes_count'], (string)$backup['nodes_json']]);
+                if ($now > 0) {
+                    // Замена атомарна для читателя: старое дерево живёт до этого момента.
+                    $db->prepare("DELETE FROM partsapi_kv_cache WHERE k LIKE ?")->execute(['nodes:%:' . $cid . ':' . $rid]);
+                    $prov->storeNodes($rid, $cid, $nodes);
                 }
 
                 // Печатаем лимит, который реально видит адаптер — чтобы расхождение
                 // «в шапке 1000, а обход встал на 300» было видно сразу.
                 $effLimit = PartsCatalogsAdapter::nodesLimit();
                 if ($now === 0) {
-                    rlog(sprintf('  %-14s %s: ПУСТО (лимит API или сбой) — %s',
-                        $car['brand'] ?: '—', substr($rid, 0, 10),
-                        $backup !== null
-                            ? 'старое дерево (' . (int)$backup['nodes_count'] . ') возвращено, повторите позже'
-                            : 'дерева и не было, повторите позже'));
+                    rlog(sprintf('  %-14s %s: ПУСТО (лимит API или сбой) — старое дерево (%d) не тронуто, повторите позже',
+                        $car['brand'] ?: '—', substr($rid, 0, 10), $was));
                 } else {
                     rlog(sprintf('  %-14s %s: %d → %d узлов (лимит %d)%s',
                         $car['brand'] ?: '—', substr($rid, 0, 10), $was, $now, $effLimit,
