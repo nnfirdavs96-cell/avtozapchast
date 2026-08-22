@@ -11,6 +11,7 @@
  */
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/seller.php';
+require_once dirname(__DIR__) . '/includes/seller_finance.php';
 $seller = requireSeller();
 
 $db   = getDB();
@@ -44,6 +45,10 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') 
             $upd = $db->prepare("UPDATE order_sellers SET status = ?, updated_at = NOW()
                                   WHERE id = ? AND seller_id = ?");
             $upd->execute([$status, $osId, $sid]);
+            // Деньги двигаются вслед за статусом: «доставлен» — начисление в баланс,
+            // отмена уже доставленного — сторно. Функция идемпотентна, поэтому
+            // повторные клики и возвраты по цепочке долг не удваивают.
+            if ($upd->rowCount()) sellerLedgerSyncOrderSeller($db, $osId);
             flashMessage($upd->rowCount() ? 'success' : 'danger',
                 $upd->rowCount() ? 'Статус обновлён: ' . $FLOW[$status] : 'Заказ не найден.');
         }

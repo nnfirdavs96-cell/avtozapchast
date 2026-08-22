@@ -4157,3 +4157,56 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .sl-badge-shipped    { background: #ede7fd; color: #6b4fbb; }
 .sl-badge-delivered  { background: #e6f6ea; color: #1f8a3b; }
 .sl-badge-cancelled  { background: #fdecec; color: #c0392b; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Маркетплейс, Фаза 3 — финансы продавца и выплаты в админке.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Кабинет продавца → Финансы.
+   Главная цифра («сколько мне должны») намеренно вынесена в отдельный крупный
+   блок: остальные показатели её объясняют, но продавец приходит сюда за ней. */
+.sl-fin-hero {
+    background: linear-gradient(135deg, #23242b 0%, #35363f 100%);
+    color: #fff; border-radius: 16px; padding: 26px 24px; margin-bottom: 16px;
+}
+.sl-fin-hero-label { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; opacity: .7; }
+.sl-fin-hero-sum   { font-size: 2.4rem; font-weight: 800; line-height: 1.15; margin: 4px 0 6px; }
+.sl-fin-hero-hint  { font-size: .84rem; opacity: .8; }
+.sl-fin-hero-hint b { color: #ffd166; }
+
+.sl-fin-h { font-size: 1.05rem; font-weight: 700; color: #23242b; margin: 22px 0 10px; }
+.sl-fin-table-wrap {
+    background: #fff; border: 1px solid #e7e7ee; border-radius: 14px; overflow: auto;
+}
+.sl-fin-table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+.sl-fin-table th {
+    text-align: left; padding: 11px 14px; background: #fafafc; color: #6b6b78;
+    font-weight: 600; font-size: .76rem; text-transform: uppercase; letter-spacing: .4px;
+    border-bottom: 1px solid #eeeef4; white-space: nowrap;
+}
+.sl-fin-table td { padding: 11px 14px; border-bottom: 1px solid #f4f4f8; color: #33343d; }
+.sl-fin-table tr:last-child td { border-bottom: none; }
+.sl-ta-r { text-align: right; white-space: nowrap; }
+
+@media (max-width: 575px) {
+    .sl-fin-hero-sum { font-size: 1.9rem; }
+    .sl-fin-table th, .sl-fin-table td { padding: 9px 10px; font-size: .8rem; }
+}
+
+/* Админка → модалка (выплата, корректировка).
+   Своя, а не bootstrap-овская: админка не грузит JS бутстрапа. */
+.az-modal {
+    display: none; position: fixed; inset: 0; z-index: 1200;
+    background: rgba(20, 20, 26, .55); padding: 20px; overflow-y: auto;
+}
+.az-modal.open { display: flex; align-items: flex-start; justify-content: center; }
+.az-modal-box {
+    background: #fff; border-radius: 12px; padding: 24px;
+    width: 100%; max-width: 480px; margin: auto;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, .3);
+}
+.az-modal-title { font-size: 1.1rem; font-weight: 700; color: #23242b; margin: 0 0 16px; }
+.az-modal-acts {
+    display: flex; gap: 8px; justify-content: flex-end;
+    padding-top: 8px; border-top: 1px solid #f0f0f5; margin-top: 4px;
+}

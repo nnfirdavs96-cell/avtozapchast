@@ -161,6 +161,11 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
               <?php if ($commTotal > 0): ?>
               <span style="font-weight:400;color:#666;font-size:.85rem;">· комиссия площадки: <b><?= formatPrice($commTotal) ?></b></span>
               <?php endif; ?>
+              <!-- Здесь только «сколько причитается по этому заказу». Накопленный
+                   долг и сами выплаты живут в отдельном реестре. -->
+              <a href="<?= APP_URL ?>/admin/payouts.php" style="font-weight:400;font-size:.8rem;margin-left:8px;">
+                Реестр выплат →
+              </a>
             </div>
             <div class="table-responsive">
               <table class="az-table" style="font-size:.82rem;margin:0;">

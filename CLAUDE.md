@@ -76,6 +76,7 @@ Remember: Claude is capable of extraordinary creative work. Don't hold back, sho
 | Поиск витрины | `search/index.php`, `includes/parts/supplier_cards.php` | артикул → живой AutoEuro; название/бренд → словарь `ae_part_dictionary` (цена всё равно живая) |
 | Маркетплейс | `seller/`, `admin/sellers.php`, `admin/product_moderation.php` | продавцы выкладывают товары → модерация → каталог |
 | Заказы по продавцам | `buyer/checkout.php`, `seller/orders.php`, `admin/orders.php` | заказ бьётся на подзаказы `order_sellers`; комиссия фиксируется в момент заказа |
+| Балансы и выплаты | `includes/seller_finance.php`, `seller/finance.php`, `admin/payouts.php` | журнал `seller_ledger` (баланс = SUM), реестр `seller_payouts`; начисление при статусе «доставлен» |
 | Библиотека каталога | `superadmin/catalog_library.php`, `catalog_library_*` | всё, что пришло от Parts-Catalogs, лежит у нас: повтор — без запросов к API |
 | Заявки менеджеру | `api/vin_order_request.php`, `includes/messaging.php` | «Купить» у поставщика = заявка в переписку, не автозаказ |
 
@@ -97,7 +98,9 @@ Remember: Claude is capable of extraordinary creative work. Don't hold back, sho
 - **Фаза 1** (продавцы, товары, модерация) — **готова**.
 - **Фаза 2** (заказы с разбивкой по продавцам, статусы, комиссия) — **готова**, сквозная
   проверка на боевом отложена заказчиком.
-- **Фаза 3** (онлайн-оплата, комиссия/выплаты) — упирается в эквайринг в Таджикистане.
+- **Фаза 3** — делится надвое:
+  - «деньги наружу» (балансы продавцов, реестр выплат) — **готова**, эквайринг для неё не нужен;
+  - «деньги внутрь» (онлайн-оплата картой/QR) — упирается в эквайринг в Таджикистане.
 - **Фаза 4** (отзывы, возвраты/споры, buy-box) — не начата.
 - **Каталог** — библиотека 96 машин / 87 деревьев / 10 099 схем, сбор на паузе (см. выше).
 

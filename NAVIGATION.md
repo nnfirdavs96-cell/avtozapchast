@@ -396,6 +396,18 @@ Cron: `*/5 * * * * php <APP_ROOT>/superadmin/catalog_library_cron.php`
 | `parts.moderation_status` | draft/pending/active/rejected, DEFAULT `active` (старые товары остаются видимыми) |
 | `parts.reject_reason` | причина отклонения листинга |
 
+### Маркетплейс, Фаза 3a — балансы и выплаты (`sql/marketplace_phase3_payouts.sql`)
+| Таблица / колонка | Что |
+|---|---|
+| `seller_ledger` | журнал движений: `seller_id`, `order_seller_id`, `payout_id`, `type` (earning/reversal/payout/adjustment), `amount` **со знаком**, `note`. **UNIQUE(order_seller_id, type)** — защита от двойного начисления |
+| `seller_payouts` | факт выплаты: `amount`, `method` (card/cash/bank/mobile/other), `reference`, `period_from/to`, `note`, `created_by` |
+
+> **Баланс продавца нигде не хранится** — он всегда `SUM(seller_ledger.amount)`.
+> Колонку-баланс можно испортить гонкой или двойным начислением и потом не доказать,
+> откуда взялась цифра; журнал воспроизводим.
+> Начисление происходит при переходе подзаказа в `delivered`, сторно — при отмене
+> уже доставленного. Наш каталог (`seller_id IS NULL`) в журнал не попадает.
+
 ### Маркетплейс, Фаза 2 (`sql/marketplace_phase2.sql`)
 | Таблица / колонка | Что |
 |---|---|
@@ -509,12 +521,16 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 - **Фото деталей поставщика** — API AutoEuro и прайс фото **не содержат**. Показывается наше
   фото по совпадению артикула, иначе заглушка. Полные фото = TecDoc-лицензия либо поставщик
   со встроенным каталогом (Emex/Autopiter).
-- **Маркетплейс — Фазы 1 и 2 готовы.** Фаза 1: продавцы, их товары, модерация, витрина
-  магазина. Фаза 2: разбивка заказа по продавцам (`order_sellers`), кабинет заказов
-  продавца со статусами, комиссия/выплата у админа. Сквозная проверка Фазы 2 на боевом
+- **Маркетплейс — Фазы 1, 2 и 3a готовы.** Фаза 1: продавцы, их товары, модерация,
+  витрина магазина. Фаза 2: разбивка заказа по продавцам (`order_sellers`), кабинет
+  заказов продавца со статусами, комиссия у админа. Фаза 3a: журнал `seller_ledger`,
+  балансы, реестр выплат `seller_payouts`, выгрузка CSV. Сквозная проверка на боевом
   **отложена заказчиком**. Осталось: buy-box (одна деталь — много продавцов; сейчас
-  `parts.part_number` UNIQUE), онлайн-оплата + комиссия/выплаты (Фаза 3), отзывы о
+  `parts.part_number` UNIQUE), онлайн-оплата (Фаза 3b, нужен эквайринг), отзывы о
   продавцах, возвраты/споры (Фаза 4).
+- **Автоматических выплат нет и не планируется в ближайшее время** — владелец переводит
+  деньги вне сайта и отмечает выплату в реестре. Автоматизация упирается в тот же
+  эквайринг/банковский API, что и Фаза 3b.
 - ⚠️ **Тариф Parts-Catalogs — правила расхода неизвестны.** Прежний вывод «схемы и обход
   дерева тариф не тратят» опровергнут (999/1000). Пакетный сбор остановлен; нужен
   письменный ответ Tradesoft, что именно считается «запросом». Заодно напрашивается
@@ -1073,7 +1089,8 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 | `index.php` | обзор кабинета: статус магазина, счётчики товаров, «Как это работает» | `includes/seller.php`, `seller_nav.php` |
 | `products.php` | мои товары со статусами модерации, удаление | `parts` (WHERE seller_id) |
 | `product_edit.php` | добавить/изменить товар → `moderation_status='pending'` | `api/upload.php?type=products`, `getBrands()`, `getCategories()` |
-| `orders.php` | подзаказы продавца: список, карточка, смена статуса (pending→processing→shipped→delivered, отмена). Контакты покупателя открываются только после принятия | `order_sellers`, `order_items` (везде `WHERE seller_id = ?`) |
+| `orders.php` | подзаказы продавца: список, карточка, смена статуса (pending→processing→shipped→delivered, отмена). Контакты покупателя открываются только после принятия. Статус «доставлен» двигает деньги в журнал | `order_sellers`, `order_items` (везде `WHERE seller_id = ?`), `sellerLedgerSyncOrderSeller()` |
+| `finance.php` | выписка: «к выплате сейчас», в пути, удержанная комиссия, история начислений, выплаты. Только чтение — продавец здесь ничего не меняет | `seller_ledger`, `seller_payouts`, `includes/seller_finance.php` |
 
 ### admin/ — роль admin
 
@@ -1081,7 +1098,8 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 |---|---|---|
 | [`admin/banners.php`](admin/banners.php) | Баннеры + placement (где показывать). | banners |
 | [`admin/index.php`](admin/index.php) | Дашборд + выручка. | orders |
-| [`admin/orders.php`](admin/orders.php) | Заказы + смена статусов (→ автосообщение в чат) + блок «Заявка поставщику». | orders, messaging |
+| [`admin/orders.php`](admin/orders.php) | Заказы + смена статусов (→ автосообщение в чат) + блок «Заявка поставщику» + разбивка по продавцам с комиссией. | orders, messaging, order_sellers |
+| [`admin/payouts.php`](admin/payouts.php) | Реестр выплат продавцам: кому сколько должны, проведение выплаты, ручная корректировка с причиной, пересчёт начислений, выгрузка CSV. | seller_ledger, seller_payouts, includes/seller_finance.php |
 | [`admin/messages.php`](admin/messages.php) | Входящие переписки покупателей (непрочитанные выше), ответ. | messaging (messages) |
 | [`admin/products.php`](admin/products.php) | Товары: фото, цены, наценка. | parts, getEffectiveMarkup |
 | [`admin/sliders.php`](admin/sliders.php) | Блочный редактор слайдера: 9 позиций текста, шрифты, десктоп/мобильный, live-preview. | sliders, normalizeSliderBlocks |

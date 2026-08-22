@@ -5,6 +5,7 @@
  */
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/seller.php';
+require_once dirname(__DIR__) . '/includes/seller_finance.php';
 $seller = requireSeller();
 
 $db = getDB();
@@ -24,6 +25,9 @@ try {
     $os->execute([(int)$seller['id']]);
     if ($r = $os->fetch()) { $ordTotal = (int)$r['t']; $ordNew = (int)$r['n']; }
 } catch (Throwable $e) { $ordNew = $ordTotal = 0; }
+
+// Баланс к выплате (Фаза 3). Без миграции финансов — просто не показываем плитку.
+$fin = sellerFinanceReady($db) ? sellerFinanceSummary($db, $sid) : null;
 
 [$scls, $slabel, $shint] = sellerStatusInfo($seller['status']);
 $approved = $seller['status'] === 'approved';
@@ -64,6 +68,12 @@ require_once dirname(__DIR__) . '/includes/header.php';
         <span class="sl-stat-n <?= $ordNew > 0 ? 'sl-amber' : '' ?>"><?= $ordNew ?></span>
         <span class="sl-stat-l">Новых заказов<?= $ordTotal > 0 ? ' (всего ' . $ordTotal . ')' : '' ?></span>
       </a>
+      <?php if ($fin): ?>
+      <a href="<?= APP_URL ?>/seller/finance.php" class="sl-stat" style="text-decoration:none;">
+        <span class="sl-stat-n <?= $fin['balance'] > 0 ? 'sl-green' : '' ?>"><?= formatPrice($fin['balance']) ?></span>
+        <span class="sl-stat-l">К выплате</span>
+      </a>
+      <?php endif; ?>
     </div>
 
     <!-- Действие -->
@@ -84,7 +94,8 @@ require_once dirname(__DIR__) . '/includes/header.php';
         <li><b>Добавьте товар</b> — название, артикул, цену, наличие, фото, категорию и бренд.</li>
         <li><b>Товар уходит на проверку</b> — модератор проверяет карточку.</li>
         <li><b>После одобрения</b> товар появляется в каталоге, и покупатели могут его найти и заказать.</li>
-        <li><b>Заказы</b> по вашим товарам появятся в кабинете (раздел «Заказы» — скоро).</li>
+        <li><b>Заказы</b> по вашим товарам приходят в раздел «Мои заказы» — вы ведёте их по статусам.</li>
+        <li><b>Деньги</b> начисляются после доставки, за вычетом комиссии площадки. Баланс и выплаты — в разделе «Финансы».</li>
       </ol>
     </div>
 
