@@ -123,11 +123,11 @@ php -S localhost:8000       # либо nginx/apache на корень проек
 | `search/` | Страница поиска по товарам |
 | `buyer/` | Кабинет покупателя: `cart`, `checkout`, `orders`, `profile`, `wishlist`, `index` |
 | `auth/` | `login`, `register`, `logout` (email+пароль / телефон+SMS/PIN; регистрация с выбором **Покупатель / Продавец**) |
-| `seller/` | Роль **seller** (маркетплейс): `index` (обзор магазина), `products` (мои товары), `product_edit` (добавить/изменить) |
+| `seller/` | Роль **seller** (маркетплейс): `index` (обзор магазина + счётчик новых заказов), `products` (мои товары), `product_edit` (добавить/изменить), **`orders`** (подзаказы продавца, Фаза 2) |
 | `includes/parts/` | Блоки витрины: `supplier_cards.php` (карточки AutoEuro + модалка + «Показать ещё»), `supplier_card_render.php` (общий рендер карточки) |
 | `admin/` | Роль **admin**: `products`, `orders`, `sliders`, `banners`, `users`, `index`, **`sellers`** (модерация продавцов), **`product_moderation`** (модерация листингов) |
 | `manager/` | Роль **manager**: `parts`, `categories`, `brands`, `blog`, `pages`, `reviews`, `index` |
-| `superadmin/` | Роль **superadmin**: `settings`, `vin`, `warehouse`, `delivery`, `currencies`, `languages`, `permissions`, `users`, `backup`(+cron+lib), `manual`, `catalog_library`(+cron), `index` |
+| `superadmin/` | Роль **superadmin**: `settings`, `vin`, `warehouse`, `delivery`, `currencies`, `languages`, `permissions`, `users`, `backup`(+cron+lib), `manual`, `catalog_library`(+cron+seed), `index`; **CLI-обслуживание:** `catalog_library_rebuild`, `pc_tree_probe`, `pc_quota_probe`, `ae_dict_import_csv`, `ae_dict_batch` |
 | `lang/` | Переводы `ru`/`tg`/`en` |
 | `sql/` | Миграции (дублируют рантайм-самонакат) |
 | `storage/` | `backups/` (SQL-дампы), `manual/`, `sms.log` (тест-режим SMS) |
@@ -160,6 +160,13 @@ php -S localhost:8000       # либо nginx/apache на корень проек
 - **Чекаут:** зоны доставки по странам/городам, способы оплаты (нал / банк / **онлайн со скидкой**),
   `onlinePaymentDiscount`. Статусы заказа: `getOrderStatusLabel/Class`.
 - **БД:** `cart`, `orders` (+`shipping_cost`,`discount_amount`,`payment_method`), `order_items`, `delivery_zones`.
+- **Разбивка по продавцам (Фаза 2):** при оформлении корзина группируется по `parts.seller_id`
+  (NULL = наш каталог) → строки в `order_sellers` со своим статусом, суммой, процентом и
+  суммой комиссии (**процент копируется в момент заказа** — позже смена ставки продавца
+  задним числом ничего не меняет). Продавец видит только свои строки (`seller/orders.php`,
+  все запросы со `WHERE seller_id = ?`), покупатель — разбивку в `buyer/orders.php`,
+  админ — комиссию и выплату в `admin/orders.php`. Без миграции чекаут работает по-старому
+  (плоская вставка) — детект через `$hasOrderSellers`.
 
 ### 5.3 Аутентификация и роли
 - **UI:** `auth/login.php`, `auth/register.php`, `auth/logout.php`.
@@ -314,6 +321,34 @@ check-digit), локальный WMI-разбор + провайдер (`vin_api
 
 Cron: `*/5 * * * * php <APP_ROOT>/superadmin/catalog_library_cron.php`
 
+**Состояние библиотеки (август 2026):** 96 машин / 87 деревьев узлов / 10 099 схем.
+Витрина по этим машинам работает **без единого запроса к API**.
+
+**Обслуживание (CLI, только сервер):**
+| Скрипт | Режимы | Зачем |
+|---|---|---|
+| `superadmin/catalog_library_rebuild.php` | `plan` / `recount` / `schemes` / `revin` / `all` | Пакетный пересбор: план работ, пересчёт деревьев под новый лимит, догрузка схем, свежее VIN-декодирование. Возобновляемый, под `flock` — два параллельных запуска удваивают расход тарифа и гоняются за одни и те же машины |
+| `superadmin/pc_tree_probe.php` | — | Измерить настоящий размер дерева, ничего не записывая |
+| `superadmin/pc_quota_probe.php` | — | Выгрузить заголовки ответа API в поисках остатка квоты |
+
+**Полнота дерева:** зашитый лимит `120` узлов резал каталог более чем вдвое (Lexus RX —
+229 реальных узлов, 163 запроса `groups2`, ~81 сек обхода; у других машин до 745…1000).
+Лимит и глубина вынесены в настройки (§11).
+
+⚠️ **Тариф Parts-Catalogs — правила расхода НЕ ПОДТВЕРЖДЕНЫ.** Прежний вывод «обход дерева
+и сбор схем тариф не тратят» опровергнут письмом Tradesoft (израсходовано 999 из 1000,
+сервис отключается автоматически до 1-го числа). Пакетный сбор **остановлен**
+(`pkill -f catalog_library_rebuild`) до ответа поставщика.
+
+⚠️ **Токен комплектации протухает.** Parts-Catalogs зашивает в идентификатор авто временный
+токен (`17*WA1VFAF82HA000123(2017!31a3cee7`); после истечения `groups2`/`parts2` отвечают
+`404 «Комплектация не найдена»` — и с `criteria`, и без него. Лечится только новым
+декодированием VIN (`decodeVinFresh()`, режим `revin`) — а это **стоит запроса тарифа**.
+
+**Конфиденциальность:** всё, что связано со сбором каталога, доступно только superadmin/admin.
+Покупателю на `pages/vin.php` не показываются ни имя поставщика, ни лимиты — вместо ошибки
+он видит «Каталог по этому автомобилю временно недоступен. Напишите менеджеру».
+
 ---
 
 ## 10. База данных (все таблицы)
@@ -352,7 +387,7 @@ Cron: `*/5 * * * * php <APP_ROOT>/superadmin/catalog_library_cron.php`
 | `catalog_price_cache` | PriceAggregator (AutoEuro) |
 | `ae_part_dictionary` | словарь названий «артикул+бренд → название» (`FULLTEXT(name)`). Пишут: `rememberName()` (лениво из ответов API) и импорт прайса. **Цены не хранит** |
 
-### Маркетплейс (`sql/marketplace_phase1.sql`)
+### Маркетплейс, Фаза 1 (`sql/marketplace_phase1.sql`)
 | Таблица / колонка | Что |
 |---|---|
 | `users.role` | + значение `seller` |
@@ -361,6 +396,17 @@ Cron: `*/5 * * * * php <APP_ROOT>/superadmin/catalog_library_cron.php`
 | `parts.moderation_status` | draft/pending/active/rejected, DEFAULT `active` (старые товары остаются видимыми) |
 | `parts.reject_reason` | причина отклонения листинга |
 
+### Маркетплейс, Фаза 2 (`sql/marketplace_phase2.sql`)
+| Таблица / колонка | Что |
+|---|---|
+| `order_sellers` | подзаказ: `order_id`, `seller_id` (**NULL = наш собственный каталог**), `status` (pending/processing/shipped/delivered/cancelled), `subtotal`, `commission_percent`, `commission_amount`, `payout_amount` |
+| `order_items.seller_id` | чей это товар на момент заказа |
+| `order_items.order_seller_id` | к какому подзаказу относится строка |
+
+> Комиссия (`commission_percent`) **копируется из `sellers` в момент оформления** — смена
+> ставки продавца потом не переписывает историю. Миграция идемпотентна; пока она не
+> накачена, чекаут делает плоскую вставку, как раньше.
+
 ---
 
 ## 11. Настройки `site_settings` (по группам)
@@ -368,6 +414,11 @@ Cron: `*/5 * * * * php <APP_ROOT>/superadmin/catalog_library_cron.php`
 - **Каталог:** `catalog_provider`, `catalog_api_enabled`, `catalog_api_type`, `catalog_api_oem_nodes`, `catalog_profiles`.
 - **PartsAPI:** `catalog_api_key`, `catalog_api_base`, `catalog_api_max_groups`, `catalog_api_timeout`.
 - **Parts-Catalogs:** `catalog_pc_key`, `catalog_pc_base`, `catalog_pc_timeout`, `catalog_pc_auth`, `catalog_pc_key_param`, `catalog_pc_schema`, `catalog_pc_lang`.
+- **Полнота дерева узлов:** `catalog_nodes_limit` (сколько узлов сохранять, дефолт **300**,
+  потолок 2000) и `catalog_nodes_depth` (глубина обхода, дефолт **5**). До вынесения в
+  настройки в коде стояла зашитая константа 120 — она резала больше половины каталога.
+  Повышение лимита означает больше HTTP-запросов `groups2` и дольше обход (Lexus: 163
+  запроса / ~81 сек), поэтому менять осознанно.
 - **Библиотека каталога:** `catalog_library_read_first`, `catalog_kp_enabled`, `catalog_compat_suggestions_enabled`, `catalog_demand_enabled`, `catalog_library_autocollect` (§9).
 - **Laximo:** `catalog_laximo_login`, `catalog_laximo_secret`.
 - **Цены:** `catalog_price_autoeuro` (вкл. цены AutoEuro на витрине), `global_markup`.
@@ -458,22 +509,57 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 - **Фото деталей поставщика** — API AutoEuro и прайс фото **не содержат**. Показывается наше
   фото по совпадению артикула, иначе заглушка. Полные фото = TecDoc-лицензия либо поставщик
   со встроенным каталогом (Emex/Autopiter).
-- **Маркетплейс — Фаза 1 готова** (продавцы, их товары, модерация, витрина магазина).
-  Осталось: buy-box (одна деталь — много продавцов; сейчас `parts.part_number` UNIQUE),
-  разбивка заказа по продавцам + кабинет заказов продавца (Фаза 2), онлайн-оплата +
-  комиссия/выплаты (Фаза 3), отзывы о продавцах, возвраты/споры (Фаза 4).
+- **Маркетплейс — Фазы 1 и 2 готовы.** Фаза 1: продавцы, их товары, модерация, витрина
+  магазина. Фаза 2: разбивка заказа по продавцам (`order_sellers`), кабинет заказов
+  продавца со статусами, комиссия/выплата у админа. Сквозная проверка Фазы 2 на боевом
+  **отложена заказчиком**. Осталось: buy-box (одна деталь — много продавцов; сейчас
+  `parts.part_number` UNIQUE), онлайн-оплата + комиссия/выплаты (Фаза 3), отзывы о
+  продавцах, возвраты/споры (Фаза 4).
+- ⚠️ **Тариф Parts-Catalogs — правила расхода неизвестны.** Прежний вывод «схемы и обход
+  дерева тариф не тратят» опровергнут (999/1000). Пакетный сбор остановлен; нужен
+  письменный ответ Tradesoft, что именно считается «запросом». Заодно напрашивается
+  собственный счётчик запросов (отдельно VIN / groups2 / parts2).
+- **Протухающий токен комплектации** — лечится только повторным декодированием VIN,
+  автоматического обновления нет.
+- **Ключ Parts-Catalogs не перевыпущен** — решение заказчика: перевыпуск отложен до
+  полноценного запуска. Ключ в git отсутствует (проверена вся история), живёт в
+  `site_settings` и в `~/.bash_history` вне `public_html`.
+- **`catalog_library_seed.php`** — нет защиты от `-1` в аргументах (бесконечный прогон).
 - **Неиспользуемые методы AutoEuro API**: `create_order` (автозаказ), `get_orders`/`get_statuses`
   (трекинг), `get_payers`, `get_brands` — все завязаны на денежную ветку, включаются пачкой
   вместе с онлайн-оплатой.
 
 ---
 
-## 16. Полная история PR #1–349
+## 16. Полная история PR #1–367
 
 Все PR влиты в `main` (squash). Хронологически, сгруппировано по эпохам развития.
 Ранние PR (#1–172) — базовая витрина/CMS/адаптив; #173–218 — каталог по VIN и универсальная
 архитектура провайдеров; #219–253 — интерактивные схемы и библиотека каталога; #254–319 — витрина/адаптив/карточки;
-#320–349 — поиск по поставщику AutoEuro (артикул + название) и **маркетплейс Фаза 1**.
+#320–349 — поиск по поставщику AutoEuro (артикул + название) и **маркетплейс Фаза 1**;
+#350–367 — полнота дерева узлов, инструменты обслуживания библиотеки, карточки авто в
+суперадминке и **маркетплейс Фаза 2**.
+
+### #350–#367 · Полнота дерева узлов, обслуживание библиотеки, карточки авто, маркетплейс Фаза 2 (18–22 августа)
+
+- **#367** (2026-08-22) — feat(marketplace): **Фаза 2** — заказ бьётся на подзаказы по продавцам. Миграция `sql/marketplace_phase2.sql` (`order_sellers`, `order_items.seller_id/order_seller_id`); чекаут группирует корзину по `parts.seller_id` внутри существующей транзакции и фиксирует процент комиссии в момент заказа; новый `seller/orders.php` (статусы pending→processing→shipped→delivered + отмена, адрес и телефон покупателя скрыты до принятия, все запросы со `WHERE seller_id = ?`); разбивка в `buyer/orders.php`; комиссия/выплата и итог платформы в `admin/orders.php`; счётчик новых заказов в кабинете продавца. Защита `cartHasSellerColumn()` — без неё исключение на отсутствующей колонке отдавало **пустую корзину**
+- **#366** (2026-08-22) — fix(vin): не показывать покупателю поставщика и нашу квоту — тексты «Превышен суточный лимит запросов» и «ключ Parts-Catalogs» заменены на «Каталог по этому автомобилю временно недоступен. Напишите менеджеру»
+- **#365** (2026-08-21) — fix(catalog): починка машин с протухшим токеном комплектации — 11 авто падали мгновенно с `404 «Комплектация не найдена»`; `groups2`/`parts2` не работают ни с `criteria`, ни без него, `cars2` требует `modelId` → единственное лечение — свежее декодирование VIN (`decodeVinFresh()`, режим `revin`, **тратит запрос тарифа**)
+- **#364** (2026-08-21) — feat(superadmin): действия прямо с плитки авто — «Пересчитать» (POST с `return_to=list`) и «Собрать схемы» (AJAX, строго по одной машине за раз через `BUSY`-guard); клик по названию открывает карточку авто, внутри — «Скачать», «Пересчитать», «Собрать схемы»
+- **#363** (2026-08-21) — fix(superadmin): не рисовать «Схемы: 1 из 0» у машины без дерева узлов
+- **#362** (2026-08-21) — fix(catalog): убийство процесса во время обхода стирало дерево — обход вынесен в `rewalkNodes()` (читает мимо кэша, ничего не пишет), замена данных только после успеха через `storeNodes()`
+- **#361** (2026-08-21) — fix(catalog): `flock` на `catalog_library_rebuild.php` — два параллельных прогона (`all` + `recount`) удваивали расход API и гонялись за одни и те же машины
+- **#360** (2026-08-21) — fix(catalog): дерево ровно на текущем лимите считалось обрезанным и переобходилось каждый прогон (Volvo); кандидатами теперь считаются только деревья со старым потолком **ниже** текущего
+- **#359** (2026-08-20) — style(superadmin): карточка авто читается — бейдж в потоке (не абсолютом), заголовок в 2 строки с обрезкой и ссылкой на страницу авто, водяной знак приглушён до `.055` и убран из-под текста
+- **#358** (2026-08-20) — fix(catalog): пересчёт терял деревья — удалял дерево **до** обхода, пустой обход оставлял машину без дерева, а INNER JOIN выкидывал её из очереди навсегда; теперь бэкап/восстановление + LEFT JOIN, безлимитные машины идут первыми (восстановлено 15 деревьев)
+- **#357** (2026-08-20) — fix(db): `MySQL server has gone away` на длинных обходах — одно статическое PDO жило дольше, чем MySQL держал сессию; добавлены `getDB(true)` (переподключение) и `dbKeepAlive()` (`SELECT 1` + переподключение при падении)
+- **#356** (2026-08-20) — feat(superadmin): `catalog_library_rebuild.php` — пакетный пересбор библиотеки, режимы `plan|recount|schemes|revin|all`, возобновляемый, пропускает машины, уже собранные под текущим потолком
+- **#355** (2026-08-19) — feat(superadmin): карточки авто в библиотеке — марка/модель/год как товарные плитки витрины
+- **#354** (2026-08-19) — fix(catalog): фатал на странице авто — `PartsCatalogsAdapter::nodesLimit()` вызывался там, где класс не загружен (он подключается лениво внутри `Catalog::provider()`), из-за чего страница молча обрывалась без кнопок; настройка читается напрямую
+- **#353** (2026-08-19) — feat(catalog): лимит и глубина дерева узлов вынесены в настройки `catalog_nodes_limit` (300, потолок 2000) и `catalog_nodes_depth` (5) вместо зашитой константы 120
+- **#352** (2026-08-19) — feat(superadmin): `pc_tree_probe.php` — замер реального размера дерева без записи. Результат: Lexus RX — **229** узлов вместо сохранённых 120, 163 запроса `groups2`, ~81 сек; у других машин до 745…1000
+- **#351** (2026-08-19) — feat(superadmin): `pc_quota_probe.php` — дамп заголовков ответа API в поисках поля с остатком квоты
+- **#350** (2026-08-18) — feat(search): «Показать ещё» в блоке поставщика — 8 карточек, +8 по клику (`api/supplier_search.php` отдаёт `{html, has_more, next_offset}`); цена каждой карточки подтягивается живьём из AutoEuro, а не из прайса
 
 ### #1–#24 · Фундамент: мультиязычный магазин, админка, мобильная адаптация (7–11 мая)
 
@@ -987,6 +1073,7 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 | `index.php` | обзор кабинета: статус магазина, счётчики товаров, «Как это работает» | `includes/seller.php`, `seller_nav.php` |
 | `products.php` | мои товары со статусами модерации, удаление | `parts` (WHERE seller_id) |
 | `product_edit.php` | добавить/изменить товар → `moderation_status='pending'` | `api/upload.php?type=products`, `getBrands()`, `getCategories()` |
+| `orders.php` | подзаказы продавца: список, карточка, смена статуса (pending→processing→shipped→delivered, отмена). Контакты покупателя открываются только после принятия | `order_sellers`, `order_items` (везде `WHERE seller_id = ?`) |
 
 ### admin/ — роль admin
 
@@ -1022,8 +1109,12 @@ brands, blog, pages, reviews, vin, settings, users, permissions, …) → `userC
 | [`superadmin/blog.php`](superadmin/blog.php) | Блог (управление на уровне суперадмина). | blog_posts |
 | [`superadmin/catalog_library.php`](superadmin/catalog_library.php) | Библиотека каталога: список авто, экспорт JSON/CSV, сбор схем, тумблеры, аналитика спроса (~671 строка). | catalog_library_*, catalog_demand, PartsCatalogsAdapter |
 | [`superadmin/catalog_library_cron.php`](superadmin/catalog_library_cron.php) | CLI-дособиратель схем библиотеки (по тумблеру автосбора). | PartsCatalogsAdapter::harvestSchemes |
-| [`superadmin/catalog_library_seed.php`](superadmin/catalog_library_seed.php) | CLI-прогрев библиотеки: обход марок/моделей/авто (round-robin), запуск вручную. | pcBrands/pcModels/pcCars, oemNodesForCar |
-| [`superadmin/catalog_library_seed.php`](superadmin/catalog_library_seed.php) | CLI-скрипт прогрева библиотеки: обходит марки/модели/авто (по параметрам, без VIN), сохраняя новые записи. Запускать вручную. | pcBrands, pcModels, pcCars, oemNodesForCar, harvestSchemes |
+| [`superadmin/catalog_library_seed.php`](superadmin/catalog_library_seed.php) | CLI-прогрев библиотеки: обходит марки/модели/авто (по параметрам, без VIN), сохраняя новые записи. Запускать вручную — платно, тариф за авто/сутки. | pcBrands, pcModels, pcCars, oemNodesForCar, harvestSchemes |
+| [`superadmin/catalog_library_rebuild.php`](superadmin/catalog_library_rebuild.php) | CLI-пересбор библиотеки: `plan` (что предстоит) / `recount` (деревья под новый лимит) / `schemes` (догрузка схем) / `revin` (свежее декодирование VIN) / `all`. Возобновляемый, под `flock`, с `dbKeepAlive()`; обход идёт до замены данных. | rewalkNodes, storeNodes, decodeVinFresh, harvestSchemes |
+| [`superadmin/pc_tree_probe.php`](superadmin/pc_tree_probe.php) | CLI-замер реального размера дерева узлов — только чтение, ничего не пишет. | PartsCatalogsAdapter |
+| [`superadmin/pc_quota_probe.php`](superadmin/pc_quota_probe.php) | CLI-дамп заголовков ответа Parts-Catalogs (ищем поле с остатком квоты). | PartsCatalogsAdapter |
+| [`superadmin/ae_dict_import_csv.php`](superadmin/ae_dict_import_csv.php) | CLI-импорт прайс-листа AutoEuro в словарь названий (229k позиций, **ноль запросов к API**), создаёт `FULLTEXT(name)`. | ae_part_dictionary |
+| [`superadmin/ae_dict_batch.php`](superadmin/ae_dict_batch.php) | CLI-догрузка названий через API с ограничением скорости (чтобы не словить бан). | AutoEuroPriceProvider::rememberName |
 | [`superadmin/currencies.php`](superadmin/currencies.php) | Валюты и курсы. | currencies |
 | [`superadmin/delivery.php`](superadmin/delivery.php) | Зоны доставки (город+страна+цена+срок). | delivery_zones |
 | [`superadmin/index.php`](superadmin/index.php) | Дашборд суперадмина (сводная статистика). | — |
