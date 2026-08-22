@@ -932,6 +932,47 @@ class PartsCatalogsAdapter implements CatalogProvider
     }
 
     /**
+     * ПРИНУДИТЕЛЬНАЯ расшифровка VIN мимо библиотеки и kv-кэша.
+     *
+     * Зачем: в `criteria` Parts-Catalogs зашивает ВРЕМЕННЫЙ токен комплектации
+     * (вида «17*WA1VFAF82HA000123(2017!31a3cee7»). Токен протухает, и после этого
+     * groups2 отвечает 404 «Комплектация не найдена» — причём и с criteria, и без
+     * него. Единственный способ починить авто — получить свежий токен, а обычный
+     * carInfoFull() этого не сделает: он сперва вернёт сохранённую (устаревшую)
+     * запись из библиотеки.
+     *
+     * ⚠️ ТРАТИТ 1 ЗАПРОС ТАРИФА (это и есть «обращение по VIN»). Вызывать только
+     * осознанно — из режима починки, а не в фоне.
+     *
+     * @return array{carId:string,catalogId:string,criteria:string,brand:string,attrs:array}|null
+     */
+    public function decodeVinFresh(string $vin): ?array
+    {
+        $vin = strtoupper(trim($vin));
+        if ($vin === '' || !$this->enabled()) return null;
+
+        [$j] = $this->get('v1/car/info/', ['q' => $vin]);
+        $row = null;
+        if (is_array($j)) {
+            $row = (isset($j[0]) && is_array($j[0])) ? $j[0] : (isset($j['carId']) ? $j : null);
+        }
+        if (!$row || empty($row['carId']) || empty($row['catalogId'])) return null;
+
+        $car = [
+            'carId'     => (string)$row['carId'],
+            'catalogId' => (string)$row['catalogId'],
+            'criteria'  => (string)($row['criteria'] ?? ''),
+            'brand'     => (string)($row['brand'] ?? ''),
+            'count'     => 1,
+            'attrs'     => $this->parseCarAttrs($row),
+        ];
+        // Обновляем кэш и библиотеку свежими данными (в т.ч. новым criteria).
+        $this->kvSet('car:' . $this->lang() . ':' . $vin, $car);
+        $this->libSaveCar($car, $vin);
+        return $car;
+    }
+
+    /**
      * ПРИНУДИТЕЛЬНЫЙ свежий обход дерева узлов, БЕЗ чтения библиотеки/кэша и
      * БЕЗ записи результата. Нужен пересборке каталога: раньше ей приходилось
      * сначала удалять сохранённое дерево (иначе oemNodesForCar вернёт старое),
