@@ -31,8 +31,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cance
 
 // ── Single order detail ───────────────────────────────────────────────
 $viewId      = (int)($_GET['id'] ?? 0);
-$orderDetail = null;
-$orderItems  = [];
+$orderDetail  = null;
+$orderItems   = [];
+$orderSellers = [];   // подзаказы по продавцам (маркетплейс, Фаза 2)
 
 if ($viewId) {
     $stmt = $db->prepare("SELECT * FROM orders WHERE id = ? AND user_id = ? LIMIT 1");
@@ -49,6 +50,27 @@ if ($viewId) {
         );
         $iStmt->execute([$viewId]);
         $orderItems = $iStmt->fetchAll();
+
+        // ── Разбивка по продавцам (маркетплейс, Фаза 2) ───────────────────────
+        // Заказ покупателя один, но собирают его разные продавцы, и статус у
+        // каждого свой. Показываем это честно: «Магазин А — отправлен»,
+        // «Магазин Б — собирается». Если миграции нет — просто пустой массив и
+        // страница выглядит как раньше.
+        $orderSellers = [];
+        try {
+            $osStmt = $db->prepare(
+                "SELECT os.id, os.seller_id, os.status, os.subtotal,
+                        s.shop_name, s.slug
+                   FROM order_sellers os
+                   LEFT JOIN sellers s ON s.id = os.seller_id
+                  WHERE os.order_id = ?
+               ORDER BY (os.seller_id IS NULL) DESC, s.shop_name"
+            );
+            $osStmt->execute([$viewId]);
+            foreach ($osStmt->fetchAll() as $os) $orderSellers[(int)$os['id']] = $os;
+        } catch (Throwable $e) {
+            $orderSellers = [];   // схема Фазы 2 ещё не применена
+        }
     }
 }
 
@@ -125,6 +147,43 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 <?php if (!empty($orderDetail['notes'])): ?>
                 <div style="margin-bottom:16px;padding:12px;background:#fff3cd;border-radius:6px;font-size:0.875rem;">
                     <strong>Примечание:</strong> <?= sanitize($orderDetail['notes']) ?>
+                </div>
+                <?php endif; ?>
+
+                <?php
+                  // Разбивка по продавцам показывается, только если продавцы реально
+                  // разные (или их несколько). Для обычного заказа из нашего каталога
+                  // блок не нужен — не засоряем страницу.
+                  $showSplit = count($orderSellers ?? []) > 1
+                      || (count($orderSellers ?? []) === 1 && !empty(reset($orderSellers)['seller_id']));
+                  $osLabels = ['pending'=>'В обработке','processing'=>'Собирается',
+                               'shipped'=>'Отправлен','delivered'=>'Доставлен','cancelled'=>'Отменён'];
+                ?>
+                <?php if ($showSplit): ?>
+                <div style="margin-bottom:16px;">
+                    <div style="font-size:.85rem;color:#666;margin-bottom:8px;">
+                        <i class="fa fa-info-circle"></i> Заказ собирают разные продавцы — у каждой части свой статус:
+                    </div>
+                    <?php foreach ($orderSellers as $os): ?>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+                                background:#fff;border:1px solid #e7e7ee;border-radius:10px;padding:10px 14px;margin-bottom:8px;">
+                        <span style="font-weight:600;color:#2b2c34;">
+                            <i class="fa fa-shopping-bag" style="color:#aab0b8;"></i>
+                            <?php if (!empty($os['seller_id'])): ?>
+                                <a href="<?= APP_URL ?>/seller_shop.php?slug=<?= urlencode((string)$os['slug']) ?>"
+                                   style="color:#2b2c34;"><?= sanitize($os['shop_name'] ?: 'Магазин') ?></a>
+                            <?php else: ?>
+                                <?= sanitize(getSetting('site_name', 'Наш склад')) ?>
+                            <?php endif; ?>
+                        </span>
+                        <span style="display:flex;align-items:center;gap:12px;">
+                            <span style="color:#6b7280;font-size:.85rem;"><?= formatPrice((float)$os['subtotal']) ?></span>
+                            <span class="sl-badge sl-badge-<?= sanitize($os['status']) ?>">
+                                <?= $osLabels[$os['status']] ?? sanitize($os['status']) ?>
+                            </span>
+                        </span>
+                    </div>
+                    <?php endforeach; ?>
                 </div>
                 <?php endif; ?>
 
