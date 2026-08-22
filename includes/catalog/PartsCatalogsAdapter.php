@@ -931,6 +931,33 @@ class PartsCatalogsAdapter implements CatalogProvider
         return array_filter($out, fn($v) => $v !== '' && $v !== 0 && $v !== null);
     }
 
+    /**
+     * ПРИНУДИТЕЛЬНЫЙ свежий обход дерева узлов, БЕЗ чтения библиотеки/кэша и
+     * БЕЗ записи результата. Нужен пересборке каталога: раньше ей приходилось
+     * сначала удалять сохранённое дерево (иначе oemNodesForCar вернёт старое),
+     * и если процесс убивали посреди обхода — дерево терялось насовсем.
+     * Теперь скрипт сперва получает новый список, и только потом заменяет им старый.
+     *
+     * @return array<int,array{cat:string,name:string,img:string}> пусто — обход не удался
+     */
+    public function rewalkNodes(string $carId, string $catalogId, string $criteria, string $brand = ''): array
+    {
+        if (!$this->enabled() || $carId === '' || $catalogId === '') return [];
+        $car   = $this->carArr($carId, $catalogId, $criteria, $brand);
+        $nodes = [];
+        $this->collectLeaves($car, '', $nodes, 0);
+        return $nodes;
+    }
+
+    /** Сохранить готовое дерево узлов в библиотеку и кэш (см. rewalkNodes). */
+    public function storeNodes(string $carId, string $catalogId, array $nodes): void
+    {
+        if (!$nodes) return;
+        $ck = 'nodes:' . $this->lang() . ':' . $catalogId . ':' . $carId;
+        $this->kvSet($ck, ['count' => count($nodes), 'nodes' => $nodes]);
+        $this->libSaveNodes($catalogId, $carId, $nodes);
+    }
+
     /** Узлы для авто, выбранного по параметрам (без VIN) — тот же groups2, что и по VIN. */
     public function oemNodesForCar(string $carId, string $catalogId, string $criteria, string $brand = ''): array
     {
