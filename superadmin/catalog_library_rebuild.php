@@ -62,16 +62,30 @@ $limit = PartsCatalogsAdapter::nodesLimit();
 // LEFT JOIN, а не JOIN: авто, у которого дерева НЕТ вовсе (например, прошлый
 // обход вернул пусто и дерево не восстановилось), обязано попадать в очередь —
 // иначе оно навсегда выпадает из пересчёта и чинить его пришлось бы вручную.
+// Кандидаты на пересчёт:
+//   • дерева нет вовсе (NULL) — восстанавливаем, идут первыми;
+//   • дерево стоит ровно на ОДНОМ ИЗ СТАРЫХ потолков (120/300/500/1000/2000)
+//     И этот потолок НИЖЕ текущего лимита — значит его тогда обрезало, а сейчас
+//     можно собрать больше.
+// Авто, у которого узлов ровно = ТЕКУЩЕМУ лимиту, НЕ трогаем: повторный обход даст
+// тот же результат и сожжёт впустую сотни запросов (у Volvo это 1000 запросов и
+// ~15 минут на каждый прогон). Такие показываем отдельной строкой-подсказкой.
 $suspect = $db->prepare(
     "SELECT c.catalog_id, c.car_id, c.brand, c.criteria,
             COALESCE(n.nodes_count, 0) AS nodes_count
        FROM catalog_library_cars c
        LEFT JOIN catalog_library_nodes n ON n.catalog_id=c.catalog_id AND n.car_id=c.car_id
-      WHERE n.nodes_count IS NULL OR n.nodes_count IN (120, ?)
+      WHERE n.nodes_count IS NULL
+         OR (n.nodes_count IN (120, 300, 500, 1000, 2000) AND n.nodes_count < ?)
    ORDER BY (n.nodes_count IS NULL) DESC, c.updated_at DESC"
 );
 $suspect->execute([$limit]);
 $suspectCars = $suspect->fetchAll();
+
+// Упёрлись в текущий лимит — переобход не поможет, нужно поднять «узлов макс.».
+$atCeil = (int)$db->query(
+    "SELECT COUNT(*) FROM catalog_library_nodes WHERE nodes_count >= " . (int)$limit
+)->fetchColumn();
 
 $missing = $db->query(
     "SELECT COUNT(*) FROM (
@@ -96,7 +110,11 @@ $missingSchemes = (int)$db->query(
 
 echo str_repeat('═', 70) . "\n";
 echo "Текущий лимит узлов (catalog_nodes_limit): $limit\n";
-echo "Авто с подозрением на обрезанное дерево  : " . count($suspectCars) . "\n";
+echo "Авто к пересчёту дерева (обрезаны/нет)   : " . count($suspectCars) . "\n";
+if ($atCeil > 0) {
+    echo "Авто, упёршихся в текущий лимит ($limit)   : $atCeil — переобход не поможет,\n";
+    echo "                                           поднимите «узлов макс.», если нужно больше\n";
+}
 echo "Авто с неполными схемами                 : $missing\n";
 echo "Недостающих схем всего                   : $missingSchemes\n";
 $estMin = round(($missingSchemes * (0.5 + $pauseMs / 1000)) / 60);
