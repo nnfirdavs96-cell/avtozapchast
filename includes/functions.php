@@ -1954,3 +1954,60 @@ function dbAddColumnIfMissing(PDO $db, string $table, string $column, string $co
         $db->exec("ALTER TABLE `$table` ADD COLUMN $colDdl");
     }
 }
+
+/**
+ * Есть ли индекс с таким именем? По той же причине, что и выше: у MySQL 8 нет
+ * `ADD INDEX IF NOT EXISTS`, поэтому проверяем information_schema.
+ */
+function dbIndexExists(PDO $db, string $table, string $index): bool {
+    $st = $db->prepare(
+        "SELECT COUNT(*) FROM information_schema.STATISTICS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?"
+    );
+    $st->execute([$table, $index]);
+    return (int)$st->fetchColumn() > 0;
+}
+
+/** Добавить индекс, если его ещё нет. $ddl — например "KEY `idx_foo` (`foo`)". */
+function dbAddIndexIfMissing(PDO $db, string $table, string $index, string $ddl): void {
+    if (!dbIndexExists($db, $table, $index)) {
+        $db->exec("ALTER TABLE `$table` ADD $ddl");
+    }
+}
+
+/** Убрать индекс, если он есть. */
+function dbDropIndexIfExists(PDO $db, string $table, string $index): void {
+    if (dbIndexExists($db, $table, $index)) {
+        $db->exec("ALTER TABLE `$table` DROP INDEX `$index`");
+    }
+}
+
+/**
+ * Имена ОДНОКОЛОНОЧНЫХ уникальных индексов по указанной колонке.
+ *
+ * Нужно, чтобы снять уникальность, не зная её имени: в schema.sql на
+ * `parts.part_number` уникальность объявлена дважды — инлайном (`NOT NULL UNIQUE`,
+ * индекс получает имя колонки) и явным `UNIQUE KEY uk_part_number`. Что из этого
+ * реально создалось, зависит от версии сервера и от истории накатов, поэтому
+ * ищем по факту, а не по имени.
+ *
+ * Составные уникальные индексы намеренно пропускаем — они ограничивают пару
+ * колонок, а не саму колонку, и трогать их нельзя.
+ */
+function dbUniqueIndexesOnColumn(PDO $db, string $table, string $column): array {
+    $st = $db->prepare(
+        "SELECT s.INDEX_NAME
+           FROM information_schema.STATISTICS s
+           JOIN (
+                SELECT INDEX_NAME, COUNT(*) AS cols
+                  FROM information_schema.STATISTICS
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?
+              GROUP BY INDEX_NAME
+           ) c ON c.INDEX_NAME = s.INDEX_NAME
+          WHERE s.TABLE_SCHEMA = DATABASE() AND s.TABLE_NAME = ?
+            AND s.COLUMN_NAME = ? AND s.NON_UNIQUE = 0
+            AND s.INDEX_NAME <> 'PRIMARY' AND c.cols = 1"
+    );
+    $st->execute([$table, $table, $column]);
+    return $st->fetchAll(PDO::FETCH_COLUMN) ?: [];
+}
