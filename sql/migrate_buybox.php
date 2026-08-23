@@ -24,12 +24,61 @@ if (PHP_SAPI !== 'cli') { http_response_code(403); exit("Только из ко�
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/parts/grouping.php';
 
-$db        = getDB();
+$db          = getDB();
 $regroupOnly = in_array('--regroup', $argv, true);
+$reportOnly  = in_array('--report', $argv, true);
 
 echo "Маркетплейс · buy-box, этап 1 — модель товара\n";
 echo "База: " . DB_NAME . "\n";
 echo str_repeat('-', 60) . "\n";
+
+// ── Просмотр: какие товары оказались в одной карточке ────────────────────────
+// Нужен ДО того, как витрина начнёт показывать группы (этап 2): нормализация
+// артикула склеивает «90915-YZZE1» и «90915 YZZE1», и надо глазами убедиться,
+// что это действительно один товар, а не две разные детали с похожими номерами.
+if ($reportOnly) {
+    $rows = $db->query(
+        "SELECT COALESCE(p.product_id, p.id) AS card, p.id, p.part_number, p.name,
+                p.price, p.seller_id, b.name AS brand, s.shop_name
+           FROM parts p
+           LEFT JOIN brands b  ON b.id = p.brand_id
+           LEFT JOIN sellers s ON s.id = p.seller_id
+          WHERE COALESCE(p.product_id, p.id) IN (
+                SELECT card FROM (
+                    SELECT COALESCE(product_id, id) AS card
+                      FROM parts GROUP BY card HAVING COUNT(*) > 1
+                ) g
+          )
+       ORDER BY card, p.id"
+    )->fetchAll();
+
+    if (!$rows) {
+        echo "Общих карточек с несколькими предложениями нет.\n";
+        exit;
+    }
+
+    $byCard = [];
+    foreach ($rows as $r) $byCard[(int)$r['card']][] = $r;
+
+    echo "Общих карточек: " . count($byCard) . "\n\n";
+    foreach ($byCard as $card => $items) {
+        echo "Карточка #$card — предложений: " . count($items) . "\n";
+        foreach ($items as $r) {
+            printf("   id %-5d %-22s %-14s %10s   %s\n",
+                (int)$r['id'],
+                mb_substr((string)$r['part_number'], 0, 22),
+                mb_substr((string)($r['brand'] ?? '—'), 0, 14),
+                number_format((float)$r['price'], 2, '.', ' '),
+                $r['seller_id'] ? ('продавец: ' . $r['shop_name']) : 'наш каталог'
+            );
+            echo "         " . mb_substr((string)$r['name'], 0, 70) . "\n";
+        }
+        echo "\n";
+    }
+    echo "Если в одной карточке оказались РАЗНЫЕ детали — пометьте лишнюю как\n";
+    echo "«уникальный товар» либо исправьте у неё артикул, затем: php sql/migrate_buybox.php --regroup\n";
+    exit;
+}
 
 if (!$regroupOnly) {
 
