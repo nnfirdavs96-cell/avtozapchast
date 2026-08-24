@@ -1,0 +1,53 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<style>
+@import url("shrifty.css");
+:root{--bum:#FBF7F0;--bum2:#F4EDE1;--ram:#E3D8C6;--chern:#221E1A;--prig:#6E6459;
+      --rzh:#B5411F;--hv:#14584F;--oh:#A8710C;--mor:#1B4F79}
+*{box-sizing:border-box;margin:0}
+body{width:1180px;background:var(--bum);font-family:'Spe',Georgia,serif;color:var(--chern);padding:38px 40px 32px}
+.tit{font-family:'Unb';font-weight:700;font-size:27px;letter-spacing:-.03em;margin-bottom:8px}
+.pod{font-size:19px;color:var(--prig);margin-bottom:32px}
+table{width:100%;border-collapse:collapse;background:#fff;border:2px solid var(--ram);border-radius:8px;overflow:hidden}
+th{font-family:'Unb';font-weight:700;font-size:13px;letter-spacing:.12em;text-transform:uppercase;
+   color:#fff;padding:12px 18px;text-align:left}
+th:nth-child(1){background:var(--chern);width:250px}
+th:nth-child(2){background:var(--hv)}
+th:nth-child(3){background:var(--rzh)}
+td{padding:13px 18px;font-size:17.5px;line-height:1.45;border-top:1.5px solid var(--ram);vertical-align:top}
+td:first-child{font-family:'Unb';font-weight:700;font-size:17px;letter-spacing:-.01em;background:var(--bum2)}
+tr:nth-child(even) td:not(:first-child){background:#FEFCF9}
+code{font-family:'JB';font-size:14.5px;background:var(--bum2);border:1px solid var(--ram);
+  border-radius:3px;padding:1px 6px;color:#6B2E14;font-variant-ligatures:none}
+.niz{margin-top:26px;background:var(--bum2);border:2px solid var(--ram);border-left:5px solid var(--chern);
+  border-radius:6px;padding:15px 20px;font-size:18.5px;line-height:1.5}
+.niz b{font-family:'Unb';font-weight:700}
+</style></head><body>
+<div class="tit">Чем боевой сервер отличается от вашего компьютера</div>
+<div class="pod">Код одинаковый — настройки разные. Почти все «у меня работало» растут отсюда</div>
+<table>
+<tr><th>Что</th><th>У вас на компьютере</th><th>На боевом сервере</th></tr>
+<tr><td>Показ ошибок</td>
+  <td><code>display_errors = On</code><br>вы должны видеть всё</td>
+  <td><code>display_errors = Off</code><br>ошибки только в лог: текст ошибки — подсказка взломщику</td></tr>
+<tr><td>Пароль базы</td>
+  <td>обычно <code>root</code> без пароля</td>
+  <td>отдельный пользователь, длинный пароль, доступ только с этого сервера</td></tr>
+<tr><td>Где лежат пароли</td>
+  <td><code>config/db_credentials.php</code><br>вне git</td>
+  <td>тот же файл — <b>копируется руками один раз</b>, не через git</td></tr>
+<tr><td>Адрес сайта</td>
+  <td><code>http://localhost:8000</code></td>
+  <td><code>https://autodoc.tj</code> — обязательно https</td></tr>
+<tr><td>Права на файлы</td>
+  <td>не важны</td>
+  <td>папка загрузок — на запись, остальное — только на чтение</td></tr>
+<tr><td>Логи</td>
+  <td>смотрите в терминале</td>
+  <td>пишутся в файл вне корня сайта, с ротацией</td></tr>
+<tr><td>База данных</td>
+  <td>тестовые данные, можно удалять</td>
+  <td>настоящие заказы. <b>Бэкап до любого изменения схемы</b></td></tr>
+</table>
+<div class="niz"><b>Отсюда правило:</b> перед выкладкой пройдите этот список глазами.
+Три минуты проверки против ночного звонка «сайт показывает пароль от базы».</div>
+</body></html>

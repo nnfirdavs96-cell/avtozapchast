@@ -1,0 +1,60 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<style>
+@import url("shrifty.css");
+:root{--bum:#FBF7F0;--bum2:#F4EDE1;--ram:#E3D8C6;--chern:#221E1A;--prig:#6E6459;
+      --rzh:#B5411F;--hv:#14584F;--oh:#A8710C;--mor:#1B4F79;--sl:#6B3A63}
+*{box-sizing:border-box;margin:0}
+body{width:1180px;background:var(--bum);font-family:'Spe',Georgia,serif;color:var(--chern);padding:38px 40px 32px}
+.tit{font-family:'Unb';font-weight:700;font-size:27px;letter-spacing:-.03em;margin-bottom:8px}
+.pod{font-size:19px;color:var(--prig);margin-bottom:34px}
+.shagi{display:flex;flex-direction:column;gap:0}
+.sh{display:grid;grid-template-columns:64px 1fr 300px;gap:22px;align-items:start;
+    padding:16px 0 18px;border-bottom:1.5px dashed var(--ram)}
+.sh:last-child{border-bottom:none}
+.n{font-family:'Unb';font-weight:700;font-size:19px;color:#fff;width:44px;height:44px;border-radius:50%;
+   display:flex;align-items:center;justify-content:center}
+.n1{background:var(--oh)}.n2{background:var(--oh)}.n3{background:var(--mor)}
+.n4{background:var(--sl)}.n5{background:var(--sl)}.n6{background:var(--hv)}
+.imya{font-family:'Unb';font-weight:700;font-size:21px;letter-spacing:-.02em;margin-bottom:5px}
+.opis{font-size:17.5px;color:var(--prig);line-height:1.45}
+.kom{font-family:'JB';font-size:14.5px;background:#fff;border:1.5px solid var(--ram);border-radius:5px;
+  padding:9px 12px;color:#6B2E14;line-height:1.6;font-variant-ligatures:none;white-space:pre-wrap}
+.kom.brau{background:var(--bum2);color:var(--prig);font-family:'Spe',serif;font-size:16.5px;font-style:italic}
+.niz{margin-top:26px;background:var(--bum2);border:2px solid var(--ram);border-left:5px solid var(--chern);
+  border-radius:6px;padding:15px 20px;font-size:18.5px;line-height:1.5}
+.niz b{font-family:'Unb';font-weight:700}
+</style></head><body>
+<div class="tit">Путь одной задачи: от ветки до боевого сайта</div>
+<div class="pod">Шесть шагов, которые повторяются для каждой новой функции магазина</div>
+<div class="shagi">
+  <div class="sh"><div class="n n1">1</div>
+    <div><div class="imya">Завели ветку под задачу</div>
+    <div class="opis">Имя ветки — про задачу, а не про себя: <i>korzina</i>, а не <i>firdavs2</i>.</div></div>
+    <div class="kom">git switch -c korzina</div></div>
+  <div class="sh"><div class="n n2">2</div>
+    <div><div class="imya">Поработали и закоммитили</div>
+    <div class="opis">Столько коммитов, сколько законченных мыслей. Ветка своя — мешать некому.</div></div>
+    <div class="kom">git add korzina.php
+git commit -m "Корзина: подсчёт суммы"</div></div>
+  <div class="sh"><div class="n n3">3</div>
+    <div><div class="imya">Отправили ветку на GitHub</div>
+    <div class="opis">Теперь работа не только на вашем ноутбуке. Сгорел ноутбук — код цел.</div></div>
+    <div class="kom">git push -u origin korzina</div></div>
+  <div class="sh"><div class="n n4">4</div>
+    <div><div class="imya">Открыли pull request</div>
+    <div class="opis">«Предлагаю влить korzina в main». Заголовок и описание — что сделано и как проверить.</div></div>
+    <div class="kom brau">Кнопка «Compare &amp; pull request» на GitHub</div></div>
+  <div class="sh"><div class="n n5">5</div>
+    <div><div class="imya">Ревью и правки</div>
+    <div class="opis">Замечания приходят в PR. Правите у себя, коммитите, пушите — PR обновляется сам.</div></div>
+    <div class="kom">git commit -m "Правка по ревью: проверка количества"
+git push</div></div>
+  <div class="sh"><div class="n n6">6</div>
+    <div><div class="imya">Слили и удалили ветку</div>
+    <div class="opis">Squash-merge: вся ветка ложится в main одним аккуратным коммитом.</div></div>
+    <div class="kom brau">Кнопка «Squash and merge», затем «Delete branch»</div></div>
+</div>
+<div class="niz"><b>Зачем всё это одному человеку:</b> pull request — это ваша пауза
+перед тем, как тронуть работающий магазин. Вы видите весь свой диф целиком и часто
+находите там лишнее до того, как его увидит покупатель.</div>
+</body></html>

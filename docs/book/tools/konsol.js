@@ -34,7 +34,8 @@ body{width:940px;background:#FBF7F0;font-family:'Spe',serif;padding:30px 32px}
 .str{display:flex;gap:11px;padding:4px 16px;border-bottom:1px solid #F6F1EA;align-items:baseline}
 .str:last-child{border-bottom:0}
 .mtk{color:#B0A79B;font-family:'JB';font-size:13px}
-.txt{font-family:'JB';font-size:14px;color:#2b2622;white-space:pre-wrap}
+.txt{font-family:'JB';font-size:14px;color:#2b2622;white-space:pre-wrap;
+  font-variant-ligatures:none;font-feature-settings:"liga" 0,"calt" 0}
 .pod{margin-top:12px;font-size:15.5px;color:#6E6459;font-style:italic}
 </style></head><body>
 ${titul ? `<div class="tit">${titul}</div>` : ''}
