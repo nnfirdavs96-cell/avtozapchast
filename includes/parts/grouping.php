@@ -167,6 +167,61 @@ function partsBuyBoxSource(string $whereSQL, ?PDO $db = null, string $joins = ''
 }
 
 /**
+ * Все предложения одной карточки — по одному на продавца, в порядке buy-box.
+ *
+ * Для блока «Предложения продавцов» на странице товара: покупатель видит всех, кто
+ * продаёт эту деталь, и сам решает, у кого брать. Первая строка — победитель
+ * buy-box, то есть ровно то предложение, которое показано в каталоге.
+ *
+ * Дубли одного продавца отсеиваются здесь так же, как на витрине: в списке
+ * продавцов не должно быть одного магазина дважды с разными ценами.
+ *
+ * $cardKey — номер карточки, то есть COALESCE(product_id, id) любого предложения.
+ */
+function partsCardOffers(PDO $db, int $cardKey): array
+{
+    if ($cardKey <= 0) return [];
+
+    $vis = "p.is_active = 1 AND (p.seller_id IS NULL OR p.moderation_status = 'active')";
+
+    if (!dbSupportsWindowFunctions($db)) {
+        // Без оконных функций отдаём предложения как есть: дубль продавца может
+        // попасть в список, но это лучше, чем пустой блок.
+        $st = $db->prepare(
+            "SELECT p.*, s.shop_name, s.slug AS seller_slug
+               FROM parts p LEFT JOIN sellers s ON s.id = p.seller_id
+              WHERE COALESCE(p.product_id, p.id) = ? AND $vis
+           ORDER BY " . partsBuyBoxOrder('p')
+        );
+        // Тип привязываем явно: по умолчанию PDO шлёт число строкой, MySQL это
+        // приводит молча, а другие СУБД — нет. Полагаться на неявное приведение
+        // в сравнении с COALESCE(...) не стоит.
+        $st->bindValue(1, $cardKey, PDO::PARAM_INT);
+        $st->execute();
+        return $st->fetchAll();
+    }
+
+    $bbIn  = partsBuyBoxOrder('p');
+    $bbOut = partsBuyBoxOrder('o');
+    $st = $db->prepare(
+        "SELECT o.* FROM (
+            SELECT p.*, s.shop_name, s.slug AS seller_slug,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY COALESCE(p.seller_id, 0) ORDER BY $bbIn
+                   ) AS rn
+              FROM parts p
+              LEFT JOIN sellers s ON s.id = p.seller_id
+             WHERE COALESCE(p.product_id, p.id) = ? AND $vis
+         ) o
+         WHERE o.rn = 1
+      ORDER BY $bbOut"
+    );
+    $st->bindValue(1, $cardKey, PDO::PARAM_INT);
+    $st->execute();
+    return $st->fetchAll();
+}
+
+/**
  * Дубли: один продавец выложил один и тот же товар дважды.
  *
  * Витрина такие прячет (см. отбор выше), поэтому сами по себе они ничего не ломают,
