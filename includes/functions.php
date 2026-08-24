@@ -682,11 +682,24 @@ function productBadges(array $part): string {
  * передают, функция молча ничего не выводит.
  */
 function productOffersNote(array $part): string {
-    $n = (int)($part['offers_count'] ?? 1);
-    if ($n < 2) return '';
-    $more = $n - 1;
-    return '<p class="offers_note"><i class="fa fa-users"></i> ещё ' . $more . ' '
-         . pluralRu($more, 'предложение', 'предложения', 'предложений') . '</p>';
+    $parts = [];
+
+    // Конкуренты: сколько ДРУГИХ продавцов предлагают тот же товар.
+    $offers = (int)($part['offers_count'] ?? 1);
+    if ($offers > 1) {
+        $more = $offers - 1;
+        $parts[] = '<span><i class="fa fa-users"></i> ещё ' . $more . ' '
+                 . pluralRu($more, 'предложение', 'предложения', 'предложений') . '</span>';
+    }
+
+    // Варианты: то же самое в другом исполнении — цвет, объём, возраст.
+    $vars = (int)($part['variants_count'] ?? 1);
+    if ($vars > 1) {
+        $parts[] = '<span class="offers_note_var"><i class="fa fa-th-large"></i> '
+                 . $vars . ' ' . pluralRu($vars, 'вариант', 'варианта', 'вариантов') . '</span>';
+    }
+
+    return $parts ? '<p class="offers_note">' . implode('', $parts) . '</p>' : '';
 }
 
 /**

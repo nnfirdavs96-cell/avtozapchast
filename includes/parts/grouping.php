@@ -136,29 +136,50 @@ function dbSupportsWindowFunctions(?PDO $db = null): bool
  * для вывода вешайте снаружи, на результат: тогда они отработают по одной строке на
  * карточку, а не по каждому предложению.
  *
+ * $groupFamily — схлопывать ли ВАРИАНТЫ (цвет, объём, возраст) в одну плитку.
+ * Включайте при просмотре каталога и выключайте в поиске: человек ищет «бежевый
+ * чехол», а победителем семейства окажется чёрный — найденное подменилось бы другим
+ * товаром. Даёт колонку `variants_count`.
+ *
+ * ⚠️ Ограничение, о котором стоит знать. Семейство принадлежит продавцу, а
+ * победитель карточки может оказаться из другого магазина. Тогда две карточки
+ * одной линейки не схлопнутся, и число плиток зависит от того, кто выиграл
+ * buy-box. Это косметика, а не ошибка: показать вариант конкурента внутри чужой
+ * линейки было бы хуже. Устраняется только переносом вариантов на общую карточку
+ * (полная модель Ozon) — отдельная задача.
+ *
  * Если сервер не умеет оконные функции — отдаёт плоский список, как было до
  * buy-box. Витрина продолжит работать, просто без группировки.
  */
-function partsBuyBoxSource(string $whereSQL, ?PDO $db = null, string $joins = ''): string
+function partsBuyBoxSource(string $whereSQL, ?PDO $db = null, string $joins = '',
+                            bool $groupFamily = false): string
 {
-    $card = 'COALESCE(p.product_id, p.id)';
+    $card   = 'COALESCE(p.product_id, p.id)';
+    $family = 'COALESCE(p.product_group_id, p.id)';
 
     if (!dbSupportsWindowFunctions($db)) {
         // Запасной путь: прежнее поведение плюс те же колонки, чтобы вызывающий
         // код был одинаковым в обоих случаях.
-        return "(SELECT p.*, $card AS card_key, 1 AS offers_count FROM parts p $joins $whereSQL) p";
+        return "(SELECT p.*, $card AS card_key, $family AS family_key,
+                        1 AS offers_count, 1 AS variants_count
+                   FROM parts p $joins $whereSQL) p";
     }
 
     $bbInner = partsBuyBoxOrder('p');
     $bbOuter = partsBuyBoxOrder('w');
+    $bbFam   = partsBuyBoxOrder('s');
 
-    return "(
-        SELECT s.* FROM (
+    // Отбор идёт снизу вверх: предложение → карточка → семейство.
+    $sql = "
+        SELECT s.*,
+               ROW_NUMBER() OVER (PARTITION BY s.family_key ORDER BY $bbFam) AS rn_family,
+               COUNT(*)     OVER (PARTITION BY s.family_key)                 AS variants_count
+          FROM (
             SELECT w.*,
                    ROW_NUMBER() OVER (PARTITION BY w.card_key ORDER BY $bbOuter) AS rn_card,
                    COUNT(*)     OVER (PARTITION BY w.card_key)                   AS offers_count
               FROM (
-                SELECT p.*, $card AS card_key,
+                SELECT p.*, $card AS card_key, $family AS family_key,
                        ROW_NUMBER() OVER (
                            PARTITION BY $card, COALESCE(p.seller_id, 0)
                            ORDER BY $bbInner
@@ -169,8 +190,14 @@ function partsBuyBoxSource(string $whereSQL, ?PDO $db = null, string $joins = ''
               ) w
              WHERE w.rn_seller = 1
         ) s
-        WHERE s.rn_card = 1
-    ) p";
+        WHERE s.rn_card = 1";
+
+    // Семейство схлопываем только при ПРОСМОТРЕ каталога. В поиске — нельзя:
+    // человек ищет «бежевый чехол», а победителем семейства окажется чёрный, и
+    // найденное подменится другим товаром. Там показываем варианты по отдельности.
+    return $groupFamily
+        ? "(SELECT f.* FROM ($sql) f WHERE f.rn_family = 1) p"
+        : "($sql) p";
 }
 
 /**

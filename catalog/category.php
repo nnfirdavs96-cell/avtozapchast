@@ -69,7 +69,7 @@ if ($priceMax > 0) {
 $whereSQL = 'WHERE ' . implode(' AND ', $where);
 
 // Count — по карточкам, а не по предложениям (см. catalog/index.php)
-$src = partsBuyBoxSource($whereSQL, $db);
+$src = partsBuyBoxSource($whereSQL, $db, '', true);
 $countStmt = $db->prepare("SELECT COUNT(*) FROM $src");
 $countStmt->execute($params);
 $total      = (int)$countStmt->fetchColumn();

@@ -4330,3 +4330,8 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .bb_specs td:first-child { color: #8b8b98; width: 45%; }
 .bb_specs td:last-child { color: #23242b; font-weight: 600; }
 .bb_specs tr:last-child td { border-bottom: none; }
+
+/* Строка «ещё N предложений · M вариантов» может нести оба признака сразу. */
+.offers_note span { display: inline-flex; align-items: center; gap: 5px; }
+.offers_note span + span { margin-left: 12px; }
+.offers_note_var { color: #5b53b5; }

@@ -22,8 +22,8 @@ $categories = $db->query("SELECT * FROM categories WHERE is_active=1 AND parent_
 // «Новинках» и «Скидках» один и тот же товар от разных продавцов занял бы
 // несколько плиток подряд.
 $vis     = "WHERE p.is_active=1 AND (p.seller_id IS NULL OR p.moderation_status='active')";
-$srcAll  = partsBuyBoxSource($vis, $db);
-$srcSale = partsBuyBoxSource($vis . " AND p.old_price IS NOT NULL AND p.old_price > p.price", $db);
+$srcAll  = partsBuyBoxSource($vis, $db, '', true);
+$srcSale = partsBuyBoxSource($vis . " AND p.old_price IS NOT NULL AND p.old_price > p.price", $db, '', true);
 
 $featParts = $db->query("SELECT p.*, b.name AS brand_name, c.name AS category_name
     FROM $srcAll LEFT JOIN brands b ON b.id=p.brand_id LEFT JOIN categories c ON c.id=p.category_id
