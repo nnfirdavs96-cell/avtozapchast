@@ -434,7 +434,11 @@ hr {
   <ol class="og-spisok"><li><span class="og-nomer">1</span><a href="#glava-1">Что такое сайт и что мы построим</a></li>
 <li><span class="og-nomer">2</span><a href="#glava-2">Как работает интернет</a></li>
 <li><span class="og-nomer">3</span><a href="#glava-3">Инструменты: редактор, терминал, браузер</a></li>
-<li><span class="og-nomer">4</span><a href="#glava-4">Первый файл на экране</a></li></ol>
+<li><span class="og-nomer">4</span><a href="#glava-4">Первый файл на экране</a></li>
+<li><span class="og-nomer">5</span><a href="#glava-5">Теги и структура документа</a></li>
+<li><span class="og-nomer">6</span><a href="#glava-6">Текст, ссылки, картинки, списки</a></li>
+<li><span class="og-nomer">7</span><a href="#glava-7">Таблицы и формы</a></li>
+<li><span class="og-nomer">8</span><a href="#glava-8">Практика: карточка товара и каталог</a></li></ol>
   <p class="og-primechanie">Книга пишется по частям. Здесь — главы, готовые на сегодня.</p>
 </section>
 
@@ -1884,6 +1888,1482 @@ JavaScript. Половина проблем в ней прямым тексто�
 <li>Страница без CSS выглядит ужасно — и это нормально. HTML отвечает за смысл.</li>
 </ul><p>Со следующей главы начинается настоящий HTML: разберём теги по-серьёзному
 и научимся размечать что угодно.</p></section></div></article>
+<article class="glava" id="glava-5">
+    <header class="glava-shapka">
+      <div class="glava-metka">
+        <span class="glava-slovo">Глава</span>
+        <span class="glava-nomer">05</span>
+      </div>
+      <div class="glava-podpis">Часть II. HTML — скелет страницы</div>
+      <h1 class="glava-nazvanie">Теги и структура документа</h1>
+    </header><div class="telo"><section class="vrezka v-zachem"><div class="vrezka-shapka"><span class="vrezka-podpis">Зачем это</span><span class="vrezka-zagolovok">Зачем эта глава</span></div><p>В прошлой главе вы написали страницу и она заработала. Но написали вы её «по образцу» —
+как переписывают иероглифы, не зная языка.</p><p>Пора выучить язык. В этой главе разберёмся:</p><ul>
+<li>что такое тег на самом деле и по каким правилам он живёт;</li>
+<li>почему одни элементы занимают всю строку, а другие — только своё место;</li>
+<li>зачем нужны <code>&lt;div&gt;</code> и <code>&lt;span&gt;</code>, если они ничего не делают;</li>
+<li>и главное — что такое <strong>семантика</strong> и почему из-за неё сайты попадают или не попадают
+в поиск.</li>
+</ul><p>После этой главы вы перестанете «списывать» и начнёте писать HTML осмысленно.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Что такое тег</span></div><p><strong>Тег — это метка, которой вы называете кусок содержимого.</strong></p><p>Вы не «рисуете заголовок». Вы <strong>говорите браузеру: вот это — заголовок</strong>. А как его
+показать, браузер решит сам.</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">h1</span>&gt;</span>Автозапчасти Firdavs<span class="hljs-tag">&lt;/<span class="hljs-name">h1</span>&gt;</span>
+</code></pre><p>Здесь три части:</p><table>
+<thead>
+<tr>
+<th>Часть</th>
+<th>Название</th>
+<th>Что делает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;h1&gt;</code></td>
+<td><strong>открывающий тег</strong></td>
+<td>«Внимание, начинается заголовок»</td>
+</tr>
+<tr>
+<td><code>Автозапчасти Firdavs</code></td>
+<td><strong>содержимое</strong></td>
+<td>То, что видит человек</td>
+</tr>
+<tr>
+<td><code>&lt;/h1&gt;</code></td>
+<td><strong>закрывающий тег</strong></td>
+<td>«Заголовок закончился»</td>
+</tr>
+</tbody>
+</table><p>Всё вместе — <strong>элемент</strong>.</p><h3><strong>Правило вложенности</strong></h3><p>Элементы можно класть друг в друга. Но <strong>закрывать нужно в обратном порядке</strong> —
+как матрёшки.</p><p><strong>Правильно:</strong></p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Цена: <span class="hljs-tag">&lt;<span class="hljs-name">strong</span>&gt;</span>250 сомони<span class="hljs-tag">&lt;/<span class="hljs-name">strong</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+</code></pre><p>Открыли <code>&lt;p&gt;</code>, внутри открыли <code>&lt;strong&gt;</code>, закрыли <code>&lt;/strong&gt;</code>, потом закрыли <code>&lt;/p&gt;</code>.
+Внутренняя матрёшка закрылась первой.</p><p><strong>Неправильно:</strong></p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Цена: <span class="hljs-tag">&lt;<span class="hljs-name">strong</span>&gt;</span>250 сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">strong</span>&gt;</span>
+</code></pre><p>Тут <code>&lt;p&gt;</code> закрылся раньше, чем <code>&lt;strong&gt;</code>. Браузер не выдаст ошибку — он попытается
+догадаться. И часто догадается неправильно, а вы полчаса будете искать, почему поехала
+вёрстка.</p><p><strong>Запомните так:</strong> что открыли последним — закрываете первым.</p><h3><strong>Атрибуты — уточнения к тегу</strong></h3><p>Атрибут добавляет тегу подробностей. Пишется внутри открывающего тега:</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">html</span> <span class="hljs-attr">lang</span>=<span class="hljs-string">"ru"</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">img</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"kolodki.jpg"</span> <span class="hljs-attr">alt</span>=<span class="hljs-string">"Тормозные колодки Bosch"</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"/catalog"</span>&gt;</span>Каталог<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+</code></pre><p>Формула всегда одна:</p><pre><code>имя="значение"
+</code></pre><table>
+<thead>
+<tr>
+<th>Правило</th>
+<th>Пояснение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Кавычки <strong>прямые</strong></td>
+<td><code>lang="ru"</code>, а не <code>lang=«ru»</code></td>
+</tr>
+<tr>
+<td>Атрибутов может быть много</td>
+<td>Разделяются пробелом</td>
+</tr>
+<tr>
+<td>Порядок не важен</td>
+<td><code>&lt;img src="..." alt="..."&gt;</code> = <code>&lt;img alt="..." src="..."&gt;</code></td>
+</tr>
+<tr>
+<td>Некоторые атрибуты без значения</td>
+<td><code>&lt;input required&gt;</code> — просто «обязательное»</td>
+</tr>
+</tbody>
+</table><p><strong>Два атрибута, которые есть почти у любого тега</strong> и понадобятся в главе 9:</p><ul>
+<li><strong><code>class</code></strong> — «этот элемент относится к такой-то группе». По классу CSS будет
+находить элементы и красить: <code>&lt;div class="tovar"&gt;</code>.</li>
+<li><strong><code>id</code></strong> — «у этого элемента уникальное имя». На странице <code>id</code> должен быть один:
+<code>&lt;div id="korzina"&gt;</code>.</li>
+</ul><p>Разница простая: <strong>класс — как «студент группы 101»</strong> (таких много).
+<strong><code>id</code> — как номер паспорта</strong> (такой один).</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Блочные и строчные элементы</span></div><p>Вот важное различие, которое объясняет половину «непонятного поведения» вёрстки.</p><h3><strong>Блочные — занимают всю строку</strong></h3><p>Блочный элемент <strong>всегда начинается с новой строки и растягивается на всю ширину</strong>,
+даже если содержимого в нём одно слово.</p><p>Примеры: <code>&lt;h1&gt;</code>…<code>&lt;h6&gt;</code>, <code>&lt;p&gt;</code>, <code>&lt;div&gt;</code>, <code>&lt;ul&gt;</code>, <code>&lt;table&gt;</code>, <code>&lt;form&gt;</code>.</p><p>Аналогия: <strong>абзац в книге</strong>. Даже если в нём одно слово, он всё равно занимает
+отдельную строку и никого рядом не пускает.</p><h3><strong>Строчные — занимают только своё место</strong></h3><p>Строчный элемент <strong>встраивается в строку</strong> и занимает ровно столько, сколько нужно
+его содержимому.</p><p>Примеры: <code>&lt;a&gt;</code>, <code>&lt;strong&gt;</code>, <code>&lt;em&gt;</code>, <code>&lt;span&gt;</code>, <code>&lt;img&gt;</code>.</p><p>Аналогия: <strong>выделенное слово в предложении</strong>. Оно внутри строки, не разрывает её.</p><h3><strong>Сравните на примере</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Первый абзац<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Второй абзац<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+</code></pre><p>Встанут <strong>друг под другом</strong>, потому что <code>&lt;p&gt;</code> — блочный.</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">strong</span>&gt;</span>Первое<span class="hljs-tag">&lt;/<span class="hljs-name">strong</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">strong</span>&gt;</span>Второе<span class="hljs-tag">&lt;/<span class="hljs-name">strong</span>&gt;</span>
+</code></pre><p>Встанут <strong>в одну строку</strong>, потому что <code>&lt;strong&gt;</code> — строчный.</p><p><strong>Практический вывод.</strong> Когда вы недоумеваете «почему эти два блока не встают рядом»
+или «почему кнопка растянулась на весь экран» — почти всегда ответ здесь.
+В главе 11 мы научимся управлять этим через CSS.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok"><div> и <span> — коробки без смысла</span></div></span></div><p>Два тега, которые вы будете использовать чаще всех.</p><table>
+<thead>
+<tr>
+<th>Тег</th>
+<th>Тип</th>
+<th>Смысл</th>
+<th>Зачем</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;div&gt;</code></td>
+<td>блочный</td>
+<td>никакого</td>
+<td>Сгруппировать блок содержимого</td>
+</tr>
+<tr>
+<td><code>&lt;span&gt;</code></td>
+<td>строчный</td>
+<td>никакого</td>
+<td>Выделить кусочек внутри строки</td>
+</tr>
+</tbody>
+</table><p>Оба <strong>ничего не означают и никак не выглядят</strong>. Это чистые контейнеры.</p><h3><strong>Зачем нужна пустая коробка</strong></h3><p>Возьмём карточку товара из прошлой главы:</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">h2</span>&gt;</span>Тормозные колодки Bosch<span class="hljs-tag">&lt;/<span class="hljs-name">h2</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Артикул: 0986424815<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Цена: 250 сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">button</span>&gt;</span>Купить<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+</code></pre><p>Четыре отдельных элемента. Браузер не знает, что они связаны — для него это просто
+заголовок, два абзаца и кнопка, идущие подряд.</p><p>Заворачиваем в коробку:</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"tovar"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">h2</span>&gt;</span>Тормозные колодки Bosch<span class="hljs-tag">&lt;/<span class="hljs-name">h2</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Артикул: 0986424815<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Цена: 250 сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">button</span>&gt;</span>Купить<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</code></pre><p>Теперь это <strong>одна вещь</strong>, у которой есть имя — <code>tovar</code>. И можно сказать одной строчкой
+CSS: «все элементы с классом <code>tovar</code> сделать белыми, с рамкой, скруглёнными углами
+и отступом». Все карточки оформятся разом.</p><h3><strong>А <code>&lt;span&gt;</code> зачем</strong></h3><p>Когда нужно выделить кусочек <strong>внутри</strong> строки:</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Цена: <span class="hljs-tag">&lt;<span class="hljs-name">span</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"cena"</span>&gt;</span>250<span class="hljs-tag">&lt;/<span class="hljs-name">span</span>&gt;</span> сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+</code></pre><p>Теперь можно покрасить только число, не трогая слова вокруг.</p><p><strong>Правило выбора:</strong> нужно завернуть блок содержимого — <code>&lt;div&gt;</code>. Нужно выделить пару
+слов внутри текста — <code>&lt;span&gt;</code>.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Семантика: главная идея HTML</span></div><p>А вот теперь — самое важное в этой главе.</p><h3><strong>Проблема</strong></h3><p>Технически можно построить весь сайт из <code>&lt;div&gt;</code>. Вообще весь:</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"zagolovok"</span>&gt;</span>Автозапчасти<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"menu"</span>&gt;</span>Каталог Доставка Контакты<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"tovar"</span>&gt;</span>Колодки Bosch<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"podval"</span>&gt;</span>© 2026<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</code></pre><p>Работать будет. Выглядеть после CSS — прилично. Но это плохой код, и вот почему.</p><p><strong>Для браузера, поисковика и программы для незрячих это четыре одинаковые безымянные
+коробки.</strong> Слово <code>zagolovok</code> в атрибуте <code>class</code> ничего им не говорит — они читают теги,
+а не ваши выдумки. С тем же успехом там могло быть написано <code>korobka1</code>.</p><h3><strong>Решение: теги, у которых есть смысл</strong></h3><p>В HTML есть <strong>семантические теги</strong> — теги со значением. Вместо безымянной коробки
+вы говорите, что это за часть страницы:</p><table>
+<thead>
+<tr>
+<th>Тег</th>
+<th>Что означает</th>
+<th>Что было бы вместо</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;header&gt;</code></td>
+<td>Шапка: логотип, название</td>
+<td><code>&lt;div class="header"&gt;</code></td>
+</tr>
+<tr>
+<td><code>&lt;nav&gt;</code></td>
+<td>Меню, навигация</td>
+<td><code>&lt;div class="menu"&gt;</code></td>
+</tr>
+<tr>
+<td><code>&lt;main&gt;</code></td>
+<td>Основное содержимое страницы</td>
+<td><code>&lt;div class="content"&gt;</code></td>
+</tr>
+<tr>
+<td><code>&lt;article&gt;</code></td>
+<td>Самостоятельный кусок: товар, статья</td>
+<td><code>&lt;div class="item"&gt;</code></td>
+</tr>
+<tr>
+<td><code>&lt;section&gt;</code></td>
+<td>Раздел страницы</td>
+<td><code>&lt;div class="block"&gt;</code></td>
+</tr>
+<tr>
+<td><code>&lt;aside&gt;</code></td>
+<td>Боковая колонка, дополнительное</td>
+<td><code>&lt;div class="sidebar"&gt;</code></td>
+</tr>
+<tr>
+<td><code>&lt;footer&gt;</code></td>
+<td>Подвал: контакты, копирайт</td>
+<td><code>&lt;div class="footer"&gt;</code></td>
+</tr>
+</tbody>
+</table><p>Пишутся они <strong>точно так же</strong>, как <code>&lt;div&gt;</code>, и ведут себя так же — блочные, без вида.
+Разница только в одном: <strong>у них есть смысл</strong>.</p><h3><strong>Как выглядит правильная страница</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">body</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">header</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">h1</span>&gt;</span>Автозапчасти Firdavs<span class="hljs-tag">&lt;/<span class="hljs-name">h1</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">header</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">nav</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"/catalog"</span>&gt;</span>Каталог<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"/delivery"</span>&gt;</span>Доставка<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"/contacts"</span>&gt;</span>Контакты<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">nav</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">main</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">article</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">h2</span>&gt;</span>Тормозные колодки Bosch<span class="hljs-tag">&lt;/<span class="hljs-name">h2</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Цена: 250 сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">button</span>&gt;</span>Купить<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">article</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;<span class="hljs-name">article</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">h2</span>&gt;</span>Масляный фильтр Mann<span class="hljs-tag">&lt;/<span class="hljs-name">h2</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Цена: 45 сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">button</span>&gt;</span>Купить<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">article</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">main</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">footer</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>© 2026 Автозапчасти Firdavs. Худжанд.<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">footer</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">body</span>&gt;</span>
+</code></pre><p><img src="img/05-semantika.png" alt="Страница с семантической разметкой"></p><p>Выглядит так же скучно, как раньше, — семантика не про внешность. Но теперь структура
+страницы <strong>читается</strong> по одному только коду.</p><h3><strong>Что вы за это получаете</strong></h3><p>Три очень практичных выигрыша:</p><p><strong>1. Поисковики понимают страницу.</strong>
+Google видит <code>&lt;main&gt;</code> и знает: вот здесь главное, а <code>&lt;nav&gt;</code> и <code>&lt;footer&gt;</code> можно
+не учитывать. Правильная семантика — часть SEO, то есть попадания сайта в поиск.</p><p><strong>2. Незрячие люди могут пользоваться сайтом.</strong>
+Программы-чтецы умеют перепрыгивать по разделам: «перейти к основному содержимому»,
+«перейти к меню». Если у вас одни <code>&lt;div&gt;</code>, прыгать не по чему — человек вынужден
+слушать всё подряд, включая меню на каждой странице.</p><p><strong>3. Код читаемый.</strong>
+Через полгода вы откроете свой файл. <code>&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;</code> в конце — ад.
+<code>&lt;/main&gt;&lt;/body&gt;</code> — понятно.</p><p><strong>Правило на всю жизнь:</strong> <em>есть подходящий по смыслу тег — берите его.
+<code>&lt;div&gt;</code> — когда подходящего нет.</em></p></section><section class="vrezka v-razbor"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбор по словам</span><span class="vrezka-zagolovok">Разбор по словам</span></div><p>Новые слова этой главы, собранные вместе:</p><table>
+<thead>
+<tr>
+<th>Слово</th>
+<th>Что означает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Тег</strong></td>
+<td>Метка в уголках: <code>&lt;p&gt;</code></td>
+</tr>
+<tr>
+<td><strong>Элемент</strong></td>
+<td>Открывающий тег + содержимое + закрывающий</td>
+</tr>
+<tr>
+<td><strong>Атрибут</strong></td>
+<td>Уточнение внутри тега: <code>class="tovar"</code></td>
+</tr>
+<tr>
+<td><strong>Вложенность</strong></td>
+<td>Элементы внутри элементов, как матрёшки</td>
+</tr>
+<tr>
+<td><strong>Блочный</strong></td>
+<td>Занимает всю строку: <code>&lt;div&gt;</code>, <code>&lt;p&gt;</code>, <code>&lt;h1&gt;</code></td>
+</tr>
+<tr>
+<td><strong>Строчный</strong></td>
+<td>Занимает своё место в строке: <code>&lt;span&gt;</code>, <code>&lt;a&gt;</code>, <code>&lt;strong&gt;</code></td>
+</tr>
+<tr>
+<td><strong>Семантика</strong></td>
+<td>Смысл тега. <code>&lt;header&gt;</code> вместо <code>&lt;div class="header"&gt;</code></td>
+</tr>
+<tr>
+<td><strong><code>class</code></strong></td>
+<td>Имя группы. Таких может быть много</td>
+</tr>
+<tr>
+<td><strong><code>id</code></strong></td>
+<td>Уникальное имя. Такой один на странице</td>
+</tr>
+</tbody>
+</table></section><section class="vrezka v-grabli"><div class="vrezka-shapka"><span class="vrezka-podpis">Грабли</span><span class="vrezka-zagolovok">Грабли</span></div><p><strong>Ставить <code>&lt;h1&gt;</code> несколько раз.</strong>
+<code>&lt;h1&gt;</code> — главный заголовок страницы, он <strong>один</strong>. Дальше по убыванию: <code>&lt;h2&gt;</code> для разделов,
+<code>&lt;h3&gt;</code> внутри них. Не прыгайте через уровень (<code>&lt;h1&gt;</code> → <code>&lt;h3&gt;</code>) и не выбирайте заголовок
+по размеру — размер настроим в CSS.</p><p><strong>Выбирать тег по внешнему виду.</strong>
+«Мне нужен мелкий текст, возьму <code>&lt;h6&gt;</code>» — так нельзя. Тег выбирают <strong>по смыслу</strong>,
+внешний вид задаёт CSS. Это ошибка, которую совершают почти все новички.</p><p><strong>Заворачивать всё подряд в лишние <code>&lt;div&gt;</code>.</strong>
+Если внутри коробки лежит ровно один элемент и коробка ничего не группирует —
+она не нужна. Лишние обёртки делают код нечитаемым.</p><p><strong>Пробел внутри тега.</strong>
+<code>&lt; p&gt;</code> — не сработает. Между <code>&lt;</code> и именем тега пробела быть не должно.</p><p><strong>Русские буквы в <code>class</code> и <code>id</code>.</strong>
+Технически возможно, практически — источник проблем. Только латиница:
+<code>class="tovar"</code>, а не <code>class="товар"</code>.</p></section><section class="vrezka v-zadachi"><div class="vrezka-shapka"><span class="vrezka-podpis">Задачи</span><span class="vrezka-zagolovok">Задачи</span></div><p><strong>Задача 5.1.</strong> Перепишите свою страницу из главы 4, добавив семантические теги:
+<code>&lt;header&gt;</code> с названием магазина, <code>&lt;nav&gt;</code> с тремя ссылками, <code>&lt;main&gt;</code> с товарами
+(каждый в <code>&lt;article&gt;</code>), <code>&lt;footer&gt;</code> с копирайтом.</p><p><strong>Задача 5.2.</strong> Для каждого определите — блочный или строчный:
+<code>&lt;p&gt;</code>, <code>&lt;span&gt;</code>, <code>&lt;div&gt;</code>, <code>&lt;a&gt;</code>, <code>&lt;h2&gt;</code>, <code>&lt;strong&gt;</code>, <code>&lt;article&gt;</code>, <code>&lt;em&gt;</code>.</p><p><strong>Задача 5.3.</strong> Найдите ошибку и объясните, в чём она:</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Цена: <span class="hljs-tag">&lt;<span class="hljs-name">strong</span>&gt;</span>250 сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">strong</span>&gt;</span>
+</code></pre><p><strong>Задача 5.4.</strong> Замените <code>&lt;div&gt;</code> на подходящий семантический тег:</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"header"</span>&gt;</span>...<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"menu"</span>&gt;</span>...<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"content"</span>&gt;</span>...<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"sidebar"</span>&gt;</span>...<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"footer"</span>&gt;</span>...<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</code></pre><p><strong>Задача 5.5.</strong> В каком случае берут <code>&lt;div&gt;</code>, а в каком <code>&lt;span&gt;</code>? Приведите свой
+пример на каждый.</p><p><strong>Задача 5.6.</strong> Откройте крупный интернет-магазин, нажмите F12 → Elements и поищите
+теги <code>&lt;header&gt;</code>, <code>&lt;nav&gt;</code>, <code>&lt;main&gt;</code>, <code>&lt;footer&gt;</code>. Есть ли они? У некоторых крупных сайтов
+их нет — сплошные <code>&lt;div&gt;</code>. Как думаете, почему так вышло?</p><p><strong>Задача 5.7.</strong> Объясните своими словами, почему <code>&lt;div class="zagolovok"&gt;</code> хуже,
+чем <code>&lt;h1&gt;</code>. Два предложения.</p><p><em>Ответы — в <a href="../prilozheniya/G-otvety.md">Приложении Г</a>.</em></p></section><section class="vrezka v-vboyu"><div class="vrezka-shapka"><span class="vrezka-podpis">В бою</span><span class="vrezka-zagolovok">В бою</span></div><p>Откройте <code>index.php</code> в корне репозитория и поищите в нём <code>&lt;div class=</code>. Найдёте много.</p><p>Это правда жизни: боевой код никогда не бывает идеальным. Сайт autodoc.tj построен
+на готовом шаблоне Mazlay, а шаблоны обычно щедры на <code>&lt;div&gt;</code>.</p><p>Важный вывод, который стоит усвоить сразу: <strong>работающий код с недостатками лучше,
+чем идеальный код, которого нет.</strong> Стремитесь к семантике в том, что пишете сами,
+но не переписывайте рабочий сайт ради красоты — у бизнеса есть задачи поважнее.</p></section><section class="vrezka v-itog"><div class="vrezka-shapka"><span class="vrezka-podpis">Итог</span><span class="vrezka-zagolovok">Итог</span></div><ul>
+<li><strong>Элемент</strong> = открывающий тег + содержимое + закрывающий.</li>
+<li>Вложенность закрывается <strong>в обратном порядке</strong>, как матрёшки.</li>
+<li><strong>Атрибут</strong> — уточнение: <code>имя="значение"</code>, кавычки прямые.</li>
+<li><strong><code>class</code></strong> — имя группы (много), <strong><code>id</code></strong> — уникальное имя (один).</li>
+<li><strong>Блочные</strong> занимают всю строку, <strong>строчные</strong> — только своё место.</li>
+<li><strong><code>&lt;div&gt;</code></strong> — блочная коробка, <strong><code>&lt;span&gt;</code></strong> — строчная. Обе без смысла.</li>
+<li><strong>Семантика</strong>: <code>&lt;header&gt;</code>, <code>&lt;nav&gt;</code>, <code>&lt;main&gt;</code>, <code>&lt;article&gt;</code>, <code>&lt;footer&gt;</code> — то же самое,
+но со смыслом. Нужны для поиска, для незрячих и для читаемости.</li>
+<li>Тег выбирают <strong>по смыслу</strong>, а не по внешнему виду.</li>
+</ul><p>В следующей главе наполним каркас содержимым: текст, ссылки, картинки и списки.</p></section></div></article>
+<article class="glava" id="glava-6">
+    <header class="glava-shapka">
+      <div class="glava-metka">
+        <span class="glava-slovo">Глава</span>
+        <span class="glava-nomer">06</span>
+      </div>
+      <div class="glava-podpis">Часть II. HTML — скелет страницы</div>
+      <h1 class="glava-nazvanie">Текст, ссылки, картинки, списки</h1>
+    </header><div class="telo"><section class="vrezka v-zachem"><div class="vrezka-shapka"><span class="vrezka-podpis">Зачем это</span><span class="vrezka-zagolovok">Зачем эта глава</span></div><p>Каркас страницы у вас есть. Теперь научимся наполнять его тем, из чего состоит
+любой сайт: текстом, ссылками, картинками и списками.</p><p>Тегов здесь будет много, но пугаться не надо — это как выучить названия инструментов
+в мастерской. Каждый простой, каждый делает одну вещь. К концу главы вы сможете
+разметить любую страницу с текстом.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Текст</span></div><h3><strong>Заголовки: от <code>&lt;h1&gt;</code> до <code>&lt;h6&gt;</code></strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">h1</span>&gt;</span>Автозапчасти Firdavs<span class="hljs-tag">&lt;/<span class="hljs-name">h1</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">h2</span>&gt;</span>Тормозная система<span class="hljs-tag">&lt;/<span class="hljs-name">h2</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">h3</span>&gt;</span>Колодки<span class="hljs-tag">&lt;/<span class="hljs-name">h3</span>&gt;</span>
+</code></pre><p>Шесть уровней. Работают как оглавление книги: часть → глава → раздел.</p><p><strong>Три правила, которые нарушают все:</strong></p><ol>
+<li><strong><code>&lt;h1&gt;</code> на странице один.</strong> Это её название. Не два, не три.</li>
+<li><strong>Не прыгать через уровень.</strong> После <code>&lt;h1&gt;</code> идёт <code>&lt;h2&gt;</code>, а не <code>&lt;h3&gt;</code>.</li>
+<li><strong>Не выбирать по размеру.</strong> Нужен мелкий заголовок — берите правильный уровень
+и уменьшайте его в CSS.</li>
+</ol><p>Почему это важно: по заголовкам строится «оглавление» страницы. Им пользуются поисковики
+и программы для незрячих. Сломанная иерархия — сломанное оглавление.</p><h3><strong>Абзацы и переносы</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Первый абзац текста.<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Второй абзац текста.<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+</code></pre><p>Абзац — <code>&lt;p&gt;</code>, блочный, сам отделяется отступами.</p><p><strong>Важная особенность HTML:</strong> он <strong>не видит ваших переносов строк и лишних пробелов</strong>.</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Слово           другое
+слово<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+</code></pre><p>Браузер покажет: <code>Слово другое слово</code>. Все пробелы подряд он сожмёт в один, а перенос
+строки посчитает пробелом.</p><p>Это не ошибка, а правило: <strong>пустое место в коде нужно человеку, а не браузеру.</strong>
+Поэтому можно спокойно делать отступы и переносы для читаемости — на результат
+не влияет.</p><p>Нужен настоящий перенос строки внутри абзаца — есть одиночный тег <code>&lt;br&gt;</code>:</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Худжанд, ул. Ленина, 15<span class="hljs-tag">&lt;<span class="hljs-name">br</span>&gt;</span>Телефон: +992 92 777 77 77<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+</code></pre><p>⚠️ Не используйте <code>&lt;br&gt;&lt;br&gt;</code> для отступов между абзацами. Для этого есть <code>&lt;p&gt;</code>
+и отступы в CSS. <code>&lt;br&gt;</code> — только для случаев, когда перенос <strong>часть содержания</strong>:
+адрес, стихи, реквизиты.</p><h3><strong>Выделение: <code>&lt;strong&gt;</code> и <code>&lt;em&gt;</code></strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Цена: <span class="hljs-tag">&lt;<span class="hljs-name">strong</span>&gt;</span>250 сомони<span class="hljs-tag">&lt;/<span class="hljs-name">strong</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Товар <span class="hljs-tag">&lt;<span class="hljs-name">em</span>&gt;</span>под заказ<span class="hljs-tag">&lt;/<span class="hljs-name">em</span>&gt;</span>, срок 5 дней.<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+</code></pre><table>
+<thead>
+<tr>
+<th>Тег</th>
+<th>Как выглядит</th>
+<th>Что означает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;strong&gt;</code></td>
+<td>жирный</td>
+<td><strong>Важно.</strong> Обратите внимание</td>
+</tr>
+<tr>
+<td><code>&lt;em&gt;</code></td>
+<td>курсив</td>
+<td><em>Смысловое ударение</em></td>
+</tr>
+</tbody>
+</table><p>Есть ещё <code>&lt;b&gt;</code> (жирный) и <code>&lt;i&gt;</code> (курсив). Выглядят так же, но <strong>не несут смысла</strong> —
+просто «сделай жирным». Программа для незрячих выделит голосом <code>&lt;strong&gt;</code> и проигнорирует <code>&lt;b&gt;</code>.</p><p><strong>Правило:</strong> важное — <code>&lt;strong&gt;</code>, ударение — <code>&lt;em&gt;</code>, а <code>&lt;b&gt;</code> и <code>&lt;i&gt;</code> не трогайте.</p><h3><strong>Остальные полезные теги</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Артикул: <span class="hljs-tag">&lt;<span class="hljs-name">code</span>&gt;</span>0986424815<span class="hljs-tag">&lt;/<span class="hljs-name">code</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Цена: <span class="hljs-tag">&lt;<span class="hljs-name">s</span>&gt;</span>300<span class="hljs-tag">&lt;/<span class="hljs-name">s</span>&gt;</span> 250 сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Гарантия <span class="hljs-tag">&lt;<span class="hljs-name">small</span>&gt;</span>(при сохранении чека)<span class="hljs-tag">&lt;/<span class="hljs-name">small</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">blockquote</span>&gt;</span>Отличные колодки, тормозит как новая.<span class="hljs-tag">&lt;/<span class="hljs-name">blockquote</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">hr</span>&gt;</span>
+</code></pre><table>
+<thead>
+<tr>
+<th>Тег</th>
+<th>Что делает</th>
+<th>Где пригодится</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;code&gt;</code></td>
+<td>Моноширинный шрифт</td>
+<td>Артикулы, коды, куски кода</td>
+</tr>
+<tr>
+<td><code>&lt;s&gt;</code></td>
+<td>Зачёркнутый</td>
+<td>Старая цена при скидке</td>
+</tr>
+<tr>
+<td><code>&lt;small&gt;</code></td>
+<td>Мелкий текст</td>
+<td>Примечания, сноски</td>
+</tr>
+<tr>
+<td><code>&lt;blockquote&gt;</code></td>
+<td>Цитата</td>
+<td>Отзывы покупателей</td>
+</tr>
+<tr>
+<td><code>&lt;hr&gt;</code></td>
+<td>Линия-разделитель</td>
+<td>Разделить разделы</td>
+</tr>
+</tbody>
+</table></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Ссылки</span></div><p>Ссылка — то, ради чего интернет вообще существует. Тег <code>&lt;a&gt;</code>, от английского <em>anchor</em>, якорь.</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"/catalog"</span>&gt;</span>Каталог<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+</code></pre><table>
+<thead>
+<tr>
+<th>Часть</th>
+<th>Что это</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;a&gt;</code></td>
+<td>Тег ссылки. <strong>Строчный</strong> — встраивается в текст</td>
+</tr>
+<tr>
+<td><code>href</code></td>
+<td><strong>Куда ведём.</strong> От <em>hypertext reference</em></td>
+</tr>
+<tr>
+<td><code>Каталог</code></td>
+<td>Что видит и нажимает человек</td>
+</tr>
+</tbody>
+</table><p><strong>Без <code>href</code> ссылка не работает.</strong> Это её единственный обязательный атрибут.</p><h3><strong>Виды адресов</strong></h3><p>Здесь новички путаются чаще всего, поэтому разберём подробно.</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"https://autodoc.tj/catalog"</span>&gt;</span>На другой сайт<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"/catalog"</span>&gt;</span>От корня сайта<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"catalog.html"</span>&gt;</span>Рядом с текущим файлом<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"../index.html"</span>&gt;</span>На папку выше<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"#dostavka"</span>&gt;</span>К месту на этой же странице<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+</code></pre><table>
+<thead>
+<tr>
+<th>Запись</th>
+<th>Название</th>
+<th>Куда ведёт</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>https://...</code></td>
+<td><strong>Абсолютный</strong></td>
+<td>Полный адрес. На чужие сайты только так</td>
+</tr>
+<tr>
+<td><code>/catalog</code></td>
+<td><strong>От корня</strong></td>
+<td>От начала вашего сайта. Работает с любой страницы</td>
+</tr>
+<tr>
+<td><code>catalog.html</code></td>
+<td><strong>Относительный</strong></td>
+<td>Файл в той же папке</td>
+</tr>
+<tr>
+<td><code>../index.html</code></td>
+<td><strong>Относительный</strong></td>
+<td><code>..</code> — подняться на папку выше</td>
+</tr>
+<tr>
+<td><code>#dostavka</code></td>
+<td><strong>Якорь</strong></td>
+<td>К элементу с <code>id="dostavka"</code> на этой странице</td>
+</tr>
+</tbody>
+</table><p><strong>Практический совет:</strong> внутри своего сайта используйте адреса <strong>от корня</strong> — <code>/catalog</code>.
+Относительные ломаются, когда вы переносите файл в другую папку, и это одна из самых
+раздражающих ошибок.</p><h3><strong>Особые ссылки</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"tel:+992927777777"</span>&gt;</span>+992 92 777 77 77<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"mailto:info@autodoc.tj"</span>&gt;</span>Написать нам<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+</code></pre><p>На телефоне первая ссылка <strong>сразу звонит</strong>. Вторая открывает почтовую программу.
+Мелочь, а покупателю приятно.</p><h3><strong>Открыть в новой вкладке</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"https://bosch.com"</span> <span class="hljs-attr">target</span>=<span class="hljs-string">"_blank"</span> <span class="hljs-attr">rel</span>=<span class="hljs-string">"noopener"</span>&gt;</span>Сайт Bosch<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+</code></pre><p><code>target="_blank"</code> — открыть в новой вкладке. <code>rel="noopener"</code> — обязательная добавка
+для безопасности: без неё чужая страница получает доступ к вашей.</p><p><strong>Когда открывать в новой вкладке:</strong> ссылки на <strong>чужие</strong> сайты. Свои страницы —
+в той же вкладке, иначе завалите человеку браузер.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Картинки</span></div><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">img</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"images/kolodki.jpg"</span> <span class="hljs-attr">alt</span>=<span class="hljs-string">"Тормозные колодки Bosch"</span>&gt;</span>
+</code></pre><p><code>&lt;img&gt;</code> — <strong>одиночный тег</strong>, закрывать не нужно. Два обязательных атрибута:</p><table>
+<thead>
+<tr>
+<th>Атрибут</th>
+<th>Что значит</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src</code></td>
+<td><strong>Откуда брать.</strong> Путь к файлу (<em>source</em> — источник)</td>
+</tr>
+<tr>
+<td><code>alt</code></td>
+<td><strong>Что здесь изображено</strong> словами</td>
+</tr>
+</tbody>
+</table><h3><strong>Почему <code>alt</code> обязателен</strong></h3><p>Про него всегда забывают, а он делает три вещи:</p><ol>
+<li><strong>Показывается, если картинка не загрузилась.</strong> Битый путь, медленный интернет —
+человек увидит хотя бы описание.</li>
+<li><strong>Его читают программы для незрячих.</strong> Без <code>alt</code> человек услышит «изображение» —
+и всё.</li>
+<li><strong>По нему картинки находят в поиске.</strong> Поиск по картинкам работает именно на <code>alt</code>.</li>
+</ol><p><strong>Как писать <code>alt</code>:</strong></p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">img</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"kolodki.jpg"</span> <span class="hljs-attr">alt</span>=<span class="hljs-string">"Тормозные колодки Bosch для Toyota Camry"</span>&gt;</span>   ✅
+<span class="hljs-tag">&lt;<span class="hljs-name">img</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"kolodki.jpg"</span> <span class="hljs-attr">alt</span>=<span class="hljs-string">"картинка"</span>&gt;</span>                                    ❌
+<span class="hljs-tag">&lt;<span class="hljs-name">img</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"kolodki.jpg"</span> <span class="hljs-attr">alt</span>=<span class="hljs-string">""</span>&gt;</span>                                            ⚠️
+</code></pre><p>Пустой <code>alt=""</code> — это осознанное «картинка декоративная, читать нечего». Для узоров
+и разделителей так правильно. Для товара — нет.</p><h3><strong>Размеры</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">img</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"kolodki.jpg"</span> <span class="hljs-attr">alt</span>=<span class="hljs-string">"Колодки Bosch"</span> <span class="hljs-attr">width</span>=<span class="hljs-string">"300"</span> <span class="hljs-attr">height</span>=<span class="hljs-string">"200"</span>&gt;</span>
+</code></pre><p>Указывать размеры полезно: браузер заранее резервирует место, и страница не «прыгает»
+во время загрузки. Знакомое раздражение, когда читаешь текст, а он уезжает вниз, —
+это как раз незаданные размеры.</p><h3><strong>Форматы</strong></h3><table>
+<thead>
+<tr>
+<th>Формат</th>
+<th>Для чего</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>JPG</strong></td>
+<td>Фотографии товаров</td>
+</tr>
+<tr>
+<td><strong>PNG</strong></td>
+<td>Логотипы, картинки с прозрачностью</td>
+</tr>
+<tr>
+<td><strong>SVG</strong></td>
+<td>Иконки, схемы. Не мылятся при увеличении</td>
+</tr>
+<tr>
+<td><strong>WebP</strong></td>
+<td>Современный, весит меньше при том же качестве</td>
+</tr>
+</tbody>
+</table><p>⚠️ <strong>Главная ошибка новичка с картинками:</strong> залить фото прямо с телефона.
+Такое фото весит 5 МБ. Двадцать товаров — 100 МБ на одной странице.
+С мобильного интернета это не откроется никогда. Фото для сайта сжимают
+до 100–300 КБ.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Списки</span></div><h3><strong>Маркированный — когда порядок не важен</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">ul</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Тормозные колодки<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Тормозные диски<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Тормозная жидкость<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">ul</span>&gt;</span>
+</code></pre><p><code>&lt;ul&gt;</code> — <em>unordered list</em>, ненумерованный список. <code>&lt;li&gt;</code> — <em>list item</em>, пункт.</p><h3><strong>Нумерованный — когда порядок важен</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">ol</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Выберите товар<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Добавьте в корзину<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Оформите заказ<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">ol</span>&gt;</span>
+</code></pre><p><code>&lt;ol&gt;</code> — <em>ordered list</em>. Номера браузер расставляет сам — не пишите их руками,
+иначе при вставке нового пункта придётся перенумеровывать всё.</p><p><strong>Правило:</strong> можно переставить пункты местами без потери смысла — <code>&lt;ul&gt;</code>.
+Нельзя (это шаги, рейтинг, инструкция) — <code>&lt;ol&gt;</code>.</p><h3><strong>Вложенные списки</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">ul</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Тормозная система
+        <span class="hljs-tag">&lt;<span class="hljs-name">ul</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Колодки<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Диски<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">ul</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Двигатель<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">ul</span>&gt;</span>
+</code></pre><p>Внимание: вложенный список кладут <strong>внутрь <code>&lt;li&gt;</code></strong>, а не между ними. Так делают
+многоуровневые меню каталога.</p><h3><strong>Список описаний</strong></h3><p>Редкий, но очень удобный для характеристик товара:</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">dl</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">dt</span>&gt;</span>Производитель<span class="hljs-tag">&lt;/<span class="hljs-name">dt</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">dd</span>&gt;</span>Bosch<span class="hljs-tag">&lt;/<span class="hljs-name">dd</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">dt</span>&gt;</span>Артикул<span class="hljs-tag">&lt;/<span class="hljs-name">dt</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">dd</span>&gt;</span>0986424815<span class="hljs-tag">&lt;/<span class="hljs-name">dd</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">dt</span>&gt;</span>Гарантия<span class="hljs-tag">&lt;/<span class="hljs-name">dt</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">dd</span>&gt;</span>12 месяцев<span class="hljs-tag">&lt;/<span class="hljs-name">dd</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">dl</span>&gt;</span>
+</code></pre><p><code>&lt;dl&gt;</code> — список, <code>&lt;dt&gt;</code> — термин, <code>&lt;dd&gt;</code> — описание.</p></section><section class="vrezka v-kod"><div class="vrezka-shapka"><span class="vrezka-podpis">Код</span><span class="vrezka-zagolovok">Собираем всё вместе</span></div><p>Страница товара, использующая всё из этой главы:</p><pre><code class="language-html"><span class="hljs-meta">&lt;!DOCTYPE <span class="hljs-keyword">html</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">html</span> <span class="hljs-attr">lang</span>=<span class="hljs-string">"ru"</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">head</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">charset</span>=<span class="hljs-string">"UTF-8"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">title</span>&gt;</span>Тормозные колодки Bosch — Автозапчасти Firdavs<span class="hljs-tag">&lt;/<span class="hljs-name">title</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">head</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">body</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">header</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">h1</span>&gt;</span>Автозапчасти Firdavs<span class="hljs-tag">&lt;/<span class="hljs-name">h1</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">header</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">nav</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"/"</span>&gt;</span>Главная<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span> ·
+        <span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"/catalog"</span>&gt;</span>Каталог<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span> ·
+        <span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"/contacts"</span>&gt;</span>Контакты<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">nav</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">main</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">article</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">h2</span>&gt;</span>Тормозные колодки Bosch<span class="hljs-tag">&lt;/<span class="hljs-name">h2</span>&gt;</span>
+
+            <span class="hljs-tag">&lt;<span class="hljs-name">img</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"kolodki.jpg"</span> <span class="hljs-attr">alt</span>=<span class="hljs-string">"Тормозные колодки Bosch, комплект 4 штуки"</span>
+                 <span class="hljs-attr">width</span>=<span class="hljs-string">"320"</span> <span class="hljs-attr">height</span>=<span class="hljs-string">"240"</span>&gt;</span>
+
+            <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Артикул: <span class="hljs-tag">&lt;<span class="hljs-name">code</span>&gt;</span>0986424815<span class="hljs-tag">&lt;/<span class="hljs-name">code</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Цена: <span class="hljs-tag">&lt;<span class="hljs-name">s</span>&gt;</span>300<span class="hljs-tag">&lt;/<span class="hljs-name">s</span>&gt;</span> <span class="hljs-tag">&lt;<span class="hljs-name">strong</span>&gt;</span>250 сомони<span class="hljs-tag">&lt;/<span class="hljs-name">strong</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Состояние: <span class="hljs-tag">&lt;<span class="hljs-name">em</span>&gt;</span>в наличии, 7 комплектов<span class="hljs-tag">&lt;/<span class="hljs-name">em</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+
+            <span class="hljs-tag">&lt;<span class="hljs-name">h3</span>&gt;</span>Характеристики<span class="hljs-tag">&lt;/<span class="hljs-name">h3</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">dl</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">dt</span>&gt;</span>Производитель<span class="hljs-tag">&lt;/<span class="hljs-name">dt</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">dd</span>&gt;</span>Bosch, Германия<span class="hljs-tag">&lt;/<span class="hljs-name">dd</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">dt</span>&gt;</span>Подходит для<span class="hljs-tag">&lt;/<span class="hljs-name">dt</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">dd</span>&gt;</span>Toyota Camry 2011–2017<span class="hljs-tag">&lt;/<span class="hljs-name">dd</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">dt</span>&gt;</span>Гарантия<span class="hljs-tag">&lt;/<span class="hljs-name">dt</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">dd</span>&gt;</span>12 месяцев<span class="hljs-tag">&lt;/<span class="hljs-name">dd</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-name">dl</span>&gt;</span>
+
+            <span class="hljs-tag">&lt;<span class="hljs-name">h3</span>&gt;</span>Что входит в комплект<span class="hljs-tag">&lt;/<span class="hljs-name">h3</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">ul</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Колодки передние — 4 шт.<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Смазка направляющих<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Датчик износа<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-name">ul</span>&gt;</span>
+
+            <span class="hljs-tag">&lt;<span class="hljs-name">h3</span>&gt;</span>Как заказать<span class="hljs-tag">&lt;/<span class="hljs-name">h3</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">ol</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Позвоните или напишите нам<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Уточните марку и год автомобиля<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Заберите в Худжанде или закажите доставку<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-name">ol</span>&gt;</span>
+
+            <span class="hljs-tag">&lt;<span class="hljs-name">button</span>&gt;</span>Купить<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+
+            <span class="hljs-tag">&lt;<span class="hljs-name">hr</span>&gt;</span>
+
+            <span class="hljs-tag">&lt;<span class="hljs-name">blockquote</span>&gt;</span>Поставил на Камри — тормозит мягко, скрипа нет. Рекомендую.<span class="hljs-tag">&lt;/<span class="hljs-name">blockquote</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">small</span>&gt;</span>Отзыв покупателя, март 2026<span class="hljs-tag">&lt;/<span class="hljs-name">small</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">article</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">main</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">footer</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Худжанд, ул. Ленина 15<span class="hljs-tag">&lt;<span class="hljs-name">br</span>&gt;</span>
+        Телефон: <span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"tel:+992927777777"</span>&gt;</span>+992 92 777 77 77<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">small</span>&gt;</span>© 2026 Автозапчасти Firdavs<span class="hljs-tag">&lt;/<span class="hljs-name">small</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">footer</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">body</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">html</span>&gt;</span>
+</code></pre></section><section class="vrezka v-ekran"><div class="vrezka-shapka"><span class="vrezka-podpis">На экране</span><span class="vrezka-zagolovok">На экране</span></div><p><img src="img/06-tovar.png" alt="Страница товара со всеми элементами"></p><p>Опять некрасиво — и опять правильно. Зато посмотрите, <strong>сколько всего уже работает
+само по себе</strong>:</p><ul>
+<li>заголовки выстроились по важности;</li>
+<li>ссылки синие и подчёркнутые, нажимаются;</li>
+<li>список с точками, нумерованный — с цифрами;</li>
+<li>зачёркнутая старая цена рядом с новой;</li>
+<li>цитата отодвинута от края;</li>
+<li>характеристики выстроились в два уровня;</li>
+<li>телефон на мобильном будет звонить одним касанием.</li>
+</ul><p>Всё это браузер сделал сам, потому что вы <strong>правильно назвали каждую часть</strong>.
+Добавим CSS — и та же страница станет магазином.</p></section><section class="vrezka v-grabli"><div class="vrezka-shapka"><span class="vrezka-podpis">Грабли</span><span class="vrezka-zagolovok">Грабли</span></div><p><strong>Картинка не отображается.</strong> Три причины по частоте:
+неверный путь в <code>src</code> (проверьте регистр букв — <code>Kolodki.JPG</code> и <code>kolodki.jpg</code> для
+сервера разные файлы), файл не туда положили, опечатка в расширении.</p><p><strong><code>&lt;br&gt;</code> вместо абзацев.</strong> Признак кода, написанного наугад. Абзац — <code>&lt;p&gt;</code>.</p><p><strong>Ссылка без <code>href</code>.</strong> <code>&lt;a&gt;Каталог&lt;/a&gt;</code> — не ссылка, а просто текст.</p><p><strong>Ссылки на весь сайт в новой вкладке.</strong> Раздражает. <code>target="_blank"</code> — только
+для чужих сайтов.</p><p><strong>Фото по 5 МБ.</strong> Сожмите до 100–300 КБ, иначе сайт будет открываться минуту.</p><p><strong><code>alt="фото"</code>.</strong> Бессмысленно. Пишите, что на картинке, или ставьте пустой <code>alt=""</code>,
+если она декоративная.</p></section><section class="vrezka v-zadachi"><div class="vrezka-shapka"><span class="vrezka-podpis">Задачи</span><span class="vrezka-zagolovok">Задачи</span></div><p><strong>Задача 6.1.</strong> Сделайте страницу товара из примера у себя. Возьмите свой товар,
+не колодки.</p><p><strong>Задача 6.2.</strong> Найдите ошибки:</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">a</span>&gt;</span>Каталог<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">img</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"foto.jpg"</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">ul</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Первый пункт<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Второй пункт<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">ul</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">h1</span>&gt;</span>Заголовок<span class="hljs-tag">&lt;/<span class="hljs-name">h1</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">h1</span>&gt;</span>Другой заголовок<span class="hljs-tag">&lt;/<span class="hljs-name">h1</span>&gt;</span>
+</code></pre><p><strong>Задача 6.3.</strong> Что покажет браузер? Ответьте, не запуская:</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Один      два
+три<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+</code></pre><p><strong>Задача 6.4.</strong> Сделайте меню каталога вложенным списком, три раздела по два
+подраздела в каждом.</p><p><strong>Задача 6.5.</strong> Разметьте свою визитку: имя <code>&lt;h1&gt;</code>, должность абзацем,
+телефон ссылкой <code>tel:</code>, почта ссылкой <code>mailto:</code>, три навыка списком.</p><p><strong>Задача 6.6.</strong> Когда <code>&lt;ul&gt;</code>, а когда <code>&lt;ol&gt;</code>?</p><ol>
+<li>Список ингредиентов плова.</li>
+<li>Шаги приготовления плова.</li>
+<li>Топ-5 самых продаваемых товаров.</li>
+<li>Что входит в комплект поставки.</li>
+</ol><p><strong>Задача 6.7.</strong> Скачайте любое фото, положите рядом с <code>index.html</code> и вставьте
+на страницу с осмысленным <code>alt</code>. Потом специально сломайте путь в <code>src</code>
+и обновите — увидите, как выглядит <code>alt</code> в деле.</p><p><em>Ответы — в <a href="../prilozheniya/G-otvety.md">Приложении Г</a>.</em></p></section><section class="vrezka v-vboyu"><div class="vrezka-shapka"><span class="vrezka-podpis">В бою</span><span class="vrezka-zagolovok">В бою</span></div><p>Откройте <code>pages/</code> в этом репозитории и посмотрите, как в боевом коде выводятся
+характеристики товара и меню каталога. Найдёте те же <code>&lt;ul&gt;</code>, <code>&lt;li&gt;</code>, <code>&lt;a&gt;</code> и <code>&lt;img&gt;</code> —
+только значения в них подставляет PHP, а не человек руками.</p><p>Вот к чему мы идём: <strong>разметку пишете вы один раз, а данные в неё подставляются
+из базы</strong>. Одна страница товара обслуживает десять тысяч товаров.</p></section><section class="vrezka v-itog"><div class="vrezka-shapka"><span class="vrezka-podpis">Итог</span><span class="vrezka-zagolovok">Итог</span></div><ul>
+<li>Заголовки <code>&lt;h1&gt;</code>–<code>&lt;h6&gt;</code> — иерархия, а не размер. <code>&lt;h1&gt;</code> один на страницу.</li>
+<li>HTML <strong>сжимает пробелы и переносы</strong>. Форматируйте код как удобно.</li>
+<li><code>&lt;strong&gt;</code> — важное, <code>&lt;em&gt;</code> — ударение. <code>&lt;b&gt;</code> и <code>&lt;i&gt;</code> не используйте.</li>
+<li>Ссылка <code>&lt;a href="..."&gt;</code>. Внутри сайта — адреса <strong>от корня</strong>: <code>/catalog</code>.</li>
+<li><code>tel:</code> и <code>mailto:</code> — звонок и письмо одним касанием.</li>
+<li><code>&lt;img src="..." alt="..."&gt;</code> — <strong>одиночный</strong> тег. <code>alt</code> обязателен.</li>
+<li>Фото сжимать до 100–300 КБ. Не заливать прямо с телефона.</li>
+<li><code>&lt;ul&gt;</code> — порядок не важен, <code>&lt;ol&gt;</code> — важен, <code>&lt;dl&gt;</code> — характеристики.</li>
+</ul><p>Дальше — таблицы и формы: научимся принимать данные от покупателя.</p></section></div></article>
+<article class="glava" id="glava-7">
+    <header class="glava-shapka">
+      <div class="glava-metka">
+        <span class="glava-slovo">Глава</span>
+        <span class="glava-nomer">07</span>
+      </div>
+      <div class="glava-podpis">Часть II. HTML — скелет страницы</div>
+      <h1 class="glava-nazvanie">Таблицы и формы</h1>
+    </header><div class="telo"><section class="vrezka v-zachem"><div class="vrezka-shapka"><span class="vrezka-podpis">Зачем это</span><span class="vrezka-zagolovok">Зачем эта глава</span></div><p>До сих пор мы только <strong>показывали</strong> информацию. Теперь научимся двум вещам посерьёзнее:</p><ul>
+<li><strong>таблицы</strong> — показывать данные, у которых есть строки и столбцы;</li>
+<li><strong>формы</strong> — принимать данные <strong>от покупателя</strong>.</li>
+</ul><p>Форма — это первый раз, когда информация побежит в обратную сторону: не от сайта
+к человеку, а от человека к сайту. Регистрация, вход, поиск, заказ, отзыв — всё это формы.</p><p>Отправлять данные по-настоящему мы научимся в главе 24, когда появится PHP.
+Сейчас построим саму форму — и разберём каждое поле.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Таблицы</span></div><h3><strong>Когда таблица уместна, а когда нет</strong></h3><p>Сразу главное правило, потому что его нарушают постоянно:</p><p><strong>Таблица — для данных, у которых есть строки и столбцы.</strong> Прайс-лист, характеристики,
+расписание, отчёт о продажах.</p><p><strong>Таблица — не для раскладки страницы.</strong> Двадцать лет назад сайты верстали таблицами,
+потому что другого способа не было. Сегодня для раскладки есть Flexbox и Grid (глава 11),
+а таблица в этой роли ломает мобильную версию и мешает незрячим.</p><h3><strong>Из чего состоит таблица</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">table</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">thead</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">tr</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">th</span>&gt;</span>Товар<span class="hljs-tag">&lt;/<span class="hljs-name">th</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">th</span>&gt;</span>Артикул<span class="hljs-tag">&lt;/<span class="hljs-name">th</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">th</span>&gt;</span>Цена<span class="hljs-tag">&lt;/<span class="hljs-name">th</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">tr</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">thead</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">tbody</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">tr</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>Колодки Bosch<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>0986424815<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>250 сомони<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">tr</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">tr</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>Фильтр Mann<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>W71280<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>45 сомони<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">tr</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">tbody</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">table</span>&gt;</span>
+</code></pre><table>
+<thead>
+<tr>
+<th>Тег</th>
+<th>Расшифровка</th>
+<th>Что это</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;table&gt;</code></td>
+<td></td>
+<td>Вся таблица</td>
+</tr>
+<tr>
+<td><code>&lt;thead&gt;</code></td>
+<td><em>table head</em></td>
+<td>Шапка таблицы</td>
+</tr>
+<tr>
+<td><code>&lt;tbody&gt;</code></td>
+<td><em>table body</em></td>
+<td>Тело: собственно данные</td>
+</tr>
+<tr>
+<td><code>&lt;tr&gt;</code></td>
+<td><em>table row</em></td>
+<td><strong>Строка</strong></td>
+</tr>
+<tr>
+<td><code>&lt;th&gt;</code></td>
+<td><em>table header</em></td>
+<td><strong>Ячейка-заголовок</strong>. Жирная и по центру</td>
+</tr>
+<tr>
+<td><code>&lt;td&gt;</code></td>
+<td><em>table data</em></td>
+<td><strong>Обычная ячейка</strong> с данными</td>
+</tr>
+</tbody>
+</table><p>Логика такая: таблица состоит из <strong>строк</strong> (<code>&lt;tr&gt;</code>), а строка — из <strong>ячеек</strong>
+(<code>&lt;th&gt;</code> или <code>&lt;td&gt;</code>).</p><p>⚠️ Частая путаница: люди пытаются описать таблицу по столбцам. Нельзя.
+HTML знает только строки. Столбцы получаются сами, когда в каждой строке
+одинаковое число ячеек.</p><h3><strong>Объединение ячеек</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">tr</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">td</span> <span class="hljs-attr">colspan</span>=<span class="hljs-string">"2"</span>&gt;</span>Занимает два столбца<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>Обычная<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">tr</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">tr</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">td</span> <span class="hljs-attr">rowspan</span>=<span class="hljs-string">"2"</span>&gt;</span>Занимает две строки<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>Ячейка<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">tr</span>&gt;</span>
+</code></pre><p><code>colspan</code> — объединить по горизонтали, <code>rowspan</code> — по вертикали. Как в Excel.</p><h3><strong>Подпись</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">table</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">caption</span>&gt;</span>Прайс-лист на тормозную систему, март 2026<span class="hljs-tag">&lt;/<span class="hljs-name">caption</span>&gt;</span>
+    ...
+<span class="hljs-tag">&lt;/<span class="hljs-name">table</span>&gt;</span>
+</code></pre><p><code>&lt;caption&gt;</code> — заголовок таблицы. Пишется сразу после <code>&lt;table&gt;</code>. Полезен и людям,
+и незрячим.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Формы</span></div><p>Теперь главное в этой главе.</p><h3><strong>Что такое форма</strong></h3><p><strong>Форма — это конверт, в который складывают данные и отправляют на сервер.</strong></p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">form</span> <span class="hljs-attr">action</span>=<span class="hljs-string">"/order.php"</span> <span class="hljs-attr">method</span>=<span class="hljs-string">"POST"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"text"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"phone"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"submit"</span>&gt;</span>Отправить<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">form</span>&gt;</span>
+</code></pre><table>
+<thead>
+<tr>
+<th>Часть</th>
+<th>Что делает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;form&gt;</code></td>
+<td>Сам конверт. Всё внутри отправится вместе</td>
+</tr>
+<tr>
+<td><code>action</code></td>
+<td><strong>Куда отправить.</strong> Адрес обработчика на сервере</td>
+</tr>
+<tr>
+<td><code>method</code></td>
+<td><strong>Как отправить.</strong> <code>GET</code> или <code>POST</code></td>
+</tr>
+<tr>
+<td><code>&lt;input&gt;</code></td>
+<td>Поле для ввода</td>
+</tr>
+<tr>
+<td><code>&lt;button type="submit"&gt;</code></td>
+<td>Кнопка «отправить»</td>
+</tr>
+</tbody>
+</table><h3><strong>GET или POST</strong></h3><p>Помните из главы 2? Теперь применим.</p><table>
+<thead>
+<tr>
+<th></th>
+<th>GET</th>
+<th>POST</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Где едут данные</td>
+<td>В адресной строке</td>
+<td>Внутри письма, не видно</td>
+</tr>
+<tr>
+<td>Видно в адресе</td>
+<td><code>?q=kolodki&amp;brand=bosch</code></td>
+<td>Ничего не видно</td>
+</tr>
+<tr>
+<td>Можно ли добавить в закладки</td>
+<td>Да</td>
+<td>Нет</td>
+</tr>
+<tr>
+<td>Ограничение по размеру</td>
+<td>Есть, около 2000 символов</td>
+<td>Практически нет</td>
+</tr>
+<tr>
+<td>Для чего</td>
+<td><strong>Поиск, фильтры</strong></td>
+<td><strong>Заказы, вход, регистрация</strong></td>
+</tr>
+</tbody>
+</table><p><strong>Простое правило:</strong> данные, которые не жалко показать в адресной строке и которыми
+хочется поделиться ссылкой, — GET. Всё остальное — POST.</p><p>Пароль в адресной строке — это пароль в истории браузера, в логах сервера
+и в закладках. Поэтому вход — только POST.</p><h3><strong>Атрибут <code>name</code> — самый важный</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"text"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"phone"</span>&gt;</span>
+</code></pre><p><strong>Без <code>name</code> поле не отправится вообще.</strong> Совсем. Человек заполнит, нажмёт кнопку,
+данные потеряются.</p><p>Почему: <code>name</code> — это <strong>подпись на данных</strong>. Сервер получит <code>phone=992927777777</code>
+и по слову <code>phone</code> поймёт, что это телефон. Без подписи он получит непонятную строку
+без имени и просто её выбросит.</p><p>Запомните: <strong>нет <code>name</code> — нет данных.</strong> Это ошибка номер один в формах.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Виды полей</span></div><p><code>&lt;input&gt;</code> — один тег, но его поведение полностью меняется атрибутом <code>type</code>.</p><h3><strong>Текстовые</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"text"</span>     <span class="hljs-attr">name</span>=<span class="hljs-string">"name"</span>    <span class="hljs-attr">placeholder</span>=<span class="hljs-string">"Ваше имя"</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"email"</span>    <span class="hljs-attr">name</span>=<span class="hljs-string">"email"</span>   <span class="hljs-attr">placeholder</span>=<span class="hljs-string">"pochta@example.com"</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"tel"</span>      <span class="hljs-attr">name</span>=<span class="hljs-string">"phone"</span>   <span class="hljs-attr">placeholder</span>=<span class="hljs-string">"+992 __ ___ __ __"</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"password"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"password"</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"number"</span>   <span class="hljs-attr">name</span>=<span class="hljs-string">"qty"</span>     <span class="hljs-attr">min</span>=<span class="hljs-string">"1"</span> <span class="hljs-attr">max</span>=<span class="hljs-string">"99"</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"1"</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"search"</span>   <span class="hljs-attr">name</span>=<span class="hljs-string">"q"</span>       <span class="hljs-attr">placeholder</span>=<span class="hljs-string">"Поиск по каталогу"</span>&gt;</span>
+</code></pre><table>
+<thead>
+<tr>
+<th>type</th>
+<th>Что даёт</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>text</code></td>
+<td>Обычная строка</td>
+</tr>
+<tr>
+<td><code>email</code></td>
+<td>Браузер проверит, что есть <code>@</code>. На телефоне — клавиатура с <code>@</code></td>
+</tr>
+<tr>
+<td><code>tel</code></td>
+<td>На телефоне откроется <strong>цифровая</strong> клавиатура</td>
+</tr>
+<tr>
+<td><code>password</code></td>
+<td>Символы прячутся за точками</td>
+</tr>
+<tr>
+<td><code>number</code></td>
+<td>Только числа, появляются стрелочки. <code>min</code> и <code>max</code> ограничивают</td>
+</tr>
+<tr>
+<td><code>search</code></td>
+<td>Поле поиска, у него появляется крестик очистки</td>
+</tr>
+</tbody>
+</table><p><strong>Про мобильную клавиатуру — недооценённая мелочь.</strong> Поставили <code>type="tel"</code> —
+человек на телефоне сразу видит цифры вместо букв. Не поставили — он мучается,
+переключая раскладку. Такие детали и отличают удобный сайт от неудобного.</p><h3><strong>Выбор</strong></h3><pre><code class="language-html"><span class="hljs-comment">&lt;!-- Один из нескольких --&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"radio"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"dostavka"</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"samovyvoz"</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"d1"</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">label</span> <span class="hljs-attr">for</span>=<span class="hljs-string">"d1"</span>&gt;</span>Самовывоз<span class="hljs-tag">&lt;/<span class="hljs-name">label</span>&gt;</span>
+
+<span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"radio"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"dostavka"</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"kurier"</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"d2"</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">label</span> <span class="hljs-attr">for</span>=<span class="hljs-string">"d2"</span>&gt;</span>Курьером<span class="hljs-tag">&lt;/<span class="hljs-name">label</span>&gt;</span>
+
+<span class="hljs-comment">&lt;!-- Галочка --&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"checkbox"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"soglasie"</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"s1"</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">label</span> <span class="hljs-attr">for</span>=<span class="hljs-string">"s1"</span>&gt;</span>Согласен на обработку данных<span class="hljs-tag">&lt;/<span class="hljs-name">label</span>&gt;</span>
+</code></pre><p><strong>Ключевая разница:</strong></p><ul>
+<li><strong>radio</strong> — выбрать <strong>одно</strong> из нескольких. Чтобы они работали как группа,
+у них должен быть <strong>одинаковый <code>name</code></strong>. Это самая частая ошибка: разные <code>name</code> —
+и можно выбрать все варианты сразу.</li>
+<li><strong>checkbox</strong> — включить или выключить. Каждый сам по себе.</li>
+</ul><h3><strong>Выпадающий список</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">select</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"brand"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">option</span> <span class="hljs-attr">value</span>=<span class="hljs-string">""</span>&gt;</span>Все бренды<span class="hljs-tag">&lt;/<span class="hljs-name">option</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">option</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"bosch"</span>&gt;</span>Bosch<span class="hljs-tag">&lt;/<span class="hljs-name">option</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">option</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"mann"</span> <span class="hljs-attr">selected</span>&gt;</span>Mann<span class="hljs-tag">&lt;/<span class="hljs-name">option</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">option</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"denso"</span>&gt;</span>Denso<span class="hljs-tag">&lt;/<span class="hljs-name">option</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">select</span>&gt;</span>
+</code></pre><p><code>value</code> — что уйдёт на сервер, текст между тегами — что видит человек.
+<code>selected</code> — вариант по умолчанию.</p><h3><strong>Большое поле для текста</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">textarea</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"comment"</span> <span class="hljs-attr">rows</span>=<span class="hljs-string">"4"</span> <span class="hljs-attr">placeholder</span>=<span class="hljs-string">"Комментарий к заказу"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">textarea</span>&gt;</span>
+</code></pre><p>⚠️ У <code>&lt;textarea&gt;</code> <strong>есть закрывающий тег</strong>, в отличие от <code>&lt;input&gt;</code>. И значение
+по умолчанию пишется <strong>между тегами</strong>, а не в атрибут <code>value</code>.</p><h3><strong>Прочее</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"date"</span>   <span class="hljs-attr">name</span>=<span class="hljs-string">"dostavka_data"</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"file"</span>   <span class="hljs-attr">name</span>=<span class="hljs-string">"foto"</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"hidden"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"tovar_id"</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"42"</span>&gt;</span>
+</code></pre><p><code>hidden</code> — скрытое поле. Человек его не видит, но оно отправится вместе с формой.
+Так передают служебные данные: номер товара, защитный токен.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok"><label> — обязательная вещь</label></span></div><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">label</span> <span class="hljs-attr">for</span>=<span class="hljs-string">"phone"</span>&gt;</span>Телефон<span class="hljs-tag">&lt;/<span class="hljs-name">label</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"tel"</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"phone"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"phone"</span>&gt;</span>
+</code></pre><p>Связка простая: <strong><code>for</code> у метки совпадает с <code>id</code> у поля</strong>.</p><p>Зачем это нужно:</p><ol>
+<li><strong>Клик по надписи ставит курсор в поле.</strong> Особенно важно для маленьких галочек:
+попасть пальцем в квадратик 15×15 на телефоне трудно, а в надпись рядом — легко.</li>
+<li><strong>Программы для незрячих прочитают, что это за поле.</strong> Без метки человек услышит
+«поле ввода» и не узнает, что туда вводить.</li>
+</ol><p><strong>Правило: каждое поле должно иметь <code>&lt;label&gt;</code>.</strong> Без исключений.</p><p>⚠️ <code>placeholder</code> — <strong>не замена метки</strong>. Он исчезает, как только человек начинает
+печатать. Заполнили полформы, отвлеклись — и уже не помните, что в каком поле.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Проверка прямо в браузере</span></div><p>Браузер умеет проверять поля сам, без единой строчки кода:</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"email"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"email"</span> <span class="hljs-attr">required</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"tel"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"phone"</span> <span class="hljs-attr">required</span> <span class="hljs-attr">pattern</span>=<span class="hljs-string">"[0-9+ ]{9,20}"</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"number"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"qty"</span> <span class="hljs-attr">min</span>=<span class="hljs-string">"1"</span> <span class="hljs-attr">max</span>=<span class="hljs-string">"99"</span> <span class="hljs-attr">required</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"text"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"name"</span> <span class="hljs-attr">minlength</span>=<span class="hljs-string">"2"</span> <span class="hljs-attr">maxlength</span>=<span class="hljs-string">"50"</span> <span class="hljs-attr">required</span>&gt;</span>
+</code></pre><table>
+<thead>
+<tr>
+<th>Атрибут</th>
+<th>Что проверяет</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>required</code></td>
+<td>Поле обязательное, пустым не отправится</td>
+</tr>
+<tr>
+<td><code>min</code> / <code>max</code></td>
+<td>Границы для чисел</td>
+</tr>
+<tr>
+<td><code>minlength</code> / <code>maxlength</code></td>
+<td>Длина текста</td>
+</tr>
+<tr>
+<td><code>pattern</code></td>
+<td>Соответствие шаблону</td>
+</tr>
+</tbody>
+</table><p>Очень удобно. Но запомните намертво — мы вернёмся к этому в главе 36:</p><p>⚠️ <strong>Проверка в браузере — это удобство, а не защита.</strong> Её отключают за десять секунд
+через F12. Все данные <strong>обязательно</strong> проверяются ещё раз на сервере в PHP.
+Всегда. Без исключений.</p></section><section class="vrezka v-kod"><div class="vrezka-shapka"><span class="vrezka-podpis">Код</span><span class="vrezka-zagolovok">Форма заказа целиком</span></div><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">h2</span>&gt;</span>Оформление заказа<span class="hljs-tag">&lt;/<span class="hljs-name">h2</span>&gt;</span>
+
+<span class="hljs-tag">&lt;<span class="hljs-name">form</span> <span class="hljs-attr">action</span>=<span class="hljs-string">"/order.php"</span> <span class="hljs-attr">method</span>=<span class="hljs-string">"POST"</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"hidden"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"tovar_id"</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"42"</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">label</span> <span class="hljs-attr">for</span>=<span class="hljs-string">"name"</span>&gt;</span>Ваше имя<span class="hljs-tag">&lt;/<span class="hljs-name">label</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">br</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"text"</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"name"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"name"</span> <span class="hljs-attr">required</span> <span class="hljs-attr">minlength</span>=<span class="hljs-string">"2"</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">label</span> <span class="hljs-attr">for</span>=<span class="hljs-string">"phone"</span>&gt;</span>Телефон<span class="hljs-tag">&lt;/<span class="hljs-name">label</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">br</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"tel"</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"phone"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"phone"</span> <span class="hljs-attr">required</span> <span class="hljs-attr">placeholder</span>=<span class="hljs-string">"+992 __ ___ __ __"</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">label</span> <span class="hljs-attr">for</span>=<span class="hljs-string">"qty"</span>&gt;</span>Количество<span class="hljs-tag">&lt;/<span class="hljs-name">label</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">br</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"number"</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"qty"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"qty"</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"1"</span> <span class="hljs-attr">min</span>=<span class="hljs-string">"1"</span> <span class="hljs-attr">max</span>=<span class="hljs-string">"20"</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">label</span> <span class="hljs-attr">for</span>=<span class="hljs-string">"brand"</span>&gt;</span>Предпочитаемый бренд<span class="hljs-tag">&lt;/<span class="hljs-name">label</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">br</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">select</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"brand"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"brand"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">option</span> <span class="hljs-attr">value</span>=<span class="hljs-string">""</span>&gt;</span>Любой<span class="hljs-tag">&lt;/<span class="hljs-name">option</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">option</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"bosch"</span>&gt;</span>Bosch<span class="hljs-tag">&lt;/<span class="hljs-name">option</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">option</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"mann"</span>&gt;</span>Mann<span class="hljs-tag">&lt;/<span class="hljs-name">option</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">select</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">fieldset</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">legend</span>&gt;</span>Способ получения<span class="hljs-tag">&lt;/<span class="hljs-name">legend</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"radio"</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"d1"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"dostavka"</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"samovyvoz"</span> <span class="hljs-attr">checked</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">label</span> <span class="hljs-attr">for</span>=<span class="hljs-string">"d1"</span>&gt;</span>Самовывоз, Худжанд<span class="hljs-tag">&lt;/<span class="hljs-name">label</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">br</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"radio"</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"d2"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"dostavka"</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"kurier"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">label</span> <span class="hljs-attr">for</span>=<span class="hljs-string">"d2"</span>&gt;</span>Доставка курьером<span class="hljs-tag">&lt;/<span class="hljs-name">label</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">fieldset</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">label</span> <span class="hljs-attr">for</span>=<span class="hljs-string">"comment"</span>&gt;</span>Комментарий<span class="hljs-tag">&lt;/<span class="hljs-name">label</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">br</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">textarea</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"comment"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"comment"</span> <span class="hljs-attr">rows</span>=<span class="hljs-string">"3"</span>
+                  <span class="hljs-attr">placeholder</span>=<span class="hljs-string">"Марка, год, объём двигателя"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">textarea</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"checkbox"</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"soglasie"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"soglasie"</span> <span class="hljs-attr">required</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">label</span> <span class="hljs-attr">for</span>=<span class="hljs-string">"soglasie"</span>&gt;</span>Согласен на обработку данных<span class="hljs-tag">&lt;/<span class="hljs-name">label</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"submit"</span>&gt;</span>Оформить заказ<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">form</span>&gt;</span>
+</code></pre><p>Новый тег: <code>&lt;fieldset&gt;</code> группирует связанные поля, а <code>&lt;legend&gt;</code> даёт группе название.
+Полезно для радиокнопок.</p></section><section class="vrezka v-ekran"><div class="vrezka-shapka"><span class="vrezka-podpis">На экране</span><span class="vrezka-zagolovok">На экране</span></div><p><img src="img/07-forma.png" alt="Таблица и форма заказа"></p><p>Нажмите «Оформить заказ», не заполнив поля, — браузер сам покажет подсказку
+«Заполните это поле». Это работает <code>required</code>, и мы не написали ни строчки кода.</p><p>Форма пока никуда не отправляет — обработчика <code>/order.php</code> не существует.
+Сделаем его в главе 24.</p></section><section class="vrezka v-razbor"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбор по словам</span><span class="vrezka-zagolovok">Разбор по словам</span></div><table>
+<thead>
+<tr>
+<th>Слово</th>
+<th>Что означает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;table&gt;</code> / <code>&lt;tr&gt;</code> / <code>&lt;th&gt;</code> / <code>&lt;td&gt;</code></td>
+<td>Таблица / строка / ячейка-заголовок / ячейка данных</td>
+</tr>
+<tr>
+<td><code>colspan</code> / <code>rowspan</code></td>
+<td>Объединить ячейки по горизонтали / вертикали</td>
+</tr>
+<tr>
+<td><code>&lt;form&gt;</code></td>
+<td>Конверт для данных</td>
+</tr>
+<tr>
+<td><code>action</code></td>
+<td>Куда отправлять</td>
+</tr>
+<tr>
+<td><code>method</code></td>
+<td>Как отправлять: GET или POST</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td><strong>Подпись на данных.</strong> Без него данные не дойдут</td>
+</tr>
+<tr>
+<td><code>value</code></td>
+<td>Значение, которое уйдёт на сервер</td>
+</tr>
+<tr>
+<td><code>&lt;label for="..."&gt;</code></td>
+<td>Подпись к полю, связана с <code>id</code></td>
+</tr>
+<tr>
+<td><code>placeholder</code></td>
+<td>Серая подсказка внутри поля. Исчезает при вводе</td>
+</tr>
+<tr>
+<td><code>required</code></td>
+<td>Обязательное поле</td>
+</tr>
+<tr>
+<td><code>&lt;fieldset&gt;</code> / <code>&lt;legend&gt;</code></td>
+<td>Группа полей / её название</td>
+</tr>
+<tr>
+<td><code>type="hidden"</code></td>
+<td>Невидимое поле для служебных данных</td>
+</tr>
+</tbody>
+</table></section><section class="vrezka v-grabli"><div class="vrezka-shapka"><span class="vrezka-podpis">Грабли</span><span class="vrezka-zagolovok">Грабли</span></div><p><strong>Забыть <code>name</code>.</strong> Поле не отправится. Проверяйте в первую очередь.</p><p><strong>Разные <code>name</code> у радиокнопок.</strong> Они перестают быть группой — можно выбрать всё сразу.</p><p><strong><code>placeholder</code> вместо <code>&lt;label&gt;</code>.</strong> Подсказка исчезает при вводе, и человек забывает,
+что заполняет.</p><p><strong>Верить проверке в браузере.</strong> Отключается за секунды. Проверяйте на сервере.</p><p><strong>Пароль методом GET.</strong> Он окажется в адресной строке, истории и логах.
+Только POST.</p><p><strong>Таблица для раскладки страницы.</strong> Ломает мобильную версию. Для раскладки — CSS.</p><p><strong>Кнопка без <code>type</code>.</strong> Внутри формы кнопка по умолчанию отправляет её. Если кнопка
+нужна для другого — пишите <code>type="button"</code>.</p></section><section class="vrezka v-zadachi"><div class="vrezka-shapka"><span class="vrezka-podpis">Задачи</span><span class="vrezka-zagolovok">Задачи</span></div><p><strong>Задача 7.1.</strong> Сделайте таблицу-прайс на пять товаров: название, артикул, бренд,
+цена, наличие. С шапкой <code>&lt;thead&gt;</code> и подписью <code>&lt;caption&gt;</code>.</p><p><strong>Задача 7.2.</strong> Найдите три ошибки:</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">form</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"text"</span> <span class="hljs-attr">placeholder</span>=<span class="hljs-string">"Имя"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"radio"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"a"</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"1"</span>&gt;</span> Первый
+    <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"radio"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"b"</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"2"</span>&gt;</span> Второй
+    <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"password"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"pass"</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">form</span>&gt;</span>
+</code></pre><p><strong>Задача 7.3.</strong> Какой <code>type</code> подойдёт лучше всего?</p><ol>
+<li>Год выпуска автомобиля.</li>
+<li>Адрес электронной почты.</li>
+<li>Номер телефона.</li>
+<li>Согласие с условиями.</li>
+<li>Выбор города из двадцати.</li>
+<li>Выбор одного из трёх способов оплаты.</li>
+<li>Пароль при регистрации.</li>
+</ol><p><strong>Задача 7.4.</strong> Сделайте форму поиска по каталогу: строка поиска, выпадающий список
+брендов, поля «цена от» и «цена до», кнопка. Какой метод здесь правильный — GET
+или POST? Объясните почему.</p><p><strong>Задача 7.5.</strong> Сделайте форму обратной связи: имя, телефон, тема (выпадающий список),
+сообщение (textarea), галочка согласия. Все поля с <code>&lt;label&gt;</code> и обязательные.</p><p><strong>Задача 7.6.</strong> Откройте форму входа на любом сайте, нажмите F12 → Elements
+и найдите поля. Какой у формы <code>method</code>? Какие <code>name</code> у полей?</p><p><strong>Задача 7.7.</strong> Проверьте свою форму: нажмите отправить с пустыми полями.
+Появилась подсказка браузера? Теперь уберите <code>required</code> у одного поля
+и попробуйте снова.</p><p><em>Ответы — в <a href="../prilozheniya/G-otvety.md">Приложении Г</a>.</em></p></section><section class="vrezka v-vboyu"><div class="vrezka-shapka"><span class="vrezka-podpis">В бою</span><span class="vrezka-zagolovok">В бою</span></div><p>Найдите в этом репозитории <code>auth/</code> — там формы входа и регистрации настоящего магазина.
+Посмотрите: у всех <code>method="POST"</code>, у всех полей есть <code>name</code>, есть скрытые поля
+со служебными данными.</p><p>Одно такое скрытое поле особенно интересное — <strong>CSRF-токен</strong>. Это защита от подделки
+запроса: злоумышленник не сможет отправить форму от вашего имени с чужого сайта.
+Разберём его в главе 36.</p></section><section class="vrezka v-itog"><div class="vrezka-shapka"><span class="vrezka-podpis">Итог</span><span class="vrezka-zagolovok">Итог</span></div><ul>
+<li>Таблица — для <strong>данных со строками и столбцами</strong>, не для раскладки.</li>
+<li><code>&lt;tr&gt;</code> — строка, <code>&lt;th&gt;</code> — заголовок, <code>&lt;td&gt;</code> — данные. Столбцов в HTML нет,
+они получаются сами.</li>
+<li>Форма — конверт. <code>action</code> — куда, <code>method</code> — как.</li>
+<li><strong>GET</strong> для поиска и фильтров, <strong>POST</strong> для заказов, входа, регистрации.</li>
+<li><strong><code>name</code> обязателен.</strong> Нет <code>name</code> — данные не дойдут.</li>
+<li>Радиокнопки одной группы имеют <strong>одинаковый <code>name</code></strong>.</li>
+<li><strong><code>&lt;label for&gt;</code> для каждого поля.</strong> <code>placeholder</code> его не заменяет.</li>
+<li>Проверка в браузере — удобство, <strong>защита только на сервере</strong>.</li>
+</ul><p>Следующая глава — практическая. Соберём полноценный каталог и закрепим весь HTML.</p></section></div></article>
+<article class="glava" id="glava-8">
+    <header class="glava-shapka">
+      <div class="glava-metka">
+        <span class="glava-slovo">Глава</span>
+        <span class="glava-nomer">08</span>
+      </div>
+      <div class="glava-podpis">Часть II. HTML — скелет страницы</div>
+      <h1 class="glava-nazvanie">Практика: карточка товара и каталог</h1>
+    </header><div class="telo"><section class="vrezka v-zachem"><div class="vrezka-shapka"><span class="vrezka-podpis">Зачем это</span><span class="vrezka-zagolovok">Зачем эта глава</span></div><p>Четыре главы мы разбирали теги поодиночке. Пора собрать из них настоящую страницу.</p><p>Сегодня вы сделаете <strong>главную страницу магазина</strong> целиком: шапку с меню, фильтры,
+каталог из шести товаров, подвал с контактами. Это будет тот самый файл, который
+мы будем улучшать всю оставшуюся книгу — сначала оформим в CSS, потом оживим
+на JavaScript, потом начнём подставлять товары из базы данных.</p><p>Новых тегов почти не будет. Будет <strong>сборка</strong> и несколько приёмов, о которых
+в учебниках обычно молчат.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Сначала — план</span></div><p>Профессиональный приём, который экономит часы: <strong>прежде чем писать теги, набросайте
+структуру словами</strong>.</p><p>Что должно быть на главной странице магазина?</p><pre><code>Шапка
+    Название магазина
+    Меню: Каталог, Доставка, Контакты
+    Строка поиска
+
+Основная часть
+    Заголовок «Каталог запчастей»
+    Фильтры: бренд, цена от/до
+    Список товаров, у каждого:
+        фото
+        название
+        артикул
+        цена
+        наличие
+        кнопка «Купить»
+
+Подвал
+    Адрес и телефон
+    Копирайт
+</code></pre><p>Теперь у каждой строчки этого плана есть подходящий тег. План превращается в код
+почти механически:</p><table>
+<thead>
+<tr>
+<th>План</th>
+<th>Тег</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Шапка</td>
+<td><code>&lt;header&gt;</code></td>
+</tr>
+<tr>
+<td>Меню</td>
+<td><code>&lt;nav&gt;</code> + <code>&lt;ul&gt;</code> + <code>&lt;li&gt;</code> + <code>&lt;a&gt;</code></td>
+</tr>
+<tr>
+<td>Строка поиска</td>
+<td><code>&lt;form&gt;</code> + <code>&lt;input type="search"&gt;</code></td>
+</tr>
+<tr>
+<td>Основная часть</td>
+<td><code>&lt;main&gt;</code></td>
+</tr>
+<tr>
+<td>Каждый товар</td>
+<td><code>&lt;article&gt;</code></td>
+</tr>
+<tr>
+<td>Фото</td>
+<td><code>&lt;img&gt;</code></td>
+</tr>
+<tr>
+<td>Цена</td>
+<td><code>&lt;p&gt;</code> + <code>&lt;strong&gt;</code></td>
+</tr>
+<tr>
+<td>Подвал</td>
+<td><code>&lt;footer&gt;</code></td>
+</tr>
+</tbody>
+</table><p><strong>Совет:</strong> делайте так всегда, особенно на первых порах. Гораздо легче править план
+из десяти строк, чем распутывать сто строк готового кода.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Собираем карточку товара</span></div><p>Начнём с одного товара — потом просто повторим.</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">article</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"tovar"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">img</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"images/kolodki.jpg"</span> <span class="hljs-attr">alt</span>=<span class="hljs-string">"Тормозные колодки Bosch для Toyota Camry"</span>
+         <span class="hljs-attr">width</span>=<span class="hljs-string">"280"</span> <span class="hljs-attr">height</span>=<span class="hljs-string">"210"</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">h3</span>&gt;</span>Тормозные колодки Bosch<span class="hljs-tag">&lt;/<span class="hljs-name">h3</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"artikul"</span>&gt;</span>Артикул: <span class="hljs-tag">&lt;<span class="hljs-name">code</span>&gt;</span>0986424815<span class="hljs-tag">&lt;/<span class="hljs-name">code</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"cena"</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">strong</span>&gt;</span>250<span class="hljs-tag">&lt;/<span class="hljs-name">strong</span>&gt;</span> сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"nalichie"</span>&gt;</span>В наличии: 7 шт.<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">form</span> <span class="hljs-attr">action</span>=<span class="hljs-string">"/cart.php"</span> <span class="hljs-attr">method</span>=<span class="hljs-string">"POST"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"hidden"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"tovar_id"</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"1"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"submit"</span>&gt;</span>В корзину<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">form</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">article</span>&gt;</span>
+</code></pre><p>Что здесь важного:</p><p><strong>Заголовок товара — <code>&lt;h3&gt;</code>, а не <code>&lt;h1&gt;</code>.</strong> Потому что <code>&lt;h1&gt;</code> уже занят названием
+магазина, <code>&lt;h2&gt;</code> — заголовком «Каталог». Товар — третий уровень. Иерархия соблюдена.</p><p><strong>Классы расставлены заранее.</strong> <code>tovar</code>, <code>cena</code>, <code>nalichie</code> пока ничего не делают —
+CSS-то нет. Но в главе 9 мы по ним найдём элементы и оформим. Привыкайте называть
+части сразу.</p><p><strong>Кнопка внутри формы.</strong> Товар в корзину — это изменение данных, значит POST.
+Скрытое поле передаёт, какой именно товар положить.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Три приёма, о которых обычно молчат</span></div><h3><strong>1. Комментарии в коде</strong></h3><pre><code class="language-html"><span class="hljs-comment">&lt;!-- Шапка сайта --&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">header</span>&gt;</span>
+    ...
+<span class="hljs-tag">&lt;/<span class="hljs-name">header</span>&gt;</span>
+<span class="hljs-comment">&lt;!-- /Шапка --&gt;</span>
+</code></pre><p>Всё между <code>&lt;!--</code> и <code>--&gt;</code> браузер игнорирует. Это заметки для человека.</p><p>Зачем: когда файл вырастет до трёхсот строк, комментарии станут указателями.
+Особенно полезно помечать <strong>конец</strong> большого блока — сразу видно, какой <code>&lt;/div&gt;</code>
+что закрывает.</p><p>⚠️ HTML-комментарии видны в исходном коде страницы любому. Никогда не пишите в них
+пароли, заметки вроде «тут костыль, не трогать» или служебные адреса.</p><h3><strong>2. <code>&amp;nbsp;</code> — неразрывный пробел</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Цена: 250<span class="hljs-symbol">&amp;nbsp;</span>сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Телефон: +992<span class="hljs-symbol">&amp;nbsp;</span>92<span class="hljs-symbol">&amp;nbsp;</span>777<span class="hljs-symbol">&amp;nbsp;</span>77<span class="hljs-symbol">&amp;nbsp;</span>77<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+</code></pre><p>Обычный пробел позволяет браузеру перенести строку. Иногда это уродливо:</p><pre><code>Цена: 250
+сомони
+</code></pre><p><code>&amp;nbsp;</code> — пробел, по которому <strong>нельзя переносить</strong>. Число и единица измерения
+останутся вместе.</p><p>Где ставить: между числом и единицей (<code>250&amp;nbsp;сомони</code>, <code>12&amp;nbsp;мес</code>), в номерах
+телефонов, между инициалами и фамилией.</p><p>Такие записи называются <strong>спецсимволами</strong> и всегда начинаются с <code>&amp;</code>:</p><table>
+<thead>
+<tr>
+<th>Запись</th>
+<th>Что даёт</th>
+<th>Зачем</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&amp;nbsp;</code></td>
+<td>Неразрывный пробел</td>
+<td>Не разрывать «250 сомони»</td>
+</tr>
+<tr>
+<td><code>&amp;mdash;</code></td>
+<td>—</td>
+<td>Тире по-русски</td>
+</tr>
+<tr>
+<td><code>&amp;laquo;</code> <code>&amp;raquo;</code></td>
+<td>« »</td>
+<td>Кавычки-ёлочки</td>
+</tr>
+<tr>
+<td><code>&amp;copy;</code></td>
+<td>©</td>
+<td>Копирайт</td>
+</tr>
+<tr>
+<td><code>&amp;lt;</code> <code>&amp;gt;</code></td>
+<td>&lt; &gt;</td>
+<td>Показать уголки как текст</td>
+</tr>
+<tr>
+<td><code>&amp;amp;</code></td>
+<td>&amp;</td>
+<td>Показать сам амперсанд</td>
+</tr>
+</tbody>
+</table><p>Последние три обязательны, если нужно <strong>написать теги как текст</strong>. Иначе браузер
+попытается их выполнить.</p><h3><strong>3. Один товар — потом копия</strong></h3><p>Не пишите шесть карточек подряд руками. Сделайте <strong>одну и отладьте её</strong>, а потом
+копируйте.</p><p>Почему это важно: если в единственной карточке ошибка, вы поправите её один раз.
+Если вы уже размножили карточку с ошибкой на шесть штук — править придётся шесть раз,
+и обязательно где-то забудете.</p><p>Это, кстати, прямая дорога к главному принципу программирования, который встретится
+в главе 23: <strong>не повторяйся</strong>. Скоро мы вообще перестанем копировать карточки —
+их будет создавать PHP в цикле.</p></section><section class="vrezka v-kod"><div class="vrezka-shapka"><span class="vrezka-podpis">Код</span><span class="vrezka-zagolovok">Главная страница целиком</span></div><p>Вот полный файл. Наберите его — это ваш магазин.</p><pre><code class="language-html"><span class="hljs-meta">&lt;!DOCTYPE <span class="hljs-keyword">html</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">html</span> <span class="hljs-attr">lang</span>=<span class="hljs-string">"ru"</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">head</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">charset</span>=<span class="hljs-string">"UTF-8"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"viewport"</span> <span class="hljs-attr">content</span>=<span class="hljs-string">"width=device-width, initial-scale=1"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">title</span>&gt;</span>Автозапчасти Firdavs — запчасти в Худжанде<span class="hljs-tag">&lt;/<span class="hljs-name">title</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"description"</span> <span class="hljs-attr">content</span>=<span class="hljs-string">"Автозапчасти для японских и немецких
+          автомобилей в Худжанде. Доставка по Таджикистану."</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">head</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">body</span>&gt;</span>
+
+<span class="hljs-comment">&lt;!-- Шапка --&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">header</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">h1</span>&gt;</span>Автозапчасти Firdavs<span class="hljs-tag">&lt;/<span class="hljs-name">h1</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Запчасти для японских и немецких авто <span class="hljs-symbol">&amp;mdash;</span> Худжанд<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">nav</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">ul</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"/"</span>&gt;</span>Главная<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"/catalog"</span>&gt;</span>Каталог<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"/delivery"</span>&gt;</span>Доставка<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"/contacts"</span>&gt;</span>Контакты<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">ul</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">nav</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">form</span> <span class="hljs-attr">action</span>=<span class="hljs-string">"/search"</span> <span class="hljs-attr">method</span>=<span class="hljs-string">"GET"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">label</span> <span class="hljs-attr">for</span>=<span class="hljs-string">"q"</span>&gt;</span>Поиск по каталогу<span class="hljs-tag">&lt;/<span class="hljs-name">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"search"</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"q"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"q"</span> <span class="hljs-attr">placeholder</span>=<span class="hljs-string">"Название или артикул"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"submit"</span>&gt;</span>Найти<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">form</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">header</span>&gt;</span>
+<span class="hljs-comment">&lt;!-- /Шапка --&gt;</span>
+
+<span class="hljs-tag">&lt;<span class="hljs-name">main</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">h2</span>&gt;</span>Каталог запчастей<span class="hljs-tag">&lt;/<span class="hljs-name">h2</span>&gt;</span>
+
+    <span class="hljs-comment">&lt;!-- Фильтры --&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">form</span> <span class="hljs-attr">action</span>=<span class="hljs-string">"/catalog"</span> <span class="hljs-attr">method</span>=<span class="hljs-string">"GET"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">fieldset</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">legend</span>&gt;</span>Подобрать<span class="hljs-tag">&lt;/<span class="hljs-name">legend</span>&gt;</span>
+
+            <span class="hljs-tag">&lt;<span class="hljs-name">label</span> <span class="hljs-attr">for</span>=<span class="hljs-string">"brand"</span>&gt;</span>Бренд<span class="hljs-tag">&lt;/<span class="hljs-name">label</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">select</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"brand"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"brand"</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">option</span> <span class="hljs-attr">value</span>=<span class="hljs-string">""</span>&gt;</span>Все<span class="hljs-tag">&lt;/<span class="hljs-name">option</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">option</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"bosch"</span>&gt;</span>Bosch<span class="hljs-tag">&lt;/<span class="hljs-name">option</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">option</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"mann"</span>&gt;</span>Mann<span class="hljs-tag">&lt;/<span class="hljs-name">option</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">option</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"denso"</span>&gt;</span>Denso<span class="hljs-tag">&lt;/<span class="hljs-name">option</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">option</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"brembo"</span>&gt;</span>Brembo<span class="hljs-tag">&lt;/<span class="hljs-name">option</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-name">select</span>&gt;</span>
+
+            <span class="hljs-tag">&lt;<span class="hljs-name">label</span> <span class="hljs-attr">for</span>=<span class="hljs-string">"min"</span>&gt;</span>Цена от<span class="hljs-tag">&lt;/<span class="hljs-name">label</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"number"</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"min"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"min"</span> <span class="hljs-attr">min</span>=<span class="hljs-string">"0"</span> <span class="hljs-attr">placeholder</span>=<span class="hljs-string">"0"</span>&gt;</span>
+
+            <span class="hljs-tag">&lt;<span class="hljs-name">label</span> <span class="hljs-attr">for</span>=<span class="hljs-string">"max"</span>&gt;</span>до<span class="hljs-tag">&lt;/<span class="hljs-name">label</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"number"</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"max"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"max"</span> <span class="hljs-attr">min</span>=<span class="hljs-string">"0"</span> <span class="hljs-attr">placeholder</span>=<span class="hljs-string">"5000"</span>&gt;</span>
+
+            <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"submit"</span>&gt;</span>Показать<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">fieldset</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">form</span>&gt;</span>
+    <span class="hljs-comment">&lt;!-- /Фильтры --&gt;</span>
+
+    <span class="hljs-comment">&lt;!-- Товары --&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">article</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"tovar"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">h3</span>&gt;</span>Тормозные колодки Bosch<span class="hljs-tag">&lt;/<span class="hljs-name">h3</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"artikul"</span>&gt;</span>Артикул: <span class="hljs-tag">&lt;<span class="hljs-name">code</span>&gt;</span>0986424815<span class="hljs-tag">&lt;/<span class="hljs-name">code</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"cena"</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">strong</span>&gt;</span>250<span class="hljs-tag">&lt;/<span class="hljs-name">strong</span>&gt;</span><span class="hljs-symbol">&amp;nbsp;</span>сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"nalichie"</span>&gt;</span>В наличии: 7<span class="hljs-symbol">&amp;nbsp;</span>шт.<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">form</span> <span class="hljs-attr">action</span>=<span class="hljs-string">"/cart.php"</span> <span class="hljs-attr">method</span>=<span class="hljs-string">"POST"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"hidden"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"tovar_id"</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"1"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"submit"</span>&gt;</span>В корзину<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">form</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">article</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">article</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"tovar"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">h3</span>&gt;</span>Масляный фильтр Mann W71280<span class="hljs-tag">&lt;/<span class="hljs-name">h3</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"artikul"</span>&gt;</span>Артикул: <span class="hljs-tag">&lt;<span class="hljs-name">code</span>&gt;</span>W71280<span class="hljs-tag">&lt;/<span class="hljs-name">code</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"cena"</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">strong</span>&gt;</span>45<span class="hljs-tag">&lt;/<span class="hljs-name">strong</span>&gt;</span><span class="hljs-symbol">&amp;nbsp;</span>сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"nalichie"</span>&gt;</span>В наличии: 23<span class="hljs-symbol">&amp;nbsp;</span>шт.<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">form</span> <span class="hljs-attr">action</span>=<span class="hljs-string">"/cart.php"</span> <span class="hljs-attr">method</span>=<span class="hljs-string">"POST"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"hidden"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"tovar_id"</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"2"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"submit"</span>&gt;</span>В корзину<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">form</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">article</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">article</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"tovar"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">h3</span>&gt;</span>Свечи зажигания Denso<span class="hljs-tag">&lt;/<span class="hljs-name">h3</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"artikul"</span>&gt;</span>Артикул: <span class="hljs-tag">&lt;<span class="hljs-name">code</span>&gt;</span>IK20<span class="hljs-tag">&lt;/<span class="hljs-name">code</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"cena"</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">strong</span>&gt;</span>120<span class="hljs-tag">&lt;/<span class="hljs-name">strong</span>&gt;</span><span class="hljs-symbol">&amp;nbsp;</span>сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"nalichie nety"</span>&gt;</span>Под заказ, 5<span class="hljs-symbol">&amp;nbsp;</span>дней<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">form</span> <span class="hljs-attr">action</span>=<span class="hljs-string">"/cart.php"</span> <span class="hljs-attr">method</span>=<span class="hljs-string">"POST"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"hidden"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"tovar_id"</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"3"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"submit"</span>&gt;</span>В корзину<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">form</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">article</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">article</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"tovar"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">h3</span>&gt;</span>Тормозные диски Brembo<span class="hljs-tag">&lt;/<span class="hljs-name">h3</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"artikul"</span>&gt;</span>Артикул: <span class="hljs-tag">&lt;<span class="hljs-name">code</span>&gt;</span>09.9468.11<span class="hljs-tag">&lt;/<span class="hljs-name">code</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"cena"</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">strong</span>&gt;</span>780<span class="hljs-tag">&lt;/<span class="hljs-name">strong</span>&gt;</span><span class="hljs-symbol">&amp;nbsp;</span>сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"nalichie"</span>&gt;</span>В наличии: 2<span class="hljs-symbol">&amp;nbsp;</span>шт.<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">form</span> <span class="hljs-attr">action</span>=<span class="hljs-string">"/cart.php"</span> <span class="hljs-attr">method</span>=<span class="hljs-string">"POST"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"hidden"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"tovar_id"</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"4"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"submit"</span>&gt;</span>В корзину<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">form</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">article</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">article</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"tovar"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">h3</span>&gt;</span>Воздушный фильтр Mann C25114<span class="hljs-tag">&lt;/<span class="hljs-name">h3</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"artikul"</span>&gt;</span>Артикул: <span class="hljs-tag">&lt;<span class="hljs-name">code</span>&gt;</span>C25114<span class="hljs-tag">&lt;/<span class="hljs-name">code</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"cena"</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">strong</span>&gt;</span>65<span class="hljs-tag">&lt;/<span class="hljs-name">strong</span>&gt;</span><span class="hljs-symbol">&amp;nbsp;</span>сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"nalichie"</span>&gt;</span>В наличии: 14<span class="hljs-symbol">&amp;nbsp;</span>шт.<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">form</span> <span class="hljs-attr">action</span>=<span class="hljs-string">"/cart.php"</span> <span class="hljs-attr">method</span>=<span class="hljs-string">"POST"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"hidden"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"tovar_id"</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"5"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"submit"</span>&gt;</span>В корзину<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">form</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">article</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">article</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"tovar"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">h3</span>&gt;</span>Аккумулятор Bosch S4 60Ah<span class="hljs-tag">&lt;/<span class="hljs-name">h3</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"artikul"</span>&gt;</span>Артикул: <span class="hljs-tag">&lt;<span class="hljs-name">code</span>&gt;</span>0092S40050<span class="hljs-tag">&lt;/<span class="hljs-name">code</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"cena"</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">strong</span>&gt;</span>950<span class="hljs-tag">&lt;/<span class="hljs-name">strong</span>&gt;</span><span class="hljs-symbol">&amp;nbsp;</span>сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"nalichie"</span>&gt;</span>В наличии: 4<span class="hljs-symbol">&amp;nbsp;</span>шт.<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">form</span> <span class="hljs-attr">action</span>=<span class="hljs-string">"/cart.php"</span> <span class="hljs-attr">method</span>=<span class="hljs-string">"POST"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"hidden"</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"tovar_id"</span> <span class="hljs-attr">value</span>=<span class="hljs-string">"6"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"submit"</span>&gt;</span>В корзину<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">form</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">article</span>&gt;</span>
+    <span class="hljs-comment">&lt;!-- /Товары --&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">main</span>&gt;</span>
+
+<span class="hljs-comment">&lt;!-- Подвал --&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">footer</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">h2</span>&gt;</span>Контакты<span class="hljs-tag">&lt;/<span class="hljs-name">h2</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Худжанд, ул. Ленина<span class="hljs-symbol">&amp;nbsp;</span>15<span class="hljs-tag">&lt;<span class="hljs-name">br</span>&gt;</span>
+       Телефон: <span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"tel:+992927777777"</span>&gt;</span>+992<span class="hljs-symbol">&amp;nbsp;</span>92<span class="hljs-symbol">&amp;nbsp;</span>777<span class="hljs-symbol">&amp;nbsp;</span>77<span class="hljs-symbol">&amp;nbsp;</span>77<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">br</span>&gt;</span>
+       Почта: <span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"mailto:info@autodoc.tj"</span>&gt;</span>info@autodoc.tj<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">h3</span>&gt;</span>Режим работы<span class="hljs-tag">&lt;/<span class="hljs-name">h3</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">ul</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Пн<span class="hljs-symbol">&amp;ndash;</span>Пт: 9:00<span class="hljs-symbol">&amp;ndash;</span>18:00<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Сб: 9:00<span class="hljs-symbol">&amp;ndash;</span>14:00<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>Вс: выходной<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">ul</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">small</span>&gt;</span><span class="hljs-symbol">&amp;copy;</span> 2026 Автозапчасти Firdavs<span class="hljs-tag">&lt;/<span class="hljs-name">small</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">footer</span>&gt;</span>
+<span class="hljs-comment">&lt;!-- /Подвал --&gt;</span>
+
+<span class="hljs-tag">&lt;/<span class="hljs-name">body</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">html</span>&gt;</span>
+</code></pre></section><section class="vrezka v-razbor"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбор по словам</span><span class="vrezka-zagolovok">Разбор по словам</span></div><p>В коде появились две новые строки в <code>&lt;head&gt;</code>. Разберём — они обе важные.</p><h3><strong><code>&lt;meta name="viewport" ...&gt;</code></strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"viewport"</span> <span class="hljs-attr">content</span>=<span class="hljs-string">"width=device-width, initial-scale=1"</span>&gt;</span>
+</code></pre><p><strong>Это строка, без которой сайт не работает на телефоне.</strong></p><p>Без неё мобильный браузер решает: «сайт, наверное, старый и рассчитан на компьютер».
+Он делает вид, что экран шириной 980 пикселей, и <strong>уменьшает всю страницу</strong>, чтобы
+влезла. Текст становится нечитаемым, и человек вынужден растягивать пальцами.</p><table>
+<thead>
+<tr>
+<th>Часть</th>
+<th>Что говорит</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>width=device-width</code></td>
+<td>«Ширина страницы = настоящая ширина экрана»</td>
+</tr>
+<tr>
+<td><code>initial-scale=1</code></td>
+<td>«Не уменьшать при открытии»</td>
+</tr>
+</tbody>
+</table><p>Пишется в каждой странице, всегда. Мы вернёмся к ней в главе 12, когда займёмся
+мобильной версией всерьёз.</p><h3><strong><code>&lt;meta name="description" ...&gt;</code></strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">name</span>=<span class="hljs-string">"description"</span> <span class="hljs-attr">content</span>=<span class="hljs-string">"Автозапчасти для японских и немецких автомобилей..."</span>&gt;</span>
+</code></pre><p><strong>Это текст, который человек увидит в результатах поиска Google</strong> — серое описание
+под синей ссылкой.</p><p>Если его не написать, поисковик выдернет случайный кусок текста со страницы,
+и выглядеть это будет так себе. Пишите 120–160 символов, по-человечески,
+с пользой для читателя.</p><p>Вместе с <code>&lt;title&gt;</code> это два поля, которые решают, кликнет человек по вашему сайту
+в поиске или пролистает дальше.</p><h3><strong>Ещё раз про иерархию заголовков</strong></h3><p>Посмотрите на нашу страницу целиком:</p><pre><code>&lt;h1&gt; Автозапчасти Firdavs        ← название сайта, ОДИН
+    &lt;h2&gt; Каталог запчастей       ← раздел
+        &lt;h3&gt; Тормозные колодки   ← товар
+        &lt;h3&gt; Масляный фильтр     ← товар
+    &lt;h2&gt; Контакты                ← раздел
+        &lt;h3&gt; Режим работы        ← подраздел
+</code></pre><p>Ровное дерево без пропусков. Именно так поисковик строит «оглавление» вашей страницы.</p></section><section class="vrezka v-ekran"><div class="vrezka-shapka"><span class="vrezka-podpis">На экране</span><span class="vrezka-zagolovok">На экране</span></div><p><img src="img/08-katalog.png" alt="Главная страница магазина на чистом HTML"></p><p>Вот он, ваш магазин. Пока — длинная чёрно-белая простыня.</p><p>Давайте честно: <strong>до нормального сайта отсюда далеко</strong>. Товары идут в столбик,
+формы разъехались, фильтры выглядят как случайный набор полей.</p><p>Но остановитесь на секунду и посмотрите, <strong>что уже есть</strong>:</p><ul>
+<li>поиск работает как поле поиска, на телефоне вызовет нужную клавиатуру;</li>
+<li>фильтр по бренду раскрывается списком;</li>
+<li>поля цены принимают только числа;</li>
+<li>у каждого товара своя кнопка со своим номером;</li>
+<li>телефон нажимается и звонит;</li>
+<li>структура страницы правильная и семантичная;</li>
+<li>поисковик увидит и заголовок, и описание.</li>
+</ul><p><strong>Скелет готов и он правильный.</strong> Дальше — одежда.</p><p>И вот что приятно: в следующей главе мы <strong>не будем трогать этот файл почти совсем</strong>.
+Мы создадим рядом файл со стилями, подключим его одной строчкой — и та же самая
+страница превратится в магазин. Разделение обязанностей из первой главы —
+вот оно, в действии.</p></section><section class="vrezka v-grabli"><div class="vrezka-shapka"><span class="vrezka-podpis">Грабли</span><span class="vrezka-zagolovok">Грабли</span></div><p><strong>Забыть <code>viewport</code>.</strong> На телефоне сайт будет крошечным. Проверьте: откройте свою
+страницу на телефоне или включите F12 → значок телефона в углу панели.</p><p><strong>Не закрыть тег в середине файла.</strong> Страница поедет начиная с этого места.
+Ищите так: сузьте область — закомментируйте половину <code>&lt;!-- --&gt;</code>, посмотрите,
+осталась ли проблема, и так далее. Приём называется «деление пополам»,
+им ищут ошибки во всём.</p><p><strong>Забыть <code>alt</code> у картинок.</strong> В нашем примере картинок нет специально — чтобы
+страница работала у всех. Как только добавите свои фото, <code>alt</code> обязателен.</p><p><strong>Скопировать карточку и забыть поменять <code>tovar_id</code>.</strong> Все шесть кнопок будут
+класть в корзину один и тот же товар. Классическая ошибка копирования.</p></section><section class="vrezka v-zadachi"><div class="vrezka-shapka"><span class="vrezka-podpis">Задачи</span><span class="vrezka-zagolovok">Задачи</span></div><p><strong>Задача 8.1.</strong> Соберите эту страницу у себя целиком. Замените товары на свои —
+хоть на телефоны, хоть на книги, хоть на цветы. Магазин необязательно должен быть
+автомобильным.</p><p><strong>Задача 8.2.</strong> Добавьте седьмой и восьмой товар. Не забудьте про <code>tovar_id</code>.</p><p><strong>Задача 8.3.</strong> Сделайте вторую страницу — <code>tovar.html</code>, подробную карточку одного
+товара. Возьмите пример из главы 6 и добавьте: таблицу характеристик, форму заказа
+из главы 7, ссылку «← Назад в каталог».</p><p><strong>Задача 8.4.</strong> Свяжите страницы: в каталоге сделайте название каждого товара
+ссылкой на <code>tovar.html</code>. Проверьте, что переходы работают в обе стороны.</p><p><strong>Задача 8.5.</strong> Добавьте в подвал вложенное меню каталога (<code>&lt;ul&gt;</code> внутри <code>&lt;li&gt;</code>):
+три раздела, в каждом по два подраздела.</p><p><strong>Задача 8.6.</strong> Проверьте свою страницу валидатором. Откройте <code>validator.w3.org</code>,
+вкладка <em>Validate by Direct Input</em>, вставьте свой код и нажмите Check.</p><p>Валидатор — это проверка HTML на ошибки. Он найдёт незакрытые теги, неправильную
+вложенность, забытые атрибуты. Сколько ошибок у вас? Исправьте все.</p><p><strong>Задача 8.7.</strong> Откройте страницу на телефоне (или через F12 → значок телефона).
+Всё читается? Теперь уберите строку <code>viewport</code>, обновите и посмотрите снова.
+Разницу видно?</p><p><strong>Задача 8.8.</strong> Напишите план (словами, как в начале главы) для страницы «Доставка
+и оплата». Какие теги подойдут каждому пункту? Потом соберите её.</p><p><em>Ответы — в <a href="../prilozheniya/G-otvety.md">Приложении Г</a>.</em></p></section><section class="vrezka v-vboyu"><div class="vrezka-shapka"><span class="vrezka-podpis">В бою</span><span class="vrezka-zagolovok">В бою</span></div><p>Вы сейчас сделали руками то, что настоящий магазин делает автоматически.</p><p>Откройте в репозитории <code>index.php</code> — там та же структура: шапка, каталог, подвал.
+Но карточки товаров не написаны шесть раз. Там <strong>один шаблон карточки</strong>, который
+PHP повторяет в цикле столько раз, сколько товаров пришло из базы.</p><p>Шесть товаров или шесть тысяч — кода одинаково.</p><p>Именно поэтому мы учим сначала HTML: <strong>чтобы было что повторять</strong>. В главе 25 вы
+возьмёте эту самую карточку и научите PHP размножать её самостоятельно.</p></section><section class="vrezka v-itog"><div class="vrezka-shapka"><span class="vrezka-podpis">Итог</span><span class="vrezka-zagolovok">Итог</span></div><ul>
+<li>Перед кодом — <strong>план словами</strong>. Потом каждой строке плана подбирается тег.</li>
+<li>Карточка товара: <code>&lt;article&gt;</code> + <code>&lt;h3&gt;</code> + данные + форма с <code>&lt;input type="hidden"&gt;</code>.</li>
+<li><strong>Комментарии</strong> <code>&lt;!-- --&gt;</code> — заметки для человека. Не пишите в них секретов.</li>
+<li><strong><code>&amp;nbsp;</code></strong> не даёт разорвать «250 сомони». <code>&amp;mdash;</code>, <code>&amp;laquo;</code>, <code>&amp;copy;</code> —
+тире, кавычки, копирайт.</li>
+<li><strong><code>&lt;meta name="viewport"&gt;</code></strong> обязателен, иначе сайт непригоден на телефоне.</li>
+<li><strong><code>&lt;meta name="description"&gt;</code></strong> — текст под ссылкой в результатах поиска.</li>
+<li>Иерархия заголовков без пропусков: <code>&lt;h1&gt;</code> → <code>&lt;h2&gt;</code> → <code>&lt;h3&gt;</code>.</li>
+<li>Отладьте <strong>одну</strong> карточку, потом копируйте. Скоро копировать перестанем совсем.</li>
+<li>Проверяйте себя валидатором <code>validator.w3.org</code>.</li>
+</ul><p><strong>Часть II закончена.</strong> Вы умеете размечать страницы. Со следующей главы начинается
+CSS — и ваш магазин наконец станет красивым.</p></section></div></article>
 
 <footer class="konec">
   <div class="konec-znak">§</div>
