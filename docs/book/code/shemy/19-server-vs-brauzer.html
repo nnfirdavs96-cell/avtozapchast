@@ -1,0 +1,52 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@import url("shrifty.css");
+*{box-sizing:border-box;margin:0}
+body{width:1160px;background:#FBF7F0;font-family:'Spe',serif;color:#221E1A;padding:34px 36px}
+.tit{font-family:'Unb';font-weight:700;font-size:25px;letter-spacing:-.03em;margin-bottom:6px}
+.pod{font-size:18px;color:#6E6459;margin-bottom:26px}
+.ryad{display:grid;grid-template-columns:1fr 74px 1fr;gap:0;align-items:stretch}
+.kol{border:2px solid;border-radius:8px;overflow:hidden;background:#fff}
+.k1{border-color:#EBBFAE} .k2{border-color:#B3CFC7}
+.shapka{padding:10px 16px;font-family:'Unb';font-weight:700;font-size:12px;letter-spacing:.13em;
+  text-transform:uppercase;color:#fff}
+.k1 .shapka{background:#B5411F} .k2 .shapka{background:#14584F}
+pre{margin:0;padding:16px;font-family:'JB';font-size:13.5px;line-height:1.55;white-space:pre-wrap;color:#2b2622}
+.k1 pre{background:#FDF6F2} .k2 pre{background:#F3F8F6}
+.strelka{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.lin{width:3px;flex:1;background:#C9BFB1}
+.krug{width:64px;height:64px;border-radius:50%;background:#B5411F;color:#fff;display:flex;
+  align-items:center;justify-content:center;font-family:'Unb';font-weight:700;font-size:10px;text-align:center;line-height:1.2}
+.sh{font-size:16px;color:#3A342E;margin-top:10px;line-height:1.45}
+.sh b{font-weight:600}
+.vyvod{margin-top:26px;background:#F4EDE1;border-left:5px solid #A8710C;border-radius:5px;
+  padding:17px 21px;font-size:18px;line-height:1.5}
+.vyvod b{font-weight:600}
+</style></head><body>
+<div class="tit">Что выполняется на сервере и что доезжает до покупателя</div>
+<div class="pod">Слева — наш файл. Справа — всё, что видит браузер, включая «посмотреть код страницы»</div>
+<div class="ryad">
+  <div class="kol k1"><div class="shapka">index.php — на сервере</div><pre>$cenaPostavshika = 185;
+$nacenka = 1.35;
+$ostatok = 7;
+
+// Считаем цену — покупатель этого не увидит
+$cena = round($cenaPostavshika * $nacenka);
+
+if ($ostatok &gt; 5) {
+    $status = &#x27;В наличии&#x27;;
+} elseif ($ostatok &gt; 0) {
+    $status = &#x27;Осталось мало&#x27;;
+} else {
+    $status = &#x27;Под заказ&#x27;;
+}
+?&gt;
+&lt;p&gt;Цена: &lt;strong&gt;&lt;?= $cena ?&gt;&lt;/strong&gt; сомони&lt;/p&gt;
+&lt;p&gt;Наличие: &lt;?= $status ?&gt; (&lt;?= $ostatok ?&gt; шт.)&lt;/p&gt;</pre></div>
+  <div class="strelka"><div class="lin"></div><div class="krug">PHP<br>считает</div><div class="lin"></div></div>
+  <div class="kol k2"><div class="shapka">то, что получил браузер</div><pre>&lt;p&gt;Цена: &lt;strong&gt;250&lt;/strong&gt; сомони&lt;/p&gt;
+&lt;p&gt;Наличие: В наличии (7 шт.)&lt;/p&gt;</pre></div>
+</div>
+<div class="vyvod"><b>Ни 185, ни 1.35, ни слова «наценка» в браузер не попали.</b>
+Уехал только результат — 250. Поэтому цены, скидки и права доступа считает сервер,
+а не JavaScript: до серверного кода покупатель не дотягивается в принципе.</div>
+</body></html>
