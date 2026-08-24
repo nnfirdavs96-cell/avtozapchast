@@ -455,7 +455,13 @@ hr {
 <li><span class="og-nomer">22</span><a href="#glava-22">Массивы</a></li>
 <li><span class="og-nomer">23</span><a href="#glava-23">Функции, include и require</a></li>
 <li><span class="og-nomer">24</span><a href="#glava-24">Формы: GET и POST</a></li>
-<li><span class="og-nomer">25</span><a href="#glava-25">Практика: каталог на PHP</a></li></ol>
+<li><span class="og-nomer">25</span><a href="#glava-25">Практика: каталог на PHP</a></li>
+<li><span class="og-nomer">26</span><a href="#glava-26">Зачем нужна база данных</a></li>
+<li><span class="og-nomer">27</span><a href="#glava-27">SELECT: достаём данные</a></li>
+<li><span class="og-nomer">28</span><a href="#glava-28">INSERT, UPDATE, DELETE</a></li>
+<li><span class="og-nomer">29</span><a href="#glava-29">JOIN: связываем таблицы</a></li>
+<li><span class="og-nomer">30</span><a href="#glava-30">Индексы и почему всё тормозит</a></li>
+<li><span class="og-nomer">31</span><a href="#glava-31">Практика: схема базы магазина</a></li></ol>
   <p class="og-primechanie">Книга пишется по частям. Здесь — главы, готовые на сегодня.</p>
 </section>
 
@@ -10321,6 +10327,1939 @@ index.php?sort=' OR 1=1
 <li>GET-параметры делают страницу <strong>ссылкой, которой можно поделиться</strong>.</li>
 </ul><p><strong>Часть V закончена.</strong> У вас работающий каталог на PHP.</p><p>Но товары всё ещё лежат в файле. Добавить товар — значит править код;
 десять тысяч товаров туда не поместятся вовсе.</p><p>Пора завести базу данных.</p></section></div></article>
+<article class="glava" id="glava-26">
+    <header class="glava-shapka">
+      <div class="glava-metka">
+        <span class="glava-slovo">Глава</span>
+        <span class="glava-nomer">26</span>
+      </div>
+      <div class="glava-podpis">Часть VI. База данных</div>
+      <h1 class="glava-nazvanie">Зачем нужна база данных</h1>
+    </header><div class="telo"><section class="vrezka v-zachem"><div class="vrezka-shapka"><span class="vrezka-podpis">Зачем это</span><span class="vrezka-zagolovok">Зачем эта глава</span></div><p>Ваш каталог работает, но товары лежат в PHP-файле. У этого решения три
+непреодолимые проблемы:</p><ol>
+<li><strong>Добавить товар = править код.</strong> Продавец не может этого делать.</li>
+<li><strong>Десять тысяч товаров туда не поместятся.</strong> PHP будет читать весь массив
+при каждом открытии страницы.</li>
+<li><strong>Ничего не сохраняется.</strong> Заказ оформили — и он исчез.</li>
+</ol><p>Нужно место, где данные <strong>живут постоянно</strong>, куда можно быстро добавлять
+и откуда можно быстро доставать нужное. Это и есть база данных.</p><p>В этой главе разберёмся, как база устроена, и — самое важное — <strong>спроектируем
+таблицы правильно</strong>. Ошибка в проектировании обходится дороже всех остальных:
+переделывать структуру, когда в базе уже сто тысяч записей, очень больно.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">База данных — это картотека</span></div><p>Забудьте слово «база». Представьте <strong>картотеку в поликлинике</strong>.</p><p>Ящик с медкартами — это <strong>таблица</strong>. Одна карточка — <strong>строка</strong>. Поля в карточке
+(фамилия, год рождения, адрес) — <strong>столбцы</strong>.</p><p>Ящиков несколько: пациенты, врачи, приёмы. Это <strong>разные таблицы</strong>.</p><p>И есть регистратор, который умеет мгновенно находить нужное: «дай карточки всех,
+кто родился до 1980 года и живёт на улице Ленина». Это <strong>SQL-запрос</strong>.</p><p>Вот и вся база данных. Никакой магии.</p><h3><strong>Таблица товаров</strong></h3><table>
+<thead>
+<tr>
+<th>id</th>
+<th>nazvanie</th>
+<th>artikul</th>
+<th>brend</th>
+<th>cena</th>
+<th>ostatok</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Тормозные колодки Bosch</td>
+<td>0986424815</td>
+<td>Bosch</td>
+<td>25000</td>
+<td>7</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Масляный фильтр Mann</td>
+<td>W71280</td>
+<td>Mann</td>
+<td>4500</td>
+<td>23</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Свечи зажигания Denso</td>
+<td>IK20</td>
+<td>Denso</td>
+<td>12000</td>
+<td>0</td>
+</tr>
+</tbody>
+</table><ul>
+<li><strong>Строка</strong> — один товар;</li>
+<li><strong>Столбец</strong> — одно свойство всех товаров;</li>
+<li><strong><code>id</code></strong> — уникальный номер строки.</li>
+</ul><p>Узнаёте? Это тот же массив ассоциативных массивов из главы 22. Только теперь
+он хранится не в файле, а в специальной программе, умеющей искать по нему
+за миллисекунды даже среди миллионов записей.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">MySQL и его соседи</span></div><p><strong>СУБД</strong> — система управления базами данных. Программа, которая хранит таблицы
+и выполняет запросы.</p><table>
+<thead>
+<tr>
+<th>СУБД</th>
+<th>Особенности</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MySQL / MariaDB</strong></td>
+<td>Самая распространённая для сайтов. Есть на любом хостинге</td>
+</tr>
+<tr>
+<td><strong>PostgreSQL</strong></td>
+<td>Мощнее, строже. Выбор крупных проектов</td>
+</tr>
+<tr>
+<td><strong>SQLite</strong></td>
+<td>Вся база — один файл. Для мелких проектов и мобильных приложений</td>
+</tr>
+<tr>
+<td><strong>MongoDB</strong></td>
+<td>Хранит не таблицы, а документы. Другой подход</td>
+</tr>
+</tbody>
+</table><p>Мы берём <strong>MySQL</strong>: он стоит на любом дешёвом хостинге и на нём работает
+autodoc.tj.</p><p><strong>SQL</strong> — язык запросов. Он почти одинаков во всех перечисленных СУБД.
+Выучив SQL для MySQL, вы будете понимать и PostgreSQL.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Как создать таблицу</span></div><pre><code class="language-sql"><span class="hljs-keyword">CREATE TABLE</span> tovary (
+    id          <span class="hljs-type">INT</span> AUTO_INCREMENT <span class="hljs-keyword">PRIMARY KEY</span>,
+    nazvanie    <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>) <span class="hljs-keyword">NOT NULL</span>,
+    artikul     <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">64</span>) <span class="hljs-keyword">NOT NULL</span>,
+    brend       <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">64</span>) <span class="hljs-keyword">NOT NULL</span>,
+    kategoriya  <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">64</span>) <span class="hljs-keyword">NOT NULL</span>,
+    cena        <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span>,
+    ostatok     <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">0</span>,
+    aktivnyi    TINYINT(<span class="hljs-number">1</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">1</span>,
+    sozdan      DATETIME <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span>
+) ENGINE<span class="hljs-operator">=</span>InnoDB <span class="hljs-keyword">DEFAULT</span> CHARSET<span class="hljs-operator">=</span>utf8mb4 <span class="hljs-keyword">COLLATE</span><span class="hljs-operator">=</span>utf8mb4_unicode_ci;
+</code></pre><p>Разберём построчно.</p><table>
+<thead>
+<tr>
+<th>Часть</th>
+<th>Что означает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CREATE TABLE tovary</code></td>
+<td>Создать таблицу с именем <code>tovary</code></td>
+</tr>
+<tr>
+<td><code>id INT AUTO_INCREMENT</code></td>
+<td>Целое число, <strong>растёт само</strong> при добавлении</td>
+</tr>
+<tr>
+<td><code>PRIMARY KEY</code></td>
+<td><strong>Первичный ключ</strong> — уникальный номер строки</td>
+</tr>
+<tr>
+<td><code>VARCHAR(255)</code></td>
+<td>Строка до 255 символов</td>
+</tr>
+<tr>
+<td><code>NOT NULL</code></td>
+<td>Поле <strong>обязательное</strong>, пустым быть не может</td>
+</tr>
+<tr>
+<td><code>DEFAULT 0</code></td>
+<td>Значение по умолчанию</td>
+</tr>
+<tr>
+<td><code>DATETIME</code></td>
+<td>Дата и время</td>
+</tr>
+<tr>
+<td><code>CURRENT_TIMESTAMP</code></td>
+<td>Текущий момент</td>
+</tr>
+<tr>
+<td><code>ENGINE=InnoDB</code></td>
+<td>Движок хранения. <strong>Всегда InnoDB</strong></td>
+</tr>
+<tr>
+<td><code>CHARSET=utf8mb4</code></td>
+<td>Кодировка. <strong>Всегда utf8mb4</strong></td>
+</tr>
+</tbody>
+</table><h3><strong>Два «всегда», которые нужно объяснить</strong></h3><p><strong><code>utf8mb4</code>, а не <code>utf8</code>.</strong> Звучит странно, но в MySQL кодировка с именем <code>utf8</code> —
+<strong>неполноценная</strong>: она хранит только символы до трёх байт. Эмодзи, некоторые
+редкие символы и часть азиатских иероглифов в неё не влезают и превращаются
+в мусор.</p><p>Настоящий UTF-8 в MySQL называется <code>utf8mb4</code>. Историческая ошибка разработчиков,
+которую теперь приходится помнить всем.</p><p><strong><code>InnoDB</code>, а не <code>MyISAM</code>.</strong> InnoDB умеет <strong>транзакции</strong> (глава 41) и <strong>связи
+между таблицами</strong>. MyISAM — старый движок, не умеет ни того, ни другого.
+На новых версиях MySQL InnoDB и так по умолчанию, но в старых инструкциях
+до сих пор встречается MyISAM.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Типы данных: выбирайте с умом</span></div><p>Тип — это обещание базе, что будет лежать в столбце. От него зависят и объём,
+и скорость, и защита от мусора.</p><h3><strong>Числа</strong></h3><table>
+<thead>
+<tr>
+<th>Тип</th>
+<th>Диапазон</th>
+<th>Когда</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TINYINT</code></td>
+<td>−128…127</td>
+<td>Флаги: да/нет</td>
+</tr>
+<tr>
+<td><code>SMALLINT</code></td>
+<td>±32 тыс.</td>
+<td>Количество на складе</td>
+</tr>
+<tr>
+<td><code>INT</code></td>
+<td>±2 млрд</td>
+<td><strong>Основной выбор</strong>: id, цены в дирамах</td>
+</tr>
+<tr>
+<td><code>BIGINT</code></td>
+<td>Очень большой</td>
+<td>Крупные счётчики</td>
+</tr>
+<tr>
+<td><code>DECIMAL(10,2)</code></td>
+<td>Точная дробь</td>
+<td>Деньги, если храните дробями</td>
+</tr>
+<tr>
+<td><code>FLOAT</code> / <code>DOUBLE</code></td>
+<td>Приблизительная дробь</td>
+<td>Вес, размеры</td>
+</tr>
+</tbody>
+</table><p>⚠️ <strong><code>FLOAT</code> для денег — запрещено.</strong> Помните <code>0.1 + 0.2 !== 0.3</code> из главы 14?
+В базе то же самое: суммы «поплывут», и бухгалтерия не сойдётся.</p><p>Два допустимых варианта: <strong><code>INT</code> в мелких единицах</strong> (дирамах) — наш выбор,
+или <strong><code>DECIMAL(10,2)</code></strong>, который считает точно.</p><h3><strong>Строки</strong></h3><table>
+<thead>
+<tr>
+<th>Тип</th>
+<th>Особенности</th>
+<th>Когда</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>VARCHAR(n)</code></td>
+<td>До n символов, занимает по факту</td>
+<td><strong>Основной выбор</strong> для текста</td>
+</tr>
+<tr>
+<td><code>CHAR(n)</code></td>
+<td>Ровно n, добивается пробелами</td>
+<td>Коды фиксированной длины</td>
+</tr>
+<tr>
+<td><code>TEXT</code></td>
+<td>До 64 КБ</td>
+<td>Описания, отзывы</td>
+</tr>
+<tr>
+<td><code>LONGTEXT</code></td>
+<td>До 4 ГБ</td>
+<td>Очень большие тексты</td>
+</tr>
+</tbody>
+</table><p>⚠️ <strong><code>VARCHAR(255)</code> не «на всякий случай»</strong>, а осознанно. Артикул не бывает
+длиннее 64 символов — ставьте 64. Ограничение работает как проверка: мусор
+не влезет.</p><p><strong><code>TEXT</code> не индексируется</strong> обычным способом, и по нему медленно искать.
+Если по полю нужен поиск — это <code>VARCHAR</code>.</p><h3><strong>Дата и время</strong></h3><table>
+<thead>
+<tr>
+<th>Тип</th>
+<th>Что хранит</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DATE</code></td>
+<td>Только дату: <code>2026-08-24</code></td>
+</tr>
+<tr>
+<td><code>DATETIME</code></td>
+<td>Дату и время. <strong>Основной выбор</strong></td>
+</tr>
+<tr>
+<td><code>TIMESTAMP</code></td>
+<td>То же, но с учётом часового пояса. Диапазон до 2038 года</td>
+</tr>
+<tr>
+<td><code>TIME</code></td>
+<td>Только время</td>
+</tr>
+</tbody>
+</table><p><strong>Формат в базе всегда <code>ГГГГ-ММ-ДД</code>.</strong> Не <code>24.08.2026</code>. Русский формат
+делается при выводе.</p><h3><strong>Да/нет</strong></h3><pre><code class="language-sql">aktivnyi TINYINT(<span class="hljs-number">1</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">1</span>
+</code></pre><p>В MySQL нет отдельного типа «логический» — используют <code>TINYINT(1)</code> со значениями
+0 и 1. Слово <code>BOOLEAN</code> работает, но это просто псевдоним для того же <code>TINYINT(1)</code>.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Проектирование: главная тема главы</span></div><p>Вот здесь совершаются самые дорогие ошибки.</p><h3><strong>Ошибка 1: складывать несколько значений в одно поле</strong></h3><pre><code class="language-sql"><span class="hljs-comment">-- ❌ Плохо</span>
+sovmestimost <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>)   <span class="hljs-comment">-- "Toyota Camry, Honda Accord, Nissan Teana"</span>
+</code></pre><p>Кажется удобным. Но попробуйте теперь ответить на вопрос «покажи все запчасти
+для Toyota Camry». Придётся искать подстроку — медленно, ненадёжно
+(«Camry» найдётся и в «Camry Hybrid»), и невозможно построить нормальный фильтр.</p><pre><code class="language-sql"><span class="hljs-comment">-- ✅ Хорошо: отдельная таблица связей</span>
+<span class="hljs-keyword">CREATE TABLE</span> tovar_avto (
+    tovar_id <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span>,
+    avto_id  <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span>,
+    <span class="hljs-keyword">PRIMARY KEY</span> (tovar_id, avto_id)
+);
+</code></pre><p><strong>Правило: одно поле — одно значение.</strong> Список значений — это отдельная таблица.</p><h3><strong>Ошибка 2: дублировать данные</strong></h3><pre><code class="language-sql"><span class="hljs-comment">-- ❌ Плохо: имя продавца в каждом товаре</span>
+<span class="hljs-keyword">CREATE TABLE</span> tovary (
+    id <span class="hljs-type">INT</span>,
+    nazvanie <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>),
+    prodavec_imya <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>),
+    prodavec_telefon <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">32</span>),
+    prodavec_adres <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>)
+);
+</code></pre><p>Продавец сменил телефон — нужно обновить его во <strong>всех</strong> своих товарах.
+Забудете один — в базе два разных телефона, и непонятно, какой верный.</p><pre><code class="language-sql"><span class="hljs-comment">-- ✅ Хорошо: продавцы отдельно, товары ссылаются на них</span>
+<span class="hljs-keyword">CREATE TABLE</span> prodavcy (
+    id <span class="hljs-type">INT</span> AUTO_INCREMENT <span class="hljs-keyword">PRIMARY KEY</span>,
+    imya <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>) <span class="hljs-keyword">NOT NULL</span>,
+    telefon <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">32</span>) <span class="hljs-keyword">NOT NULL</span>
+);
+
+<span class="hljs-keyword">CREATE TABLE</span> tovary (
+    id <span class="hljs-type">INT</span> AUTO_INCREMENT <span class="hljs-keyword">PRIMARY KEY</span>,
+    nazvanie <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>) <span class="hljs-keyword">NOT NULL</span>,
+    prodavec_id <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span>,
+    <span class="hljs-keyword">FOREIGN KEY</span> (prodavec_id) <span class="hljs-keyword">REFERENCES</span> prodavcy(id)
+);
+</code></pre><p>Теперь телефон продавца лежит <strong>в одном месте</strong>. Меняем — меняется везде.</p><p>Это называется <strong>нормализация</strong>, и правило её звучит так же, как принцип
+из главы 23: <strong>каждый факт записан ровно один раз</strong>.</p><p><strong><code>FOREIGN KEY</code></strong> — внешний ключ. Он говорит базе: «в поле <code>prodavec_id</code> может
+быть только существующий id продавца». База сама не даст создать товар
+несуществующего продавца или удалить продавца, у которого есть товары.</p><h3><strong>Ошибка 3: не думать о том, чего ещё нет</strong></h3><p>Через полгода понадобится:</p><ul>
+<li>скрывать товар, не удаляя его → нужно поле <code>aktivnyi</code>;</li>
+<li>знать, когда товар добавили → нужно <code>sozdan</code>;</li>
+<li>знать, кто последний менял → нужно <code>izmenen</code>.</li>
+</ul><p><strong>Три поля, которые стоит добавлять в любую таблицу сразу:</strong></p><pre><code class="language-sql">sozdan   DATETIME <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span>,
+izmenen  DATETIME <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span> <span class="hljs-keyword">ON</span> <span class="hljs-keyword">UPDATE</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span>,
+aktivnyi TINYINT(<span class="hljs-number">1</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">1</span>
+</code></pre><p>Стоят они дёшево, а выручают постоянно.</p><h3><strong>Правило про удаление</strong></h3><p>⚠️ <strong>В боевых системах данные почти никогда не удаляют физически.</strong></p><p>Вместо <code>DELETE</code> ставят <code>aktivnyi = 0</code>. Причины:</p><ul>
+<li>удалённый товар мог быть в чьём-то заказе — история сломается;</li>
+<li>удалили по ошибке — не восстановить;</li>
+<li>нужна статистика за прошлый год — а данных нет.</li>
+</ul><p>Это называется <strong>мягкое удаление</strong>. Товар исчезает из каталога,
+но остаётся в базе.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Как назвать таблицы и поля</span></div><p>Мелочь, которая заметно влияет на удобство работы:</p><table>
+<thead>
+<tr>
+<th>Правило</th>
+<th>Пример</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Только латиница, нижний регистр</td>
+<td><code>tovary</code>, не <code>Товары</code></td>
+</tr>
+<tr>
+<td>Слова через подчёркивание</td>
+<td><code>prodavec_id</code>, не <code>prodavecId</code></td>
+</tr>
+<tr>
+<td>Таблицы во множественном числе</td>
+<td><code>tovary</code>, <code>zakazy</code>, <code>polzovateli</code></td>
+</tr>
+<tr>
+<td>Внешний ключ = <code>таблица_id</code></td>
+<td><code>prodavec_id</code>, <code>zakaz_id</code></td>
+</tr>
+<tr>
+<td>Даты — с приставкой</td>
+<td><code>sozdan</code>, <code>izmenen</code>, <code>oplachen</code></td>
+</tr>
+<tr>
+<td>Флаги — понятные</td>
+<td><code>aktivnyi</code>, а не <code>flag1</code></td>
+</tr>
+</tbody>
+</table><p><strong>Держитесь одного стиля.</strong> Половина таблиц по-английски, половина
+транслитом — верный способ запутаться.</p></section><section class="vrezka v-kod"><div class="vrezka-shapka"><span class="vrezka-podpis">Код</span><span class="vrezka-zagolovok">Первая таблица</span></div><pre><code class="language-sql"><span class="hljs-keyword">CREATE TABLE</span> tovary (
+    id          <span class="hljs-type">INT</span> AUTO_INCREMENT <span class="hljs-keyword">PRIMARY KEY</span>,
+    nazvanie    <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>) <span class="hljs-keyword">NOT NULL</span>,
+    artikul     <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">64</span>)  <span class="hljs-keyword">NOT NULL</span>,
+    brend       <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">64</span>)  <span class="hljs-keyword">NOT NULL</span>,
+    kategoriya  <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">64</span>)  <span class="hljs-keyword">NOT NULL</span>,
+    cena        <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span> COMMENT <span class="hljs-string">'в дирамах, 1 сомони = 100'</span>,
+    ostatok     <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">0</span>,
+    aktivnyi    TINYINT(<span class="hljs-number">1</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">1</span>,
+    sozdan      DATETIME <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span>,
+    izmenen     DATETIME <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span> <span class="hljs-keyword">ON</span> <span class="hljs-keyword">UPDATE</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span>,
+
+    <span class="hljs-keyword">UNIQUE</span> KEY uniq_artikul (artikul),
+    KEY idx_brend (brend),
+    KEY idx_kategoriya (kategoriya)
+) ENGINE<span class="hljs-operator">=</span>InnoDB <span class="hljs-keyword">DEFAULT</span> CHARSET<span class="hljs-operator">=</span>utf8mb4 <span class="hljs-keyword">COLLATE</span><span class="hljs-operator">=</span>utf8mb4_unicode_ci;
+</code></pre><p>Новое здесь:</p><ul>
+<li><strong><code>COMMENT</code></strong> — заметка прямо в структуре таблицы. Через год вы забудете,
+что цена в дирамах. Комментарий не забудет.</li>
+<li><strong><code>UNIQUE KEY</code></strong> — база не даст создать два товара с одним артикулом.
+Защита от дублей на уровне базы, а не «мы же проверим в PHP».</li>
+<li><strong><code>KEY</code></strong> — индекс, ускоряющий поиск. Подробно в главе 30.</li>
+</ul><p>Заполняем:</p><pre><code class="language-sql"><span class="hljs-keyword">INSERT INTO</span> tovary (nazvanie, artikul, brend, kategoriya, cena, ostatok) <span class="hljs-keyword">VALUES</span>
+(<span class="hljs-string">'Тормозные колодки Bosch'</span>, <span class="hljs-string">'0986424815'</span>, <span class="hljs-string">'Bosch'</span>,  <span class="hljs-string">'Тормоза'</span>,   <span class="hljs-number">25000</span>, <span class="hljs-number">7</span>),
+(<span class="hljs-string">'Масляный фильтр Mann'</span>,    <span class="hljs-string">'W71280'</span>,     <span class="hljs-string">'Mann'</span>,   <span class="hljs-string">'Фильтры'</span>,    <span class="hljs-number">4500</span>, <span class="hljs-number">23</span>),
+(<span class="hljs-string">'Свечи зажигания Denso'</span>,   <span class="hljs-string">'IK20'</span>,       <span class="hljs-string">'Denso'</span>,  <span class="hljs-string">'Зажигание'</span>, <span class="hljs-number">12000</span>, <span class="hljs-number">0</span>);
+</code></pre></section><section class="vrezka v-ekran"><div class="vrezka-shapka"><span class="vrezka-podpis">На экране</span><span class="vrezka-zagolovok">На экране</span></div><p>Смотрим, что получилось:</p><p><img src="img/26-tablica.png" alt="Содержимое таблицы товаров"></p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Чем управлять базой</span></div><table>
+<thead>
+<tr>
+<th>Инструмент</th>
+<th>Для чего</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>phpMyAdmin</strong></td>
+<td>Через браузер. Идёт в XAMPP и OpenServer. Для начала — идеально</td>
+</tr>
+<tr>
+<td><strong>DBeaver</strong></td>
+<td>Отдельная программа, бесплатная, для всех СУБД</td>
+</tr>
+<tr>
+<td><strong>MySQL Workbench</strong></td>
+<td>Официальный инструмент MySQL</td>
+</tr>
+<tr>
+<td><strong>Командная строка</strong></td>
+<td><code>mysql -u root -p</code>. На сервере часто единственный вариант</td>
+</tr>
+</tbody>
+</table><p>Начните с phpMyAdmin: откройте <code>http://localhost/phpmyadmin</code>, создайте базу
+(кодировка обязательно <code>utf8mb4_unicode_ci</code>) и попробуйте запросы из следующей
+главы прямо там.</p></section><section class="vrezka v-razbor"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбор по словам</span><span class="vrezka-zagolovok">Разбор по словам</span></div><table>
+<thead>
+<tr>
+<th>Запись</th>
+<th>Что означает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CREATE TABLE</code></td>
+<td>Создать таблицу</td>
+</tr>
+<tr>
+<td><code>INT</code> / <code>VARCHAR(n)</code> / <code>TEXT</code> / <code>DATETIME</code></td>
+<td>Типы данных</td>
+</tr>
+<tr>
+<td><code>AUTO_INCREMENT</code></td>
+<td>Номер растёт сам</td>
+</tr>
+<tr>
+<td><code>PRIMARY KEY</code></td>
+<td>Уникальный номер строки</td>
+</tr>
+<tr>
+<td><code>NOT NULL</code></td>
+<td>Обязательное поле</td>
+</tr>
+<tr>
+<td><code>DEFAULT</code></td>
+<td>Значение по умолчанию</td>
+</tr>
+<tr>
+<td><code>UNIQUE KEY</code></td>
+<td>Значения не должны повторяться</td>
+</tr>
+<tr>
+<td><code>KEY</code> / <code>INDEX</code></td>
+<td>Индекс для ускорения поиска</td>
+</tr>
+<tr>
+<td><code>FOREIGN KEY ... REFERENCES</code></td>
+<td>Связь с другой таблицей</td>
+</tr>
+<tr>
+<td><code>COMMENT</code></td>
+<td>Заметка в структуре</td>
+</tr>
+<tr>
+<td><code>ENGINE=InnoDB</code></td>
+<td>Движок. Всегда он</td>
+</tr>
+<tr>
+<td><code>CHARSET=utf8mb4</code></td>
+<td>Кодировка. <strong>Не <code>utf8</code></strong></td>
+</tr>
+<tr>
+<td><strong>Нормализация</strong></td>
+<td>Каждый факт записан один раз</td>
+</tr>
+<tr>
+<td><strong>Мягкое удаление</strong></td>
+<td><code>aktivnyi = 0</code> вместо <code>DELETE</code></td>
+</tr>
+</tbody>
+</table></section><section class="vrezka v-grabli"><div class="vrezka-shapka"><span class="vrezka-podpis">Грабли</span><span class="vrezka-zagolovok">Грабли</span></div><p><strong><code>utf8</code> вместо <code>utf8mb4</code>.</strong> Эмодзи и часть символов превратятся в мусор.</p><p><strong><code>FLOAT</code> для денег.</strong> Суммы разъедутся. <code>INT</code> в дирамах или <code>DECIMAL</code>.</p><p><strong>Список значений в одном поле.</strong> «Toyota, Honda, Nissan» — невозможно
+нормально искать и фильтровать.</p><p><strong>Дублировать данные вместо связи.</strong> Обновите в одном месте — забудете в другом.</p><p><strong>Физически удалять записи.</strong> История заказов сломается.</p><p><strong><code>VARCHAR(255)</code> для всего.</strong> Ограничение — это ещё и проверка.</p><p><strong>Русские имена таблиц и полей.</strong> Технически возможно, практически — источник
+проблем на каждом шагу.</p><p><strong>Не добавить <code>sozdan</code> сразу.</strong> Через полгода понадобится, а данных за прошлое
+уже не будет.</p></section><section class="vrezka v-zadachi"><div class="vrezka-shapka"><span class="vrezka-podpis">Задачи</span><span class="vrezka-zagolovok">Задачи</span></div><p><strong>Задача 26.1.</strong> Установите phpMyAdmin (идёт с XAMPP/OpenServer), создайте базу
+<code>magazin</code> с кодировкой <code>utf8mb4_unicode_ci</code>.</p><p><strong>Задача 26.2.</strong> Создайте таблицу <code>tovary</code> из главы и добавьте пять товаров.</p><p><strong>Задача 26.3.</strong> Какой тип выбрать для каждого поля? Обоснуйте:</p><ol>
+<li>Название товара.</li>
+<li>Цена.</li>
+<li>Количество на складе.</li>
+<li>Описание на две страницы.</li>
+<li>Дата добавления.</li>
+<li>Есть ли скидка.</li>
+<li>Артикул.</li>
+<li>Вес в килограммах.</li>
+</ol><p><strong>Задача 26.4.</strong> Найдите ошибки в проектировании:</p><pre><code class="language-sql"><span class="hljs-keyword">CREATE TABLE</span> zakazy (
+    nomer <span class="hljs-type">INT</span>,
+    tovary <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">500</span>),
+    klient_imya <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">100</span>),
+    klient_telefon <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">20</span>),
+    klient_adres <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>),
+    summa <span class="hljs-type">FLOAT</span>,
+    data <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">20</span>)
+);
+</code></pre><p>Найдите минимум пять проблем.</p><p><strong>Задача 26.5.</strong> Спроектируйте таблицу <code>otzyvy</code> — отзывы о товарах. Какие поля
+нужны? Как связать с товарами и покупателями?</p><p><strong>Задача 26.6.</strong> Спроектируйте связь «товар подходит к нескольким автомобилям».
+Сколько таблиц понадобится?</p><p><strong>Задача 26.7.</strong> Почему поле <code>cena</code> лучше назвать <code>cena_diram</code>? Что это даёт
+через год?</p><p><strong>Задача 26.8.</strong> Откройте <code>sql/</code> в этом репозитории и посмотрите на структуру
+таблицы товаров боевого магазина. Какие поля есть там, которых нет у вас?
+Зачем каждое из них?</p><p><em>Ответы — в <a href="../prilozheniya/G-otvety.md">Приложении Г</a>.</em></p></section><section class="vrezka v-vboyu"><div class="vrezka-shapka"><span class="vrezka-podpis">В бою</span><span class="vrezka-zagolovok">В бою</span></div><p>В папке <code>sql/</code> этого репозитория лежат <strong>миграции</strong> — файлы, которые создают
+и изменяют структуру базы.</p><p>Обратите внимание на две вещи.</p><p><strong>Каждый файл идемпотентен</strong> — то есть его можно применить дважды без вреда.
+Там везде <code>CREATE TABLE IF NOT EXISTS</code> и проверки перед добавлением столбца.
+Это жёсткое правило проекта: миграция, которая падает при повторном запуске,
+однажды уронит боевой сайт.</p><p><strong>Структура меняется только миграциями.</strong> Никто не правит таблицы руками
+в phpMyAdmin на боевом сервере. Иначе на тестовом сервере структура одна,
+на боевом другая, и код работает то так, то эдак.</p></section><section class="vrezka v-itog"><div class="vrezka-shapka"><span class="vrezka-podpis">Итог</span><span class="vrezka-zagolovok">Итог</span></div><ul>
+<li>База — картотека: <strong>таблица</strong> = ящик, <strong>строка</strong> = карточка, <strong>столбец</strong> = поле.</li>
+<li><strong>MySQL</strong> для сайтов, <strong>SQL</strong> — язык запросов, почти одинаковый везде.</li>
+<li>Всегда <code>ENGINE=InnoDB</code> и <code>CHARSET=utf8mb4</code> (<strong>не <code>utf8</code></strong>).</li>
+<li>Деньги — <strong><code>INT</code> в мелких единицах</strong> или <code>DECIMAL</code>. Никогда <code>FLOAT</code>.</li>
+<li><strong>Одно поле — одно значение.</strong> Список — это отдельная таблица.</li>
+<li><strong>Каждый факт записан один раз.</strong> Дублирование = рассинхронизация.</li>
+<li><code>FOREIGN KEY</code> заставляет базу саму следить за связями.</li>
+<li>Добавляйте <code>sozdan</code>, <code>izmenen</code>, <code>aktivnyi</code> сразу.</li>
+<li><strong>Мягкое удаление</strong> вместо <code>DELETE</code>.</li>
+<li>Имена — латиница, нижний регистр, подчёркивания, таблицы во множественном числе.</li>
+</ul><p>Дальше — SELECT: научимся доставать из базы именно то, что нужно.</p></section></div></article>
+<article class="glava" id="glava-27">
+    <header class="glava-shapka">
+      <div class="glava-metka">
+        <span class="glava-slovo">Глава</span>
+        <span class="glava-nomer">27</span>
+      </div>
+      <div class="glava-podpis">Часть VI. База данных</div>
+      <h1 class="glava-nazvanie">SELECT: достаём данные</h1>
+    </header><div class="telo"><section class="vrezka v-zachem"><div class="vrezka-shapka"><span class="vrezka-podpis">Зачем это</span><span class="vrezka-zagolovok">Зачем эта глава</span></div><p><code>SELECT</code> — самая используемая команда в вашей будущей жизни. Каталог, поиск,
+фильтры, отчёты, личный кабинет — всё это <code>SELECT</code>.</p><p>Хорошая новость: он читается почти как английская фраза. Плохая: у него много
+частей, и порядок их строгий.</p><p>Разберём всё по кускам. Каждый пример в этой главе <strong>реально выполнялся</strong>,
+и таблицы результатов — настоящие.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Скелет запроса</span></div><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span>   какие столбцы
+<span class="hljs-keyword">FROM</span>     из какой таблицы
+<span class="hljs-keyword">WHERE</span>    какие строки брать
+<span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> как группировать
+<span class="hljs-keyword">HAVING</span>   какие группы оставить
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> как отсортировать
+LIMIT    сколько показать
+</code></pre><p>⚠️ <strong>Порядок частей менять нельзя.</strong> <code>ORDER BY</code> перед <code>WHERE</code> — ошибка.
+Запомните последовательность, она одинакова во всех базах.</p><p>Обязательны только <code>SELECT</code> и <code>FROM</code>. Остальное — по необходимости.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Выбираем столбцы</span></div><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> tovary;
+<span class="hljs-keyword">SELECT</span> nazvanie, cena <span class="hljs-keyword">FROM</span> tovary;
+<span class="hljs-keyword">SELECT</span> nazvanie <span class="hljs-keyword">AS</span> tovar, cena <span class="hljs-keyword">AS</span> stoimost <span class="hljs-keyword">FROM</span> tovary;
+</code></pre><p><code>*</code> означает «все столбцы».</p><p>⚠️ <strong><code>SELECT *</code> удобен для проб, но плох в рабочем коде.</strong> Причины:</p><ul>
+<li>тянет лишние данные, включая большие описания;</li>
+<li>добавили столбец в таблицу — запрос молча стал тяжелее;</li>
+<li>непонятно, что именно использует код.</li>
+</ul><p><strong>Перечисляйте нужные столбцы явно.</strong></p><p><code>AS</code> задаёт новое имя столбцу в результате. Полезно, когда имя длинное
+или столбцы из разных таблиц называются одинаково.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">WHERE: отбираем строки</span></div><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> nazvanie, cena, ostatok
+<span class="hljs-keyword">FROM</span> tovary
+<span class="hljs-keyword">WHERE</span> cena <span class="hljs-operator">&lt;</span> <span class="hljs-number">20000</span>;
+</code></pre><p><img src="img/27-where.png" alt="Товары дешевле 200 сомони"></p><h3><strong>Операторы сравнения</strong></h3><pre><code class="language-sql"><span class="hljs-keyword">WHERE</span> cena <span class="hljs-operator">=</span> <span class="hljs-number">25000</span>
+<span class="hljs-keyword">WHERE</span> cena <span class="hljs-operator">&lt;&gt;</span> <span class="hljs-number">25000</span>        <span class="hljs-comment">-- не равно (можно и !=)</span>
+<span class="hljs-keyword">WHERE</span> cena <span class="hljs-operator">&gt;</span> <span class="hljs-number">20000</span>
+<span class="hljs-keyword">WHERE</span> cena <span class="hljs-keyword">BETWEEN</span> <span class="hljs-number">5000</span> <span class="hljs-keyword">AND</span> <span class="hljs-number">30000</span>
+<span class="hljs-keyword">WHERE</span> brend <span class="hljs-keyword">IN</span> (<span class="hljs-string">'Bosch'</span>, <span class="hljs-string">'Mann'</span>)
+<span class="hljs-keyword">WHERE</span> brend <span class="hljs-keyword">NOT</span> <span class="hljs-keyword">IN</span> (<span class="hljs-string">'NGK'</span>)
+<span class="hljs-keyword">WHERE</span> ostatok <span class="hljs-operator">&gt;</span> <span class="hljs-number">0</span> <span class="hljs-keyword">AND</span> cena <span class="hljs-operator">&lt;</span> <span class="hljs-number">20000</span>
+<span class="hljs-keyword">WHERE</span> brend <span class="hljs-operator">=</span> <span class="hljs-string">'Bosch'</span> <span class="hljs-keyword">OR</span> brend <span class="hljs-operator">=</span> <span class="hljs-string">'Mann'</span>
+<span class="hljs-keyword">WHERE</span> <span class="hljs-keyword">NOT</span> (ostatok <span class="hljs-operator">=</span> <span class="hljs-number">0</span>)
+</code></pre><p><code>BETWEEN</code> включает границы: <code>BETWEEN 5000 AND 30000</code> возьмёт и 5000, и 30000.</p><p><code>IN</code> — короткая запись для «или»: <code>IN ('a','b','c')</code> вместо трёх <code>OR</code>.</p><h3><strong>Поиск по тексту: LIKE</strong></h3><pre><code class="language-sql"><span class="hljs-keyword">WHERE</span> nazvanie <span class="hljs-keyword">LIKE</span> <span class="hljs-string">'%фильтр%'</span>    <span class="hljs-comment">-- содержит</span>
+<span class="hljs-keyword">WHERE</span> nazvanie <span class="hljs-keyword">LIKE</span> <span class="hljs-string">'Тормозные%'</span>  <span class="hljs-comment">-- начинается с</span>
+<span class="hljs-keyword">WHERE</span> artikul <span class="hljs-keyword">LIKE</span> <span class="hljs-string">'%815'</span>         <span class="hljs-comment">-- заканчивается на</span>
+</code></pre><table>
+<thead>
+<tr>
+<th>Знак</th>
+<th>Что означает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>%</code></td>
+<td>Любое количество любых символов</td>
+</tr>
+<tr>
+<td><code>_</code></td>
+<td>Ровно один любой символ</td>
+</tr>
+</tbody>
+</table><p>⚠️ <strong><code>LIKE '%текст%'</code> — медленный запрос.</strong> База не может использовать индекс
+и вынуждена просмотреть все строки. На тысяче товаров незаметно, на миллионе —
+катастрофа.</p><p>Для серьёзного поиска есть полнотекстовый индекс (<code>FULLTEXT</code>) и отдельные
+поисковые движки. Разберём в главе 35.</p><h3><strong>Пустые значения: IS NULL</strong></h3><pre><code class="language-sql"><span class="hljs-keyword">WHERE</span> opisanie <span class="hljs-keyword">IS</span> <span class="hljs-keyword">NULL</span>
+<span class="hljs-keyword">WHERE</span> opisanie <span class="hljs-keyword">IS</span> <span class="hljs-keyword">NOT NULL</span>
+</code></pre><p>⚠️ <strong><code>= NULL</code> не работает никогда.</strong> <code>NULL</code> означает «неизвестно», а неизвестное
+не равно ничему, даже другому неизвестному. Только <code>IS NULL</code>.</p><p>Это одна из самых частых ошибок новичков в SQL.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">ORDER BY: сортировка</span></div><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> nazvanie, cena <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> cena;         <span class="hljs-comment">-- по возрастанию</span>
+<span class="hljs-keyword">SELECT</span> nazvanie, cena <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> cena <span class="hljs-keyword">DESC</span>;    <span class="hljs-comment">-- по убыванию</span>
+<span class="hljs-keyword">SELECT</span> nazvanie, cena <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> brend, cena;  <span class="hljs-comment">-- сначала по бренду, внутри по цене</span>
+</code></pre><p><code>ASC</code> — по возрастанию (по умолчанию), <code>DESC</code> — по убыванию.</p><p>Сортировка по нескольким полям через запятую: сначала по первому, при равенстве —
+по второму.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">LIMIT: сколько показывать</span></div><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> nazvanie <span class="hljs-keyword">FROM</span> tovary LIMIT <span class="hljs-number">5</span>;             <span class="hljs-comment">-- первые 5</span>
+<span class="hljs-keyword">SELECT</span> nazvanie <span class="hljs-keyword">FROM</span> tovary LIMIT <span class="hljs-number">5</span> <span class="hljs-keyword">OFFSET</span> <span class="hljs-number">10</span>;   <span class="hljs-comment">-- 5 штук, пропустив 10</span>
+<span class="hljs-keyword">SELECT</span> nazvanie <span class="hljs-keyword">FROM</span> tovary LIMIT <span class="hljs-number">10</span>, <span class="hljs-number">5</span>;         <span class="hljs-comment">-- то же короче: пропустить 10, взять 5</span>
+</code></pre><p><strong>Это и есть пагинация.</strong> Формула:</p><pre><code>OFFSET = (номер_страницы - 1) × товаров_на_странице
+</code></pre><p>Третья страница по 20 товаров: <code>LIMIT 20 OFFSET 40</code>.</p><p>⚠️ <strong><code>ORDER BY</code> обязателен, если используете <code>LIMIT</code>.</strong> Без сортировки база
+не обязана возвращать строки в каком-то определённом порядке — и на второй
+странице может оказаться то же, что на первой.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Функции над строками</span></div><p>Здесь начинается по-настоящему полезное.</p><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">FROM</span> tovary;                       <span class="hljs-comment">-- сколько строк</span>
+<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">WHERE</span> ostatok <span class="hljs-operator">&gt;</span> <span class="hljs-number">0</span>;     <span class="hljs-comment">-- сколько в наличии</span>
+<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">SUM</span>(ostatok) <span class="hljs-keyword">FROM</span> tovary;                   <span class="hljs-comment">-- сумма</span>
+<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">AVG</span>(cena) <span class="hljs-keyword">FROM</span> tovary;                      <span class="hljs-comment">-- среднее</span>
+<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">MIN</span>(cena), <span class="hljs-built_in">MAX</span>(cena) <span class="hljs-keyword">FROM</span> tovary;           <span class="hljs-comment">-- минимум и максимум</span>
+<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">SUM</span>(cena <span class="hljs-operator">*</span> ostatok) <span class="hljs-keyword">FROM</span> tovary;            <span class="hljs-comment">-- стоимость склада</span>
+</code></pre><p>Такие функции называются <strong>агрегатными</strong> — они «схлопывают» много строк в одно
+значение.</p><p>⚠️ <strong><code>COUNT(*)</code> и <code>COUNT(stolbec)</code> — разные вещи.</strong> Первый считает все строки,
+второй — только те, где столбец не <code>NULL</code>.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">GROUP BY: считаем по группам</span></div><p>Вот самая мощная часть SQL.</p><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> brend, <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">AS</span> shtuk, <span class="hljs-built_in">SUM</span>(ostatok) <span class="hljs-keyword">AS</span> na_sklade
+<span class="hljs-keyword">FROM</span> tovary
+<span class="hljs-keyword">WHERE</span> aktivnyi <span class="hljs-operator">=</span> <span class="hljs-number">1</span>
+<span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> brend
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> shtuk <span class="hljs-keyword">DESC</span>;
+</code></pre><p><img src="img/27-group.png" alt="Сводка по брендам"></p><p><strong>Что произошло.</strong> База сгруппировала строки по бренду и для каждой группы
+посчитала итоги. Одним запросом получена вся сводка — в PHP на это ушёл бы
+цикл и несколько массивов.</p><h3><strong>Правило GROUP BY</strong></h3><p>⚠️ В <code>SELECT</code> можно ставить только:</p><ul>
+<li>поля, по которым группируете;</li>
+<li>агрегатные функции.</li>
+</ul><pre><code class="language-sql"><span class="hljs-comment">-- ❌ Неправильно: nazvanie у каждой строки своё, какое показать?</span>
+<span class="hljs-keyword">SELECT</span> brend, nazvanie, <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> brend;
+
+<span class="hljs-comment">-- ✅ Правильно</span>
+<span class="hljs-keyword">SELECT</span> brend, <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> brend;
+</code></pre><p>MySQL в старых настройках это молча прощал и показывал случайное значение —
+источник трудноуловимых ошибок. В новых версиях выдаёт ошибку, и правильно делает.</p><h3><strong>HAVING: фильтр для групп</strong></h3><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> brend, <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">AS</span> shtuk
+<span class="hljs-keyword">FROM</span> tovary
+<span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> brend
+<span class="hljs-keyword">HAVING</span> <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-operator">&gt;=</span> <span class="hljs-number">2</span>
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> shtuk <span class="hljs-keyword">DESC</span>;
+</code></pre><p><strong>Разница <code>WHERE</code> и <code>HAVING</code> — частый вопрос на собеседованиях:</strong></p><table>
+<thead>
+<tr>
+<th></th>
+<th>Когда работает</th>
+<th>Над чем</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>WHERE</code></td>
+<td><strong>До</strong> группировки</td>
+<td>Над отдельными строками</td>
+</tr>
+<tr>
+<td><code>HAVING</code></td>
+<td><strong>После</strong> группировки</td>
+<td>Над результатами групп</td>
+</tr>
+</tbody>
+</table><p>«Бренды, у которых больше двух товаров» — это <code>HAVING</code>, потому что количество
+известно только после группировки.</p><p>«Товары дороже 200 сомони» — это <code>WHERE</code>, потому что цена известна у каждой строки.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Полезные функции</span></div><pre><code class="language-sql"><span class="hljs-comment">-- Строки</span>
+<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">UPPER</span>(nazvanie), <span class="hljs-built_in">LOWER</span>(brend), LENGTH(artikul) <span class="hljs-keyword">FROM</span> tovary;
+<span class="hljs-keyword">SELECT</span> CONCAT(brend, <span class="hljs-string">' — '</span>, nazvanie) <span class="hljs-keyword">AS</span> polnoe <span class="hljs-keyword">FROM</span> tovary;
+<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">SUBSTRING</span>(nazvanie, <span class="hljs-number">1</span>, <span class="hljs-number">20</span>) <span class="hljs-keyword">FROM</span> tovary;
+<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">TRIM</span>(nazvanie) <span class="hljs-keyword">FROM</span> tovary;
+
+<span class="hljs-comment">-- Числа</span>
+<span class="hljs-keyword">SELECT</span> ROUND(cena <span class="hljs-operator">/</span> <span class="hljs-number">100.0</span>, <span class="hljs-number">2</span>) <span class="hljs-keyword">AS</span> somoni <span class="hljs-keyword">FROM</span> tovary;
+<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">CEIL</span>(cena <span class="hljs-operator">/</span> <span class="hljs-number">100.0</span>), <span class="hljs-built_in">FLOOR</span>(cena <span class="hljs-operator">/</span> <span class="hljs-number">100.0</span>) <span class="hljs-keyword">FROM</span> tovary;
+
+<span class="hljs-comment">-- Даты (MySQL)</span>
+<span class="hljs-keyword">SELECT</span> NOW();                                    <span class="hljs-comment">-- текущие дата и время</span>
+<span class="hljs-keyword">SELECT</span> CURDATE();                                <span class="hljs-comment">-- текущая дата</span>
+<span class="hljs-keyword">SELECT</span> DATE_FORMAT(sozdan, <span class="hljs-string">'%d.%m.%Y'</span>);          <span class="hljs-comment">-- 24.08.2026</span>
+<span class="hljs-keyword">SELECT</span> DATEDIFF(NOW(), sozdan) <span class="hljs-keyword">AS</span> dney_nazad;    <span class="hljs-comment">-- разница в днях</span>
+
+<span class="hljs-comment">-- Условие прямо в запросе</span>
+<span class="hljs-keyword">SELECT</span> nazvanie,
+       <span class="hljs-keyword">CASE</span>
+           <span class="hljs-keyword">WHEN</span> ostatok <span class="hljs-operator">=</span> <span class="hljs-number">0</span> <span class="hljs-keyword">THEN</span> <span class="hljs-string">'Под заказ'</span>
+           <span class="hljs-keyword">WHEN</span> ostatok <span class="hljs-operator">&lt;=</span> <span class="hljs-number">3</span> <span class="hljs-keyword">THEN</span> <span class="hljs-string">'Мало'</span>
+           <span class="hljs-keyword">ELSE</span> <span class="hljs-string">'В наличии'</span>
+       <span class="hljs-keyword">END</span> <span class="hljs-keyword">AS</span> status
+<span class="hljs-keyword">FROM</span> tovary;
+</code></pre><p><code>CASE</code> — это <code>if/else</code> внутри SQL. Иногда удобно посчитать статус сразу в базе,
+чтобы не гонять лишние данные в PHP.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Подзапросы</span></div><p>Запрос внутри запроса:</p><pre><code class="language-sql"><span class="hljs-comment">-- Товары дороже среднего</span>
+<span class="hljs-keyword">SELECT</span> nazvanie, cena
+<span class="hljs-keyword">FROM</span> tovary
+<span class="hljs-keyword">WHERE</span> cena <span class="hljs-operator">&gt;</span> (<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">AVG</span>(cena) <span class="hljs-keyword">FROM</span> tovary)
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> cena <span class="hljs-keyword">DESC</span>;
+</code></pre><p><img src="img/27-podzapros.png" alt="Товары дороже средней цены"></p><p>Внутренний запрос считает среднее, внешний использует результат.</p><p>⚠️ Подзапросы читаемы, но бывают медленными: внутренний может выполняться
+для каждой строки. Часто то же самое делается через <code>JOIN</code> (глава 29) быстрее.</p><p><strong>Совет:</strong> сначала напишите понятно подзапросом. Если станет медленно —
+перепишите через <code>JOIN</code>. Преждевременная оптимизация вредна.</p></section><section class="vrezka v-kod"><div class="vrezka-shapka"><span class="vrezka-podpis">Код</span><span class="vrezka-zagolovok">Запросы для нашего каталога</span></div><pre><code class="language-sql"><span class="hljs-comment">-- Каталог: первая страница, только активные и в наличии</span>
+<span class="hljs-keyword">SELECT</span> id, nazvanie, artikul, brend, cena, ostatok
+<span class="hljs-keyword">FROM</span> tovary
+<span class="hljs-keyword">WHERE</span> aktivnyi <span class="hljs-operator">=</span> <span class="hljs-number">1</span> <span class="hljs-keyword">AND</span> ostatok <span class="hljs-operator">&gt;</span> <span class="hljs-number">0</span>
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> nazvanie
+LIMIT <span class="hljs-number">6</span> <span class="hljs-keyword">OFFSET</span> <span class="hljs-number">0</span>;
+
+<span class="hljs-comment">-- Поиск по названию или артикулу</span>
+<span class="hljs-keyword">SELECT</span> id, nazvanie, cena
+<span class="hljs-keyword">FROM</span> tovary
+<span class="hljs-keyword">WHERE</span> aktivnyi <span class="hljs-operator">=</span> <span class="hljs-number">1</span>
+  <span class="hljs-keyword">AND</span> (nazvanie <span class="hljs-keyword">LIKE</span> <span class="hljs-string">'%фильтр%'</span> <span class="hljs-keyword">OR</span> artikul <span class="hljs-keyword">LIKE</span> <span class="hljs-string">'%фильтр%'</span>)
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> cena;
+
+<span class="hljs-comment">-- Фильтр: бренд и диапазон цены</span>
+<span class="hljs-keyword">SELECT</span> nazvanie, brend, cena
+<span class="hljs-keyword">FROM</span> tovary
+<span class="hljs-keyword">WHERE</span> aktivnyi <span class="hljs-operator">=</span> <span class="hljs-number">1</span>
+  <span class="hljs-keyword">AND</span> brend <span class="hljs-operator">=</span> <span class="hljs-string">'Mann'</span>
+  <span class="hljs-keyword">AND</span> cena <span class="hljs-keyword">BETWEEN</span> <span class="hljs-number">4000</span> <span class="hljs-keyword">AND</span> <span class="hljs-number">7000</span>
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> cena;
+
+<span class="hljs-comment">-- Сколько всего найдено — для пагинации</span>
+<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">AS</span> vsego
+<span class="hljs-keyword">FROM</span> tovary
+<span class="hljs-keyword">WHERE</span> aktivnyi <span class="hljs-operator">=</span> <span class="hljs-number">1</span> <span class="hljs-keyword">AND</span> ostatok <span class="hljs-operator">&gt;</span> <span class="hljs-number">0</span>;
+
+<span class="hljs-comment">-- Список брендов для выпадающего списка, с количеством</span>
+<span class="hljs-keyword">SELECT</span> brend, <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">AS</span> shtuk
+<span class="hljs-keyword">FROM</span> tovary
+<span class="hljs-keyword">WHERE</span> aktivnyi <span class="hljs-operator">=</span> <span class="hljs-number">1</span>
+<span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> brend
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> brend;
+
+<span class="hljs-comment">-- Отчёт: стоимость склада по категориям</span>
+<span class="hljs-keyword">SELECT</span> kategoriya,
+       <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">AS</span> pozicij,
+       <span class="hljs-built_in">SUM</span>(ostatok) <span class="hljs-keyword">AS</span> shtuk,
+       ROUND(<span class="hljs-built_in">SUM</span>(cena <span class="hljs-operator">*</span> ostatok) <span class="hljs-operator">/</span> <span class="hljs-number">100.0</span>, <span class="hljs-number">2</span>) <span class="hljs-keyword">AS</span> summa_somoni
+<span class="hljs-keyword">FROM</span> tovary
+<span class="hljs-keyword">WHERE</span> aktivnyi <span class="hljs-operator">=</span> <span class="hljs-number">1</span>
+<span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> kategoriya
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> summa_somoni <span class="hljs-keyword">DESC</span>;
+
+<span class="hljs-comment">-- Что заканчивается: меньше трёх штук</span>
+<span class="hljs-keyword">SELECT</span> nazvanie, ostatok
+<span class="hljs-keyword">FROM</span> tovary
+<span class="hljs-keyword">WHERE</span> aktivnyi <span class="hljs-operator">=</span> <span class="hljs-number">1</span> <span class="hljs-keyword">AND</span> ostatok <span class="hljs-keyword">BETWEEN</span> <span class="hljs-number">1</span> <span class="hljs-keyword">AND</span> <span class="hljs-number">3</span>
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> ostatok;
+</code></pre></section><section class="vrezka v-ekran"><div class="vrezka-shapka"><span class="vrezka-podpis">На экране</span><span class="vrezka-zagolovok">На экране</span></div><p>Отчёт по категориям — одним запросом:</p><p><img src="img/27-otchet.png" alt="Стоимость склада по категориям"></p><p>Обратите внимание: посчитано количество позиций, штук и общая стоимость,
+переведённая в сомони, — всё это база сделала сама.</p></section><section class="vrezka v-razbor"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбор по словам</span><span class="vrezka-zagolovok">Разбор по словам</span></div><table>
+<thead>
+<tr>
+<th>Запись</th>
+<th>Что делает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SELECT</code></td>
+<td>Какие столбцы вернуть</td>
+</tr>
+<tr>
+<td><code>*</code></td>
+<td>Все столбцы. <strong>В рабочем коде не используйте</strong></td>
+</tr>
+<tr>
+<td><code>AS</code></td>
+<td>Переименовать столбец в результате</td>
+</tr>
+<tr>
+<td><code>FROM</code></td>
+<td>Из какой таблицы</td>
+</tr>
+<tr>
+<td><code>WHERE</code></td>
+<td>Какие строки брать</td>
+</tr>
+<tr>
+<td><code>&lt;&gt;</code> или <code>!=</code></td>
+<td>Не равно</td>
+</tr>
+<tr>
+<td><code>BETWEEN a AND b</code></td>
+<td>В диапазоне, включая границы</td>
+</tr>
+<tr>
+<td><code>IN (...)</code></td>
+<td>Одно из перечисленных</td>
+</tr>
+<tr>
+<td><code>LIKE '%текст%'</code></td>
+<td>Содержит. <strong>Медленно</strong></td>
+</tr>
+<tr>
+<td><code>IS NULL</code></td>
+<td>Пусто. <strong><code>= NULL</code> не работает</strong></td>
+</tr>
+<tr>
+<td><code>ORDER BY ... DESC</code></td>
+<td>Сортировка по убыванию</td>
+</tr>
+<tr>
+<td><code>LIMIT n OFFSET m</code></td>
+<td>n строк, пропустив m. <strong>Пагинация</strong></td>
+</tr>
+<tr>
+<td><code>COUNT(*)</code></td>
+<td>Сколько строк</td>
+</tr>
+<tr>
+<td><code>SUM</code> / <code>AVG</code> / <code>MIN</code> / <code>MAX</code></td>
+<td>Сумма, среднее, минимум, максимум</td>
+</tr>
+<tr>
+<td><code>GROUP BY</code></td>
+<td>Сгруппировать и посчитать по группам</td>
+</tr>
+<tr>
+<td><code>HAVING</code></td>
+<td>Фильтр <strong>после</strong> группировки</td>
+</tr>
+<tr>
+<td><code>CASE WHEN ... THEN ... END</code></td>
+<td>Условие внутри запроса</td>
+</tr>
+<tr>
+<td><code>CONCAT()</code></td>
+<td>Склеить строки</td>
+</tr>
+<tr>
+<td><code>DATE_FORMAT()</code></td>
+<td>Формат даты</td>
+</tr>
+</tbody>
+</table></section><section class="vrezka v-grabli"><div class="vrezka-shapka"><span class="vrezka-podpis">Грабли</span><span class="vrezka-zagolovok">Грабли</span></div><p><strong><code>= NULL</code> вместо <code>IS NULL</code>.</strong> Не сработает никогда, ошибки не будет.</p><p><strong><code>SELECT *</code> в рабочем коде.</strong> Тянет лишнее, ломается при изменении таблицы.</p><p><strong><code>LIMIT</code> без <code>ORDER BY</code>.</strong> Порядок строк не гарантирован, пагинация поедет.</p><p><strong>Путать <code>WHERE</code> и <code>HAVING</code>.</strong> <code>WHERE</code> — до группировки, <code>HAVING</code> — после.</p><p><strong><code>LIKE '%текст%'</code> на большой таблице.</strong> Индекс не работает, полный перебор.</p><p><strong>Поле в <code>SELECT</code>, которого нет в <code>GROUP BY</code>.</strong> Ошибка или случайное значение.</p><p><strong>Забыть про <code>aktivnyi = 1</code>.</strong> В каталоге появятся скрытые товары. Помните
+про мягкое удаление из главы 26 — фильтр по нему нужен <strong>в каждом</strong> запросе
+каталога.</p></section><section class="vrezka v-zadachi"><div class="vrezka-shapka"><span class="vrezka-podpis">Задачи</span><span class="vrezka-zagolovok">Задачи</span></div><p>Все задачи выполняйте в phpMyAdmin на своей таблице.</p><p><strong>Задача 27.1.</strong> Выведите все товары бренда Bosch, отсортированные по цене
+от дорогих к дешёвым.</p><p><strong>Задача 27.2.</strong> Найдите товары, у которых в названии есть слово «фильтр».</p><p><strong>Задача 27.3.</strong> Сколько товаров в наличии, а сколько под заказ? Два запроса.</p><p><strong>Задача 27.4.</strong> Найдите самый дорогой и самый дешёвый товар. Выведите
+их названия, а не только цены.</p><p><strong>Задача 27.5.</strong> Посчитайте среднюю цену по каждому бренду. Отсортируйте
+по убыванию средней цены.</p><p><strong>Задача 27.6.</strong> Выведите бренды, у которых больше одного товара.</p><p><strong>Задача 27.7.</strong> Товары второй страницы, если на странице по 4 товара.</p><p><strong>Задача 27.8.</strong> Выведите название, цену в сомони (с двумя знаками)
+и текстовый статус наличия через <code>CASE</code>.</p><p><strong>Задача 27.9.</strong> Найдите товары дороже средней цены <strong>своего бренда</strong>.
+Подсказка: подзапрос со связью.</p><p><strong>Задача 27.10.</strong> Что не так с каждым запросом?</p><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">WHERE</span> opisanie <span class="hljs-operator">=</span> <span class="hljs-keyword">NULL</span>;
+<span class="hljs-keyword">SELECT</span> brend, nazvanie, <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> brend;
+<span class="hljs-keyword">SELECT</span> nazvanie <span class="hljs-keyword">FROM</span> tovary LIMIT <span class="hljs-number">10</span>;
+<span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">WHERE</span> <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-operator">&gt;</span> <span class="hljs-number">5</span>;
+</code></pre><p><strong>Задача 27.11.</strong> Напишите запрос для страницы «Распродажа»: товары с остатком
+больше 10 и ценой ниже средней, сначала самые дешёвые, не больше 12 штук.</p><p><em>Ответы — в <a href="../prilozheniya/G-otvety.md">Приложении Г</a>.</em></p></section><section class="vrezka v-vboyu"><div class="vrezka-shapka"><span class="vrezka-podpis">В бою</span><span class="vrezka-zagolovok">В бою</span></div><p>Откройте <code>includes/</code> в этом репозитории и найдите запросы к каталогу.
+Увидите ту же структуру: <code>WHERE aktivnyi = 1</code>, фильтры, <code>ORDER BY</code>, <code>LIMIT</code>.</p><p>Обратите внимание на одну деталь: рядом с основным запросом почти всегда идёт
+<strong>второй запрос с <code>COUNT(*)</code></strong> — он считает общее количество для пагинации.</p><p>Почему нельзя обойтись одним: <code>LIMIT 20</code> вернёт двадцать строк, и вы не узнаете,
+сколько всего подходит под фильтр. А без этого не нарисовать номера страниц.</p><p>Так делают все: один запрос за данными, второй за количеством. Условия
+в них одинаковые.</p></section><section class="vrezka v-itog"><div class="vrezka-shapka"><span class="vrezka-podpis">Итог</span><span class="vrezka-zagolovok">Итог</span></div><ul>
+<li>Порядок частей строгий: <code>SELECT → FROM → WHERE → GROUP BY → HAVING → ORDER BY → LIMIT</code>.</li>
+<li>Перечисляйте столбцы явно, <strong>не <code>SELECT *</code></strong>.</li>
+<li><code>IS NULL</code>, а не <code>= NULL</code>.</li>
+<li><code>LIMIT</code> <strong>всегда с <code>ORDER BY</code></strong>.</li>
+<li><code>LIMIT n OFFSET m</code> — пагинация. <code>OFFSET = (страница − 1) × на_странице</code>.</li>
+<li><code>GROUP BY</code> + <code>COUNT/SUM/AVG</code> — вся аналитика одним запросом.</li>
+<li><code>WHERE</code> фильтрует строки <strong>до</strong> группировки, <code>HAVING</code> — группы <strong>после</strong>.</li>
+<li><code>LIKE '%...%'</code> не использует индекс — медленно на больших таблицах.</li>
+<li>В каталоге всегда фильтруйте по <code>aktivnyi = 1</code>.</li>
+<li>Для пагинации нужен второй запрос с <code>COUNT(*)</code>.</li>
+</ul><p>Дальше — как добавлять, менять и удалять данные.</p></section></div></article>
+<article class="glava" id="glava-28">
+    <header class="glava-shapka">
+      <div class="glava-metka">
+        <span class="glava-slovo">Глава</span>
+        <span class="glava-nomer">28</span>
+      </div>
+      <div class="glava-podpis">Часть VI. База данных</div>
+      <h1 class="glava-nazvanie">INSERT, UPDATE, DELETE</h1>
+    </header><div class="telo"><section class="vrezka v-zachem"><div class="vrezka-shapka"><span class="vrezka-podpis">Зачем это</span><span class="vrezka-zagolovok">Зачем эта глава</span></div><p><code>SELECT</code> только читает. Теперь научимся менять данные: добавлять товары,
+обновлять остатки, скрывать снятое с продажи.</p><p>Эти три команды опаснее <code>SELECT</code>. Ошиблись в выборке — увидели не то.
+Ошиблись в <code>UPDATE</code> — <strong>испортили данные</strong>, и без резервной копии
+их не вернуть.</p><p>Поэтому в этой главе будет много предупреждений. Не пропускайте их: описанные
+ошибки совершали все, включая автора.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">INSERT — добавляем</span></div><h3><strong>Одна строка</strong></h3><pre><code class="language-sql"><span class="hljs-keyword">INSERT INTO</span> tovary (nazvanie, artikul, brend, kategoriya, cena, ostatok)
+<span class="hljs-keyword">VALUES</span> (<span class="hljs-string">'Стойка амортизатора KYB'</span>, <span class="hljs-string">'341341'</span>, <span class="hljs-string">'KYB'</span>, <span class="hljs-string">'Подвеска'</span>, <span class="hljs-number">42000</span>, <span class="hljs-number">5</span>);
+</code></pre><p>Порядок значений в <code>VALUES</code> должен совпадать с порядком столбцов в скобках.</p><p>⚠️ <strong>Всегда перечисляйте столбцы явно.</strong> Можно написать короче:</p><pre><code class="language-sql"><span class="hljs-keyword">INSERT INTO</span> tovary <span class="hljs-keyword">VALUES</span> (<span class="hljs-keyword">NULL</span>, <span class="hljs-string">'Название'</span>, ...);   <span class="hljs-comment">-- ❌ так не надо</span>
+</code></pre><p>Но тогда запрос сломается, как только кто-то добавит столбец в таблицу.
+А произойдёт это обязательно.</p><h3><strong>Несколько строк сразу</strong></h3><pre><code class="language-sql"><span class="hljs-keyword">INSERT INTO</span> tovary (nazvanie, artikul, brend, kategoriya, cena, ostatok) <span class="hljs-keyword">VALUES</span>
+(<span class="hljs-string">'Свечи NGK Iridium'</span>,    <span class="hljs-string">'ILKAR7B11'</span>, <span class="hljs-string">'NGK'</span>,    <span class="hljs-string">'Зажигание'</span>, <span class="hljs-number">15000</span>, <span class="hljs-number">6</span>),
+(<span class="hljs-string">'Ремень ГРМ Bosch'</span>,     <span class="hljs-string">'1987949095'</span>,<span class="hljs-string">'Bosch'</span>,  <span class="hljs-string">'Двигатель'</span>, <span class="hljs-number">31000</span>, <span class="hljs-number">3</span>),
+(<span class="hljs-string">'Тормозная жидкость'</span>,   <span class="hljs-string">'1987479107'</span>,<span class="hljs-string">'Bosch'</span>,  <span class="hljs-string">'Тормоза'</span>,    <span class="hljs-number">3900</span>, <span class="hljs-number">31</span>);
+</code></pre><p>Один запрос вместо трёх — <strong>в разы быстрее</strong>. Когда будете загружать прайс-лист
+поставщика на десять тысяч позиций, разница окажется между «полторы минуты»
+и «сорок минут».</p><p>Обычно вставляют пачками по 500–1000 строк.</p><h3><strong>Что вернётся</strong></h3><p>После вставки база знает номер новой строки:</p><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> LAST_INSERT_ID();
+</code></pre><p>В PHP это будет <code>$pdo-&gt;lastInsertId()</code> — понадобится в главе 41, когда будем
+создавать заказ и сразу добавлять к нему товары.</p><h3><strong>Если такая строка уже есть</strong></h3><pre><code class="language-sql"><span class="hljs-comment">-- Не вставлять, если конфликт с уникальным ключом</span>
+<span class="hljs-keyword">INSERT</span> IGNORE <span class="hljs-keyword">INTO</span> tovary (artikul, nazvanie, ...) <span class="hljs-keyword">VALUES</span> (...);
+
+<span class="hljs-comment">-- Вставить или обновить существующую</span>
+<span class="hljs-keyword">INSERT INTO</span> tovary (artikul, nazvanie, cena, ostatok)
+<span class="hljs-keyword">VALUES</span> (<span class="hljs-string">'W71280'</span>, <span class="hljs-string">'Масляный фильтр Mann'</span>, <span class="hljs-number">4500</span>, <span class="hljs-number">23</span>)
+<span class="hljs-keyword">ON</span> DUPLICATE KEY <span class="hljs-keyword">UPDATE</span>
+    cena <span class="hljs-operator">=</span> <span class="hljs-keyword">VALUES</span>(cena),
+    ostatok <span class="hljs-operator">=</span> <span class="hljs-keyword">VALUES</span>(ostatok);
+</code></pre><p><strong><code>ON DUPLICATE KEY UPDATE</code></strong> — крайне полезная штука. Читается: «попробуй
+вставить, а если такой артикул уже есть — обнови цену и остаток».</p><p>Именно так загружают прайс-листы: новые товары добавляются, у существующих
+обновляются цены. Одним запросом, без предварительных проверок.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">UPDATE — изменяем</span></div><pre><code class="language-sql"><span class="hljs-keyword">UPDATE</span> tovary
+<span class="hljs-keyword">SET</span> cena <span class="hljs-operator">=</span> <span class="hljs-number">26000</span>
+<span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;
+</code></pre><p>Несколько полей сразу:</p><pre><code class="language-sql"><span class="hljs-keyword">UPDATE</span> tovary
+<span class="hljs-keyword">SET</span> cena <span class="hljs-operator">=</span> <span class="hljs-number">26000</span>,
+    ostatok <span class="hljs-operator">=</span> <span class="hljs-number">5</span>,
+    izmenen <span class="hljs-operator">=</span> NOW()
+<span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;
+</code></pre><h3><strong>⚠️ Самая дорогая ошибка в SQL</strong></h3><pre><code class="language-sql"><span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> cena <span class="hljs-operator">=</span> <span class="hljs-number">26000</span>;
+</code></pre><p>Заметили? <strong>Нет <code>WHERE</code>.</strong> Этот запрос поставит цену 26000 <strong>всем товарам
+в таблице</strong>.</p><p>Отменить нельзя. Только восстановить из резервной копии — если она есть.</p><p><strong>Правило, которое стоит превратить в рефлекс:</strong></p><blockquote>
+<p>Сначала пишете <code>WHERE</code>, потом всё остальное.</p>
+</blockquote><p>Ещё надёжнее — <strong>проверить выборкой перед изменением</strong>:</p><pre><code class="language-sql"><span class="hljs-comment">-- 1. Сначала посмотреть, что затронется</span>
+<span class="hljs-keyword">SELECT</span> id, nazvanie, cena <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">WHERE</span> brend <span class="hljs-operator">=</span> <span class="hljs-string">'Bosch'</span>;
+
+<span class="hljs-comment">-- 2. Убедились, что строки те самые — только теперь менять</span>
+<span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> cena <span class="hljs-operator">=</span> cena <span class="hljs-operator">*</span> <span class="hljs-number">1.1</span> <span class="hljs-keyword">WHERE</span> brend <span class="hljs-operator">=</span> <span class="hljs-string">'Bosch'</span>;
+</code></pre><p>Тридцать секунд на проверку против часов восстановления. Так делают все, кто
+однажды обжёгся.</p><h3><strong>Изменение относительно текущего значения</strong></h3><pre><code class="language-sql"><span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> ostatok <span class="hljs-operator">=</span> ostatok <span class="hljs-operator">-</span> <span class="hljs-number">1</span> <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;
+<span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> cena <span class="hljs-operator">=</span> ROUND(cena <span class="hljs-operator">*</span> <span class="hljs-number">1.1</span>) <span class="hljs-keyword">WHERE</span> brend <span class="hljs-operator">=</span> <span class="hljs-string">'Bosch'</span>;
+</code></pre><p>Это важный приём. Сравните два способа уменьшить остаток:</p><pre><code class="language-sql"><span class="hljs-comment">-- ❌ Опасно: между чтением и записью кто-то мог купить</span>
+<span class="hljs-keyword">SELECT</span> ostatok <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;   <span class="hljs-comment">-- получили 7</span>
+<span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> ostatok <span class="hljs-operator">=</span> <span class="hljs-number">6</span> <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;
+
+<span class="hljs-comment">-- ✅ Безопасно: база сама вычтет от текущего значения</span>
+<span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> ostatok <span class="hljs-operator">=</span> ostatok <span class="hljs-operator">-</span> <span class="hljs-number">1</span> <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">1</span> <span class="hljs-keyword">AND</span> ostatok <span class="hljs-operator">&gt;</span> <span class="hljs-number">0</span>;
+</code></pre><p>Первый вариант — классическая ошибка «состояния гонки»: два покупателя
+одновременно оформили последнюю единицу, и остаток ушёл в минус.</p><p>Второй вариант защищает: <code>AND ostatok &gt; 0</code> не даст уйти ниже нуля.</p><h3><strong>Ограничение количества</strong></h3><pre><code class="language-sql"><span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> aktivnyi <span class="hljs-operator">=</span> <span class="hljs-number">0</span> <span class="hljs-keyword">WHERE</span> brend <span class="hljs-operator">=</span> <span class="hljs-string">'NGK'</span> LIMIT <span class="hljs-number">1</span>;
+</code></pre><p><code>LIMIT</code> в <code>UPDATE</code> работает и служит страховкой: если условие вдруг окажется
+шире, чем вы думали, пострадает одна строка, а не тысяча.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">DELETE — удаляем</span></div><pre><code class="language-sql"><span class="hljs-keyword">DELETE</span> <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">12</span>;
+</code></pre><p>⚠️ <strong>То же смертельное правило: без <code>WHERE</code> удалится вся таблица.</strong></p><pre><code class="language-sql"><span class="hljs-keyword">DELETE</span> <span class="hljs-keyword">FROM</span> tovary;   <span class="hljs-comment">-- ❌ пустая таблица</span>
+</code></pre><h3><strong>Но чаще удалять не нужно</strong></h3><p>Помните мягкое удаление из главы 26?</p><pre><code class="language-sql"><span class="hljs-comment">-- Вместо DELETE</span>
+<span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> aktivnyi <span class="hljs-operator">=</span> <span class="hljs-number">0</span> <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">12</span>;
+</code></pre><p>Товар исчезает из каталога, но остаётся в базе. Причины:</p><ul>
+<li>он может быть в чьём-то заказе — история не сломается;</li>
+<li>удалили по ошибке — вернуть можно одной командой;</li>
+<li>статистика за прошлый год останется правдивой.</li>
+</ul><p><strong>В боевых системах физическое удаление применяется редко:</strong> для временных
+данных, корзин, логов старше года, сессий.</p><h3><strong>Когда всё-таки удаляют</strong></h3><pre><code class="language-sql"><span class="hljs-comment">-- Чистка старых записей</span>
+<span class="hljs-keyword">DELETE</span> <span class="hljs-keyword">FROM</span> sessii <span class="hljs-keyword">WHERE</span> sozdana <span class="hljs-operator">&lt;</span> DATE_SUB(NOW(), <span class="hljs-type">INTERVAL</span> <span class="hljs-number">30</span> <span class="hljs-keyword">DAY</span>);
+
+<span class="hljs-comment">-- Убрать позицию из корзины</span>
+<span class="hljs-keyword">DELETE</span> <span class="hljs-keyword">FROM</span> korzina <span class="hljs-keyword">WHERE</span> polzovatel_id <span class="hljs-operator">=</span> <span class="hljs-number">42</span> <span class="hljs-keyword">AND</span> tovar_id <span class="hljs-operator">=</span> <span class="hljs-number">7</span>;
+</code></pre><h3><strong>TRUNCATE — очистить таблицу целиком</strong></h3><pre><code class="language-sql"><span class="hljs-keyword">TRUNCATE</span> <span class="hljs-keyword">TABLE</span> vremennye_dannye;
+</code></pre><p>Быстрее, чем <code>DELETE</code>, и сбрасывает счётчик <code>AUTO_INCREMENT</code>.
+Но <strong>отменить нельзя вообще</strong> — используйте только для временных таблиц.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Транзакции — всё или ничего</span></div><p>Представьте оформление заказа:</p><ol>
+<li>создать запись заказа;</li>
+<li>добавить товары в заказ;</li>
+<li>уменьшить остатки на складе.</li>
+</ol><p>Что будет, если между вторым и третьим шагом оборвётся связь? Заказ есть,
+товары есть, а склад показывает старые остатки. Данные разошлись.</p><p><strong>Транзакция</strong> решает это:</p><pre><code class="language-sql"><span class="hljs-keyword">START</span> TRANSACTION;
+
+<span class="hljs-keyword">INSERT INTO</span> zakazy (klient, summa) <span class="hljs-keyword">VALUES</span> (<span class="hljs-string">'Фирдавс'</span>, <span class="hljs-number">76200</span>);
+<span class="hljs-keyword">INSERT INTO</span> zakaz_tovary (zakaz_id, tovar_id, kolichestvo) <span class="hljs-keyword">VALUES</span> (LAST_INSERT_ID(), <span class="hljs-number">1</span>, <span class="hljs-number">3</span>);
+<span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> ostatok <span class="hljs-operator">=</span> ostatok <span class="hljs-operator">-</span> <span class="hljs-number">3</span> <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;
+
+<span class="hljs-keyword">COMMIT</span>;
+</code></pre><table>
+<thead>
+<tr>
+<th>Команда</th>
+<th>Что делает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>START TRANSACTION</code></td>
+<td>Начать. Изменения пока «черновые»</td>
+</tr>
+<tr>
+<td><code>COMMIT</code></td>
+<td>Записать всё разом</td>
+</tr>
+<tr>
+<td><code>ROLLBACK</code></td>
+<td>Отменить всё, как будто ничего не было</td>
+</tr>
+</tbody>
+</table><p><strong>Правило: всё выполнится или ничего.</strong> Промежуточного состояния не бывает.</p><p>⚠️ Транзакции работают <strong>только на InnoDB</strong>. Вот зачем в главе 26 мы указывали
+движок явно.</p><p>Подробно разберём в главе 41, когда будем оформлять заказ по-настоящему.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Резервные копии</span></div><p>Раз уж мы говорим об опасных операциях — про копии.</p><pre><code class="language-bash"><span class="hljs-comment"># Сделать копию всей базы</span>
+mysqldump -u root -p magazin &gt; kopiya.sql
+
+<span class="hljs-comment"># Восстановить</span>
+mysql -u root -p magazin &lt; kopiya.sql
+</code></pre><p><strong>Три правила, которые пишутся кровью:</strong></p><ol>
+<li><strong>Делайте копию перед любым массовым изменением.</strong> Тридцать секунд против
+потерянного дня.</li>
+<li><strong>Проверяйте, что копия разворачивается.</strong> Копия, которую никогда
+не восстанавливали, — это не копия, а надежда.</li>
+<li><strong>Храните копию не на том же сервере.</strong> Сгорел диск — сгорело всё.</li>
+</ol><p>На боевом сайте копии делаются автоматически, каждую ночь, и хранятся
+за последние 30 дней. Займёмся этим в главе 57.</p></section><section class="vrezka v-kod"><div class="vrezka-shapka"><span class="vrezka-podpis">Код</span><span class="vrezka-zagolovok">Типичные операции магазина</span></div><pre><code class="language-sql"><span class="hljs-comment">-- Добавить товар</span>
+<span class="hljs-keyword">INSERT INTO</span> tovary (nazvanie, artikul, brend, kategoriya, cena, ostatok)
+<span class="hljs-keyword">VALUES</span> (<span class="hljs-string">'Стойка амортизатора KYB'</span>, <span class="hljs-string">'341341'</span>, <span class="hljs-string">'KYB'</span>, <span class="hljs-string">'Подвеска'</span>, <span class="hljs-number">42000</span>, <span class="hljs-number">5</span>);
+
+<span class="hljs-comment">-- Обновить цену одного товара</span>
+<span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> cena <span class="hljs-operator">=</span> <span class="hljs-number">26000</span>, izmenen <span class="hljs-operator">=</span> NOW() <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;
+
+<span class="hljs-comment">-- Поднять цены бренда на 10%</span>
+<span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> cena <span class="hljs-operator">=</span> ROUND(cena <span class="hljs-operator">*</span> <span class="hljs-number">1.1</span>) <span class="hljs-keyword">WHERE</span> brend <span class="hljs-operator">=</span> <span class="hljs-string">'Bosch'</span> <span class="hljs-keyword">AND</span> aktivnyi <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;
+
+<span class="hljs-comment">-- Продали три штуки — уменьшить остаток безопасно</span>
+<span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> ostatok <span class="hljs-operator">=</span> ostatok <span class="hljs-operator">-</span> <span class="hljs-number">3</span> <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">1</span> <span class="hljs-keyword">AND</span> ostatok <span class="hljs-operator">&gt;=</span> <span class="hljs-number">3</span>;
+
+<span class="hljs-comment">-- Снять с продажи, не удаляя</span>
+<span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> aktivnyi <span class="hljs-operator">=</span> <span class="hljs-number">0</span> <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">12</span>;
+
+<span class="hljs-comment">-- Вернуть в продажу</span>
+<span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> aktivnyi <span class="hljs-operator">=</span> <span class="hljs-number">1</span> <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">12</span>;
+
+<span class="hljs-comment">-- Обнулить остатки бренда, который больше не возим</span>
+<span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> ostatok <span class="hljs-operator">=</span> <span class="hljs-number">0</span>, aktivnyi <span class="hljs-operator">=</span> <span class="hljs-number">0</span> <span class="hljs-keyword">WHERE</span> brend <span class="hljs-operator">=</span> <span class="hljs-string">'NGK'</span>;
+
+<span class="hljs-comment">-- Загрузка прайса: новые добавить, у существующих обновить цену</span>
+<span class="hljs-keyword">INSERT INTO</span> tovary (artikul, nazvanie, brend, kategoriya, cena, ostatok)
+<span class="hljs-keyword">VALUES</span> (<span class="hljs-string">'W71280'</span>, <span class="hljs-string">'Масляный фильтр Mann'</span>, <span class="hljs-string">'Mann'</span>, <span class="hljs-string">'Фильтры'</span>, <span class="hljs-number">4700</span>, <span class="hljs-number">30</span>)
+<span class="hljs-keyword">ON</span> DUPLICATE KEY <span class="hljs-keyword">UPDATE</span> cena <span class="hljs-operator">=</span> <span class="hljs-keyword">VALUES</span>(cena), ostatok <span class="hljs-operator">=</span> <span class="hljs-keyword">VALUES</span>(ostatok);
+
+<span class="hljs-comment">-- Почистить старые корзины</span>
+<span class="hljs-keyword">DELETE</span> <span class="hljs-keyword">FROM</span> korzina <span class="hljs-keyword">WHERE</span> izmenena <span class="hljs-operator">&lt;</span> DATE_SUB(NOW(), <span class="hljs-type">INTERVAL</span> <span class="hljs-number">60</span> <span class="hljs-keyword">DAY</span>);
+</code></pre></section><section class="vrezka v-ekran"><div class="vrezka-shapka"><span class="vrezka-podpis">На экране</span><span class="vrezka-zagolovok">На экране</span></div><p>Посмотрим, как работает безопасное уменьшение остатка. Было 7 штук:</p><p><img src="img/28-do.png" alt="Остаток до продажи"></p><p>Выполняем <code>UPDATE tovary SET ostatok = ostatok - 3 WHERE id = 1 AND ostatok &gt;= 3</code>:</p><p><img src="img/28-posle.png" alt="Остаток после продажи"></p><p>Теперь попробуем продать ещё 10 штук при остатке 4. Условие <code>ostatok &gt;= 10</code>
+не выполнится, и <strong>запрос не изменит ничего</strong> — вместо того чтобы увести
+остаток в минус.</p></section><section class="vrezka v-razbor"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбор по словам</span><span class="vrezka-zagolovok">Разбор по словам</span></div><table>
+<thead>
+<tr>
+<th>Запись</th>
+<th>Что делает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>INSERT INTO ... VALUES</code></td>
+<td>Добавить строку</td>
+</tr>
+<tr>
+<td>Несколько наборов через запятую</td>
+<td>Вставить пачкой. <strong>Гораздо быстрее</strong></td>
+</tr>
+<tr>
+<td><code>LAST_INSERT_ID()</code></td>
+<td>Номер только что добавленной строки</td>
+</tr>
+<tr>
+<td><code>INSERT IGNORE</code></td>
+<td>Не падать при дубле</td>
+</tr>
+<tr>
+<td><code>ON DUPLICATE KEY UPDATE</code></td>
+<td>Вставить или обновить. <strong>Загрузка прайсов</strong></td>
+</tr>
+<tr>
+<td><code>UPDATE ... SET ... WHERE</code></td>
+<td>Изменить. <strong><code>WHERE</code> обязателен</strong></td>
+</tr>
+<tr>
+<td><code>SET ostatok = ostatok - 1</code></td>
+<td>Изменить относительно текущего</td>
+</tr>
+<tr>
+<td><code>DELETE FROM ... WHERE</code></td>
+<td>Удалить. <strong><code>WHERE</code> обязателен</strong></td>
+</tr>
+<tr>
+<td><code>TRUNCATE TABLE</code></td>
+<td>Очистить целиком. Необратимо</td>
+</tr>
+<tr>
+<td><code>START TRANSACTION</code> / <code>COMMIT</code> / <code>ROLLBACK</code></td>
+<td>Всё или ничего</td>
+</tr>
+<tr>
+<td><code>NOW()</code></td>
+<td>Текущие дата и время</td>
+</tr>
+<tr>
+<td><code>DATE_SUB(NOW(), INTERVAL 30 DAY)</code></td>
+<td>Тридцать дней назад</td>
+</tr>
+<tr>
+<td><code>mysqldump</code></td>
+<td>Сделать резервную копию</td>
+</tr>
+</tbody>
+</table></section><section class="vrezka v-grabli"><div class="vrezka-shapka"><span class="vrezka-podpis">Грабли</span><span class="vrezka-zagolovok">Грабли</span></div><p><strong><code>UPDATE</code> или <code>DELETE</code> без <code>WHERE</code>.</strong> Самая дорогая ошибка в SQL.
+Пишите <code>WHERE</code> первым делом.</p><p><strong>Не проверить выборкой перед изменением.</strong> Тридцать секунд экономии против
+часов восстановления.</p><p><strong>Читать, потом писать вместо <code>ostatok = ostatok - 1</code>.</strong> Два одновременных
+заказа уведут остаток в минус.</p><p><strong>Забыть защиту <code>AND ostatok &gt;= N</code>.</strong> Остаток станет отрицательным.</p><p><strong>Физически удалять то, что связано с заказами.</strong> История сломается.</p><p><strong>Вставлять строки по одной в цикле.</strong> На больших объёмах — часы вместо минут.</p><p><strong>Не делать копию перед массовой операцией.</strong> Один раз обожжётесь — будете
+делать всегда.</p><p><strong>Считать, что транзакция сработала на MyISAM.</strong> Не сработает, <code>ROLLBACK</code>
+ничего не отменит.</p></section><section class="vrezka v-zadachi"><div class="vrezka-shapka"><span class="vrezka-podpis">Задачи</span><span class="vrezka-zagolovok">Задачи</span></div><p>⚠️ Перед выполнением сделайте копию своей учебной базы.</p><p><strong>Задача 28.1.</strong> Добавьте три товара одним запросом.</p><p><strong>Задача 28.2.</strong> Поднимите цену всех товаров категории «Тормоза» на 15%.
+Сначала посмотрите выборкой, что затронется.</p><p><strong>Задача 28.3.</strong> Уменьшите остаток товара №2 на 5 штук безопасным способом.
+Потом попробуйте уменьшить ещё на 100 — что произошло?</p><p><strong>Задача 28.4.</strong> Снимите с продажи все товары, которых нет в наличии.
+Не удаляйте.</p><p><strong>Задача 28.5.</strong> Что сделает каждый запрос? Отвечайте <strong>не выполняя</strong>:</p><pre><code class="language-sql"><span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> cena <span class="hljs-operator">=</span> <span class="hljs-number">0</span>;
+<span class="hljs-keyword">DELETE</span> <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">WHERE</span> brend <span class="hljs-operator">=</span> <span class="hljs-string">'Bosch'</span>;
+<span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> ostatok <span class="hljs-operator">=</span> ostatok <span class="hljs-operator">+</span> <span class="hljs-number">10</span> <span class="hljs-keyword">WHERE</span> kategoriya <span class="hljs-operator">=</span> <span class="hljs-string">'Фильтры'</span>;
+<span class="hljs-keyword">TRUNCATE</span> <span class="hljs-keyword">TABLE</span> tovary;
+</code></pre><p><strong>Задача 28.6.</strong> Напишите запрос загрузки прайса, который добавит новый товар
+или обновит цену существующего по артикулу.</p><p><strong>Задача 28.7.</strong> Сделайте копию базы через <code>mysqldump</code>, удалите пару товаров,
+восстановите из копии. Убедитесь, что вернулись.</p><p><strong>Задача 28.8.</strong> Напишите цепочку из трёх запросов для оформления заказа
+и оберните в транзакцию.</p><p><strong>Задача 28.9.</strong> Найдите опасность:</p><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> ostatok <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">5</span>;
+<span class="hljs-comment">-- в PHP: $novyi = $ostatok - $kolichestvo;</span>
+<span class="hljs-keyword">UPDATE</span> tovary <span class="hljs-keyword">SET</span> ostatok <span class="hljs-operator">=</span> <span class="hljs-number">3</span> <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">5</span>;
+</code></pre><p><em>Ответы — в <a href="../prilozheniya/G-otvety.md">Приложении Г</a>.</em></p></section><section class="vrezka v-vboyu"><div class="vrezka-shapka"><span class="vrezka-podpis">В бою</span><span class="vrezka-zagolovok">В бою</span></div><p>В <code>sql/</code> этого репозитория лежат миграции. Посмотрите, как они написаны:
+везде <code>IF NOT EXISTS</code> и проверки перед изменением.</p><p>А в <code>includes/</code> найдите код уменьшения остатков при заказе. Там будет ровно
+<code>ostatok = ostatok - ?</code> с условием на неотрицательность — не потому, что так
+красивее, а потому, что при двух одновременных заказах иначе получается минус.</p><p>Такие вещи не придумываются заранее. Они появляются после первого случая,
+когда покупатель заказал товар, которого уже не было.</p><p>И ещё: в боевом коде вы <strong>не найдёте <code>DELETE</code></strong> для товаров и заказов.
+Только <code>aktivnyi = 0</code> и смена статуса. Данные не выбрасывают.</p></section><section class="vrezka v-itog"><div class="vrezka-shapka"><span class="vrezka-podpis">Итог</span><span class="vrezka-zagolovok">Итог</span></div><ul>
+<li><code>INSERT INTO ... VALUES</code> — добавить. Столбцы перечисляйте <strong>явно</strong>.</li>
+<li>Вставка пачкой в разы быстрее вставки по одной.</li>
+<li><code>ON DUPLICATE KEY UPDATE</code> — вставить или обновить. Так грузят прайсы.</li>
+<li><strong><code>UPDATE</code> и <code>DELETE</code> без <code>WHERE</code> портят всю таблицу.</strong> Пишите <code>WHERE</code> первым.</li>
+<li><strong>Проверяйте выборкой перед изменением.</strong></li>
+<li><code>ostatok = ostatok - 1</code> вместо «прочитал → посчитал → записал».</li>
+<li>Защищайтесь условием <code>AND ostatok &gt;= N</code>.</li>
+<li><strong>Мягкое удаление</strong> вместо <code>DELETE</code> для всего, что связано с историей.</li>
+<li>Транзакции — всё или ничего. Только InnoDB.</li>
+<li>Резервная копия перед любой массовой операцией.</li>
+</ul><p>Дальше — JOIN: научимся соединять таблицы.</p></section></div></article>
+<article class="glava" id="glava-29">
+    <header class="glava-shapka">
+      <div class="glava-metka">
+        <span class="glava-slovo">Глава</span>
+        <span class="glava-nomer">29</span>
+      </div>
+      <div class="glava-podpis">Часть VI. База данных</div>
+      <h1 class="glava-nazvanie">JOIN: связываем таблицы</h1>
+    </header><div class="telo"><section class="vrezka v-zachem"><div class="vrezka-shapka"><span class="vrezka-podpis">Зачем это</span><span class="vrezka-zagolovok">Зачем эта глава</span></div><p>В главе 26 мы договорились не дублировать данные: продавцы отдельно, товары
+отдельно, товар лишь ссылается на продавца номером.</p><p>Отлично для хранения. Но теперь в каталоге нужно показать <strong>имя</strong> продавца,
+а в таблице товаров лежит только <code>prodavec_id = 3</code>.</p><p><code>JOIN</code> — команда, которая соединяет таблицы по этой связи. Это тема, на которой
+новички буксуют дольше всего, и одновременно та, без которой невозможно
+написать ни один настоящий отчёт.</p><p>Разберём медленно и на картинках.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Как связаны таблицы</span></div><p>Вот наши три таблицы:</p><pre><code>prodavcy                tovary                     zakaz_tovary
+├── id           ←──┐   ├── id            ←────┐   ├── id
+├── imya            └── ├── prodavec_id        └── ├── tovar_id
+├── gorod              ├── nazvanie              ├── zakaz_id  ──→ zakazy.id
+└── komissiya          ├── cena                  ├── kolichestvo
+                       └── ostatok               └── cena
+</code></pre><p>Стрелка означает: «в этом поле лежит <code>id</code> строки из другой таблицы».</p><ul>
+<li><code>tovary.prodavec_id</code> указывает на <code>prodavcy.id</code>;</li>
+<li><code>zakaz_tovary.tovar_id</code> указывает на <code>tovary.id</code>;</li>
+<li><code>zakaz_tovary.zakaz_id</code> указывает на <code>zakazy.id</code>.</li>
+</ul><p>Такие поля называются <strong>внешними ключами</strong>. Они и есть та ниточка, по которой
+<code>JOIN</code> соединяет строки.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">INNER JOIN — только совпадения</span></div><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> t.nazvanie, t.cena, p.imya <span class="hljs-keyword">AS</span> prodavec, p.gorod
+<span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">AS</span> t
+<span class="hljs-keyword">INNER</span> <span class="hljs-keyword">JOIN</span> prodavcy <span class="hljs-keyword">AS</span> p <span class="hljs-keyword">ON</span> t.prodavec_id <span class="hljs-operator">=</span> p.id
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> t.id
+LIMIT <span class="hljs-number">8</span>;
+</code></pre><p><img src="img/29-inner.png" alt="INNER JOIN: товары с именами продавцов"></p><h3><strong>Разбираем по частям</strong></h3><table>
+<thead>
+<tr>
+<th>Часть</th>
+<th>Что означает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FROM tovary AS t</code></td>
+<td>Основная таблица. <code>t</code> — короткое имя (псевдоним)</td>
+</tr>
+<tr>
+<td><code>INNER JOIN prodavcy AS p</code></td>
+<td>Присоединяем таблицу продавцов, псевдоним <code>p</code></td>
+</tr>
+<tr>
+<td><code>ON t.prodavec_id = p.id</code></td>
+<td><strong>По какому условию соединять</strong></td>
+</tr>
+<tr>
+<td><code>t.nazvanie</code>, <code>p.imya</code></td>
+<td>Указываем, из какой таблицы столбец</td>
+</tr>
+</tbody>
+</table><p><strong>Псевдонимы (<code>AS t</code>, <code>AS p</code>) не обязательны, но крайне удобны.</strong> Без них
+пришлось бы писать <code>tovary.nazvanie</code> и <code>prodavcy.imya</code> — длинно, а в запросе
+на пять таблиц ещё и нечитаемо.</p><p><strong><code>ON</code> — это сердце <code>JOIN</code>.</strong> Здесь вы объясняете базе, какие строки считать
+связанными. Забыли <code>ON</code> — база соединит <strong>каждую строку с каждой</strong>, и вместо
+двенадцати товаров получите сорок восемь строк мусора.</p><h3><strong>Ключевое свойство INNER JOIN</strong></h3><p><strong>Он возвращает только те строки, для которых нашлась пара.</strong></p><p>Если у товара <code>prodavec_id</code> пустой или указывает на несуществующего продавца —
+товар в результат <strong>не попадёт</strong>. Молча.</p><p>Это одновременно и удобно, и опасно: каталог может «потерять» товары,
+а вы даже не заметите. Именно поэтому существует второй вид соединения.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">LEFT JOIN — все строки левой таблицы</span></div><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> p.imya, p.gorod, <span class="hljs-built_in">COUNT</span>(t.id) <span class="hljs-keyword">AS</span> tovarov
+<span class="hljs-keyword">FROM</span> prodavcy <span class="hljs-keyword">AS</span> p
+<span class="hljs-keyword">LEFT</span> <span class="hljs-keyword">JOIN</span> tovary <span class="hljs-keyword">AS</span> t <span class="hljs-keyword">ON</span> t.prodavec_id <span class="hljs-operator">=</span> p.id
+<span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> p.id, p.imya, p.gorod
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> tovarov <span class="hljs-keyword">DESC</span>;
+</code></pre><p><img src="img/29-left.png" alt="LEFT JOIN: все продавцы, даже без товаров"></p><p>Обратите внимание на последнюю строку: продавец <strong>«Новый склад» без единого
+товара</strong> всё равно в списке, с нулём.</p><p><strong><code>INNER JOIN</code> его бы выбросил.</strong> А для отчёта «сколько товаров у каждого
+продавца» это была бы ошибка: администратор не увидел бы, что новый продавец
+ещё ничего не выложил.</p><h3><strong>Разница на одной строке</strong></h3><table>
+<thead>
+<tr>
+<th>Соединение</th>
+<th>Что вернёт</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>INNER JOIN</code></td>
+<td>Только строки, у которых <strong>есть пара</strong> в обеих таблицах</td>
+</tr>
+<tr>
+<td><code>LEFT JOIN</code></td>
+<td><strong>Все</strong> строки левой таблицы, даже без пары. Недостающее — <code>NULL</code></td>
+</tr>
+<tr>
+<td><code>RIGHT JOIN</code></td>
+<td>То же, но наоборот. Используется редко</td>
+</tr>
+</tbody>
+</table><p><strong>Практическое правило:</strong></p><ul>
+<li>Показываете список <strong>с обязательной связью</strong> (товары с брендом) — <code>INNER JOIN</code>.</li>
+<li>Строите <strong>отчёт</strong> (продавцы и их товары, покупатели и их заказы) — <code>LEFT JOIN</code>,
+иначе потеряете тех, у кого пусто.</li>
+</ul><h3><strong>Ловушка с COUNT в LEFT JOIN</strong></h3><p>⚠️ Заметьте: в примере написано <code>COUNT(t.id)</code>, а не <code>COUNT(*)</code>.</p><p>Разница принципиальная. Для продавца без товаров <code>LEFT JOIN</code> создаст одну строку,
+где все поля товара — <code>NULL</code>. И тогда:</p><ul>
+<li><code>COUNT(*)</code> посчитает эту строку и вернёт <strong>1</strong>;</li>
+<li><code>COUNT(t.id)</code> не считает <code>NULL</code> и вернёт <strong>0</strong> — правильно.</li>
+</ul><p>Классическая ошибка отчётов: у всех «нулевых» оказывается по одному.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Соединяем три таблицы</span></div><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> z.id <span class="hljs-keyword">AS</span> zakaz,
+       z.klient,
+       t.nazvanie,
+       zt.kolichestvo,
+       ROUND(zt.cena <span class="hljs-operator">*</span> zt.kolichestvo <span class="hljs-operator">/</span> <span class="hljs-number">100.0</span>, <span class="hljs-number">2</span>) <span class="hljs-keyword">AS</span> summa_somoni
+<span class="hljs-keyword">FROM</span> zakazy <span class="hljs-keyword">AS</span> z
+<span class="hljs-keyword">INNER</span> <span class="hljs-keyword">JOIN</span> zakaz_tovary <span class="hljs-keyword">AS</span> zt <span class="hljs-keyword">ON</span> zt.zakaz_id <span class="hljs-operator">=</span> z.id
+<span class="hljs-keyword">INNER</span> <span class="hljs-keyword">JOIN</span> tovary <span class="hljs-keyword">AS</span> t <span class="hljs-keyword">ON</span> t.id <span class="hljs-operator">=</span> zt.tovar_id
+<span class="hljs-keyword">WHERE</span> z.status <span class="hljs-operator">&lt;&gt;</span> <span class="hljs-string">'otmenen'</span>
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> z.id, t.nazvanie;
+</code></pre><p><img src="img/29-tri.png" alt="Состав заказов: три таблицы в одном запросе"></p><p><code>JOIN</code> можно писать сколько угодно раз подряд. Каждый следующий присоединяется
+к тому, что уже получилось.</p><p><strong>Порядок соединений влияет на читаемость, а не на результат.</strong> Идите
+по логике данных: заказ → его позиции → сами товары.</p><h3><strong>Почему цена лежит в <code>zakaz_tovary</code></strong></h3><p>Присмотритесь: цена берётся из <code>zt.cena</code>, а не из <code>t.cena</code>.</p><p>Это важное проектное решение. <strong>Цена в заказе фиксируется в момент покупки.</strong>
+Завтра товар подорожает, но в старом заказе должна остаться та цена,
+по которой человек купил.</p><p>Если брать цену из таблицы товаров, вся история заказов начнёт «переписываться»
+задним числом при каждом изменении прайса. Бухгалтерия сойдёт с ума.</p><p><strong>Правило: данные, которые должны остаться неизменными, копируются в момент
+события.</strong> Это одно из немногих оправданных дублирований.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Отчёты — вот где JOIN раскрывается</span></div><pre><code class="language-sql"><span class="hljs-comment">-- Сколько заработал каждый продавец</span>
+<span class="hljs-keyword">SELECT</span> p.imya,
+       <span class="hljs-built_in">COUNT</span>(<span class="hljs-keyword">DISTINCT</span> z.id) <span class="hljs-keyword">AS</span> zakazov,
+       <span class="hljs-built_in">SUM</span>(zt.kolichestvo) <span class="hljs-keyword">AS</span> shtuk,
+       ROUND(<span class="hljs-built_in">SUM</span>(zt.cena <span class="hljs-operator">*</span> zt.kolichestvo) <span class="hljs-operator">/</span> <span class="hljs-number">100.0</span>, <span class="hljs-number">2</span>) <span class="hljs-keyword">AS</span> vyruchka,
+       ROUND(<span class="hljs-built_in">SUM</span>(zt.cena <span class="hljs-operator">*</span> zt.kolichestvo) <span class="hljs-operator">*</span> p.komissiya <span class="hljs-operator">/</span> <span class="hljs-number">100</span> <span class="hljs-operator">/</span> <span class="hljs-number">100.0</span>, <span class="hljs-number">2</span>) <span class="hljs-keyword">AS</span> komissiya
+<span class="hljs-keyword">FROM</span> prodavcy <span class="hljs-keyword">AS</span> p
+<span class="hljs-keyword">INNER</span> <span class="hljs-keyword">JOIN</span> tovary <span class="hljs-keyword">AS</span> t <span class="hljs-keyword">ON</span> t.prodavec_id <span class="hljs-operator">=</span> p.id
+<span class="hljs-keyword">INNER</span> <span class="hljs-keyword">JOIN</span> zakaz_tovary <span class="hljs-keyword">AS</span> zt <span class="hljs-keyword">ON</span> zt.tovar_id <span class="hljs-operator">=</span> t.id
+<span class="hljs-keyword">INNER</span> <span class="hljs-keyword">JOIN</span> zakazy <span class="hljs-keyword">AS</span> z <span class="hljs-keyword">ON</span> z.id <span class="hljs-operator">=</span> zt.zakaz_id
+<span class="hljs-keyword">WHERE</span> z.status <span class="hljs-operator">&lt;&gt;</span> <span class="hljs-string">'otmenen'</span>
+<span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> p.id, p.imya, p.komissiya
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> vyruchka <span class="hljs-keyword">DESC</span>;
+</code></pre><p><img src="img/29-otchet.png" alt="Выручка и комиссия по продавцам"></p><p>Один запрос — и готов отчёт, за который в маркетплейсе отвечает целый раздел
+админки. Ни одного цикла в PHP.</p><p>⚠️ <strong><code>COUNT(DISTINCT z.id)</code></strong> — считает <strong>уникальные</strong> заказы. Без <code>DISTINCT</code>
+заказ с тремя позициями посчитался бы трижды.</p><p>Это вторая классическая ошибка отчётов после <code>COUNT(*)</code> в <code>LEFT JOIN</code>.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Ещё пара приёмов</span></div><h3><strong>Соединение таблицы с самой собой</strong></h3><pre><code class="language-sql"><span class="hljs-comment">-- Товары того же продавца, что и товар №1</span>
+<span class="hljs-keyword">SELECT</span> t2.nazvanie
+<span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">AS</span> t1
+<span class="hljs-keyword">INNER</span> <span class="hljs-keyword">JOIN</span> tovary <span class="hljs-keyword">AS</span> t2 <span class="hljs-keyword">ON</span> t2.prodavec_id <span class="hljs-operator">=</span> t1.prodavec_id <span class="hljs-keyword">AND</span> t2.id <span class="hljs-operator">&lt;&gt;</span> t1.id
+<span class="hljs-keyword">WHERE</span> t1.id <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;
+</code></pre><p>Одна и та же таблица под двумя псевдонимами. Так строят «похожие товары»
+и иерархии категорий.</p><h3><strong>JOIN с условием против WHERE</strong></h3><pre><code class="language-sql"><span class="hljs-comment">-- Условие в ON: влияет на соединение</span>
+<span class="hljs-keyword">LEFT</span> <span class="hljs-keyword">JOIN</span> zakazy <span class="hljs-keyword">AS</span> z <span class="hljs-keyword">ON</span> z.klient_id <span class="hljs-operator">=</span> k.id <span class="hljs-keyword">AND</span> z.status <span class="hljs-operator">=</span> <span class="hljs-string">'dostavlen'</span>
+
+<span class="hljs-comment">-- Условие в WHERE: отсекает строки после соединения</span>
+<span class="hljs-keyword">LEFT</span> <span class="hljs-keyword">JOIN</span> zakazy <span class="hljs-keyword">AS</span> z <span class="hljs-keyword">ON</span> z.klient_id <span class="hljs-operator">=</span> k.id
+<span class="hljs-keyword">WHERE</span> z.status <span class="hljs-operator">=</span> <span class="hljs-string">'dostavlen'</span>
+</code></pre><p>⚠️ Разница огромная и неочевидная.</p><p>В первом случае клиенты <strong>без</strong> доставленных заказов останутся в результате
+с <code>NULL</code>. Во втором — исчезнут, потому что <code>WHERE</code> отбросит строки с <code>NULL</code>,
+и <code>LEFT JOIN</code> превратится в <code>INNER JOIN</code>.</p><p><strong>Правило: условия на присоединяемую таблицу в <code>LEFT JOIN</code> пишите в <code>ON</code>,
+а не в <code>WHERE</code>.</strong></p></section><section class="vrezka v-razbor"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбор по словам</span><span class="vrezka-zagolovok">Разбор по словам</span></div><table>
+<thead>
+<tr>
+<th>Запись</th>
+<th>Что делает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>INNER JOIN ... ON</code></td>
+<td>Соединить, оставив <strong>только совпадения</strong></td>
+</tr>
+<tr>
+<td><code>LEFT JOIN ... ON</code></td>
+<td>Оставить <strong>все строки левой</strong> таблицы</td>
+</tr>
+<tr>
+<td><code>ON t.prodavec_id = p.id</code></td>
+<td>Условие соединения. <strong>Сердце JOIN</strong></td>
+</tr>
+<tr>
+<td><code>AS t</code></td>
+<td>Псевдоним таблицы</td>
+</tr>
+<tr>
+<td><code>t.nazvanie</code></td>
+<td>Столбец из конкретной таблицы</td>
+</tr>
+<tr>
+<td><code>COUNT(t.id)</code></td>
+<td>Считать <strong>не-NULL</strong>. В LEFT JOIN — обязательно</td>
+</tr>
+<tr>
+<td><code>COUNT(DISTINCT z.id)</code></td>
+<td>Считать <strong>уникальные</strong> значения</td>
+</tr>
+<tr>
+<td>Внешний ключ</td>
+<td>Поле, хранящее <code>id</code> из другой таблицы</td>
+</tr>
+</tbody>
+</table></section><section class="vrezka v-grabli"><div class="vrezka-shapka"><span class="vrezka-podpis">Грабли</span><span class="vrezka-zagolovok">Грабли</span></div><p><strong>Забыть <code>ON</code>.</strong> Каждая строка соединится с каждой. Двенадцать товаров
+и четыре продавца дадут сорок восемь строк.</p><p><strong><code>INNER JOIN</code> там, где нужен <code>LEFT</code>.</strong> Из отчёта тихо исчезнут те, у кого
+нет связанных записей.</p><p><strong><code>COUNT(*)</code> в <code>LEFT JOIN</code>.</strong> У всех «пустых» окажется по единице вместо нуля.</p><p><strong>Забыть <code>DISTINCT</code> при подсчёте заказов.</strong> Заказ из трёх позиций посчитается
+трижды.</p><p><strong>Условие на правую таблицу в <code>WHERE</code> при <code>LEFT JOIN</code>.</strong> Превращает его
+в <code>INNER JOIN</code>.</p><p><strong>Брать цену из таблицы товаров в отчёте по заказам.</strong> История начнёт меняться
+задним числом.</p><p><strong>Соединять по неиндексированному полю.</strong> Запрос будет чудовищно медленным.
+Индексы — следующая глава.</p></section><section class="vrezka v-zadachi"><div class="vrezka-shapka"><span class="vrezka-podpis">Задачи</span><span class="vrezka-zagolovok">Задачи</span></div><p><strong>Задача 29.1.</strong> Выведите все товары с именем продавца и его городом.</p><p><strong>Задача 29.2.</strong> Выведите всех продавцов и количество их товаров. Продавцы
+без товаров должны остаться в списке с нулём.</p><p><strong>Задача 29.3.</strong> Выведите состав заказа №103: названия товаров, количество,
+цена, сумма по позиции.</p><p><strong>Задача 29.4.</strong> Посчитайте сумму каждого заказа. Одним запросом,
+с группировкой.</p><p><strong>Задача 29.5.</strong> Найдите товары, которые никто ни разу не заказывал.
+Подсказка: <code>LEFT JOIN</code> и <code>IS NULL</code>.</p><p><strong>Задача 29.6.</strong> Выведите продавцов из Худжанда и общую стоимость их склада.</p><p><strong>Задача 29.7.</strong> Какие клиенты заказывали товары бренда Bosch?</p><p><strong>Задача 29.8.</strong> Что вернёт каждый запрос? Ответьте, потом проверьте:</p><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">INNER</span> <span class="hljs-keyword">JOIN</span> prodavcy <span class="hljs-keyword">ON</span> tovary.prodavec_id <span class="hljs-operator">=</span> prodavcy.id;
+<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">LEFT</span> <span class="hljs-keyword">JOIN</span> prodavcy <span class="hljs-keyword">ON</span> tovary.prodavec_id <span class="hljs-operator">=</span> prodavcy.id;
+<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">FROM</span> tovary, prodavcy;
+</code></pre><p>Третий запрос особенно поучителен — объясните результат.</p><p><strong>Задача 29.9.</strong> Постройте отчёт: по каждой категории — сколько заказано штук
+и на какую сумму. Только по неотменённым заказам.</p><p><strong>Задача 29.10.</strong> Найдите ошибку:</p><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> k.imya, <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">AS</span> zakazov
+<span class="hljs-keyword">FROM</span> klienty <span class="hljs-keyword">AS</span> k
+<span class="hljs-keyword">LEFT</span> <span class="hljs-keyword">JOIN</span> zakazy <span class="hljs-keyword">AS</span> z <span class="hljs-keyword">ON</span> z.klient_id <span class="hljs-operator">=</span> k.id
+<span class="hljs-keyword">WHERE</span> z.status <span class="hljs-operator">=</span> <span class="hljs-string">'dostavlen'</span>
+<span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> k.id;
+</code></pre><p>Две проблемы.</p><p><em>Ответы — в <a href="../prilozheniya/G-otvety.md">Приложении Г</a>.</em></p></section><section class="vrezka v-vboyu"><div class="vrezka-shapka"><span class="vrezka-podpis">В бою</span><span class="vrezka-zagolovok">В бою</span></div><p>Откройте <code>admin/orders.php</code> или <code>seller/orders.php</code> в этом репозитории.
+Найдёте запросы с двумя-тремя <code>JOIN</code>: заказ → позиции → товары → продавец.</p><p>Особенно посмотрите на расчёт выплат продавцам в <code>includes/seller_finance.php</code>.
+Там <code>JOIN</code> соединяет заказы, позиции и продавцов, а комиссия считается прямо
+в запросе.</p><p>Одна боевая деталь, которую вы там увидите: <strong>комиссия хранится в самой записи
+заказа</strong>, а не берётся из таблицы продавцов.</p><p>Причина та же, что с ценой: условия сотрудничества могут измениться,
+но по старым заказам продавцу должны заплатить по тем правилам, что действовали
+в момент продажи. Иначе — конфликт и справедливые претензии.</p></section><section class="vrezka v-itog"><div class="vrezka-shapka"><span class="vrezka-podpis">Итог</span><span class="vrezka-zagolovok">Итог</span></div><ul>
+<li><strong>Внешний ключ</strong> — поле, хранящее <code>id</code> строки другой таблицы.</li>
+<li><code>INNER JOIN</code> — только совпадения. <code>LEFT JOIN</code> — все строки левой таблицы.</li>
+<li><strong><code>ON</code> обязателен</strong>, иначе каждая строка соединится с каждой.</li>
+<li>Псевдонимы <code>AS t</code> делают запрос читаемым.</li>
+<li>В <code>LEFT JOIN</code> считайте <code>COUNT(pole)</code>, а не <code>COUNT(*)</code>.</li>
+<li><code>COUNT(DISTINCT id)</code> при подсчёте заказов с несколькими позициями.</li>
+<li>Условие на правую таблицу в <code>LEFT JOIN</code> — в <code>ON</code>, не в <code>WHERE</code>.</li>
+<li><strong>Цена и комиссия фиксируются в момент события</strong>, а не берутся из справочника.</li>
+<li>Отчёт, который в PHP занял бы сто строк, в SQL — один запрос.</li>
+</ul><p>Дальше — почему всё это может работать медленно и как ускорить.</p></section></div></article>
+<article class="glava" id="glava-30">
+    <header class="glava-shapka">
+      <div class="glava-metka">
+        <span class="glava-slovo">Глава</span>
+        <span class="glava-nomer">30</span>
+      </div>
+      <div class="glava-podpis">Часть VI. База данных</div>
+      <h1 class="glava-nazvanie">Индексы и почему всё тормозит</h1>
+    </header><div class="telo"><section class="vrezka v-zachem"><div class="vrezka-shapka"><span class="vrezka-podpis">Зачем это</span><span class="vrezka-zagolovok">Зачем эта глава</span></div><p>Пока в базе двенадцать товаров, любой запрос выполняется мгновенно. Кажется,
+что о скорости думать рано.</p><p>Это самая распространённая ловушка. Сайт прекрасно работает у разработчика
+на сотне тестовых записей — и ложится на боевом сервере, где записей сто тысяч.
+Причём ложится не постепенно, а резко: вчера открывалось за полсекунды,
+сегодня за двадцать.</p><p>В этой главе разберёмся, <strong>почему</strong> так происходит и как это лечится.
+Тема простая, а эффект от неё больше, чем от всех остальных оптимизаций вместе.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Индекс — это оглавление</span></div><p>Представьте телефонный справочник города на тысячу страниц, где фамилии записаны
+<strong>в случайном порядке</strong>.</p><p>Найти Иванова — значит просмотреть все страницы подряд. В худшем случае —
+всю книгу.</p><p>А теперь тот же справочник, но отсортированный по алфавиту. Иванова вы найдёте
+за несколько секунд: открыли примерно на букве «И», уточнили, нашли.</p><p><strong>Индекс в базе — это отсортированная копия одного столбца</strong> с указателями
+на строки. База ищет по ней, а не перебирает таблицу.</p><h3><strong>Без индекса: полный перебор</strong></h3><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">WHERE</span> artikul <span class="hljs-operator">=</span> <span class="hljs-string">'W71280'</span>;
+</code></pre><p>Без индекса база честно читает <strong>каждую</strong> строку и сравнивает артикул.
+Сто тысяч строк — сто тысяч сравнений. Миллион строк — миллион.</p><p>Это называется <strong>полное сканирование таблицы</strong>, и оно линейно растёт вместе
+с данными.</p><h3><strong>С индексом: поиск по отсортированному</strong></h3><p>С индексом по <code>artikul</code> база идёт как по алфавиту: делит диапазон пополам,
+отбрасывает половину, снова пополам. Чтобы найти одну строку среди миллиона,
+хватает <strong>двадцати шагов</strong>.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Замер на настоящих данных</span></div><p>Разговоры о скорости стоят мало, поэтому — измерим.</p><p>Я создал таблицу на <strong>200 000 товаров</strong> и выполнил один и тот же запрос
+пять раз до создания индекса и пять раз после:</p><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> id, nazvanie, cena <span class="hljs-keyword">FROM</span> tovary_mnogo <span class="hljs-keyword">WHERE</span> artikul <span class="hljs-operator">=</span> <span class="hljs-string">'ART00150000'</span>;
+</code></pre><table>
+<thead>
+<tr>
+<th></th>
+<th>Время одного запроса</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Без индекса</strong></td>
+<td>18.4 мс</td>
+</tr>
+<tr>
+<td><strong>С индексом</strong></td>
+<td>0.058 мс</td>
+</tr>
+<tr>
+<td><strong>Разница</strong></td>
+<td><strong>в 314 раз быстрее</strong></td>
+</tr>
+</tbody>
+</table><p>Одна команда:</p><pre><code class="language-sql"><span class="hljs-keyword">CREATE</span> INDEX idx_artikul <span class="hljs-keyword">ON</span> tovary_mnogo(artikul);
+</code></pre><p>И запрос стал быстрее в сотни раз. Никаких изменений в коде, никакой
+переделки логики.</p><p><strong>Вот почему индексы — первое, что проверяют, когда сайт тормозит.</strong></p><p>⚠️ Обратите внимание на порядок величин. 18.4 мс кажется терпимым.
+Но страница каталога делает не один запрос, а десяток, и открывают её
+одновременно сто человек. Умножьте — и получите лежащий сервер.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Какие бывают индексы</span></div><pre><code class="language-sql"><span class="hljs-comment">-- Обычный: ускоряет поиск</span>
+<span class="hljs-keyword">CREATE</span> INDEX idx_brend <span class="hljs-keyword">ON</span> tovary(brend);
+
+<span class="hljs-comment">-- Уникальный: ускоряет И запрещает повторы</span>
+<span class="hljs-keyword">CREATE</span> <span class="hljs-keyword">UNIQUE</span> INDEX uniq_artikul <span class="hljs-keyword">ON</span> tovary(artikul);
+
+<span class="hljs-comment">-- Составной: по нескольким столбцам сразу</span>
+<span class="hljs-keyword">CREATE</span> INDEX idx_brend_cena <span class="hljs-keyword">ON</span> tovary(brend, cena);
+
+<span class="hljs-comment">-- Полнотекстовый: для поиска по словам (только MySQL)</span>
+<span class="hljs-keyword">CREATE</span> FULLTEXT INDEX ft_nazvanie <span class="hljs-keyword">ON</span> tovary(nazvanie);
+</code></pre><p><strong>Первичный ключ (<code>PRIMARY KEY</code>) — это тоже индекс</strong>, создаётся автоматически.
+Поэтому поиск по <code>id</code> всегда быстрый.</p><h3><strong>Составной индекс и правило левого края</strong></h3><pre><code class="language-sql"><span class="hljs-keyword">CREATE</span> INDEX idx_brend_cena <span class="hljs-keyword">ON</span> tovary(brend, cena);
+</code></pre><p>Такой индекс работает для запросов:</p><pre><code class="language-sql"><span class="hljs-keyword">WHERE</span> brend <span class="hljs-operator">=</span> <span class="hljs-string">'Bosch'</span>                      <span class="hljs-comment">-- ✅ работает</span>
+<span class="hljs-keyword">WHERE</span> brend <span class="hljs-operator">=</span> <span class="hljs-string">'Bosch'</span> <span class="hljs-keyword">AND</span> cena <span class="hljs-operator">&gt;</span> <span class="hljs-number">10000</span>     <span class="hljs-comment">-- ✅ работает</span>
+<span class="hljs-keyword">WHERE</span> cena <span class="hljs-operator">&gt;</span> <span class="hljs-number">10000</span>                         <span class="hljs-comment">-- ❌ НЕ работает</span>
+</code></pre><p>Почему: индекс отсортирован <strong>сначала по бренду, потом по цене внутри бренда</strong>.
+Как справочник, отсортированный по фамилии, а внутри одинаковых фамилий —
+по имени. Найти всех Ивановых легко. Найти всех Сергеев — нет, придётся
+перебирать всё.</p><p><strong>Правило левого края:</strong> составной индекс работает, только если условие
+включает <strong>первый</strong> столбец.</p><p>Отсюда практический вывод: порядок столбцов в составном индексе имеет значение.
+Ставьте первым тот, по которому фильтруете чаще.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Что индексировать</span></div><p><strong>Индексируйте:</strong></p><ul>
+<li>поля, по которым <strong>ищете</strong>: <code>WHERE artikul = ...</code>;</li>
+<li>поля, по которым <strong>соединяете</strong>: <code>ON t.prodavec_id = p.id</code> — внешние ключи;</li>
+<li>поля, по которым <strong>сортируете</strong>: <code>ORDER BY cena</code>;</li>
+<li>поля, по которым <strong>группируете</strong>: <code>GROUP BY brend</code>.</li>
+</ul><p><strong>Не индексируйте:</strong></p><ul>
+<li>всё подряд;</li>
+<li>поля, которые почти всегда одинаковые (<code>aktivnyi</code> со значением 1 у 99% строк);</li>
+<li>поля, которые не участвуют в запросах;</li>
+<li>очень длинные текстовые поля — для них есть <code>FULLTEXT</code>.</li>
+</ul><h3><strong>Почему нельзя индексировать всё</strong></h3><p>У индексов есть цена, и её нужно понимать:</p><table>
+<thead>
+<tr>
+<th>Стоимость</th>
+<th>Подробность</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Место на диске</strong></td>
+<td>Индекс — отдельная структура. Пять индексов могут весить больше самой таблицы</td>
+</tr>
+<tr>
+<td><strong>Замедление записи</strong></td>
+<td>При каждом <code>INSERT</code> и <code>UPDATE</code> база обновляет <strong>все</strong> индексы таблицы</td>
+</tr>
+<tr>
+<td><strong>Работа планировщика</strong></td>
+<td>Чем больше индексов, тем дольше база выбирает, каким воспользоваться</td>
+</tr>
+</tbody>
+</table><p><strong>Правило: индекс ускоряет чтение и замедляет запись.</strong></p><p>Для каталога товаров (читают тысячи раз, пишут раз в день) индексы — почти
+всегда выигрыш. Для таблицы логов, куда пишут постоянно, а читают редко, —
+наоборот.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">EXPLAIN — как узнать, что происходит</span></div><p>Гадать не нужно. База умеет рассказать, как она собирается выполнять запрос:</p><pre><code class="language-sql">EXPLAIN <span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">WHERE</span> artikul <span class="hljs-operator">=</span> <span class="hljs-string">'W71280'</span>;
+</code></pre><p>В MySQL смотрите на три столбца:</p><table>
+<thead>
+<tr>
+<th>Столбец</th>
+<th>На что смотреть</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type</code></td>
+<td><strong><code>ALL</code> — плохо</strong>: полный перебор. <code>ref</code>, <code>eq_ref</code>, <code>const</code> — хорошо</td>
+</tr>
+<tr>
+<td><code>rows</code></td>
+<td>Сколько строк база собирается просмотреть. Чем меньше, тем лучше</td>
+</tr>
+<tr>
+<td><code>key</code></td>
+<td>Какой индекс использовался. <code>NULL</code> — никакой</td>
+</tr>
+</tbody>
+</table><p><strong><code>type = ALL</code> на большой таблице — сигнал, что нужен индекс.</strong></p><p>В SQLite та же команда называется <code>EXPLAIN QUERY PLAN</code> и пишет по-человечески:
+<code>SCAN tovary</code> (плохо) или <code>SEARCH tovary USING INDEX</code> (хорошо).</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Отчего ещё тормозит</span></div><p>Индексы — главная, но не единственная причина.</p><h3><strong>1. Проблема N+1 — самая частая</strong></h3><pre><code class="language-php"><span class="hljs-comment">// ❌ Один запрос за списком...</span>
+<span class="hljs-variable">$tovary</span> = <span class="hljs-title function_ invoke__">zapros</span>(<span class="hljs-string">'SELECT * FROM tovary LIMIT 20'</span>);
+
+<span class="hljs-comment">// ...и ещё двадцать за продавцами</span>
+<span class="hljs-keyword">foreach</span> (<span class="hljs-variable">$tovary</span> <span class="hljs-keyword">as</span> <span class="hljs-variable">$t</span>) {
+    <span class="hljs-variable">$prodavec</span> = <span class="hljs-title function_ invoke__">zapros</span>(<span class="hljs-string">'SELECT imya FROM prodavcy WHERE id = ?'</span>, [<span class="hljs-variable">$t</span>[<span class="hljs-string">'prodavec_id'</span>]]);
+}
+</code></pre><p>Двадцать один запрос вместо одного. На странице с сотней товаров — сто один.</p><pre><code class="language-php"><span class="hljs-comment">// ✅ Один запрос с JOIN</span>
+<span class="hljs-variable">$tovary</span> = <span class="hljs-title function_ invoke__">zapros</span>(<span class="hljs-string">'
+    SELECT t.*, p.imya AS prodavec
+    FROM tovary AS t
+    LEFT JOIN prodavcy AS p ON p.id = t.prodavec_id
+    LIMIT 20
+'</span>);
+</code></pre><p><strong>Это самая распространённая ошибка производительности в веб-разработке.</strong>
+Называется «проблема N+1»: один запрос за списком плюс N запросов за деталями.</p><p>Признак: страница открывается тем медленнее, чем больше на ней элементов.</p><h3><strong>2. <code>SELECT *</code> вместо нужных полей</strong></h3><p>Тянете описание на две страницы для списка, где показываете только название.</p><h3><strong>3. <code>LIKE '%текст%'</code></strong></h3><p>Индекс не работает: искать «содержит» по отсортированному списку невозможно.
+Решение — <code>FULLTEXT</code> или отдельный поисковый движок, глава 35.</p><h3><strong>4. Функция над индексированным полем</strong></h3><pre><code class="language-sql"><span class="hljs-keyword">WHERE</span> <span class="hljs-keyword">YEAR</span>(sozdan) <span class="hljs-operator">=</span> <span class="hljs-number">2026</span>            <span class="hljs-comment">-- ❌ индекс не работает</span>
+<span class="hljs-keyword">WHERE</span> sozdan <span class="hljs-operator">&gt;=</span> <span class="hljs-string">'2026-01-01'</span>
+  <span class="hljs-keyword">AND</span> sozdan <span class="hljs-operator">&lt;</span>  <span class="hljs-string">'2027-01-01'</span>         <span class="hljs-comment">-- ✅ индекс работает</span>
+</code></pre><p>Как только вы оборачиваете столбец в функцию, база не может сопоставить его
+с индексом. Переписывайте условие так, чтобы столбец остался «голым».</p><h3><strong>5. Огромный OFFSET</strong></h3><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> id LIMIT <span class="hljs-number">20</span> <span class="hljs-keyword">OFFSET</span> <span class="hljs-number">100000</span>;
+</code></pre><p>База честно отсчитает сто тысяч строк и выбросит их. На последних страницах
+каталога это заметно.</p><p>Решение — <strong>пагинация по ключу</strong>:</p><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> tovary <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">&gt;</span> <span class="hljs-number">100000</span> <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> id LIMIT <span class="hljs-number">20</span>;
+</code></pre><p>Так делают ленту в соцсетях: вместо «страница 5000» — «показать ещё».</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Порядок действий, когда тормозит</span></div><p>Не гадайте — действуйте по списку:</p><ol>
+<li><strong>Найдите медленный запрос.</strong> В MySQL включите журнал медленных запросов
+(<code>slow_query_log</code>). Он покажет, что именно тормозит.</li>
+<li><strong>Прогоните через <code>EXPLAIN</code>.</strong> Видите <code>type = ALL</code> — нужен индекс.</li>
+<li><strong>Проверьте на N+1.</strong> Посчитайте, сколько запросов делает страница.
+Больше десяти — почти всегда есть N+1.</li>
+<li><strong>Создайте индекс и замерьте снова.</strong> Обязательно замерьте: иногда
+помогает не то, что казалось.</li>
+<li><strong>Только потом думайте о кэше.</strong> Кэшировать медленный запрос — значит
+прятать проблему, а не решать её.</li>
+</ol><p>⚠️ <strong>Порядок именно такой.</strong> Новички начинают с пятого пункта — ставят кэш
+поверх плохого запроса. Работает до первого случая, когда кэш протухнет
+у всех разом.</p></section><section class="vrezka v-kod"><div class="vrezka-shapka"><span class="vrezka-podpis">Код</span><span class="vrezka-zagolovok">Индексы для нашего магазина</span></div><pre><code class="language-sql"><span class="hljs-comment">-- Артикул: ищем постоянно, повторов быть не должно</span>
+<span class="hljs-keyword">CREATE</span> <span class="hljs-keyword">UNIQUE</span> INDEX uniq_artikul <span class="hljs-keyword">ON</span> tovary(artikul);
+
+<span class="hljs-comment">-- Фильтры каталога</span>
+<span class="hljs-keyword">CREATE</span> INDEX idx_brend <span class="hljs-keyword">ON</span> tovary(brend);
+<span class="hljs-keyword">CREATE</span> INDEX idx_kategoriya <span class="hljs-keyword">ON</span> tovary(kategoriya);
+
+<span class="hljs-comment">-- Внешний ключ: соединяем при каждом показе каталога</span>
+<span class="hljs-keyword">CREATE</span> INDEX idx_prodavec <span class="hljs-keyword">ON</span> tovary(prodavec_id);
+
+<span class="hljs-comment">-- Составной под самый частый запрос каталога:</span>
+<span class="hljs-comment">-- WHERE aktivnyi = 1 AND ostatok &gt; 0 ORDER BY cena</span>
+<span class="hljs-keyword">CREATE</span> INDEX idx_katalog <span class="hljs-keyword">ON</span> tovary(aktivnyi, ostatok, cena);
+
+<span class="hljs-comment">-- Заказы</span>
+<span class="hljs-keyword">CREATE</span> INDEX idx_zakaz_status <span class="hljs-keyword">ON</span> zakazy(status);
+<span class="hljs-keyword">CREATE</span> INDEX idx_zakaz_sozdan <span class="hljs-keyword">ON</span> zakazy(sozdan);
+<span class="hljs-keyword">CREATE</span> INDEX idx_zt_zakaz <span class="hljs-keyword">ON</span> zakaz_tovary(zakaz_id);
+<span class="hljs-keyword">CREATE</span> INDEX idx_zt_tovar <span class="hljs-keyword">ON</span> zakaz_tovary(tovar_id);
+
+<span class="hljs-comment">-- Поиск по названию</span>
+<span class="hljs-keyword">CREATE</span> FULLTEXT INDEX ft_nazvanie <span class="hljs-keyword">ON</span> tovary(nazvanie);
+</code></pre><p>Обратите внимание на <code>idx_katalog</code>: столбцы идут в том порядке, в каком они
+стоят в самом частом запросе каталога. Это не случайность — так составной
+индекс покрывает и фильтр, и сортировку сразу.</p></section><section class="vrezka v-razbor"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбор по словам</span><span class="vrezka-zagolovok">Разбор по словам</span></div><table>
+<thead>
+<tr>
+<th>Запись</th>
+<th>Что делает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CREATE INDEX</code></td>
+<td>Создать индекс</td>
+</tr>
+<tr>
+<td><code>CREATE UNIQUE INDEX</code></td>
+<td>Индекс плюс запрет повторов</td>
+</tr>
+<tr>
+<td>Составной индекс</td>
+<td>По нескольким столбцам. <strong>Работает от левого края</strong></td>
+</tr>
+<tr>
+<td><code>FULLTEXT</code></td>
+<td>Индекс для поиска по словам</td>
+</tr>
+<tr>
+<td><code>EXPLAIN</code></td>
+<td>Показать план выполнения</td>
+</tr>
+<tr>
+<td><code>type = ALL</code></td>
+<td><strong>Полный перебор.</strong> Плохо</td>
+</tr>
+<tr>
+<td><strong>N+1</strong></td>
+<td>Один запрос за списком плюс N за деталями. Лечится <code>JOIN</code></td>
+</tr>
+<tr>
+<td><code>slow_query_log</code></td>
+<td>Журнал медленных запросов</td>
+</tr>
+<tr>
+<td>Пагинация по ключу</td>
+<td><code>WHERE id &gt; N</code> вместо большого <code>OFFSET</code></td>
+</tr>
+</tbody>
+</table></section><section class="vrezka v-grabli"><div class="vrezka-shapka"><span class="vrezka-podpis">Грабли</span><span class="vrezka-zagolovok">Грабли</span></div><p><strong>Тестировать на ста записях.</strong> На боевых данных всё будет иначе.
+Заливайте в тестовую базу хотя бы десятки тысяч строк.</p><p><strong>Индексировать всё подряд.</strong> Запись замедлится, место кончится.</p><p><strong>Забыть индекс на внешнем ключе.</strong> Каждый <code>JOIN</code> превращается в полный перебор.</p><p><strong>Функция над столбцом в <code>WHERE</code>.</strong> Индекс перестаёт работать.</p><p><strong>Проблема N+1.</strong> Считайте запросы на странице.</p><p><strong>Кэшировать вместо того, чтобы чинить.</strong> Проблема остаётся и вернётся.</p><p><strong>Составной индекс не с того столбца.</strong> Правило левого края: не тот порядок —
+индекс бесполезен.</p><p><strong>Большой <code>OFFSET</code> на глубоких страницах.</strong> Пагинация по ключу.</p></section><section class="vrezka v-zadachi"><div class="vrezka-shapka"><span class="vrezka-podpis">Задачи</span><span class="vrezka-zagolovok">Задачи</span></div><p><strong>Задача 30.1.</strong> Создайте таблицу и залейте в неё 100 000 строк циклом.
+Замерьте запрос с поиском по неиндексированному полю.</p><p><strong>Задача 30.2.</strong> Создайте индекс на это поле и замерьте снова. Во сколько раз
+быстрее?</p><p><strong>Задача 30.3.</strong> Прогоните оба запроса через <code>EXPLAIN</code>. Что изменилось
+в столбцах <code>type</code>, <code>key</code>, <code>rows</code>?</p><p><strong>Задача 30.4.</strong> Какие из этих запросов используют индекс по <code>(brend, cena)</code>?</p><pre><code class="language-sql"><span class="hljs-keyword">WHERE</span> brend <span class="hljs-operator">=</span> <span class="hljs-string">'Bosch'</span>
+<span class="hljs-keyword">WHERE</span> cena <span class="hljs-operator">&gt;</span> <span class="hljs-number">10000</span>
+<span class="hljs-keyword">WHERE</span> brend <span class="hljs-operator">=</span> <span class="hljs-string">'Bosch'</span> <span class="hljs-keyword">AND</span> cena <span class="hljs-operator">&gt;</span> <span class="hljs-number">10000</span>
+<span class="hljs-keyword">WHERE</span> cena <span class="hljs-operator">&gt;</span> <span class="hljs-number">10000</span> <span class="hljs-keyword">AND</span> brend <span class="hljs-operator">=</span> <span class="hljs-string">'Bosch'</span>
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> brend, cena
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> cena
+</code></pre><p><strong>Задача 30.5.</strong> Найдите N+1 и перепишите одним запросом:</p><pre><code class="language-php"><span class="hljs-variable">$zakazy</span> = <span class="hljs-title function_ invoke__">zapros</span>(<span class="hljs-string">'SELECT * FROM zakazy WHERE status = "novyi"'</span>);
+<span class="hljs-keyword">foreach</span> (<span class="hljs-variable">$zakazy</span> <span class="hljs-keyword">as</span> <span class="hljs-variable">$z</span>) {
+    <span class="hljs-variable">$pozicii</span> = <span class="hljs-title function_ invoke__">zapros</span>(<span class="hljs-string">'SELECT * FROM zakaz_tovary WHERE zakaz_id = ?'</span>, [<span class="hljs-variable">$z</span>[<span class="hljs-string">'id'</span>]]);
+    <span class="hljs-keyword">foreach</span> (<span class="hljs-variable">$pozicii</span> <span class="hljs-keyword">as</span> <span class="hljs-variable">$poz</span>) {
+        <span class="hljs-variable">$tovar</span> = <span class="hljs-title function_ invoke__">zapros</span>(<span class="hljs-string">'SELECT nazvanie FROM tovary WHERE id = ?'</span>, [<span class="hljs-variable">$poz</span>[<span class="hljs-string">'tovar_id'</span>]]);
+    }
+}
+</code></pre><p>Сколько запросов уйдёт при десяти заказах по три позиции?</p><p><strong>Задача 30.6.</strong> Перепишите так, чтобы работал индекс:</p><pre><code class="language-sql"><span class="hljs-keyword">WHERE</span> <span class="hljs-keyword">YEAR</span>(sozdan) <span class="hljs-operator">=</span> <span class="hljs-number">2026</span>
+<span class="hljs-keyword">WHERE</span> <span class="hljs-built_in">LOWER</span>(brend) <span class="hljs-operator">=</span> <span class="hljs-string">'bosch'</span>
+<span class="hljs-keyword">WHERE</span> cena <span class="hljs-operator">/</span> <span class="hljs-number">100</span> <span class="hljs-operator">&gt;</span> <span class="hljs-number">250</span>
+</code></pre><p><strong>Задача 30.7.</strong> Спроектируйте индексы для таблицы заказов, если чаще всего
+выполняются запросы: «заказы клиента», «заказы за период», «новые заказы».</p><p><strong>Задача 30.8.</strong> Замерьте <code>LIMIT 20 OFFSET 0</code> и <code>LIMIT 20 OFFSET 90000</code>
+на своей большой таблице. Есть разница?</p><p><em>Ответы — в <a href="../prilozheniya/G-otvety.md">Приложении Г</a>.</em></p></section><section class="vrezka v-vboyu"><div class="vrezka-shapka"><span class="vrezka-podpis">В бою</span><span class="vrezka-zagolovok">В бою</span></div><p>Откройте миграции в <code>sql/</code> этого репозитория и поищите <code>CREATE INDEX</code> или <code>KEY</code>.
+Найдёте индексы на артикуле, бренде, идентификаторе продавца, статусе заказа —
+ровно те, о которых шла речь.</p><p>Одна деталь из жизни проекта: в каталоге autodoc.tj поиск по названию идёт
+<strong>не по таблице товаров</strong>, а по отдельному словарю <code>ae_part_dictionary</code>.
+Причина как раз в этой главе: искать <code>LIKE '%фильтр%'</code> по большой таблице
+с ценами и остатками недопустимо медленно. Словарь маленький, специально
+проиндексирован и обновляется отдельно.</p><p>Такие решения не приходят сразу. Они появляются, когда база вырастает
+и запрос, работавший за 50 мс, начинает занимать 5 секунд.</p></section><section class="vrezka v-itog"><div class="vrezka-shapka"><span class="vrezka-podpis">Итог</span><span class="vrezka-zagolovok">Итог</span></div><ul>
+<li><strong>Индекс — это оглавление.</strong> Без него база перебирает все строки.</li>
+<li>Замер на 200 000 строк: <strong>18.4 мс без индекса против 0.058 мс
+с индексом</strong>. Разница в 314 раз.</li>
+<li>Индексируйте поля из <code>WHERE</code>, <code>JOIN</code>, <code>ORDER BY</code>, <code>GROUP BY</code>.</li>
+<li><strong>Индекс ускоряет чтение и замедляет запись.</strong> Не индексируйте всё.</li>
+<li>Составной индекс работает <strong>от левого края</strong>.</li>
+<li><code>EXPLAIN</code> показывает план. <code>type = ALL</code> — нужен индекс.</li>
+<li><strong>N+1</strong> — главная ошибка производительности. Лечится <code>JOIN</code>.</li>
+<li>Функция над столбцом отключает индекс.</li>
+<li>Большой <code>OFFSET</code> медленный — пагинация по ключу.</li>
+<li>Порядок: найти → <code>EXPLAIN</code> → индекс → замерить. <strong>Кэш последним.</strong></li>
+</ul><p>Следующая глава — практическая: спроектируем базу всего магазина.</p></section></div></article>
+<article class="glava" id="glava-31">
+    <header class="glava-shapka">
+      <div class="glava-metka">
+        <span class="glava-slovo">Глава</span>
+        <span class="glava-nomer">31</span>
+      </div>
+      <div class="glava-podpis">Часть VI. База данных</div>
+      <h1 class="glava-nazvanie">Практика: схема базы магазина</h1>
+    </header><div class="telo"><section class="vrezka v-zachem"><div class="vrezka-shapka"><span class="vrezka-podpis">Зачем это</span><span class="vrezka-zagolovok">Зачем эта глава</span></div><p>Соберём всё, что узнали, в готовую схему базы данных — ту самую, на которой
+дальше будет работать магазин.</p><p>Это важная глава. Структура базы — фундамент: код переписать легко,
+а перестроить таблицы, когда в них сто тысяч записей и работающий сайт, — тяжело.</p><p>Спроектируем сразу правильно, с запасом на маркетплейс из части IX.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Сначала — что нам нужно хранить</span></div><p>Прежде чем писать <code>CREATE TABLE</code>, ответьте словами: какие <strong>сущности</strong> есть
+в магазине?</p><table>
+<thead>
+<tr>
+<th>Сущность</th>
+<th>Что это</th>
+<th>Таблица</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Пользователь</td>
+<td>Покупатель, продавец, менеджер, админ</td>
+<td><code>polzovateli</code></td>
+</tr>
+<tr>
+<td>Продавец</td>
+<td>Магазин на маркетплейсе</td>
+<td><code>prodavcy</code></td>
+</tr>
+<tr>
+<td>Категория</td>
+<td>Раздел каталога</td>
+<td><code>kategorii</code></td>
+</tr>
+<tr>
+<td>Товар</td>
+<td>Позиция каталога</td>
+<td><code>tovary</code></td>
+</tr>
+<tr>
+<td>Заказ</td>
+<td>Покупка целиком</td>
+<td><code>zakazy</code></td>
+</tr>
+<tr>
+<td>Позиция заказа</td>
+<td>Один товар в заказе</td>
+<td><code>zakaz_tovary</code></td>
+</tr>
+<tr>
+<td>Корзина</td>
+<td>Что отложено, но не куплено</td>
+<td><code>korzina</code></td>
+</tr>
+</tbody>
+</table><p>Дальше — <strong>связи</strong>:</p><pre><code>polzovateli ──1:1──→ prodavcy         один пользователь = один магазин
+prodavcy    ──1:N──→ tovary           у продавца много товаров
+kategorii   ──1:N──→ tovary           в категории много товаров
+polzovateli ──1:N──→ zakazy           у покупателя много заказов
+zakazy      ──1:N──→ zakaz_tovary     в заказе много позиций
+tovary      ──1:N──→ zakaz_tovary     товар встречается во многих заказах
+</code></pre><p><strong>1:N</strong> («один ко многим») — самая частая связь. Читается: «у одного продавца
+много товаров, но у каждого товара один продавец».</p><p>Реализуется просто: в таблице «многих» лежит <code>id</code> из таблицы «одного».
+У <code>tovary</code> есть <code>prodavec_id</code>.</p><p><strong>N:M</strong> («многие ко многим») — когда с обеих сторон много. Например, товар
+подходит к нескольким автомобилям, и к одному автомобилю подходит много товаров.
+Такая связь <strong>всегда</strong> требует третьей таблицы — как <code>zakaz_tovary</code>
+между заказами и товарами.</p></section><section class="vrezka v-kod"><div class="vrezka-shapka"><span class="vrezka-podpis">Код</span><span class="vrezka-zagolovok">Схема целиком</span></div><pre><code class="language-sql"><span class="hljs-comment">-- ============================================================</span>
+<span class="hljs-comment">-- Пользователи: покупатели, продавцы, менеджеры, администраторы</span>
+<span class="hljs-comment">-- ============================================================</span>
+<span class="hljs-keyword">CREATE TABLE</span> polzovateli (
+    id           <span class="hljs-type">INT</span> AUTO_INCREMENT <span class="hljs-keyword">PRIMARY KEY</span>,
+    email        <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>) <span class="hljs-keyword">NOT NULL</span>,
+    parol_hash   <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>) <span class="hljs-keyword">NOT NULL</span> COMMENT <span class="hljs-string">'хеш, никогда не сам пароль'</span>,
+    imya         <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>) <span class="hljs-keyword">NOT NULL</span>,
+    telefon      <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">32</span>)  <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-string">''</span>,
+    rol          ENUM(<span class="hljs-string">'pokupatel'</span>,<span class="hljs-string">'prodavec'</span>,<span class="hljs-string">'manager'</span>,<span class="hljs-string">'admin'</span>)
+                 <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-string">'pokupatel'</span>,
+    aktivnyi     TINYINT(<span class="hljs-number">1</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">1</span>,
+    sozdan       DATETIME <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span>,
+    izmenen      DATETIME <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span> <span class="hljs-keyword">ON</span> <span class="hljs-keyword">UPDATE</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span>,
+
+    <span class="hljs-keyword">UNIQUE</span> KEY uniq_email (email),
+    KEY idx_rol (rol)
+) ENGINE<span class="hljs-operator">=</span>InnoDB <span class="hljs-keyword">DEFAULT</span> CHARSET<span class="hljs-operator">=</span>utf8mb4 <span class="hljs-keyword">COLLATE</span><span class="hljs-operator">=</span>utf8mb4_unicode_ci;
+
+
+<span class="hljs-comment">-- ============================================================</span>
+<span class="hljs-comment">-- Продавцы: магазины на маркетплейсе</span>
+<span class="hljs-comment">-- ============================================================</span>
+<span class="hljs-keyword">CREATE TABLE</span> prodavcy (
+    id                <span class="hljs-type">INT</span> AUTO_INCREMENT <span class="hljs-keyword">PRIMARY KEY</span>,
+    polzovatel_id     <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span>,
+    nazvanie          <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>) <span class="hljs-keyword">NOT NULL</span>,
+    gorod             <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">128</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-string">''</span>,
+    opisanie          TEXT,
+    komissiya_procent <span class="hljs-type">DECIMAL</span>(<span class="hljs-number">5</span>,<span class="hljs-number">2</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">10.00</span>,
+    status            ENUM(<span class="hljs-string">'na_proverke'</span>,<span class="hljs-string">'odobren'</span>,<span class="hljs-string">'zablokirovan'</span>)
+                      <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-string">'na_proverke'</span>,
+    sozdan            DATETIME <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span>,
+
+    <span class="hljs-keyword">UNIQUE</span> KEY uniq_polzovatel (polzovatel_id),
+    KEY idx_status (status),
+    <span class="hljs-keyword">CONSTRAINT</span> fk_prodavec_polzovatel
+        <span class="hljs-keyword">FOREIGN KEY</span> (polzovatel_id) <span class="hljs-keyword">REFERENCES</span> polzovateli(id)
+        <span class="hljs-keyword">ON</span> <span class="hljs-keyword">DELETE</span> RESTRICT
+) ENGINE<span class="hljs-operator">=</span>InnoDB <span class="hljs-keyword">DEFAULT</span> CHARSET<span class="hljs-operator">=</span>utf8mb4 <span class="hljs-keyword">COLLATE</span><span class="hljs-operator">=</span>utf8mb4_unicode_ci;
+
+
+<span class="hljs-comment">-- ============================================================</span>
+<span class="hljs-comment">-- Категории каталога, с вложенностью</span>
+<span class="hljs-comment">-- ============================================================</span>
+<span class="hljs-keyword">CREATE TABLE</span> kategorii (
+    id            <span class="hljs-type">INT</span> AUTO_INCREMENT <span class="hljs-keyword">PRIMARY KEY</span>,
+    roditel_id    <span class="hljs-type">INT</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-keyword">NULL</span> COMMENT <span class="hljs-string">'NULL = раздел верхнего уровня'</span>,
+    nazvanie      <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">128</span>) <span class="hljs-keyword">NOT NULL</span>,
+    chpu          <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">128</span>) <span class="hljs-keyword">NOT NULL</span> COMMENT <span class="hljs-string">'для адреса: tormoznye-kolodki'</span>,
+    poryadok      <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">0</span>,
+    aktivnaya     TINYINT(<span class="hljs-number">1</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">1</span>,
+
+    <span class="hljs-keyword">UNIQUE</span> KEY uniq_chpu (chpu),
+    KEY idx_roditel (roditel_id),
+    <span class="hljs-keyword">CONSTRAINT</span> fk_kategoriya_roditel
+        <span class="hljs-keyword">FOREIGN KEY</span> (roditel_id) <span class="hljs-keyword">REFERENCES</span> kategorii(id)
+        <span class="hljs-keyword">ON</span> <span class="hljs-keyword">DELETE</span> <span class="hljs-keyword">SET</span> <span class="hljs-keyword">NULL</span>
+) ENGINE<span class="hljs-operator">=</span>InnoDB <span class="hljs-keyword">DEFAULT</span> CHARSET<span class="hljs-operator">=</span>utf8mb4 <span class="hljs-keyword">COLLATE</span><span class="hljs-operator">=</span>utf8mb4_unicode_ci;
+
+
+<span class="hljs-comment">-- ============================================================</span>
+<span class="hljs-comment">-- Товары</span>
+<span class="hljs-comment">-- ============================================================</span>
+<span class="hljs-keyword">CREATE TABLE</span> tovary (
+    id            <span class="hljs-type">INT</span> AUTO_INCREMENT <span class="hljs-keyword">PRIMARY KEY</span>,
+    prodavec_id   <span class="hljs-type">INT</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-keyword">NULL</span> COMMENT <span class="hljs-string">'NULL = товар самого магазина'</span>,
+    kategoriya_id <span class="hljs-type">INT</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-keyword">NULL</span>,
+
+    nazvanie      <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>) <span class="hljs-keyword">NOT NULL</span>,
+    artikul       <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">64</span>)  <span class="hljs-keyword">NOT NULL</span>,
+    brend         <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">64</span>)  <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-string">''</span>,
+    opisanie      TEXT,
+
+    cena          <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span> COMMENT <span class="hljs-string">'в дирамах: 1 сомони = 100'</span>,
+    cena_zakupki  <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">0</span> COMMENT <span class="hljs-string">'покупателю не показывается'</span>,
+    ostatok       <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">0</span>,
+
+    foto          <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-string">''</span>,
+    status        ENUM(<span class="hljs-string">'chernovik'</span>,<span class="hljs-string">'na_moderacii'</span>,<span class="hljs-string">'opublikovan'</span>,<span class="hljs-string">'otklonen'</span>)
+                  <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-string">'chernovik'</span>,
+    aktivnyi      TINYINT(<span class="hljs-number">1</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">1</span>,
+
+    sozdan        DATETIME <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span>,
+    izmenen       DATETIME <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span> <span class="hljs-keyword">ON</span> <span class="hljs-keyword">UPDATE</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span>,
+
+    KEY idx_artikul (artikul),
+    KEY idx_brend (brend),
+    KEY idx_prodavec (prodavec_id),
+    KEY idx_kategoriya (kategoriya_id),
+    KEY idx_katalog (aktivnyi, status, ostatok),
+    FULLTEXT KEY ft_poisk (nazvanie, opisanie),
+
+    <span class="hljs-keyword">CONSTRAINT</span> fk_tovar_prodavec
+        <span class="hljs-keyword">FOREIGN KEY</span> (prodavec_id) <span class="hljs-keyword">REFERENCES</span> prodavcy(id) <span class="hljs-keyword">ON</span> <span class="hljs-keyword">DELETE</span> RESTRICT,
+    <span class="hljs-keyword">CONSTRAINT</span> fk_tovar_kategoriya
+        <span class="hljs-keyword">FOREIGN KEY</span> (kategoriya_id) <span class="hljs-keyword">REFERENCES</span> kategorii(id) <span class="hljs-keyword">ON</span> <span class="hljs-keyword">DELETE</span> <span class="hljs-keyword">SET</span> <span class="hljs-keyword">NULL</span>
+) ENGINE<span class="hljs-operator">=</span>InnoDB <span class="hljs-keyword">DEFAULT</span> CHARSET<span class="hljs-operator">=</span>utf8mb4 <span class="hljs-keyword">COLLATE</span><span class="hljs-operator">=</span>utf8mb4_unicode_ci;
+
+
+<span class="hljs-comment">-- ============================================================</span>
+<span class="hljs-comment">-- Заказы</span>
+<span class="hljs-comment">-- ============================================================</span>
+<span class="hljs-keyword">CREATE TABLE</span> zakazy (
+    id              <span class="hljs-type">INT</span> AUTO_INCREMENT <span class="hljs-keyword">PRIMARY KEY</span>,
+    nomer           <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">32</span>) <span class="hljs-keyword">NOT NULL</span> COMMENT <span class="hljs-string">'человеческий номер: 2026-001024'</span>,
+    polzovatel_id   <span class="hljs-type">INT</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-keyword">NULL</span> COMMENT <span class="hljs-string">'NULL = заказ без регистрации'</span>,
+
+    klient_imya     <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>) <span class="hljs-keyword">NOT NULL</span>,
+    klient_telefon  <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">32</span>)  <span class="hljs-keyword">NOT NULL</span>,
+    klient_adres    <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">500</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-string">''</span>,
+
+    summa_tovarov   <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">0</span> COMMENT <span class="hljs-string">'в дирамах'</span>,
+    summa_dostavki  <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">0</span>,
+    summa_itogo     <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">0</span>,
+
+    sposob_dostavki ENUM(<span class="hljs-string">'samovyvoz'</span>,<span class="hljs-string">'kurier'</span>,<span class="hljs-string">'pochta'</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-string">'samovyvoz'</span>,
+    sposob_oplaty   ENUM(<span class="hljs-string">'nalichnye'</span>,<span class="hljs-string">'karta'</span>,<span class="hljs-string">'perevod'</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-string">'nalichnye'</span>,
+
+    status          ENUM(<span class="hljs-string">'novyi'</span>,<span class="hljs-string">'podtverzhden'</span>,<span class="hljs-string">'sobran'</span>,<span class="hljs-string">'otpravlen'</span>,<span class="hljs-string">'dostavlen'</span>,<span class="hljs-string">'otmenen'</span>)
+                    <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-string">'novyi'</span>,
+    kommentariy     TEXT,
+
+    sozdan          DATETIME <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span>,
+    izmenen         DATETIME <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span> <span class="hljs-keyword">ON</span> <span class="hljs-keyword">UPDATE</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span>,
+
+    <span class="hljs-keyword">UNIQUE</span> KEY uniq_nomer (nomer),
+    KEY idx_polzovatel (polzovatel_id),
+    KEY idx_status (status),
+    KEY idx_sozdan (sozdan),
+
+    <span class="hljs-keyword">CONSTRAINT</span> fk_zakaz_polzovatel
+        <span class="hljs-keyword">FOREIGN KEY</span> (polzovatel_id) <span class="hljs-keyword">REFERENCES</span> polzovateli(id) <span class="hljs-keyword">ON</span> <span class="hljs-keyword">DELETE</span> <span class="hljs-keyword">SET</span> <span class="hljs-keyword">NULL</span>
+) ENGINE<span class="hljs-operator">=</span>InnoDB <span class="hljs-keyword">DEFAULT</span> CHARSET<span class="hljs-operator">=</span>utf8mb4 <span class="hljs-keyword">COLLATE</span><span class="hljs-operator">=</span>utf8mb4_unicode_ci;
+
+
+<span class="hljs-comment">-- ============================================================</span>
+<span class="hljs-comment">-- Позиции заказа</span>
+<span class="hljs-comment">-- ============================================================</span>
+<span class="hljs-keyword">CREATE TABLE</span> zakaz_tovary (
+    id                <span class="hljs-type">INT</span> AUTO_INCREMENT <span class="hljs-keyword">PRIMARY KEY</span>,
+    zakaz_id          <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span>,
+    tovar_id          <span class="hljs-type">INT</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-keyword">NULL</span> COMMENT <span class="hljs-string">'NULL, если товар потом удалили'</span>,
+    prodavec_id       <span class="hljs-type">INT</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-keyword">NULL</span>,
+
+    <span class="hljs-comment">-- Копии на момент заказа: их нельзя брать из справочников</span>
+    nazvanie          <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>) <span class="hljs-keyword">NOT NULL</span>,
+    artikul           <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">64</span>)  <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-string">''</span>,
+    cena              <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span> COMMENT <span class="hljs-string">'цена в момент покупки'</span>,
+    kolichestvo       <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">1</span>,
+    komissiya_procent <span class="hljs-type">DECIMAL</span>(<span class="hljs-number">5</span>,<span class="hljs-number">2</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">0</span>,
+
+    KEY idx_zakaz (zakaz_id),
+    KEY idx_tovar (tovar_id),
+    KEY idx_prodavec (prodavec_id),
+
+    <span class="hljs-keyword">CONSTRAINT</span> fk_pozicia_zakaz
+        <span class="hljs-keyword">FOREIGN KEY</span> (zakaz_id) <span class="hljs-keyword">REFERENCES</span> zakazy(id) <span class="hljs-keyword">ON</span> <span class="hljs-keyword">DELETE</span> CASCADE,
+    <span class="hljs-keyword">CONSTRAINT</span> fk_pozicia_tovar
+        <span class="hljs-keyword">FOREIGN KEY</span> (tovar_id) <span class="hljs-keyword">REFERENCES</span> tovary(id) <span class="hljs-keyword">ON</span> <span class="hljs-keyword">DELETE</span> <span class="hljs-keyword">SET</span> <span class="hljs-keyword">NULL</span>
+) ENGINE<span class="hljs-operator">=</span>InnoDB <span class="hljs-keyword">DEFAULT</span> CHARSET<span class="hljs-operator">=</span>utf8mb4 <span class="hljs-keyword">COLLATE</span><span class="hljs-operator">=</span>utf8mb4_unicode_ci;
+
+
+<span class="hljs-comment">-- ============================================================</span>
+<span class="hljs-comment">-- Корзина</span>
+<span class="hljs-comment">-- ============================================================</span>
+<span class="hljs-keyword">CREATE TABLE</span> korzina (
+    id            <span class="hljs-type">INT</span> AUTO_INCREMENT <span class="hljs-keyword">PRIMARY KEY</span>,
+    polzovatel_id <span class="hljs-type">INT</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-keyword">NULL</span>,
+    sessiya       <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">128</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-string">''</span> COMMENT <span class="hljs-string">'для незарегистрированных'</span>,
+    tovar_id      <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span>,
+    kolichestvo   <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-number">1</span>,
+    izmenena      DATETIME <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span> <span class="hljs-keyword">ON</span> <span class="hljs-keyword">UPDATE</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span>,
+
+    <span class="hljs-keyword">UNIQUE</span> KEY uniq_pozicia (polzovatel_id, sessiya, tovar_id),
+    KEY idx_izmenena (izmenena),
+
+    <span class="hljs-keyword">CONSTRAINT</span> fk_korzina_tovar
+        <span class="hljs-keyword">FOREIGN KEY</span> (tovar_id) <span class="hljs-keyword">REFERENCES</span> tovary(id) <span class="hljs-keyword">ON</span> <span class="hljs-keyword">DELETE</span> CASCADE
+) ENGINE<span class="hljs-operator">=</span>InnoDB <span class="hljs-keyword">DEFAULT</span> CHARSET<span class="hljs-operator">=</span>utf8mb4 <span class="hljs-keyword">COLLATE</span><span class="hljs-operator">=</span>utf8mb4_unicode_ci;
+</code></pre></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Разбор ключевых решений</span></div><p>Каждое из них — ответ на реальную проблему. Разберём, чтобы вы понимали
+не «как», а «почему».</p><h3><strong>1. <code>ENUM</code> для статусов</strong></h3><pre><code class="language-sql">status ENUM(<span class="hljs-string">'novyi'</span>,<span class="hljs-string">'podtverzhden'</span>,<span class="hljs-string">'sobran'</span>,<span class="hljs-string">'otpravlen'</span>,<span class="hljs-string">'dostavlen'</span>,<span class="hljs-string">'otmenen'</span>)
+</code></pre><p><code>ENUM</code> — список допустимых значений. База <strong>не даст</strong> записать что-то другое.</p><p>Альтернатива — <code>VARCHAR</code>, но тогда однажды в базе появятся <code>novyi</code>, <code>Новый</code>,
+<code>new</code> и <code>NEW</code> — и никакие отчёты не сойдутся.</p><p>⚠️ Минус <code>ENUM</code>: добавить новый статус — значит изменить структуру таблицы,
+а это блокировка на больших таблицах. Если статусов много и они меняются —
+делайте отдельную таблицу-справочник.</p><h3><strong>2. Копии данных в позиции заказа</strong></h3><pre><code class="language-sql">nazvanie <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>) <span class="hljs-keyword">NOT NULL</span>,
+cena <span class="hljs-type">INT</span> <span class="hljs-keyword">NOT NULL</span>,
+komissiya_procent <span class="hljs-type">DECIMAL</span>(<span class="hljs-number">5</span>,<span class="hljs-number">2</span>) <span class="hljs-keyword">NOT NULL</span>
+</code></pre><p>Мы уже говорили об этом в главе 29, но повторим — это важно.</p><p>В <code>zakaz_tovary</code> <strong>дублируются</strong> название, цена и процент комиссии. Кажется
+нарушением правила «не дублировать».</p><p>Но это осознанное исключение. Заказ — <strong>документ о факте</strong>, а не ссылка
+на текущее состояние. Товар подорожает, продавец сменит условия, товар вообще
+уберут из каталога — старый заказ должен остаться таким, каким был.</p><p><strong>Правило: справочники хранят текущее, документы — зафиксированное.</strong></p><h3><strong>3. <code>ON DELETE</code> — что делать со связанными записями</strong></h3><table>
+<thead>
+<tr>
+<th>Поведение</th>
+<th>Что происходит</th>
+<th>Где применили</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RESTRICT</code></td>
+<td><strong>Запретить</strong> удаление, пока есть связанные</td>
+<td>Продавец с товарами</td>
+</tr>
+<tr>
+<td><code>CASCADE</code></td>
+<td>Удалить связанные тоже</td>
+<td>Позиции при удалении заказа</td>
+</tr>
+<tr>
+<td><code>SET NULL</code></td>
+<td>Обнулить ссылку</td>
+<td>Категория у товара</td>
+</tr>
+</tbody>
+</table><p>Выбор не случаен:</p><ul>
+<li>Продавца с товарами удалить нельзя — <code>RESTRICT</code>. Иначе останутся товары-сироты.</li>
+<li>Позиции без заказа бессмысленны — <code>CASCADE</code>.</li>
+<li>Товар без категории существовать может — <code>SET NULL</code>.</li>
+</ul><h3><strong>4. Корзина в базе, а не только в браузере</strong></h3><p>Помните <code>localStorage</code> из главы 18? Корзина там жила только в одном браузере.</p><p>Теперь она в базе, и это даёт:</p><ul>
+<li>корзина переезжает между устройствами;</li>
+<li>видно, что люди откладывают, но не покупают;</li>
+<li>можно напомнить о брошенной корзине.</li>
+</ul><p>Поле <code>sessiya</code> — для незарегистрированных: корзина привязывается к сессии
+браузера, а при входе переносится на пользователя.</p><h3><strong>5. Составной уникальный ключ</strong></h3><pre><code class="language-sql"><span class="hljs-keyword">UNIQUE</span> KEY uniq_pozicia (polzovatel_id, sessiya, tovar_id)
+</code></pre><p>Уникальность по <strong>трём полям сразу</strong>: один и тот же товар не может попасть
+в одну корзину дважды. Второе добавление — не новая строка, а увеличение
+количества.</p><p>База следит за этим сама, PHP не нужно ничего проверять.</p><h3><strong>6. Человеческий номер заказа</strong></h3><pre><code class="language-sql">nomer <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">32</span>) <span class="hljs-keyword">NOT NULL</span> COMMENT <span class="hljs-string">'2026-001024'</span>
+</code></pre><p>У заказа два номера: <code>id</code> для базы и <code>nomer</code> для людей.</p><p>Зачем: <code>id</code> выдаёт информацию о бизнесе. Заказ №7 говорит покупателю,
+что вы работаете вторую неделю. Отдельный номер решает это и позволяет
+задать любой формат.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Заполняем начальными данными</span></div><pre><code class="language-sql"><span class="hljs-comment">-- Категории</span>
+<span class="hljs-keyword">INSERT INTO</span> kategorii (nazvanie, chpu, poryadok) <span class="hljs-keyword">VALUES</span>
+(<span class="hljs-string">'Тормозная система'</span>, <span class="hljs-string">'tormoznaya-sistema'</span>, <span class="hljs-number">1</span>),
+(<span class="hljs-string">'Фильтры'</span>,           <span class="hljs-string">'filtry'</span>,             <span class="hljs-number">2</span>),
+(<span class="hljs-string">'Двигатель'</span>,         <span class="hljs-string">'dvigatel'</span>,           <span class="hljs-number">3</span>),
+(<span class="hljs-string">'Электрика'</span>,         <span class="hljs-string">'elektrika'</span>,          <span class="hljs-number">4</span>),
+(<span class="hljs-string">'Подвеска'</span>,          <span class="hljs-string">'podveska'</span>,           <span class="hljs-number">5</span>);
+
+<span class="hljs-comment">-- Подкатегории</span>
+<span class="hljs-keyword">INSERT INTO</span> kategorii (roditel_id, nazvanie, chpu, poryadok) <span class="hljs-keyword">VALUES</span>
+(<span class="hljs-number">1</span>, <span class="hljs-string">'Тормозные колодки'</span>, <span class="hljs-string">'tormoznye-kolodki'</span>, <span class="hljs-number">1</span>),
+(<span class="hljs-number">1</span>, <span class="hljs-string">'Тормозные диски'</span>,   <span class="hljs-string">'tormoznye-diski'</span>,   <span class="hljs-number">2</span>),
+(<span class="hljs-number">2</span>, <span class="hljs-string">'Масляные фильтры'</span>,  <span class="hljs-string">'maslyanye-filtry'</span>,  <span class="hljs-number">1</span>),
+(<span class="hljs-number">2</span>, <span class="hljs-string">'Воздушные фильтры'</span>, <span class="hljs-string">'vozdushnye-filtry'</span>, <span class="hljs-number">2</span>);
+
+<span class="hljs-comment">-- Администратор</span>
+<span class="hljs-keyword">INSERT INTO</span> polzovateli (email, parol_hash, imya, rol) <span class="hljs-keyword">VALUES</span>
+(<span class="hljs-string">'admin@autodoc.tj'</span>, <span class="hljs-string">'$2y$10$ЗАМЕНИТЬ_НА_НАСТОЯЩИЙ_ХЕШ'</span>, <span class="hljs-string">'Администратор'</span>, <span class="hljs-string">'admin'</span>);
+</code></pre><p>⚠️ <strong><code>parol_hash</code>, а не <code>parol</code>.</strong> Пароли <strong>никогда</strong> не хранятся в открытом виде.
+Ни в каком виде, ни при каких обстоятельствах. Как правильно — в главе 39.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Проверьте себя перед тем, как продолжить</span></div><p>Хороший приём: прежде чем писать код, убедитесь, что схема отвечает
+на нужные вопросы. Попробуйте написать запросы для:</p><ol>
+<li>Каталог: активные опубликованные товары с остатком, по 20 на странице.</li>
+<li>Товары конкретного продавца.</li>
+<li>Все заказы покупателя с суммами.</li>
+<li>Состав заказа с названиями товаров.</li>
+<li>Сколько заработал каждый продавец за месяц.</li>
+<li>Товары на модерации.</li>
+<li>Брошенные корзины старше трёх дней.</li>
+<li>Топ-10 продаваемых товаров.</li>
+</ol><p>Если для какого-то вопроса данных не хватает — <strong>лучше узнать это сейчас</strong>,
+а не когда база уже заполнена.</p></section><section class="vrezka v-grabli"><div class="vrezka-shapka"><span class="vrezka-podpis">Грабли</span><span class="vrezka-zagolovok">Грабли</span></div><p><strong>Хранить пароль в открытом виде.</strong> Утечка базы = утечка всех паролей,
+включая те, которыми люди пользуются в почте и банке.</p><p><strong>Не фиксировать цену в заказе.</strong> История будет переписываться при каждом
+изменении прайса.</p><p><strong><code>FLOAT</code> для денег.</strong> Суммы разойдутся.</p><p><strong>Забыть индекс на внешнем ключе.</strong> Каждый <code>JOIN</code> — полный перебор.</p><p><strong>Не думать про <code>ON DELETE</code>.</strong> Однажды кто-то удалит продавца, и половина
+каталога останется без владельца.</p><p><strong>Одна таблица на всё.</strong> Товары, заказы и пользователи в одной таблице
+с полем «тип» — так делать нельзя.</p><p><strong>Не заложить <code>sozdan</code> и <code>izmenen</code>.</strong> Понадобятся обязательно, а прошлое
+не восстановить.</p></section><section class="vrezka v-zadachi"><div class="vrezka-shapka"><span class="vrezka-podpis">Задачи</span><span class="vrezka-zagolovok">Задачи</span></div><p><strong>Задача 31.1.</strong> Создайте всю схему у себя. Проверьте, что внешние ключи
+работают: попробуйте добавить товар несуществующего продавца.</p><p><strong>Задача 31.2.</strong> Напишите все восемь запросов из раздела «Проверьте себя».</p><p><strong>Задача 31.3.</strong> Спроектируйте таблицу отзывов: оценка, текст, кто написал,
+о каком товаре, дата, статус модерации. Какие индексы нужны?</p><p><strong>Задача 31.4.</strong> Спроектируйте связь «товар подходит к автомобилю».
+Понадобятся таблицы марок, моделей и связей.</p><p><strong>Задача 31.5.</strong> Что произойдёт при каждой попытке? Ответьте, потом проверьте:</p><pre><code class="language-sql"><span class="hljs-keyword">DELETE</span> <span class="hljs-keyword">FROM</span> prodavcy <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;         <span class="hljs-comment">-- у продавца есть товары</span>
+<span class="hljs-keyword">DELETE</span> <span class="hljs-keyword">FROM</span> zakazy <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">101</span>;         <span class="hljs-comment">-- у заказа есть позиции</span>
+<span class="hljs-keyword">DELETE</span> <span class="hljs-keyword">FROM</span> kategorii <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;        <span class="hljs-comment">-- у категории есть товары</span>
+</code></pre><p><strong>Задача 31.6.</strong> Добавьте таблицу для журнала действий администраторов:
+кто, что, когда, над каким объектом.</p><p><strong>Задача 31.7.</strong> Придумайте, как хранить несколько фотографий у одного товара.
+Сейчас поле <code>foto</code> одно.</p><p><strong>Задача 31.8.</strong> Спроектируйте таблицу для истории изменения цен товара.
+Зачем она может понадобиться?</p><p><strong>Задача 31.9.</strong> Сравните свою схему со схемой в <code>sql/</code> этого репозитория.
+Что есть там, чего нет у вас? Выпишите три поля и объясните, зачем каждое.</p><p><em>Ответы — в <a href="../prilozheniya/G-otvety.md">Приложении Г</a>.</em></p></section><section class="vrezka v-vboyu"><div class="vrezka-shapka"><span class="vrezka-podpis">В бою</span><span class="vrezka-zagolovok">В бою</span></div><p>Откройте <code>sql/</code> — там вся структура настоящего магазина в виде миграций.</p><p>Вы увидите таблицы, которых у нас пока нет: <code>order_sellers</code> (подзаказы
+по продавцам), <code>seller_ledger</code> (журнал начислений), <code>seller_payouts</code> (реестр
+выплат). Это Фаза 3 проекта — деньги продавцов.</p><p>Особенно интересна <code>seller_ledger</code>. Баланс продавца там <strong>не хранится числом</strong>.
+Хранятся все движения: начислено, удержано, выплачено. Баланс — это <code>SUM</code>
+по журналу.</p><p>Почему так: число можно случайно перезаписать, и никто не узнает, откуда оно
+взялось. Журнал позволяет объяснить каждый сомони. Так устроена любая
+бухгалтерия в мире, и это одно из тех решений, которые окупаются при первом же
+споре с продавцом.</p></section><section class="vrezka v-itog"><div class="vrezka-shapka"><span class="vrezka-podpis">Итог</span><span class="vrezka-zagolovok">Итог</span></div><ul>
+<li>Сначала <strong>сущности и связи словами</strong>, потом <code>CREATE TABLE</code>.</li>
+<li><strong>1:N</strong> — <code>id</code> в таблице «многих». <strong>N:M</strong> — всегда третья таблица.</li>
+<li><code>ENUM</code> для статусов: база сама не даст записать мусор.</li>
+<li><strong>Справочники хранят текущее, документы — зафиксированное.</strong> Цена и комиссия
+копируются в позицию заказа.</li>
+<li><code>ON DELETE</code>: <code>RESTRICT</code> защищает, <code>CASCADE</code> удаляет вместе, <code>SET NULL</code> обнуляет.</li>
+<li>Корзина в базе переезжает между устройствами.</li>
+<li>Составной <code>UNIQUE KEY</code> защищает от дублей на уровне базы.</li>
+<li>Отдельный человеческий номер заказа не выдаёт обороты бизнеса.</li>
+<li><strong>Пароли только хешами.</strong></li>
+<li>Проверьте схему запросами <strong>до</strong> того, как зальёте данные.</li>
+</ul><p><strong>Часть VI закончена.</strong> База спроектирована.</p><p>Дальше — соединим её с PHP и наконец заменим массив в файле на настоящие данные.</p></section></div></article>
 
 <footer class="konec">
   <div class="konec-znak">§</div>

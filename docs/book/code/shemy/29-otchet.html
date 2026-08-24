@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@import url("shrifty.css");
+*{box-sizing:border-box;margin:0}
+body{width:980px;background:#FBF7F0;font-family:'Spe',serif;color:#221E1A;padding:30px 32px}
+.tit{font-family:'Unb';font-weight:700;font-size:21px;letter-spacing:-.03em;margin-bottom:16px}
+.zapros{background:#F7F1E6;border:1px solid #E3D8C6;border-left:4px solid #B5411F;
+  border-radius:6px;padding:14px 16px;font-family:'JB';font-size:14px;line-height:1.6;
+  white-space:pre-wrap;margin-bottom:6px;color:#2b2622}
+.zapros b{color:#9B2C6F;font-weight:400}
+.strelka{text-align:center;color:#B0A79B;font-size:18px;margin:8px 0}
+.rez{border:1px solid #D9CFC0;border-radius:6px;overflow:hidden;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-family:'Unb';font-weight:700;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  text-align:left;color:#fff;background:#14584F;padding:9px 12px;white-space:nowrap}
+td{padding:8px 12px;border-bottom:1px solid #EFE8DD;font-family:'JB';font-size:13.5px}
+td.ch{text-align:right}
+tr:last-child td{border-bottom:0}
+tr:nth-child(even) td{background:#FBF8F3}
+.pusto{padding:18px;color:#7C7166;font-style:italic}
+.itog{margin-top:9px;font-size:14.5px;color:#6E6459}
+.pod{margin-top:12px;font-size:15.5px;color:#6E6459;font-style:italic}
+</style></head><body>
+<div class="tit">Отчёт маркетплейса: выручка и комиссия по продавцам</div>
+<div class="zapros"><b>SELECT</b> p.imya, <b>COUNT</b>(<b>DISTINCT</b> z.id) <b>AS</b> zakazov, <b>SUM</b>(zt.kolichestvo) <b>AS</b> shtuk, <b>ROUND</b>(<b>SUM</b>(zt.cena * zt.kolichestvo) / 100.0, 2) <b>AS</b> vyruchka, <b>ROUND</b>(<b>SUM</b>(zt.cena * zt.kolichestvo) * p.komissiya / 100 / 100.0, 2) <b>AS</b> komissiya <b>FROM</b> prodavcy <b>AS</b> p INNER <b>JOIN</b> tovary <b>AS</b> t <b>ON</b> t.prodavec_id = p.id INNER <b>JOIN</b> zakaz_tovary <b>AS</b> zt <b>ON</b> zt.tovar_id = t.id INNER <b>JOIN</b> zakazy <b>AS</b> z <b>ON</b> z.id = zt.zakaz_id <b>WHERE</b> z.status &lt;&gt; &#039;otmenen&#039; <b>GROUP BY</b> p.id, p.imya, p.komissiya <b>ORDER BY</b> vyruchka <b>DESC</b></div>
+<div class="strelka">&darr;</div>
+<div class="rez"><table><thead><tr><th>imya</th><th>zakazov</th><th>shtuk</th><th>vyruchka</th><th>komissiya</th></tr></thead><tbody><tr><td>Автомир</td><td class="ch">2</td><td class="ch">6</td><td class="ch">1397</td><td class="ch">139.7</td></tr><tr><td>Мотор Плюс</td><td class="ch">1</td><td class="ch">1</td><td class="ch">950</td><td class="ch">76</td></tr><tr><td>Запчасть+</td><td class="ch">2</td><td class="ch">4</td><td class="ch">200</td><td class="ch">24</td></tr></tbody></table></div><div class="itog">Результат: 3 строки</div><div class="pod">Четыре таблицы, группировка и расчёт комиссии — один запрос вместо целого раздела кода.</div></body></html>

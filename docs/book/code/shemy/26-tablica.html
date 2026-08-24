@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@import url("shrifty.css");
+*{box-sizing:border-box;margin:0}
+body{width:980px;background:#FBF7F0;font-family:'Spe',serif;color:#221E1A;padding:30px 32px}
+.tit{font-family:'Unb';font-weight:700;font-size:21px;letter-spacing:-.03em;margin-bottom:16px}
+.zapros{background:#F7F1E6;border:1px solid #E3D8C6;border-left:4px solid #B5411F;
+  border-radius:6px;padding:14px 16px;font-family:'JB';font-size:14px;line-height:1.6;
+  white-space:pre-wrap;margin-bottom:6px;color:#2b2622}
+.zapros b{color:#9B2C6F;font-weight:400}
+.strelka{text-align:center;color:#B0A79B;font-size:18px;margin:8px 0}
+.rez{border:1px solid #D9CFC0;border-radius:6px;overflow:hidden;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-family:'Unb';font-weight:700;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  text-align:left;color:#fff;background:#14584F;padding:9px 12px;white-space:nowrap}
+td{padding:8px 12px;border-bottom:1px solid #EFE8DD;font-family:'JB';font-size:13.5px}
+td.ch{text-align:right}
+tr:last-child td{border-bottom:0}
+tr:nth-child(even) td{background:#FBF8F3}
+.pusto{padding:18px;color:#7C7166;font-style:italic}
+.itog{margin-top:9px;font-size:14.5px;color:#6E6459}
+.pod{margin-top:12px;font-size:15.5px;color:#6E6459;font-style:italic}
+</style></head><body>
+<div class="tit">Таблица tovary: что лежит в базе</div>
+<div class="zapros"><b>SELECT</b> * <b>FROM</b> tovary <b>WHERE</b> aktivnyi = 1 <b>ORDER BY</b> id <b>LIMIT</b> 8</div>
+<div class="strelka">&darr;</div>
+<div class="rez"><table><thead><tr><th>id</th><th>nazvanie</th><th>artikul</th><th>brend</th><th>kategoriya</th><th>cena</th><th>ostatok</th><th>aktivnyi</th></tr></thead><tbody><tr><td class="ch">1</td><td>Тормозные колодки Bosch</td><td class="ch">0986424815</td><td>Bosch</td><td>Тормоза</td><td class="ch">25000</td><td class="ch">7</td><td class="ch">1</td></tr><tr><td class="ch">2</td><td>Масляный фильтр Mann</td><td>W71280</td><td>Mann</td><td>Фильтры</td><td class="ch">4500</td><td class="ch">23</td><td class="ch">1</td></tr><tr><td class="ch">3</td><td>Свечи зажигания Denso</td><td>IK20</td><td>Denso</td><td>Зажигание</td><td class="ch">12000</td><td class="ch">0</td><td class="ch">1</td></tr><tr><td class="ch">4</td><td>Тормозные диски Brembo</td><td>09.9468.11</td><td>Brembo</td><td>Тормоза</td><td class="ch">78000</td><td class="ch">2</td><td class="ch">1</td></tr><tr><td class="ch">5</td><td>Воздушный фильтр Mann</td><td>C25114</td><td>Mann</td><td>Фильтры</td><td class="ch">6500</td><td class="ch">14</td><td class="ch">1</td></tr><tr><td class="ch">6</td><td>Аккумулятор Bosch S4</td><td>0092S40050</td><td>Bosch</td><td>Электрика</td><td class="ch">95000</td><td class="ch">4</td><td class="ch">1</td></tr><tr><td class="ch">7</td><td>Салонный фильтр Mann</td><td>CU2545</td><td>Mann</td><td>Фильтры</td><td class="ch">5500</td><td class="ch">9</td><td class="ch">1</td></tr><tr><td class="ch">8</td><td>Ремень ГРМ Bosch</td><td class="ch">1987949095</td><td>Bosch</td><td>Двигатель</td><td class="ch">31000</td><td class="ch">3</td><td class="ch">1</td></tr></tbody></table></div><div class="itog">Результат: 8 строк</div><div class="pod">Строка — товар, столбец — свойство. Тот же массив массивов из главы 22, только хранится в базе.</div></body></html>

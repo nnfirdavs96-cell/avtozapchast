@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@import url("shrifty.css");
+*{box-sizing:border-box;margin:0}
+body{width:980px;background:#FBF7F0;font-family:'Spe',serif;color:#221E1A;padding:30px 32px}
+.tit{font-family:'Unb';font-weight:700;font-size:21px;letter-spacing:-.03em;margin-bottom:16px}
+.zapros{background:#F7F1E6;border:1px solid #E3D8C6;border-left:4px solid #B5411F;
+  border-radius:6px;padding:14px 16px;font-family:'JB';font-size:14px;line-height:1.6;
+  white-space:pre-wrap;margin-bottom:6px;color:#2b2622}
+.zapros b{color:#9B2C6F;font-weight:400}
+.strelka{text-align:center;color:#B0A79B;font-size:18px;margin:8px 0}
+.rez{border:1px solid #D9CFC0;border-radius:6px;overflow:hidden;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-family:'Unb';font-weight:700;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  text-align:left;color:#fff;background:#14584F;padding:9px 12px;white-space:nowrap}
+td{padding:8px 12px;border-bottom:1px solid #EFE8DD;font-family:'JB';font-size:13.5px}
+td.ch{text-align:right}
+tr:last-child td{border-bottom:0}
+tr:nth-child(even) td{background:#FBF8F3}
+.pusto{padding:18px;color:#7C7166;font-style:italic}
+.itog{margin-top:9px;font-size:14.5px;color:#6E6459}
+.pod{margin-top:12px;font-size:15.5px;color:#6E6459;font-style:italic}
+</style></head><body>
+<div class="tit">Отчёт по категориям — один запрос</div>
+<div class="zapros"><b>SELECT</b> kategoriya, <b>COUNT</b>(*) <b>AS</b> pozicij, <b>SUM</b>(ostatok) <b>AS</b> shtuk, <b>ROUND</b>(<b>SUM</b>(cena * ostatok) / 100.0, 2) <b>AS</b> summa_somoni <b>FROM</b> tovary <b>WHERE</b> aktivnyi = 1 <b>GROUP BY</b> kategoriya <b>ORDER BY</b> summa_somoni <b>DESC</b></div>
+<div class="strelka">&darr;</div>
+<div class="rez"><table><thead><tr><th>kategoriya</th><th>pozicij</th><th>shtuk</th><th>summa_somoni</th></tr></thead><tbody><tr><td>Тормоза</td><td class="ch">3</td><td class="ch">40</td><td class="ch">4519</td></tr><tr><td>Электрика</td><td class="ch">1</td><td class="ch">4</td><td class="ch">3800</td></tr><tr><td>Фильтры</td><td class="ch">3</td><td class="ch">46</td><td class="ch">2440</td></tr><tr><td>Двигатель</td><td class="ch">1</td><td class="ch">3</td><td class="ch">930</td></tr><tr><td>Зажигание</td><td class="ch">2</td><td class="ch">6</td><td class="ch">900</td></tr><tr><td>Подвеска</td><td class="ch">1</td><td class="ch">0</td><td class="ch">0</td></tr></tbody></table></div><div class="itog">Результат: 6 строк</div><div class="pod">Количество позиций, штук на складе и стоимость в сомони. Всё посчитала база.</div></body></html>
