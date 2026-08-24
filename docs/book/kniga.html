@@ -438,7 +438,12 @@ hr {
 <li><span class="og-nomer">5</span><a href="#glava-5">Теги и структура документа</a></li>
 <li><span class="og-nomer">6</span><a href="#glava-6">Текст, ссылки, картинки, списки</a></li>
 <li><span class="og-nomer">7</span><a href="#glava-7">Таблицы и формы</a></li>
-<li><span class="og-nomer">8</span><a href="#glava-8">Практика: карточка товара и каталог</a></li></ol>
+<li><span class="og-nomer">8</span><a href="#glava-8">Практика: карточка товара и каталог</a></li>
+<li><span class="og-nomer">9</span><a href="#glava-9">Подключаем CSS и учим селекторы</a></li>
+<li><span class="og-nomer">10</span><a href="#glava-10">Цвет, шрифт, отступы, рамки</a></li>
+<li><span class="og-nomer">11</span><a href="#glava-11">Flexbox и Grid: раскладка</a></li>
+<li><span class="og-nomer">12</span><a href="#glava-12">Адаптивность: сайт на телефоне</a></li>
+<li><span class="og-nomer">13</span><a href="#glava-13">Практика: каталог становится красивым</a></li></ol>
   <p class="og-primechanie">Книга пишется по частям. Здесь — главы, готовые на сегодня.</p>
 </section>
 
@@ -3364,6 +3369,1992 @@ PHP повторяет в цикле столько раз, сколько то�
 <li>Проверяйте себя валидатором <code>validator.w3.org</code>.</li>
 </ul><p><strong>Часть II закончена.</strong> Вы умеете размечать страницы. Со следующей главы начинается
 CSS — и ваш магазин наконец станет красивым.</p></section></div></article>
+<article class="glava" id="glava-9">
+    <header class="glava-shapka">
+      <div class="glava-metka">
+        <span class="glava-slovo">Глава</span>
+        <span class="glava-nomer">09</span>
+      </div>
+      <div class="glava-podpis">Часть III. CSS — внешность</div>
+      <h1 class="glava-nazvanie">Подключаем CSS и учим селекторы</h1>
+    </header><div class="telo"><section class="vrezka v-zachem"><div class="vrezka-shapka"><span class="vrezka-podpis">Зачем это</span><span class="vrezka-zagolovok">Зачем эта глава</span></div><p>Вы построили страницу магазина. Она правильная, семантичная — и абсолютно
+непривлекательная.</p><p>Начинаем это исправлять. CSS — это то, что превращает чёрно-белую простыню
+в сайт, на котором хочется что-то купить.</p><p>В этой главе разберёмся с двумя вещами:</p><ol>
+<li><strong>Как подключить CSS</strong> к странице (три способа, правильный — один).</li>
+<li><strong>Как объяснить браузеру, что именно красить</strong> — это называется селекторы.</li>
+</ol><p>Второе важнее. Умение точно указать «вот этот элемент и никакой другой» —
+основа всей работы с CSS.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Что такое CSS</span></div><p><strong>CSS</strong> — <em>Cascading Style Sheets</em>, «каскадные таблицы стилей».</p><p>Название страшное, суть простая: <strong>список указаний, как показывать элементы страницы</strong>.</p><p>Одно указание — одно <strong>правило</strong>:</p><pre><code class="language-css"><span class="hljs-selector-tag">button</span> {
+    <span class="hljs-attribute">background</span>: <span class="hljs-number">#b5411f</span>;
+    <span class="hljs-attribute">color</span>: white;
+    <span class="hljs-attribute">border-radius</span>: <span class="hljs-number">6px</span>;
+}
+</code></pre><p>Читается: «все кнопки на странице сделай с красно-рыжим фоном, белым текстом
+и скруглёнными на 6 пикселей углами».</p><p>Из чего состоит правило:</p><table>
+<thead>
+<tr>
+<th>Часть</th>
+<th>Название</th>
+<th>Что делает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>button</code></td>
+<td><strong>Селектор</strong></td>
+<td>Кого оформляем</td>
+</tr>
+<tr>
+<td><code>{ }</code></td>
+<td></td>
+<td>Границы списка указаний</td>
+</tr>
+<tr>
+<td><code>background</code></td>
+<td><strong>Свойство</strong></td>
+<td>Что меняем</td>
+</tr>
+<tr>
+<td><code>#b5411f</code></td>
+<td><strong>Значение</strong></td>
+<td>На что меняем</td>
+</tr>
+<tr>
+<td><code>;</code></td>
+<td></td>
+<td>Конец одного указания</td>
+</tr>
+</tbody>
+</table><p>Пара «свойство: значение» называется <strong>объявлением</strong>. Их в правиле может быть
+сколько угодно.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Три способа подключить CSS</span></div><h3><strong>Способ 1: отдельный файл — правильный</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">head</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">charset</span>=<span class="hljs-string">"UTF-8"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">title</span>&gt;</span>Автозапчасти Firdavs<span class="hljs-tag">&lt;/<span class="hljs-name">title</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">link</span> <span class="hljs-attr">rel</span>=<span class="hljs-string">"stylesheet"</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"style.css"</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">head</span>&gt;</span>
+</code></pre><p>Создаём рядом с <code>index.html</code> файл <code>style.css</code> и подключаем одной строкой.</p><table>
+<thead>
+<tr>
+<th>Атрибут</th>
+<th>Что значит</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;link&gt;</code></td>
+<td>Одиночный тег: «подключить внешний файл»</td>
+</tr>
+<tr>
+<td><code>rel="stylesheet"</code></td>
+<td>Что подключаем — таблицу стилей</td>
+</tr>
+<tr>
+<td><code>href="style.css"</code></td>
+<td>Где она лежит</td>
+</tr>
+</tbody>
+</table><p><strong>Почему так правильно:</strong></p><ul>
+<li>один файл стилей на <strong>все</strong> страницы сайта — поменяли цвет кнопки в одном месте,
+изменилось везде;</li>
+<li>браузер скачает <code>style.css</code> один раз и запомнит — остальные страницы откроются быстрее;</li>
+<li>код разделён: разметка отдельно, оформление отдельно.</li>
+</ul><p><strong>Так делают всегда.</strong> Остальные два способа — для особых случаев.</p><h3><strong>Способ 2: в <code>&lt;head&gt;</code> страницы</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">head</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">style</span>&gt;</span><span class="language-css">
+        <span class="hljs-selector-tag">button</span> { <span class="hljs-attribute">background</span>: <span class="hljs-number">#b5411f</span>; }
+    </span><span class="hljs-tag">&lt;/<span class="hljs-name">style</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">head</span>&gt;</span>
+</code></pre><p>Стили внутри самой страницы. Годится для быстрой пробы или для крошечной
+одностраничной вещи. На настоящем сайте — нет: придётся дублировать на каждой странице.</p><h3><strong>Способ 3: прямо в теге — так не надо</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"background: #b5411f;"</span>&gt;</span>Купить<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+</code></pre><p>Называется <strong>инлайн-стиль</strong>. Работает, но плох почти всем:</p><ul>
+<li>относится только к этому одному элементу;</li>
+<li>смешивает разметку и оформление;</li>
+<li><strong>перебивает</strong> все остальные стили, из-за чего потом невозможно ничего изменить.</li>
+</ul><p>Встречается в реальном коде (обычно там, где стиль задаёт программа), но своими
+руками так писать не стоит.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Селекторы: как указать, кого красить</span></div><p>Вот тут — самое полезное в главе.</p><h3><strong>По имени тега</strong></h3><pre><code class="language-css"><span class="hljs-selector-tag">p</span> { <span class="hljs-attribute">color</span>: <span class="hljs-number">#333</span>; }
+<span class="hljs-selector-tag">h1</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">32px</span>; }
+<span class="hljs-selector-tag">button</span> { <span class="hljs-attribute">background</span>: <span class="hljs-number">#b5411f</span>; }
+</code></pre><p>Найдёт <strong>все</strong> такие теги на странице. Просто, но грубо: покрасит вообще все кнопки,
+включая те, которые вы красить не собирались.</p><h3><strong>По классу — главный рабочий инструмент</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"cena"</span>&gt;</span>250 сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+</code></pre><pre><code class="language-css"><span class="hljs-selector-class">.cena</span> { <span class="hljs-attribute">color</span>: <span class="hljs-number">#b5411f</span>; <span class="hljs-attribute">font-weight</span>: bold; }
+</code></pre><p><strong>Точка перед именем</strong> означает «это класс».</p><p>Класс можно:</p><ul>
+<li>повесить на <strong>много</strong> элементов — все оформятся одинаково;</li>
+<li>повесить <strong>несколько</strong> на один элемент через пробел:</li>
+</ul><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"nalichie nety"</span>&gt;</span>Под заказ<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+</code></pre><pre><code class="language-css"><span class="hljs-selector-class">.nalichie</span> { <span class="hljs-attribute">color</span>: green; }
+<span class="hljs-selector-class">.nety</span>     { <span class="hljs-attribute">color</span>: gray; }
+</code></pre><p>Элемент получит оба правила. Очень удобно: базовый вид плюс модификация.</p><p><strong>90% вашего CSS будет по классам.</strong> Привыкайте.</p><h3><strong>По id — редко</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"korzina"</span>&gt;</span>...<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</code></pre><pre><code class="language-css"><span class="hljs-selector-id">#korzina</span> { <span class="hljs-attribute">position</span>: fixed; <span class="hljs-attribute">right</span>: <span class="hljs-number">20px</span>; }
+</code></pre><p><strong>Решётка</strong> означает «это id». Напоминаю: <code>id</code> уникален, один на странице.</p><p>Используйте редко. У <code>id</code> слишком большая «сила» (см. ниже про приоритеты),
+и он мешает переиспользованию.</p><h3><strong>Вложенность — «внутри чего-то»</strong></h3><pre><code class="language-css"><span class="hljs-selector-class">.tovar</span> <span class="hljs-selector-tag">h3</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">18px</span>; }
+</code></pre><p>Читается: «заголовки <code>&lt;h3&gt;</code>, которые лежат <strong>внутри</strong> элемента с классом <code>tovar</code>».
+Другие <code>&lt;h3&gt;</code> на странице не тронутся.</p><p>Пробел здесь — важный знак. Он означает «внутри».</p><pre><code class="language-css"><span class="hljs-selector-tag">nav</span> <span class="hljs-selector-tag">a</span>        { <span class="hljs-attribute">color</span>: <span class="hljs-number">#333</span>; }        <span class="hljs-comment">/* ссылки внутри меню */</span>
+<span class="hljs-selector-tag">footer</span> <span class="hljs-selector-tag">a</span>     { <span class="hljs-attribute">color</span>: gray; }        <span class="hljs-comment">/* ссылки в подвале */</span>
+<span class="hljs-selector-class">.tovar</span> <span class="hljs-selector-class">.cena</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">20px</span>; }    <span class="hljs-comment">/* цена внутри карточки товара */</span>
+</code></pre><h3><strong>Несколько селекторов сразу</strong></h3><pre><code class="language-css"><span class="hljs-selector-tag">h1</span>, <span class="hljs-selector-tag">h2</span>, <span class="hljs-selector-tag">h3</span> {
+    <span class="hljs-attribute">font-family</span>: Georgia, serif;
+}
+</code></pre><p>Запятая означает «и ещё». Одно правило применится ко всем трём.</p><h3><strong>По состоянию — псевдоклассы</strong></h3><pre><code class="language-css"><span class="hljs-selector-tag">a</span><span class="hljs-selector-pseudo">:hover</span>        { <span class="hljs-attribute">color</span>: <span class="hljs-number">#b5411f</span>; }      <span class="hljs-comment">/* когда навели мышь */</span>
+<span class="hljs-selector-tag">button</span><span class="hljs-selector-pseudo">:hover</span>   { <span class="hljs-attribute">background</span>: <span class="hljs-number">#8f3418</span>; }
+<span class="hljs-selector-tag">input</span><span class="hljs-selector-pseudo">:focus</span>    { <span class="hljs-attribute">border-color</span>: <span class="hljs-number">#b5411f</span>; }  <span class="hljs-comment">/* когда поле активно */</span>
+<span class="hljs-selector-tag">li</span><span class="hljs-selector-pseudo">:first-child</span> { <span class="hljs-attribute">font-weight</span>: bold; }      <span class="hljs-comment">/* первый элемент списка */</span>
+<span class="hljs-selector-tag">li</span><span class="hljs-selector-pseudo">:last-child</span>  { <span class="hljs-attribute">border-bottom</span>: none; }    <span class="hljs-comment">/* последний */</span>
+</code></pre><p>Двоеточие означает «в состоянии».</p><p><code>:hover</code> — самый частый. Это то самое «кнопка потемнела, когда навёл мышь».
+Мелочь, а сайт сразу кажется живым.</p><h3><strong>Все элементы</strong></h3><pre><code class="language-css">* { <span class="hljs-attribute">margin</span>: <span class="hljs-number">0</span>; <span class="hljs-attribute">padding</span>: <span class="hljs-number">0</span>; }
+</code></pre><p>Звёздочка — «вообще все». Применяют обычно один раз в начале файла, чтобы сбросить
+разнобой браузерных настроек по умолчанию.</p><h3><strong>Сводка селекторов</strong></h3><table>
+<thead>
+<tr>
+<th>Запись</th>
+<th>Кого выберет</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>p</code></td>
+<td>Все абзацы</td>
+</tr>
+<tr>
+<td><code>.cena</code></td>
+<td>Все с <code>class="cena"</code></td>
+</tr>
+<tr>
+<td><code>#korzina</code></td>
+<td>Элемент с <code>id="korzina"</code></td>
+</tr>
+<tr>
+<td><code>.tovar h3</code></td>
+<td><code>&lt;h3&gt;</code> внутри <code>.tovar</code></td>
+</tr>
+<tr>
+<td><code>h1, h2</code></td>
+<td>И заголовки первого, и второго уровня</td>
+</tr>
+<tr>
+<td><code>a:hover</code></td>
+<td>Ссылка под курсором</td>
+</tr>
+<tr>
+<td><code>*</code></td>
+<td>Все элементы</td>
+</tr>
+</tbody>
+</table><p>Этих семи хватит на 95% задач. Есть ещё десятки, но они понадобятся нескоро.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Каскад: кто победит, если правил несколько</span></div><p>«Каскадные» в названии CSS — вот про это.</p><p>Ситуация: на один элемент действуют два правила, и они противоречат друг другу.
+Кто выиграет?</p><h3><strong>Правило 1: кто ниже, тот и прав</strong></h3><pre><code class="language-css"><span class="hljs-selector-tag">p</span> { <span class="hljs-attribute">color</span>: red; }
+<span class="hljs-selector-tag">p</span> { <span class="hljs-attribute">color</span>: blue; }
+</code></pre><p>Текст будет <strong>синим</strong>. Побеждает то правило, которое написано <strong>позже</strong>.</p><p>Отсюда практический вывод: подключайте свои стили <strong>после</strong> чужих (например, после
+готового шаблона), иначе они не перебьют.</p><h3><strong>Правило 2: кто точнее, тот и прав</strong></h3><p>Но порядок работает только при равной точности. Более точный селектор побеждает
+независимо от порядка:</p><pre><code class="language-css"><span class="hljs-selector-class">.tovar</span> <span class="hljs-selector-class">.cena</span> { <span class="hljs-attribute">color</span>: red; }     <span class="hljs-comment">/* точнее */</span>
+<span class="hljs-selector-class">.cena</span>        { <span class="hljs-attribute">color</span>: blue; }    <span class="hljs-comment">/* написан ниже, но проиграет */</span>
+</code></pre><p>Цена будет <strong>красной</strong>.</p><p>Шкала силы, от слабого к сильному:</p><table>
+<thead>
+<tr>
+<th>Сила</th>
+<th>Что это</th>
+<th>Пример</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Тег</td>
+<td><code>p</code></td>
+</tr>
+<tr>
+<td>10</td>
+<td>Класс, псевдокласс</td>
+<td><code>.cena</code>, <code>:hover</code></td>
+</tr>
+<tr>
+<td>100</td>
+<td>id</td>
+<td><code>#korzina</code></td>
+</tr>
+<tr>
+<td>1000</td>
+<td>Инлайн-стиль</td>
+<td><code>style="..."</code></td>
+</tr>
+<tr>
+<td>∞</td>
+<td><code>!important</code></td>
+<td><code>color: red !important;</code></td>
+</tr>
+</tbody>
+</table><p>Считается сложением. <code>.tovar .cena</code> = 10 + 10 = 20, побеждает <code>.cena</code> = 10.</p><h3><strong>Про <code>!important</code></strong></h3><pre><code class="language-css"><span class="hljs-selector-class">.cena</span> { <span class="hljs-attribute">color</span>: red <span class="hljs-meta">!important</span>; }
+</code></pre><p>Перебивает всё. И именно поэтому — <strong>не пользуйтесь им</strong>.</p><p><code>!important</code> кажется решением («не работает — допишу important»), но это долг,
+который придётся отдавать. Через месяц вам понадобится перекрыть этот стиль,
+и вы напишете ещё один <code>!important</code>. Потом ещё. Через полгода в файле их сорок,
+и никто не понимает, что откуда берётся.</p><p>Правильный способ — написать <strong>более точный селектор</strong>.</p></section><section class="vrezka v-kod"><div class="vrezka-shapka"><span class="vrezka-podpis">Код</span><span class="vrezka-zagolovok">Первый стиль для нашего магазина</span></div><p>Создайте рядом с <code>index.html</code> файл <code>style.css</code>:</p><pre><code class="language-css"><span class="hljs-comment">/* Сброс: у браузеров разные отступы по умолчанию */</span>
+* {
+    <span class="hljs-attribute">margin</span>: <span class="hljs-number">0</span>;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">0</span>;
+    <span class="hljs-attribute">box-sizing</span>: border-box;
+}
+
+<span class="hljs-comment">/* Основа страницы */</span>
+<span class="hljs-selector-tag">body</span> {
+    <span class="hljs-attribute">font-family</span>: Georgia, <span class="hljs-string">'Times New Roman'</span>, serif;
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">16px</span>;
+    <span class="hljs-attribute">line-height</span>: <span class="hljs-number">1.6</span>;
+    <span class="hljs-attribute">color</span>: <span class="hljs-number">#2b2622</span>;
+    <span class="hljs-attribute">background</span>: <span class="hljs-number">#faf7f2</span>;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">24px</span>;
+}
+
+<span class="hljs-comment">/* Шапка */</span>
+<span class="hljs-selector-tag">header</span> {
+    <span class="hljs-attribute">border-bottom</span>: <span class="hljs-number">2px</span> solid <span class="hljs-number">#b5411f</span>;
+    <span class="hljs-attribute">padding-bottom</span>: <span class="hljs-number">16px</span>;
+    <span class="hljs-attribute">margin-bottom</span>: <span class="hljs-number">24px</span>;
+}
+
+<span class="hljs-selector-tag">h1</span> {
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">30px</span>;
+    <span class="hljs-attribute">color</span>: <span class="hljs-number">#b5411f</span>;
+}
+
+<span class="hljs-comment">/* Меню */</span>
+<span class="hljs-selector-tag">nav</span> <span class="hljs-selector-tag">ul</span> {
+    <span class="hljs-attribute">list-style</span>: none;
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">gap</span>: <span class="hljs-number">20px</span>;
+    <span class="hljs-attribute">margin</span>: <span class="hljs-number">12px</span> <span class="hljs-number">0</span>;
+}
+
+<span class="hljs-selector-tag">nav</span> <span class="hljs-selector-tag">a</span> {
+    <span class="hljs-attribute">color</span>: <span class="hljs-number">#2b2622</span>;
+    <span class="hljs-attribute">text-decoration</span>: none;
+    <span class="hljs-attribute">font-weight</span>: bold;
+}
+
+<span class="hljs-selector-tag">nav</span> <span class="hljs-selector-tag">a</span><span class="hljs-selector-pseudo">:hover</span> {
+    <span class="hljs-attribute">color</span>: <span class="hljs-number">#b5411f</span>;
+}
+
+<span class="hljs-comment">/* Карточка товара */</span>
+<span class="hljs-selector-class">.tovar</span> {
+    <span class="hljs-attribute">background</span>: white;
+    <span class="hljs-attribute">border</span>: <span class="hljs-number">1px</span> solid <span class="hljs-number">#e3d8c6</span>;
+    <span class="hljs-attribute">border-radius</span>: <span class="hljs-number">8px</span>;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">16px</span>;
+    <span class="hljs-attribute">margin-bottom</span>: <span class="hljs-number">16px</span>;
+}
+
+<span class="hljs-selector-class">.tovar</span> <span class="hljs-selector-tag">h3</span> {
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">18px</span>;
+    <span class="hljs-attribute">margin-bottom</span>: <span class="hljs-number">8px</span>;
+}
+
+<span class="hljs-selector-class">.artikul</span> {
+    <span class="hljs-attribute">color</span>: <span class="hljs-number">#7c7166</span>;
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">14px</span>;
+}
+
+<span class="hljs-selector-class">.cena</span> {
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">22px</span>;
+    <span class="hljs-attribute">color</span>: <span class="hljs-number">#b5411f</span>;
+    <span class="hljs-attribute">margin</span>: <span class="hljs-number">8px</span> <span class="hljs-number">0</span>;
+}
+
+<span class="hljs-selector-class">.nalichie</span> {
+    <span class="hljs-attribute">color</span>: <span class="hljs-number">#14584f</span>;
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">14px</span>;
+}
+
+<span class="hljs-comment">/* Нет в наличии — приглушаем */</span>
+<span class="hljs-selector-class">.nalichie</span><span class="hljs-selector-class">.nety</span> {
+    <span class="hljs-attribute">color</span>: <span class="hljs-number">#9a9088</span>;
+}
+
+<span class="hljs-comment">/* Кнопки */</span>
+<span class="hljs-selector-tag">button</span> {
+    <span class="hljs-attribute">background</span>: <span class="hljs-number">#b5411f</span>;
+    <span class="hljs-attribute">color</span>: white;
+    <span class="hljs-attribute">border</span>: none;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">10px</span> <span class="hljs-number">20px</span>;
+    <span class="hljs-attribute">border-radius</span>: <span class="hljs-number">6px</span>;
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">15px</span>;
+    <span class="hljs-attribute">cursor</span>: pointer;
+    <span class="hljs-attribute">margin-top</span>: <span class="hljs-number">10px</span>;
+}
+
+<span class="hljs-selector-tag">button</span><span class="hljs-selector-pseudo">:hover</span> {
+    <span class="hljs-attribute">background</span>: <span class="hljs-number">#8f3418</span>;
+}
+
+<span class="hljs-comment">/* Подвал */</span>
+<span class="hljs-selector-tag">footer</span> {
+    <span class="hljs-attribute">margin-top</span>: <span class="hljs-number">32px</span>;
+    <span class="hljs-attribute">padding-top</span>: <span class="hljs-number">16px</span>;
+    <span class="hljs-attribute">border-top</span>: <span class="hljs-number">1px</span> solid <span class="hljs-number">#e3d8c6</span>;
+    <span class="hljs-attribute">color</span>: <span class="hljs-number">#7c7166</span>;
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">14px</span>;
+}
+</code></pre><p>И подключите его в <code>&lt;head&gt;</code>:</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">link</span> <span class="hljs-attr">rel</span>=<span class="hljs-string">"stylesheet"</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"style.css"</span>&gt;</span>
+</code></pre></section><section class="vrezka v-ekran"><div class="vrezka-shapka"><span class="vrezka-podpis">На экране</span><span class="vrezka-zagolovok">На экране</span></div><p>Было — та самая простыня из прошлой главы. Стало:</p><p><img src="img/09-posle-css.png" alt="Каталог после подключения CSS"></p><p><strong>Мы не тронули HTML.</strong> Ни одного тега. Добавили одну строку <code>&lt;link&gt;</code> и файл стилей —
+и страница превратилась в магазин.</p><p>Вот оно, разделение обязанностей из первой главы. HTML говорит <strong>что</strong>,
+CSS говорит <strong>как</strong>.</p><p>Обратите внимание на детали, которые уже работают:</p><ul>
+<li>меню выстроилось в строку (это <code>display: flex</code>, разберём в главе 11);</li>
+<li>карточки стали белыми с рамкой и тенью-отступами;</li>
+<li>цена крупная и рыжая, артикул мелкий и серый;</li>
+<li>«Под заказ» приглушено серым, потому что у него два класса: <code>nalichie nety</code>;</li>
+<li>наведите мышь на кнопку — она потемнеет, на ссылку в меню — станет рыжей.</li>
+</ul></section><section class="vrezka v-razbor"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбор по словам</span><span class="vrezka-zagolovok">Разбор по словам</span></div><table>
+<thead>
+<tr>
+<th>Запись</th>
+<th>Как читается</th>
+<th>Что значит</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.cena</code></td>
+<td>«точка цена»</td>
+<td>Класс <code>cena</code></td>
+</tr>
+<tr>
+<td><code>#korzina</code></td>
+<td>«решётка корзина»</td>
+<td>Элемент с <code>id="korzina"</code></td>
+</tr>
+<tr>
+<td><code>.tovar h3</code></td>
+<td>«h3 внутри tovar»</td>
+<td>Пробел = «внутри»</td>
+</tr>
+<tr>
+<td><code>h1, h2</code></td>
+<td>«h1 и h2»</td>
+<td>Запятая = «и ещё»</td>
+</tr>
+<tr>
+<td><code>a:hover</code></td>
+<td>«а при наведении»</td>
+<td>Двоеточие = состояние</td>
+</tr>
+<tr>
+<td><code>*</code></td>
+<td>«все»</td>
+<td>Любой элемент</td>
+</tr>
+<tr>
+<td><code>/* ... */</code></td>
+<td>комментарий</td>
+<td>Заметка для человека</td>
+</tr>
+<tr>
+<td><code>cursor: pointer</code></td>
+<td></td>
+<td>Курсор станет «рукой» — видно, что кликабельно</td>
+</tr>
+<tr>
+<td><code>text-decoration: none</code></td>
+<td></td>
+<td>Убрать подчёркивание у ссылки</td>
+</tr>
+<tr>
+<td><code>list-style: none</code></td>
+<td></td>
+<td>Убрать точки у списка</td>
+</tr>
+<tr>
+<td><code>box-sizing: border-box</code></td>
+<td></td>
+<td>Считать ширину вместе с рамкой и отступами. Разберём в главе 10</td>
+</tr>
+</tbody>
+</table><p><strong>Про комментарии в CSS.</strong> В HTML они писались <code>&lt;!-- --&gt;</code>, в CSS — <code>/* */</code>.
+Разные языки, разные знаки. В PHP и JavaScript будет <code>//</code>. Не путайтесь:
+это тот случай, когда каждый язык изобрёл своё.</p></section><section class="vrezka v-grabli"><div class="vrezka-shapka"><span class="vrezka-podpis">Грабли</span><span class="vrezka-zagolovok">Грабли</span></div><p><strong>Стили не применились вообще.</strong> Четыре причины по частоте:</p><ol>
+<li>Опечатка в пути: файл называется <code>style.css</code>, а в <code>&lt;link&gt;</code> написано <code>styles.css</code>.</li>
+<li><code>&lt;link&gt;</code> стоит не в <code>&lt;head&gt;</code>.</li>
+<li>Забыли <code>rel="stylesheet"</code>.</li>
+<li>Браузер показывает старую версию — жмите <strong>Ctrl+F5</strong>.</li>
+</ol><p><strong>Забыть точку перед классом.</strong> <code>cena { }</code> ищет <strong>тег</strong> <code>&lt;cena&gt;</code>, которого не бывает.
+Нужно <code>.cena { }</code>. Одна из самых частых ошибок новичка, и браузер про неё молчит.</p><p><strong>Забыть точку с запятой.</strong> Одно пропущенное <code>;</code> ломает <strong>следующее</strong> объявление,
+а не своё. Ищешь ошибку в одном месте, а она строкой выше.</p><p><strong>Путать <code>-</code> и пробел в именах классов.</strong> <code>class="tovar cena"</code> — это <strong>два класса</strong>.
+<code>class="tovar-cena"</code> — <strong>один класс</strong> с дефисом в имени. Разница огромная.</p><p><strong>Лечить <code>!important</code>.</strong> Симптом лечится, болезнь остаётся. Пишите точнее селектор.</p></section><section class="vrezka v-zadachi"><div class="vrezka-shapka"><span class="vrezka-podpis">Задачи</span><span class="vrezka-zagolovok">Задачи</span></div><p><strong>Задача 9.1.</strong> Подключите <code>style.css</code> к своей странице из главы 8 и перенесите
+туда стили из примера. Убедитесь, что всё применилось.</p><p><strong>Задача 9.2.</strong> Что выберет каждый селектор? Ответьте словами:</p><ol>
+<li><code>.tovar</code></li>
+<li><code>.tovar h3</code></li>
+<li><code>nav a:hover</code></li>
+<li><code>h1, h2, h3</code></li>
+<li><code>#poisk</code></li>
+<li><code>footer .telefon</code></li>
+<li><code>button:hover</code></li>
+</ol><p><strong>Задача 9.3.</strong> Какой будет цвет текста? Объясните почему:</p><pre><code class="language-css"><span class="hljs-selector-tag">p</span>        { <span class="hljs-attribute">color</span>: red; }
+<span class="hljs-selector-class">.text</span>    { <span class="hljs-attribute">color</span>: blue; }
+<span class="hljs-selector-tag">p</span><span class="hljs-selector-class">.text</span>   { <span class="hljs-attribute">color</span>: green; }
+</code></pre><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"text"</span>&gt;</span>Какого я цвета?<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+</code></pre><p><strong>Задача 9.4.</strong> Поменяйте цветовую схему магазина на свою. Найдите три цвета
+(основной, фон, акцент) и замените. Сайты для подбора: <code>coolors.co</code>.</p><p><strong>Задача 9.5.</strong> Добавьте эффекты при наведении:</p><ul>
+<li>карточка товара слегка меняет цвет рамки;</li>
+<li>ссылки в подвале подчёркиваются;</li>
+<li>поле поиска подсвечивается при фокусе (<code>input:focus</code>).</li>
+</ul><p><strong>Задача 9.6.</strong> Сделайте товары «нет в наличии» визуально отличными: приглушите цену,
+а кнопку сделайте серой. Подсказка: два класса на одном элементе.</p><p><strong>Задача 9.7.</strong> Откройте любой сайт, F12 → Elements. Выберите элемент — справа
+увидите его стили. Найдите там правило с зачёркнутым текстом: это правило,
+которое <strong>проиграло</strong> в каскаде. Найдите, кто его перебил.</p><p><strong>Задача 9.8.</strong> Прямо в панели F12 поменяйте цвет фона любого сайта. Обновите
+страницу. Изменения пропали — почему? (Ответ важный, посмотрите обязательно.)</p><p><em>Ответы — в <a href="../prilozheniya/G-otvety.md">Приложении Г</a>.</em></p></section><section class="vrezka v-vboyu"><div class="vrezka-shapka"><span class="vrezka-podpis">В бою</span><span class="vrezka-zagolovok">В бою</span></div><p>В этом репозитории все наши стили лежат в <strong>одном</strong> файле — <code>assets/css/custom.css</code>.
+Файлы темы <code>assets/mazlay-*</code> не редактируются никогда.</p><p>Почему так: тема куплена и может обновиться. Если править её файлы, при обновлении
+все правки затрутся. Поэтому свои стили пишут <strong>отдельно и подключают позже</strong> —
+и они перебивают тему по правилу «кто ниже, тот и прав».</p><p>Вы только что выучили это правило. Вот его практическое применение на боевом проекте.</p><p>Ещё деталь: файл подключается так — <code>custom.css?v=&lt;время изменения файла&gt;</code>.
+Приписка <code>?v=...</code> меняется при каждой правке и заставляет браузер скачать файл заново.
+Это лекарство от того самого «поправил стили, а в браузере старое».</p></section><section class="vrezka v-itog"><div class="vrezka-shapka"><span class="vrezka-podpis">Итог</span><span class="vrezka-zagolovok">Итог</span></div><ul>
+<li>CSS-правило: <strong>селектор</strong> <code>{</code> <strong>свойство</strong><code>:</code> <strong>значение</strong><code>;</code> <code>}</code>.</li>
+<li>Подключать — <strong>отдельным файлом</strong> через <code>&lt;link rel="stylesheet" href="style.css"&gt;</code>.</li>
+<li>Инлайн-стили <code>style="..."</code> — не надо.</li>
+<li>Селекторы: <code>тег</code>, <code>.класс</code>, <code>#id</code>, <code>.а .б</code> (внутри), <code>а, б</code> (и ещё), <code>:hover</code> (состояние).</li>
+<li><strong>Классы — главный инструмент.</strong> Их 90% вашего CSS.</li>
+<li>Каскад: при равной силе побеждает <strong>тот, кто ниже</strong>; более <strong>точный</strong> побеждает всегда.</li>
+<li>Сила: тег 1 → класс 10 → id 100 → инлайн 1000.</li>
+<li><strong><code>!important</code> не использовать.</strong> Пишите точнее селектор.</li>
+<li>Комментарии в CSS — <code>/* так */</code>.</li>
+</ul><p>Дальше — свойства: цвет, шрифт, отступы, рамки. И главная головоломка новичка,
+блочная модель.</p></section></div></article>
+<article class="glava" id="glava-10">
+    <header class="glava-shapka">
+      <div class="glava-metka">
+        <span class="glava-slovo">Глава</span>
+        <span class="glava-nomer">10</span>
+      </div>
+      <div class="glava-podpis">Часть III. CSS — внешность</div>
+      <h1 class="glava-nazvanie">Цвет, шрифт, отступы, рамки</h1>
+    </header><div class="telo"><section class="vrezka v-zachem"><div class="vrezka-shapka"><span class="vrezka-podpis">Зачем это</span><span class="vrezka-zagolovok">Зачем эта глава</span></div><p>Селекторы вы знаете — умеете указать, кого красить. Теперь разберёмся, <strong>чем</strong> красить.</p><p>Свойств в CSS несколько сотен. Учить все не нужно и вредно. Мы возьмём три десятка,
+которыми пользуются каждый день, и разберём <strong>блочную модель</strong> — ту самую вещь,
+из-за которой у новичков «непонятно почему всё разъезжается».</p><p>Блочная модель — самая важная тема в CSS. Если понять её один раз, половина будущих
+проблем исчезнет.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Цвет</span></div><h3><strong>Четыре способа записать цвет</strong></h3><pre><code class="language-css"><span class="hljs-attribute">color</span>: red;                      <span class="hljs-comment">/* по имени */</span>
+<span class="hljs-attribute">color</span>: <span class="hljs-number">#b5411f</span>;                  <span class="hljs-comment">/* шестнадцатеричный */</span>
+<span class="hljs-attribute">color</span>: <span class="hljs-built_in">rgb</span>(<span class="hljs-number">181</span>, <span class="hljs-number">65</span>, <span class="hljs-number">31</span>);         <span class="hljs-comment">/* по составу */</span>
+<span class="hljs-attribute">color</span>: <span class="hljs-built_in">rgba</span>(<span class="hljs-number">181</span>, <span class="hljs-number">65</span>, <span class="hljs-number">31</span>, <span class="hljs-number">0.5</span>);   <span class="hljs-comment">/* с прозрачностью */</span>
+</code></pre><table>
+<thead>
+<tr>
+<th>Способ</th>
+<th>Когда применяют</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Имя</strong> (<code>red</code>, <code>white</code>)</td>
+<td>Быстрая проба. В работе почти не используют — оттенков мало</td>
+</tr>
+<tr>
+<td><strong><code>#b5411f</code></strong></td>
+<td><strong>Основной способ.</strong> Так пишут 90% времени</td>
+</tr>
+<tr>
+<td><strong><code>rgb()</code></strong></td>
+<td>Когда цвет считает программа</td>
+</tr>
+<tr>
+<td><strong><code>rgba()</code></strong></td>
+<td>Когда нужна <strong>прозрачность</strong></td>
+</tr>
+</tbody>
+</table><h3><strong>Как читать <code>#b5411f</code></strong></h3><p>Решётка и шесть символов. Это три пары:</p><pre><code>#b5  41  1f
+ ↑   ↑   ↑
+красный зелёный синий
+</code></pre><p>Каждая пара — количество своего цвета от <code>00</code> (нет совсем) до <code>ff</code> (максимум).</p><table>
+<thead>
+<tr>
+<th>Запись</th>
+<th>Что получится</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>#000000</code></td>
+<td>Чёрный (ничего нет)</td>
+</tr>
+<tr>
+<td><code>#ffffff</code></td>
+<td>Белый (всё на максимуме)</td>
+</tr>
+<tr>
+<td><code>#ff0000</code></td>
+<td>Чистый красный</td>
+</tr>
+<tr>
+<td><code>#b5411f</code></td>
+<td>Много красного, немного зелёного, чуть синего → рыжий</td>
+</tr>
+</tbody>
+</table><p>Если пары одинаковые, можно писать сокращённо: <code>#fff</code> = <code>#ffffff</code>, <code>#000</code> = <code>#000000</code>.</p><p><strong>Не нужно вычислять цвета в уме.</strong> Их берут из палитры. Полезные сайты:
+<code>coolors.co</code> (генератор палитр), <code>colorhunt.co</code> (готовые сочетания).</p><h3><strong>Прозрачность</strong></h3><pre><code class="language-css"><span class="hljs-attribute">background</span>: <span class="hljs-built_in">rgba</span>(<span class="hljs-number">181</span>, <span class="hljs-number">65</span>, <span class="hljs-number">31</span>, <span class="hljs-number">0.1</span>);   <span class="hljs-comment">/* 10% непрозрачности */</span>
+</code></pre><p>Четвёртое число — от <code>0</code> (полностью прозрачный) до <code>1</code> (полностью плотный).</p><p>Очень полезно для лёгких подложек: тот же цвет, что и акцент, но еле заметный.</p><h3><strong>Два разных свойства: <code>color</code> и <code>background</code></strong></h3><pre><code class="language-css"><span class="hljs-selector-class">.cena</span> {
+    <span class="hljs-attribute">color</span>: white;              <span class="hljs-comment">/* цвет ТЕКСТА */</span>
+    <span class="hljs-attribute">background</span>: <span class="hljs-number">#b5411f</span>;       <span class="hljs-comment">/* цвет ФОНА */</span>
+}
+</code></pre><p>Путают постоянно. <code>color</code> — только про буквы.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Шрифт и текст</span></div><h3><strong>Основные свойства</strong></h3><pre><code class="language-css"><span class="hljs-selector-tag">body</span> {
+    <span class="hljs-attribute">font-family</span>: Georgia, <span class="hljs-string">'Times New Roman'</span>, serif;
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">16px</span>;
+    <span class="hljs-attribute">line-height</span>: <span class="hljs-number">1.6</span>;
+    <span class="hljs-attribute">color</span>: <span class="hljs-number">#2b2622</span>;
+}
+</code></pre><table>
+<thead>
+<tr>
+<th>Свойство</th>
+<th>Что делает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>font-family</code></td>
+<td>Какой шрифт</td>
+</tr>
+<tr>
+<td><code>font-size</code></td>
+<td>Размер</td>
+</tr>
+<tr>
+<td><code>font-weight</code></td>
+<td>Насыщенность: <code>normal</code>, <code>bold</code> или число 100–900</td>
+</tr>
+<tr>
+<td><code>font-style</code></td>
+<td><code>italic</code> для курсива</td>
+</tr>
+<tr>
+<td><code>line-height</code></td>
+<td><strong>Межстрочное расстояние</strong></td>
+</tr>
+<tr>
+<td><code>text-align</code></td>
+<td>Выравнивание: <code>left</code>, <code>center</code>, <code>right</code></td>
+</tr>
+<tr>
+<td><code>text-decoration</code></td>
+<td><code>none</code> убирает подчёркивание, <code>underline</code> добавляет</td>
+</tr>
+<tr>
+<td><code>text-transform</code></td>
+<td><code>uppercase</code> — ВСЁ ЗАГЛАВНЫМИ, <code>lowercase</code> — строчными</td>
+</tr>
+<tr>
+<td><code>letter-spacing</code></td>
+<td>Расстояние между буквами</td>
+</tr>
+</tbody>
+</table><h3><strong>Почему в <code>font-family</code> несколько шрифтов</strong></h3><pre><code class="language-css"><span class="hljs-attribute">font-family</span>: Georgia, <span class="hljs-string">'Times New Roman'</span>, serif;
+</code></pre><p>Это <strong>список запасных вариантов</strong>. Браузер пробует по очереди: нет Georgia — берёт
+Times New Roman, нет и его — берёт любой шрифт с засечками.</p><p>Последним всегда ставят <strong>семейство</strong>: <code>serif</code> (с засечками), <code>sans-serif</code> (без засечек),
+<code>monospace</code> (моноширинный). Так вы гарантируете хоть какой-то разумный результат
+на любом устройстве.</p><p>Названия из двух слов берут в кавычки: <code>'Times New Roman'</code>.</p><h3><strong><code>line-height</code> — недооценённое свойство</strong></h3><pre><code class="language-css"><span class="hljs-attribute">line-height</span>: <span class="hljs-number">1.6</span>;
+</code></pre><p>Число без единиц означает «в 1,6 раза больше размера шрифта».</p><p><strong>Это самое влиятельное свойство для читаемости текста.</strong> Строки, стоящие впритык,
+читать тяжело — глаз теряет строку.</p><table>
+<thead>
+<tr>
+<th>Значение</th>
+<th>Где применяют</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>1.2</code></td>
+<td>Крупные заголовки</td>
+</tr>
+<tr>
+<td><code>1.5–1.7</code></td>
+<td><strong>Обычный текст.</strong> Золотая середина</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td>Очень воздушно, для коротких блоков</td>
+</tr>
+</tbody>
+</table><p>Поставьте <code>line-height: 1.6</code> в <code>body</code> — и сайт сразу станет приятнее. Одна строчка.</p><h3><strong>Единицы размера</strong></h3><pre><code class="language-css"><span class="hljs-attribute">font-size</span>: <span class="hljs-number">16px</span>;     <span class="hljs-comment">/* пиксели — фиксированно */</span>
+<span class="hljs-attribute">font-size</span>: <span class="hljs-number">1.2rem</span>;   <span class="hljs-comment">/* относительно размера страницы */</span>
+<span class="hljs-attribute">font-size</span>: <span class="hljs-number">1.2em</span>;    <span class="hljs-comment">/* относительно размера родителя */</span>
+<span class="hljs-attribute">width</span>: <span class="hljs-number">50%</span>;          <span class="hljs-comment">/* от ширины родителя */</span>
+</code></pre><table>
+<thead>
+<tr>
+<th>Единица</th>
+<th>Смысл</th>
+<th>Когда</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>px</code></td>
+<td>Пиксель, жёстко</td>
+<td>Рамки, мелкие отступы</td>
+</tr>
+<tr>
+<td><code>rem</code></td>
+<td>Кратно базовому размеру страницы (обычно 16px)</td>
+<td><strong>Шрифты, отступы.</strong> Лучший выбор</td>
+</tr>
+<tr>
+<td><code>em</code></td>
+<td>Кратно размеру родителя</td>
+<td>Осторожно: вложенность умножается</td>
+</tr>
+<tr>
+<td><code>%</code></td>
+<td>Доля от родителя</td>
+<td>Ширина блоков</td>
+</tr>
+</tbody>
+</table><p><strong>Совет:</strong> начинайте с <code>px</code> — они понятнее. Когда освоитесь, переходите на <code>rem</code>:
+человек, увеличивший шрифт в настройках браузера, увидит увеличенный сайт,
+а не поехавший.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Блочная модель — главная тема главы</span></div><p>Вот та вещь, из-за которой всё «непонятно разъезжается».</p><p><strong>Каждый элемент на странице — это прямоугольная коробка.</strong> У коробки четыре слоя,
+изнутри наружу:</p><pre><code>        ┌─────────── margin (внешний отступ) ───────────┐
+        │  ┌──────── border (рамка) ────────────────┐   │
+        │  │  ┌───── padding (внутренний отступ) ─┐  │   │
+        │  │  │                                   │  │   │
+        │  │  │          содержимое               │  │   │
+        │  │  │                                   │  │   │
+        │  │  └───────────────────────────────────┘  │   │
+        │  └────────────────────────────────────────┘   │
+        └───────────────────────────────────────────────┘
+</code></pre><p><img src="img/10-blochnaya-model.png" alt="Блочная модель: content, padding, border, margin"></p><table>
+<thead>
+<tr>
+<th>Слой</th>
+<th>Что это</th>
+<th>Аналогия</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>content</strong></td>
+<td>Само содержимое</td>
+<td>Товар</td>
+</tr>
+<tr>
+<td><strong>padding</strong></td>
+<td>Отступ <strong>внутри</strong>, между содержимым и рамкой</td>
+<td>Пузырчатая плёнка в коробке</td>
+</tr>
+<tr>
+<td><strong>border</strong></td>
+<td>Рамка</td>
+<td>Стенки коробки</td>
+</tr>
+<tr>
+<td><strong>margin</strong></td>
+<td>Отступ <strong>снаружи</strong>, до соседей</td>
+<td>Расстояние между коробками на складе</td>
+</tr>
+</tbody>
+</table><h3><strong><code>padding</code> и <code>margin</code> — не путайте</strong></h3><p>Это самая частая путаница у новичков. Запомните так:</p><ul>
+<li><strong><code>padding</code> отодвигает содержимое от края</strong> своей же коробки. Фон коробки на него
+распространяется.</li>
+<li><strong><code>margin</code> отодвигает коробку от соседей.</strong> Он прозрачный — фон туда не заходит.</li>
+</ul><p>Практический пример: у кнопки <code>padding</code> делает её больше и «толще» (кликать удобнее),
+а <code>margin</code> отодвигает её от текста выше.</p><h3><strong>Как их записывать</strong></h3><pre><code class="language-css"><span class="hljs-attribute">padding</span>: <span class="hljs-number">16px</span>;                   <span class="hljs-comment">/* со всех сторон */</span>
+<span class="hljs-attribute">padding</span>: <span class="hljs-number">16px</span> <span class="hljs-number">24px</span>;              <span class="hljs-comment">/* сверху-снизу | слева-справа */</span>
+<span class="hljs-attribute">padding</span>: <span class="hljs-number">8px</span> <span class="hljs-number">16px</span> <span class="hljs-number">12px</span> <span class="hljs-number">16px</span>;     <span class="hljs-comment">/* сверху | справа | снизу | слева */</span>
+
+<span class="hljs-attribute">padding-top</span>: <span class="hljs-number">16px</span>;               <span class="hljs-comment">/* только сверху */</span>
+<span class="hljs-attribute">padding-left</span>: <span class="hljs-number">24px</span>;              <span class="hljs-comment">/* только слева */</span>
+</code></pre><p>Четыре значения читаются <strong>по часовой стрелке, начиная сверху</strong>: верх, право, низ, лево.</p><p>То же самое работает для <code>margin</code>.</p><h3><strong><code>box-sizing</code> — строчка, которая всё чинит</strong></h3><p>А вот главная ловушка блочной модели.</p><pre><code class="language-css"><span class="hljs-selector-class">.karta</span> {
+    <span class="hljs-attribute">width</span>: <span class="hljs-number">300px</span>;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">20px</span>;
+    <span class="hljs-attribute">border</span>: <span class="hljs-number">2px</span> solid <span class="hljs-number">#ccc</span>;
+}
+</code></pre><p>Вопрос: какой ширины получится карточка?</p><p>Ответ по умолчанию — <strong>344 пикселя</strong>. Потому что браузер считает так:</p><pre><code>300 (содержимое) + 20 + 20 (padding) + 2 + 2 (border) = 344
+</code></pre><p>То есть <code>width: 300px</code> задаёт ширину <strong>содержимого</strong>, а рамка и отступы добавляются
+сверху. Абсолютно не то, чего ожидает человек.</p><p>Отсюда все «почему блоки не влезают в строку» и «почему две колонки по 50% съехали».</p><p><strong>Лечится одной строчкой в начале файла:</strong></p><pre><code class="language-css">* {
+    <span class="hljs-attribute">box-sizing</span>: border-box;
+}
+</code></pre><p>Теперь <code>width: 300px</code> означает <strong>300 пикселей вместе с рамкой и отступами</strong>.
+Как человек и думал.</p><p><strong>Пишите это в каждом проекте.</strong> Это первое, что добавляют в свой CSS все разработчики.</p><h3><strong>Схлопывание внешних отступов</strong></h3><p>Ещё одна странность, о которой полезно знать заранее.</p><pre><code class="language-css"><span class="hljs-selector-class">.a</span> { <span class="hljs-attribute">margin-bottom</span>: <span class="hljs-number">20px</span>; }
+<span class="hljs-selector-class">.b</span> { <span class="hljs-attribute">margin-top</span>: <span class="hljs-number">30px</span>; }
+</code></pre><p>Между блоками будет <strong>30 пикселей</strong>, а не 50. Вертикальные <code>margin</code> соседей
+не складываются — берётся <strong>больший</strong>.</p><p>Это не ошибка, а правило CSS. Знать полезно, чтобы не удивляться. Обходится
+использованием <code>padding</code> у родителя или <code>gap</code> во флексе (глава 11).</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Рамки, скругления, тени</span></div><pre><code class="language-css"><span class="hljs-selector-class">.tovar</span> {
+    <span class="hljs-attribute">border</span>: <span class="hljs-number">1px</span> solid <span class="hljs-number">#e3d8c6</span>;
+    <span class="hljs-attribute">border-radius</span>: <span class="hljs-number">8px</span>;
+    <span class="hljs-attribute">box-shadow</span>: <span class="hljs-number">0</span> <span class="hljs-number">2px</span> <span class="hljs-number">8px</span> <span class="hljs-built_in">rgba</span>(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0.08</span>);
+}
+</code></pre><h3><strong><code>border</code> — рамка</strong></h3><pre><code class="language-css"><span class="hljs-attribute">border</span>: <span class="hljs-number">1px</span> solid <span class="hljs-number">#e3d8c6</span>;
+        ↑     ↑      ↑
+     толщина  тип   цвет
+</code></pre><p>Типы: <code>solid</code> (сплошная), <code>dashed</code> (пунктир), <code>dotted</code> (точки), <code>none</code> (нет).</p><p>Можно только с одной стороны:</p><pre><code class="language-css"><span class="hljs-attribute">border-bottom</span>: <span class="hljs-number">2px</span> solid <span class="hljs-number">#b5411f</span>;   <span class="hljs-comment">/* подчёркивание заголовка */</span>
+<span class="hljs-attribute">border-left</span>: <span class="hljs-number">4px</span> solid <span class="hljs-number">#b5411f</span>;     <span class="hljs-comment">/* цветной корешок у блока */</span>
+</code></pre><h3><strong><code>border-radius</code> — скругление</strong></h3><pre><code class="language-css"><span class="hljs-attribute">border-radius</span>: <span class="hljs-number">8px</span>;      <span class="hljs-comment">/* все углы */</span>
+<span class="hljs-attribute">border-radius</span>: <span class="hljs-number">50%</span>;      <span class="hljs-comment">/* круг — если элемент квадратный */</span>
+</code></pre><p>Скруглённые углы визуально «смягчают» интерфейс. 6–10 пикселей — универсальное
+значение для карточек и кнопок.</p><h3><strong><code>box-shadow</code> — тень</strong></h3><pre><code class="language-css"><span class="hljs-attribute">box-shadow</span>: <span class="hljs-number">0</span> <span class="hljs-number">2px</span> <span class="hljs-number">8px</span> <span class="hljs-built_in">rgba</span>(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0.08</span>);
+            ↑  ↑   ↑         ↑
+          сдвиг   размытие   цвет с прозрачностью
+          <span class="hljs-attribute">X</span>  <span class="hljs-attribute">Y</span>
+</code></pre><p><strong>Главный совет по теням:</strong> делайте их <strong>еле заметными</strong>. <code>0.08</code> вместо <code>0.5</code>.
+Тень должна создавать ощущение объёма, а не бросаться в глаза. Резкие чёрные тени —
+самый узнаваемый признак любительской вёрстки.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Кнопки: собираем всё вместе</span></div><pre><code class="language-css"><span class="hljs-selector-tag">button</span> {
+    <span class="hljs-attribute">background</span>: <span class="hljs-number">#b5411f</span>;
+    <span class="hljs-attribute">color</span>: white;
+    <span class="hljs-attribute">border</span>: none;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">10px</span> <span class="hljs-number">20px</span>;
+    <span class="hljs-attribute">border-radius</span>: <span class="hljs-number">6px</span>;
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">15px</span>;
+    <span class="hljs-attribute">font-family</span>: inherit;
+    <span class="hljs-attribute">cursor</span>: pointer;
+    <span class="hljs-attribute">transition</span>: background <span class="hljs-number">0.2s</span>;
+}
+
+<span class="hljs-selector-tag">button</span><span class="hljs-selector-pseudo">:hover</span> {
+    <span class="hljs-attribute">background</span>: <span class="hljs-number">#8f3418</span>;
+}
+
+<span class="hljs-selector-tag">button</span><span class="hljs-selector-pseudo">:active</span> {
+    <span class="hljs-attribute">transform</span>: <span class="hljs-built_in">translateY</span>(<span class="hljs-number">1px</span>);
+}
+</code></pre><p>Три детали, которые отличают хорошую кнопку:</p><p><strong><code>cursor: pointer</code></strong> — курсор превращается в руку. Без этого человек не понимает,
+что на элемент можно нажать.</p><p><strong><code>font-family: inherit</code></strong> — кнопки по умолчанию используют системный шрифт,
+а не ваш. Эта строчка заставляет их взять шрифт страницы.</p><p><strong><code>transition: background 0.2s</code></strong> — цвет меняется <strong>плавно</strong> за 0,2 секунды,
+а не рывком. Одно из самых выгодных свойств в CSS: минимум усилий, максимум ощущения
+качества.</p><p><code>:active</code> — состояние «прямо сейчас нажимают». <code>translateY(1px)</code> сдвигает кнопку
+на пиксель вниз — она как будто продавливается.</p></section><section class="vrezka v-razbor"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбор по словам</span><span class="vrezka-zagolovok">Разбор по словам</span></div><table>
+<thead>
+<tr>
+<th>Свойство</th>
+<th>Что делает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>color</code></td>
+<td>Цвет <strong>текста</strong></td>
+</tr>
+<tr>
+<td><code>background</code></td>
+<td>Цвет <strong>фона</strong></td>
+</tr>
+<tr>
+<td><code>font-family</code></td>
+<td>Шрифт, списком запасных вариантов</td>
+</tr>
+<tr>
+<td><code>font-size</code></td>
+<td>Размер шрифта</td>
+</tr>
+<tr>
+<td><code>font-weight</code></td>
+<td>Насыщенность: <code>bold</code> или 100–900</td>
+</tr>
+<tr>
+<td><code>line-height</code></td>
+<td>Межстрочное расстояние. <code>1.6</code> для текста</td>
+</tr>
+<tr>
+<td><code>text-align</code></td>
+<td>Выравнивание</td>
+</tr>
+<tr>
+<td><code>text-decoration: none</code></td>
+<td>Убрать подчёркивание</td>
+</tr>
+<tr>
+<td><code>padding</code></td>
+<td>Отступ <strong>внутри</strong> коробки</td>
+</tr>
+<tr>
+<td><code>margin</code></td>
+<td>Отступ <strong>снаружи</strong>, до соседей</td>
+</tr>
+<tr>
+<td><code>border</code></td>
+<td>Рамка: толщина, тип, цвет</td>
+</tr>
+<tr>
+<td><code>border-radius</code></td>
+<td>Скругление углов</td>
+</tr>
+<tr>
+<td><code>box-shadow</code></td>
+<td>Тень</td>
+</tr>
+<tr>
+<td><code>box-sizing: border-box</code></td>
+<td>Считать ширину вместе с рамкой и отступами</td>
+</tr>
+<tr>
+<td><code>cursor: pointer</code></td>
+<td>Курсор-рука</td>
+</tr>
+<tr>
+<td><code>transition</code></td>
+<td>Плавное изменение</td>
+</tr>
+<tr>
+<td><code>inherit</code></td>
+<td>«Взять у родителя»</td>
+</tr>
+</tbody>
+</table></section><section class="vrezka v-grabli"><div class="vrezka-shapka"><span class="vrezka-podpis">Грабли</span><span class="vrezka-zagolovok">Грабли</span></div><p><strong>Забыть <code>box-sizing: border-box</code>.</strong> Блоки перестают влезать, колонки съезжают.
+Первая строчка в любом CSS-файле.</p><p><strong>Путать <code>padding</code> и <code>margin</code>.</strong> Внутри — <code>padding</code>, снаружи — <code>margin</code>.
+Проверить легко: покрасьте элемент в яркий цвет. Фон зальёт <code>padding</code>, но не <code>margin</code>.</p><p><strong>Тени как из фотошопа 2005 года.</strong> <code>rgba(0,0,0,0.08)</code> — хорошо.
+<code>box-shadow: 5px 5px 0 black</code> — плохо.</p><p><strong>Слишком много шрифтов.</strong> Два шрифта на сайт: один для заголовков, один для текста.
+Три — уже перебор.</p><p><strong>Мелкий <code>line-height</code> в тексте.</strong> Значение по умолчанию (<code>normal</code>, около 1.2)
+слишком плотное для чтения. Ставьте 1.5–1.7.</p><p><strong>Задавать <code>width</code> кнопкам и полям.</strong> Лучше <code>padding</code> — тогда элемент подстроится
+под содержимое сам.</p></section><section class="vrezka v-zadachi"><div class="vrezka-shapka"><span class="vrezka-podpis">Задачи</span><span class="vrezka-zagolovok">Задачи</span></div><p><strong>Задача 10.1.</strong> Посчитайте в уме итоговую ширину, без <code>box-sizing: border-box</code>:</p><pre><code class="language-css"><span class="hljs-selector-class">.blok</span> { <span class="hljs-attribute">width</span>: <span class="hljs-number">200px</span>; <span class="hljs-attribute">padding</span>: <span class="hljs-number">15px</span>; <span class="hljs-attribute">border</span>: <span class="hljs-number">3px</span> solid black; }
+</code></pre><p>А с <code>border-box</code>?</p><p><strong>Задача 10.2.</strong> Что делает каждая строчка? Опишите словами:</p><pre><code class="language-css"><span class="hljs-attribute">padding</span>: <span class="hljs-number">10px</span> <span class="hljs-number">20px</span>;
+<span class="hljs-attribute">margin</span>: <span class="hljs-number">0</span> auto;
+<span class="hljs-attribute">border-bottom</span>: <span class="hljs-number">2px</span> solid <span class="hljs-number">#b5411f</span>;
+<span class="hljs-attribute">border-radius</span>: <span class="hljs-number">50%</span>;
+<span class="hljs-attribute">line-height</span>: <span class="hljs-number">1.6</span>;
+<span class="hljs-attribute">text-transform</span>: uppercase;
+</code></pre><p>(Второе — фокус, который часто встречается. Разберитесь, что он делает.)</p><p><strong>Задача 10.3.</strong> Оформите карточку товара: белый фон, рамка <code>1px</code> светло-серая,
+скругление <code>8px</code>, внутренний отступ <code>20px</code>, внешний отступ снизу <code>16px</code>,
+еле заметная тень.</p><p><strong>Задача 10.4.</strong> Сделайте кнопку «Купить» приятной: свой цвет, белый текст,
+без рамки, скругление, <code>cursor: pointer</code>, плавное потемнение при наведении,
+продавливание при нажатии.</p><p><strong>Задача 10.5.</strong> Наберите три цвета для магазина и примените:
+основной (заголовки), фоновый (страница), акцентный (цены и кнопки).
+Возьмите на <code>coolors.co</code>.</p><p><strong>Задача 10.6.</strong> Эксперимент с блочной моделью. Сделайте <code>&lt;div&gt;</code> с текстом, задайте
+ему яркий фон и по очереди попробуйте:</p><ol>
+<li><code>padding: 30px</code> — что изменилось?</li>
+<li>Уберите, поставьте <code>margin: 30px</code> — что изменилось?</li>
+<li>В чём разница по фону?</li>
+</ol><p><strong>Задача 10.7.</strong> Откройте F12 → Elements, выберите любой элемент. Внизу справа
+увидите разноцветную схему блочной модели: синий — содержимое, зелёный — <code>padding</code>,
+жёлтый — <code>border</code>, оранжевый — <code>margin</code>. Наведите на каждый слой.</p><p><strong>Задача 10.8.</strong> Найдите на своём сайте три места, где напрашивается <code>transition</code>,
+и добавьте.</p><p><em>Ответы — в <a href="../prilozheniya/G-otvety.md">Приложении Г</a>.</em></p></section><section class="vrezka v-vboyu"><div class="vrezka-shapka"><span class="vrezka-podpis">В бою</span><span class="vrezka-zagolovok">В бою</span></div><p>Откройте <code>assets/css/custom.css</code> в этом репозитории. Найдите там правила
+для карточек товаров.</p><p>Увидите то же самое: <code>border</code>, <code>border-radius</code>, <code>padding</code>, <code>box-shadow</code>, <code>transition</code>.
+Никакой магии — те же двадцать свойств, что вы только что выучили.</p><p>Обратите внимание: цвета в боевом файле вынесены в переменные наверху файла.
+Это следующий уровень организации — поменял одно значение, изменилось везде.
+Тоже несложно, дойдём.</p></section><section class="vrezka v-itog"><div class="vrezka-shapka"><span class="vrezka-podpis">Итог</span><span class="vrezka-zagolovok">Итог</span></div><ul>
+<li>Цвет: <code>#b5411f</code> — основной способ, <code>rgba(...)</code> — когда нужна прозрачность.</li>
+<li><code>color</code> — текст, <code>background</code> — фон.</li>
+<li><code>line-height: 1.6</code> — самое выгодное свойство для читаемости.</li>
+<li>В <code>font-family</code> — <strong>список запасных</strong> вариантов, последним семейство.</li>
+<li><strong>Блочная модель</strong>: content → padding → border → margin.</li>
+<li><strong><code>padding</code> внутри, <code>margin</code> снаружи.</strong></li>
+<li><strong><code>* { box-sizing: border-box; }</code></strong> — первая строчка любого CSS.</li>
+<li>Вертикальные <code>margin</code> соседей <strong>схлопываются</strong> — берётся больший.</li>
+<li>Тени еле заметные: <code>rgba(0,0,0,0.08)</code>.</li>
+<li><code>cursor: pointer</code> и <code>transition</code> — две мелочи, которые делают сайт живым.</li>
+</ul><p>Дальше — раскладка. Научимся ставить блоки рядом, в сетку и по центру.</p></section></div></article>
+<article class="glava" id="glava-11">
+    <header class="glava-shapka">
+      <div class="glava-metka">
+        <span class="glava-slovo">Глава</span>
+        <span class="glava-nomer">11</span>
+      </div>
+      <div class="glava-podpis">Часть III. CSS — внешность</div>
+      <h1 class="glava-nazvanie">Flexbox и Grid: раскладка</h1>
+    </header><div class="telo"><section class="vrezka v-zachem"><div class="vrezka-shapka"><span class="vrezka-podpis">Зачем это</span><span class="vrezka-zagolovok">Зачем эта глава</span></div><p>Ваш каталог сейчас идёт <strong>в один столбик</strong>. Шесть карточек одна под другой,
+на широком экране справа пусто.</p><p>Причина известна из главы 5: <code>&lt;article&gt;</code> — блочный элемент, а блочные занимают
+всю строку.</p><p>В этой главе научимся управлять раскладкой. Двумя инструментами:</p><ul>
+<li><strong>Flexbox</strong> — выстроить элементы <strong>в ряд</strong> (или в столбец) и распределить между ними место;</li>
+<li><strong>Grid</strong> — разложить элементы по <strong>сетке</strong> из строк и столбцов.</li>
+</ul><p>Это самая практичная тема во всём CSS. После неё вы сможете сверстать любую страницу.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Flexbox: элементы в ряд</span></div><h3><strong>Одна строчка меняет всё</strong></h3><pre><code class="language-css"><span class="hljs-selector-tag">nav</span> <span class="hljs-selector-tag">ul</span> {
+    <span class="hljs-attribute">display</span>: flex;
+}
+</code></pre><p>Всё. Пункты меню, которые стояли столбиком, встали в строку.</p><p><strong>Как это работает.</strong> Вы говорите <strong>родителю</strong>: «ты теперь флекс-контейнер».
+И он начинает выстраивать своих детей в ряд, независимо от того, блочные они или нет.</p><p>Два понятия, которые нужно развести:</p><ul>
+<li><strong>Контейнер</strong> — родитель, которому написали <code>display: flex</code>;</li>
+<li><strong>Элементы</strong> — его прямые дети. Они выстраиваются.</li>
+</ul><p>Важно: <code>display: flex</code> действует <strong>только на прямых детей</strong>. Внуки не затрагиваются.</p><h3><strong>Направление</strong></h3><pre><code class="language-css"><span class="hljs-selector-class">.spisok</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">flex-direction</span>: row;      <span class="hljs-comment">/* в строку — по умолчанию */</span>
+}
+</code></pre><table>
+<thead>
+<tr>
+<th>Значение</th>
+<th>Как расставит</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>row</code></td>
+<td>В строку, слева направо (по умолчанию)</td>
+</tr>
+<tr>
+<td><code>column</code></td>
+<td>В столбец, сверху вниз</td>
+</tr>
+<tr>
+<td><code>row-reverse</code></td>
+<td>В строку, справа налево</td>
+</tr>
+<tr>
+<td><code>column-reverse</code></td>
+<td>В столбец, снизу вверх</td>
+</tr>
+</tbody>
+</table><h3><strong>Промежутки — <code>gap</code></strong></h3><pre><code class="language-css"><span class="hljs-selector-tag">nav</span> <span class="hljs-selector-tag">ul</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">gap</span>: <span class="hljs-number">20px</span>;
+}
+</code></pre><p><code>gap</code> ставит расстояние <strong>между</strong> элементами. Без внешних краёв, без схлопывания,
+без возни с <code>margin</code>.</p><p><strong>Пользуйтесь <code>gap</code> вместо <code>margin</code> для промежутков во флексе.</strong> Это проще
+и предсказуемее.</p><h3><strong>Распределение по горизонтали: <code>justify-content</code></strong></h3><pre><code class="language-css"><span class="hljs-selector-tag">header</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">justify-content</span>: space-between;
+}
+</code></pre><table>
+<thead>
+<tr>
+<th>Значение</th>
+<th>Что делает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>flex-start</code></td>
+<td>Всё влево (по умолчанию)</td>
+</tr>
+<tr>
+<td><code>center</code></td>
+<td>Всё по центру</td>
+</tr>
+<tr>
+<td><code>flex-end</code></td>
+<td>Всё вправо</td>
+</tr>
+<tr>
+<td><code>space-between</code></td>
+<td><strong>Первый влево, последний вправо, остальные равномерно</strong></td>
+</tr>
+<tr>
+<td><code>space-around</code></td>
+<td>Равные промежутки вокруг каждого</td>
+</tr>
+<tr>
+<td><code>space-evenly</code></td>
+<td>Совсем равные промежутки везде</td>
+</tr>
+</tbody>
+</table><p><code>space-between</code> — самое востребованное. Это классическая шапка сайта:
+логотип слева, меню справа, между ними пусто.</p><h3><strong>Выравнивание по вертикали: <code>align-items</code></strong></h3><pre><code class="language-css"><span class="hljs-selector-class">.tovar-stroka</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">align-items</span>: center;
+}
+</code></pre><table>
+<thead>
+<tr>
+<th>Значение</th>
+<th>Что делает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stretch</code></td>
+<td>Растянуть на всю высоту (по умолчанию)</td>
+</tr>
+<tr>
+<td><code>center</code></td>
+<td><strong>По центру вертикали</strong></td>
+</tr>
+<tr>
+<td><code>flex-start</code></td>
+<td>По верхнему краю</td>
+</tr>
+<tr>
+<td><code>flex-end</code></td>
+<td>По нижнему краю</td>
+</tr>
+<tr>
+<td><code>baseline</code></td>
+<td>По базовой линии текста</td>
+</tr>
+</tbody>
+</table><p><strong><code>align-items: center</code> — решение вечной задачи «как выровнять по вертикали».</strong>
+До Flexbox это была настоящая головная боль с костылями. Теперь — одна строчка.</p><h3><strong>Как запомнить, где какое</strong></h3><p>Частая путаница: <code>justify-content</code> или <code>align-items</code>?</p><p>Запомните привязку к направлению:</p><ul>
+<li><strong><code>justify-content</code> работает вдоль основного направления</strong> (при <code>row</code> — по горизонтали);</li>
+<li><strong><code>align-items</code> — поперёк</strong> (при <code>row</code> — по вертикали).</li>
+</ul><p>Если поставить <code>flex-direction: column</code>, они поменяются ролями. Логично, но
+поначалу непривычно.</p><h3><strong>Перенос на новую строку</strong></h3><pre><code class="language-css"><span class="hljs-selector-class">.katalog</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">flex-wrap</span>: wrap;
+    <span class="hljs-attribute">gap</span>: <span class="hljs-number">16px</span>;
+}
+</code></pre><p>По умолчанию флекс <strong>сжимает</strong> элементы, лишь бы уместить в одну строку.
+<code>flex-wrap: wrap</code> разрешает переносить их на следующую.</p><p><strong>Для каталога товаров это обязательно.</strong> Без него шесть карточек сожмутся в ниточки.</p><h3><strong>Как элементы делят место: <code>flex</code></strong></h3><pre><code class="language-css"><span class="hljs-selector-class">.tovar</span> {
+    <span class="hljs-attribute">flex</span>: <span class="hljs-number">1</span>;            <span class="hljs-comment">/* все поровну */</span>
+}
+</code></pre><pre><code class="language-css"><span class="hljs-selector-class">.osnovnoe</span> { <span class="hljs-attribute">flex</span>: <span class="hljs-number">2</span>; }  <span class="hljs-comment">/* вдвое шире */</span>
+<span class="hljs-selector-class">.bokovaya</span> { <span class="hljs-attribute">flex</span>: <span class="hljs-number">1</span>; }
+</code></pre><p><code>flex: 1</code> означает «занимай равную долю свободного места».</p><p>Практический приём для карточек:</p><pre><code class="language-css"><span class="hljs-selector-class">.tovar</span> {
+    <span class="hljs-attribute">flex</span>: <span class="hljs-number">1</span> <span class="hljs-number">1</span> <span class="hljs-number">280px</span>;
+}
+</code></pre><p>Читается: «расти можно, сжиматься можно, базовая ширина 280px». Карточки сами
+заполнят ряд, а лишние перенесутся вниз. Ровно то, что нужно каталогу.</p><h3><strong>Центрирование чего угодно</strong></h3><pre><code class="language-css"><span class="hljs-selector-class">.centr</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">justify-content</span>: center;
+    <span class="hljs-attribute">align-items</span>: center;
+    <span class="hljs-attribute">min-height</span>: <span class="hljs-number">300px</span>;
+}
+</code></pre><p>Три строчки — и содержимое ровно по центру и по горизонтали, и по вертикали.
+Задача, которая двадцать лет была мемом среди верстальщиков.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Grid: раскладка по сетке</span></div><p>Flexbox думает <strong>одной линией</strong> — ряд или столбец. Grid думает <strong>двумя измерениями
+сразу</strong> — строки и столбцы.</p><h3><strong>Простая сетка</strong></h3><pre><code class="language-css"><span class="hljs-selector-class">.katalog</span> {
+    <span class="hljs-attribute">display</span>: grid;
+    <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-number">1</span>fr <span class="hljs-number">1</span>fr <span class="hljs-number">1</span>fr;
+    <span class="hljs-attribute">gap</span>: <span class="hljs-number">20px</span>;
+}
+</code></pre><p>Три колонки одинаковой ширины, промежуток 20 пикселей.</p><p><strong><code>fr</code></strong> — новая единица, «доля свободного места». <code>1fr 1fr 1fr</code> = три равные доли.</p><pre><code class="language-css"><span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-number">2</span>fr <span class="hljs-number">1</span>fr;        <span class="hljs-comment">/* левая вдвое шире */</span>
+<span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-number">300px</span> <span class="hljs-number">1</span>fr;      <span class="hljs-comment">/* левая фиксированная, правая тянется */</span>
+<span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-built_in">repeat</span>(<span class="hljs-number">4</span>, <span class="hljs-number">1</span>fr); <span class="hljs-comment">/* то же, что 1fr 1fr 1fr 1fr */</span>
+</code></pre><h3><strong>Самая полезная строчка Grid</strong></h3><pre><code class="language-css"><span class="hljs-selector-class">.katalog</span> {
+    <span class="hljs-attribute">display</span>: grid;
+    <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-built_in">repeat</span>(auto-fill, <span class="hljs-built_in">minmax</span>(<span class="hljs-number">260px</span>, <span class="hljs-number">1</span>fr));
+    <span class="hljs-attribute">gap</span>: <span class="hljs-number">20px</span>;
+}
+</code></pre><p>Выглядит сложно, читается просто:</p><table>
+<thead>
+<tr>
+<th>Кусок</th>
+<th>Что говорит</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>repeat(auto-fill, ...)</code></td>
+<td>«Сделай столько колонок, сколько влезет»</td>
+</tr>
+<tr>
+<td><code>minmax(260px, 1fr)</code></td>
+<td>«Каждая колонка не у́же 260px, но может растянуться»</td>
+</tr>
+</tbody>
+</table><p><strong>Что это даёт:</strong> на широком мониторе получится пять колонок, на ноутбуке три,
+на планшете две, на телефоне одна. <strong>Автоматически, без единого медиазапроса.</strong></p><p>Это лучшее решение для каталога товаров, и его стоит просто запомнить наизусть.</p><h3><strong>Раскладка всей страницы</strong></h3><p>Grid умеет то, чего не умеет Flexbox, — расставлять блоки по именованным областям:</p><pre><code class="language-css"><span class="hljs-selector-tag">body</span> {
+    <span class="hljs-attribute">display</span>: grid;
+    <span class="hljs-attribute">grid-template-areas</span>:
+        <span class="hljs-string">"shapka  shapka"</span>
+        <span class="hljs-string">"bok     osnova"</span>
+        <span class="hljs-string">"podval  podval"</span>;
+    <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-number">240px</span> <span class="hljs-number">1</span>fr;
+    <span class="hljs-attribute">gap</span>: <span class="hljs-number">20px</span>;
+}
+
+<span class="hljs-selector-tag">header</span> { <span class="hljs-attribute">grid-area</span>: shapka; }
+<span class="hljs-selector-tag">aside</span>  { <span class="hljs-attribute">grid-area</span>: bok; }
+<span class="hljs-selector-tag">main</span>   { <span class="hljs-attribute">grid-area</span>: osnova; }
+<span class="hljs-selector-tag">footer</span> { <span class="hljs-attribute">grid-area</span>: podval; }
+</code></pre><p>Раскладка нарисована прямо в коде — видно глазами, как выглядит страница.</p><h3><strong>Flexbox или Grid?</strong></h3><p>Простое правило:</p><table>
+<thead>
+<tr>
+<th>Задача</th>
+<th>Инструмент</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Элементы <strong>в ряд</strong>: меню, кнопки, шапка</td>
+<td><strong>Flexbox</strong></td>
+</tr>
+<tr>
+<td>Выровнять по центру</td>
+<td><strong>Flexbox</strong></td>
+</tr>
+<tr>
+<td><strong>Сетка</strong> карточек: каталог, галерея</td>
+<td><strong>Grid</strong></td>
+</tr>
+<tr>
+<td>Раскладка <strong>всей страницы</strong></td>
+<td><strong>Grid</strong></td>
+</tr>
+<tr>
+<td>Содержимое <strong>внутри</strong> карточки</td>
+<td><strong>Flexbox</strong></td>
+</tr>
+</tbody>
+</table><p>И главное: <strong>они не конкуренты, а напарники.</strong> Обычная страница — Grid снаружи,
+Flexbox внутри каждой ячейки.</p></section><section class="vrezka v-kod"><div class="vrezka-shapka"><span class="vrezka-podpis">Код</span><span class="vrezka-zagolovok">Каталог в сетку</span></div><p>Добавьте в <code>style.css</code>:</p><pre><code class="language-css"><span class="hljs-comment">/* Каталог — автоматическая сетка */</span>
+<span class="hljs-selector-class">.katalog</span> {
+    <span class="hljs-attribute">display</span>: grid;
+    <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-built_in">repeat</span>(auto-fill, <span class="hljs-built_in">minmax</span>(<span class="hljs-number">260px</span>, <span class="hljs-number">1</span>fr));
+    <span class="hljs-attribute">gap</span>: <span class="hljs-number">20px</span>;
+    <span class="hljs-attribute">margin-top</span>: <span class="hljs-number">20px</span>;
+}
+
+<span class="hljs-comment">/* Карточка — колонка, кнопка прижата вниз */</span>
+<span class="hljs-selector-class">.tovar</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">flex-direction</span>: column;
+    <span class="hljs-attribute">background</span>: white;
+    <span class="hljs-attribute">border</span>: <span class="hljs-number">1px</span> solid <span class="hljs-number">#e3d8c6</span>;
+    <span class="hljs-attribute">border-radius</span>: <span class="hljs-number">8px</span>;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">18px</span>;
+    <span class="hljs-attribute">transition</span>: box-shadow <span class="hljs-number">0.2s</span>, border-color <span class="hljs-number">0.2s</span>;
+}
+
+<span class="hljs-selector-class">.tovar</span><span class="hljs-selector-pseudo">:hover</span> {
+    <span class="hljs-attribute">border-color</span>: <span class="hljs-number">#b5411f</span>;
+    <span class="hljs-attribute">box-shadow</span>: <span class="hljs-number">0</span> <span class="hljs-number">4px</span> <span class="hljs-number">16px</span> <span class="hljs-built_in">rgba</span>(<span class="hljs-number">181</span>, <span class="hljs-number">65</span>, <span class="hljs-number">31</span>, <span class="hljs-number">0.12</span>);
+}
+
+<span class="hljs-comment">/* Пустое место «распирает» карточку, прижимая кнопку к низу */</span>
+<span class="hljs-selector-class">.tovar</span> <span class="hljs-selector-tag">form</span> {
+    <span class="hljs-attribute">margin-top</span>: auto;
+    <span class="hljs-attribute">padding-top</span>: <span class="hljs-number">12px</span>;
+}
+
+<span class="hljs-comment">/* Шапка: название слева, меню справа */</span>
+<span class="hljs-selector-tag">header</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">flex-wrap</span>: wrap;
+    <span class="hljs-attribute">justify-content</span>: space-between;
+    <span class="hljs-attribute">align-items</span>: center;
+    <span class="hljs-attribute">gap</span>: <span class="hljs-number">16px</span>;
+}
+
+<span class="hljs-comment">/* Фильтры в строку */</span>
+<span class="hljs-selector-class">.filtry</span> <span class="hljs-selector-tag">fieldset</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">flex-wrap</span>: wrap;
+    <span class="hljs-attribute">align-items</span>: center;
+    <span class="hljs-attribute">gap</span>: <span class="hljs-number">12px</span>;
+    <span class="hljs-attribute">border</span>: <span class="hljs-number">1px</span> solid <span class="hljs-number">#e3d8c6</span>;
+    <span class="hljs-attribute">border-radius</span>: <span class="hljs-number">8px</span>;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">16px</span>;
+}
+</code></pre><p>В HTML нужно завернуть товары в контейнер:</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"katalog"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">article</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"tovar"</span>&gt;</span>...<span class="hljs-tag">&lt;/<span class="hljs-name">article</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">article</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"tovar"</span>&gt;</span>...<span class="hljs-tag">&lt;/<span class="hljs-name">article</span>&gt;</span>
+    ...
+<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</code></pre><h3><strong>Приём с <code>margin-top: auto</code></strong></h3><p>Обратите внимание на одну хитрость:</p><pre><code class="language-css"><span class="hljs-selector-class">.tovar</span> { <span class="hljs-attribute">display</span>: flex; <span class="hljs-attribute">flex-direction</span>: column; }
+<span class="hljs-selector-class">.tovar</span> <span class="hljs-selector-tag">form</span> { <span class="hljs-attribute">margin-top</span>: auto; }
+</code></pre><p><code>margin-top: auto</code> во флексе означает «забери всё свободное место сверху».
+Кнопка прижимается к низу карточки.</p><p><strong>Зачем:</strong> у товаров названия разной длины, карточки получаются разной высоты,
+и кнопки оказываются на разных уровнях — выглядит неряшливо. С этим приёмом
+кнопки всегда на одной линии.</p><p>Мелочь, которая отличает аккуратную вёрстку от небрежной.</p></section><section class="vrezka v-ekran"><div class="vrezka-shapka"><span class="vrezka-podpis">На экране</span><span class="vrezka-zagolovok">На экране</span></div><p><img src="img/11-setka.png" alt="Каталог в сетке Grid"></p><p>Тот же HTML, те же товары — но теперь это выглядит как магазин, а не как список.</p><p>Попробуйте изменить ширину окна браузера: колонки перестроятся сами.
+Мы не написали для этого ни одного условия — работает <code>auto-fill</code> с <code>minmax</code>.</p></section><section class="vrezka v-razbor"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбор по словам</span><span class="vrezka-zagolovok">Разбор по словам</span></div><table>
+<thead>
+<tr>
+<th>Свойство</th>
+<th>Где пишется</th>
+<th>Что делает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>display: flex</code></td>
+<td>у родителя</td>
+<td>Выстроить детей в ряд</td>
+</tr>
+<tr>
+<td><code>flex-direction</code></td>
+<td>у родителя</td>
+<td><code>row</code> (строка) или <code>column</code> (столбец)</td>
+</tr>
+<tr>
+<td><code>gap</code></td>
+<td>у родителя</td>
+<td>Промежуток между элементами</td>
+</tr>
+<tr>
+<td><code>justify-content</code></td>
+<td>у родителя</td>
+<td>Распределение <strong>вдоль</strong> направления</td>
+</tr>
+<tr>
+<td><code>align-items</code></td>
+<td>у родителя</td>
+<td>Выравнивание <strong>поперёк</strong></td>
+</tr>
+<tr>
+<td><code>flex-wrap: wrap</code></td>
+<td>у родителя</td>
+<td>Разрешить перенос на новую строку</td>
+</tr>
+<tr>
+<td><code>flex: 1</code></td>
+<td>у ребёнка</td>
+<td>Занять равную долю места</td>
+</tr>
+<tr>
+<td><code>margin-top: auto</code></td>
+<td>у ребёнка</td>
+<td>Прижать к низу</td>
+</tr>
+<tr>
+<td><code>display: grid</code></td>
+<td>у родителя</td>
+<td>Включить сетку</td>
+</tr>
+<tr>
+<td><code>grid-template-columns</code></td>
+<td>у родителя</td>
+<td>Сколько колонок и какой ширины</td>
+</tr>
+<tr>
+<td><code>1fr</code></td>
+<td></td>
+<td>Доля свободного места</td>
+</tr>
+<tr>
+<td><code>repeat(auto-fill, minmax(260px, 1fr))</code></td>
+<td></td>
+<td>Столько колонок, сколько влезет</td>
+</tr>
+<tr>
+<td><code>grid-template-areas</code></td>
+<td>у родителя</td>
+<td>Раскладка страницы «картинкой»</td>
+</tr>
+</tbody>
+</table></section><section class="vrezka v-grabli"><div class="vrezka-shapka"><span class="vrezka-podpis">Грабли</span><span class="vrezka-zagolovok">Грабли</span></div><p><strong>Писать <code>display: flex</code> не тому элементу.</strong> Флекс задаётся <strong>родителю</strong>,
+а выстраиваются <strong>дети</strong>. Хотите поставить карточки в ряд — <code>display: flex</code>
+пишется контейнеру, а не карточке.</p><p><strong>Забыть <code>flex-wrap: wrap</code>.</strong> Восемь карточек сожмутся в узкие полоски вместо
+переноса на вторую строку.</p><p><strong>Путать <code>justify-content</code> и <code>align-items</code>.</strong> Запомните: <code>justify</code> — вдоль,
+<code>align</code> — поперёк.</p><p><strong>Задавать карточкам жёсткую <code>width</code>.</strong> Ломает и Flexbox, и Grid.
+Пусть шириной управляет раскладка: <code>flex: 1 1 280px</code> или <code>minmax()</code>.</p><p><strong>Строить сетку карточек на Flexbox.</strong> Можно, но в последнем ряду карточки
+растянутся и станут шире остальных. Grid такого не делает — для сеток берите Grid.</p><p><strong>Городить <code>float</code>.</strong> Если увидите этот способ в старой статье — не берите.
+<code>float</code> придуман для обтекания картинки текстом, раскладку им делали от безысходности
+до появления Flexbox.</p></section><section class="vrezka v-zadachi"><div class="vrezka-shapka"><span class="vrezka-podpis">Задачи</span><span class="vrezka-zagolovok">Задачи</span></div><p><strong>Задача 11.1.</strong> Переведите каталог на Grid по примеру из главы. Проверьте,
+как перестраивается при изменении ширины окна.</p><p><strong>Задача 11.2.</strong> Что произойдёт в каждом случае?</p><pre><code class="language-css"><span class="hljs-selector-class">.a</span> { <span class="hljs-attribute">display</span>: flex; <span class="hljs-attribute">justify-content</span>: center; }
+<span class="hljs-selector-class">.b</span> { <span class="hljs-attribute">display</span>: flex; <span class="hljs-attribute">flex-direction</span>: column; <span class="hljs-attribute">align-items</span>: center; }
+<span class="hljs-selector-class">.c</span> { <span class="hljs-attribute">display</span>: flex; <span class="hljs-attribute">justify-content</span>: space-between; <span class="hljs-attribute">align-items</span>: center; }
+<span class="hljs-selector-class">.d</span> { <span class="hljs-attribute">display</span>: grid; <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-number">1</span>fr <span class="hljs-number">2</span>fr; }
+</code></pre><p><strong>Задача 11.3.</strong> Сделайте шапку: название слева, меню справа, по центру
+по вертикали. Одним <code>display: flex</code>.</p><p><strong>Задача 11.4.</strong> Выровняйте блок ровно по центру экрана — и по горизонтали,
+и по вертикали. Три строчки.</p><p><strong>Задача 11.5.</strong> Сделайте карточку товара горизонтальной: фото слева,
+описание справа, кнопка прижата к правому краю.</p><p><strong>Задача 11.6.</strong> Сколько будет колонок при ширине окна 1200px, если написано
+<code>repeat(auto-fill, minmax(280px, 1fr))</code> и <code>gap: 20px</code>? Посчитайте, потом проверьте
+в браузере.</p><p><strong>Задача 11.7.</strong> Разложите страницу через <code>grid-template-areas</code>: шапка на всю ширину,
+слева фильтры 250px, справа каталог, внизу подвал на всю ширину.</p><p><strong>Задача 11.8.</strong> Откройте <code>flexboxfroggy.com</code> — игра, где нужно довести лягушку
+до листика с помощью свойств Flexbox. 24 уровня, полчаса времени, и Flexbox
+укладывается в голову намертво. Есть русская версия.</p><p><em>Ответы — в <a href="../prilozheniya/G-otvety.md">Приложении Г</a>.</em></p></section><section class="vrezka v-vboyu"><div class="vrezka-shapka"><span class="vrezka-podpis">В бою</span><span class="vrezka-zagolovok">В бою</span></div><p>Магазин autodoc.tj построен на Bootstrap — это готовый набор классов для раскладки.
+Там пишут не <code>display: flex</code>, а <code>class="row"</code> и <code>class="col-md-4"</code>.</p><p>Под капотом у Bootstrap — тот же Flexbox. Классы просто дают ему готовые имена.</p><p><strong>Вывод, который стоит запомнить:</strong> сначала изучают, как работает механизм,
+потом — готовые надстройки над ним. Кто выучил только классы Bootstrap,
+беспомощен, как только нужно что-то нестандартное. Кто понимает Flexbox,
+разберётся в любом фреймворке за вечер.</p></section><section class="vrezka v-itog"><div class="vrezka-shapka"><span class="vrezka-podpis">Итог</span><span class="vrezka-zagolovok">Итог</span></div><ul>
+<li><strong>Flexbox</strong> — одна линия: ряд или столбец. <strong>Grid</strong> — сетка из строк и столбцов.</li>
+<li><code>display: flex</code> пишется <strong>родителю</strong>, выстраиваются <strong>дети</strong>.</li>
+<li><code>gap</code> — промежутки. Лучше, чем <code>margin</code>.</li>
+<li><code>justify-content</code> — <strong>вдоль</strong> направления, <code>align-items</code> — <strong>поперёк</strong>.</li>
+<li><code>flex-wrap: wrap</code> обязателен, если элементов много.</li>
+<li>Центрирование: <code>display: flex; justify-content: center; align-items: center;</code></li>
+<li><strong>Каталог товаров:</strong> <code>grid-template-columns: repeat(auto-fill, minmax(260px, 1fr))</code>.
+Запомните наизусть — работает без медиазапросов.</li>
+<li><code>margin-top: auto</code> прижимает кнопку к низу карточки.</li>
+<li>Обычная страница: <strong>Grid снаружи, Flexbox внутри</strong>.</li>
+</ul><p>Дальше — адаптивность: сделаем так, чтобы сайт был удобен на телефоне.</p></section></div></article>
+<article class="glava" id="glava-12">
+    <header class="glava-shapka">
+      <div class="glava-metka">
+        <span class="glava-slovo">Глава</span>
+        <span class="glava-nomer">12</span>
+      </div>
+      <div class="glava-podpis">Часть III. CSS — внешность</div>
+      <h1 class="glava-nazvanie">Адаптивность: сайт на телефоне</h1>
+    </header><div class="telo"><section class="vrezka v-zachem"><div class="vrezka-shapka"><span class="vrezka-podpis">Зачем это</span><span class="vrezka-zagolovok">Зачем эта глава</span></div><p>Один факт, который меняет приоритеты: <strong>больше половины покупателей зайдут
+в ваш магазин с телефона.</strong> В Таджикистане доля мобильных ещё выше — многие
+вообще не пользуются компьютером.</p><p>Это значит, что сайт, удобный только на большом экране, — это сайт, неудобный
+для большинства.</p><p>В этой главе научимся делать так, чтобы одна и та же страница выглядела правильно
+и на мониторе, и на телефоне. Инструментов понадобится немного, и один вы уже видели.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Что такое адаптивность</span></div><p><strong>Адаптивный сайт</strong> — тот, который подстраивается под ширину экрана.</p><p>Не «мобильная версия на отдельном адресе» — так делали пятнадцать лет назад,
+и это означало поддерживать два сайта. Сегодня подход другой: <strong>один HTML,
+один CSS, разное поведение</strong> в зависимости от ширины.</p><p>Три вещи, которые для этого нужны:</p><ol>
+<li><code>&lt;meta name="viewport"&gt;</code> — вы уже написали её в главе 8;</li>
+<li><strong>Гибкие размеры</strong> вместо жёстких;</li>
+<li><strong>Медиазапросы</strong> — правила, которые включаются при определённой ширине.</li>
+</ol></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Гибкие размеры</span></div><p>Половина проблем решается до всяких медиазапросов — просто отказом от жёстких чисел.</p><h3><strong>Что заменить</strong></h3><pre><code class="language-css"><span class="hljs-comment">/* Плохо — не поместится на телефоне */</span>
+<span class="hljs-selector-class">.karta</span> { <span class="hljs-attribute">width</span>: <span class="hljs-number">400px</span>; }
+
+<span class="hljs-comment">/* Хорошо — подстроится */</span>
+<span class="hljs-selector-class">.karta</span> { <span class="hljs-attribute">max-width</span>: <span class="hljs-number">400px</span>; <span class="hljs-attribute">width</span>: <span class="hljs-number">100%</span>; }
+</code></pre><p><code>max-width</code> означает «не шире, чем», но уже — можно. На широком экране карточка
+будет 400px, на узком — по ширине экрана.</p><p><strong>Правило:</strong> пишите <code>max-width</code> вместо <code>width</code> почти всегда.</p><h3><strong>Контейнер по центру</strong></h3><pre><code class="language-css"><span class="hljs-selector-class">.container</span> {
+    <span class="hljs-attribute">max-width</span>: <span class="hljs-number">1200px</span>;
+    <span class="hljs-attribute">margin</span>: <span class="hljs-number">0</span> auto;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">0</span> <span class="hljs-number">16px</span>;
+}
+</code></pre><p>Три строчки, которые есть на любом сайте:</p><ul>
+<li><code>max-width</code> — на огромном мониторе текст не растянется на всю ширину
+(читать строку в 300 символов невозможно);</li>
+<li><code>margin: 0 auto</code> — <strong>центрирование блока</strong>. <code>auto</code> слева и справа делит
+свободное место поровну;</li>
+<li><code>padding: 0 16px</code> — на телефоне текст не прилипнет к краям экрана.</li>
+</ul><h3><strong>Гибкие картинки</strong></h3><pre><code class="language-css"><span class="hljs-selector-tag">img</span> {
+    <span class="hljs-attribute">max-width</span>: <span class="hljs-number">100%</span>;
+    <span class="hljs-attribute">height</span>: auto;
+}
+</code></pre><p>Две строчки, которые нужно написать в каждом проекте. Без них большое фото
+вылезет за края экрана и появится горизонтальная прокрутка — одна из самых
+раздражающих вещей на телефоне.</p><p><code>height: auto</code> сохраняет пропорции при сжатии.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Медиазапросы</span></div><p>Теперь главный инструмент.</p><p><strong>Медиазапрос — это блок правил, которые включаются только при определённом
+условии.</strong> Обычно условие — ширина экрана.</p><pre><code class="language-css"><span class="hljs-comment">/* Обычные правила — работают всегда */</span>
+<span class="hljs-selector-class">.katalog</span> {
+    <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-built_in">repeat</span>(<span class="hljs-number">3</span>, <span class="hljs-number">1</span>fr);
+}
+
+<span class="hljs-comment">/* А это включится только на экранах уже 768px */</span>
+<span class="hljs-keyword">@media</span> (<span class="hljs-attribute">max-width</span>: <span class="hljs-number">768px</span>) {
+    <span class="hljs-selector-class">.katalog</span> {
+        <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-number">1</span>fr;
+    }
+}
+</code></pre><p>Читается: «если ширина экрана <strong>не больше</strong> 768 пикселей — сделать одну колонку».</p><h3><strong>Как это устроено</strong></h3><pre><code class="language-css"><span class="hljs-keyword">@media</span> (<span class="hljs-attribute">max-width</span>: <span class="hljs-number">768px</span>) { ... }
+<span class="hljs-keyword">@media</span> (<span class="hljs-attribute">min-width</span>: <span class="hljs-number">1024px</span>) { ... }
+<span class="hljs-keyword">@media</span> (<span class="hljs-attribute">min-width</span>: <span class="hljs-number">768px</span>) <span class="hljs-keyword">and</span> (<span class="hljs-attribute">max-width</span>: <span class="hljs-number">1023px</span>) { ... }
+</code></pre><table>
+<thead>
+<tr>
+<th>Условие</th>
+<th>Когда сработает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>max-width: 768px</code></td>
+<td>Экран <strong>у́же или равен</strong> 768px</td>
+</tr>
+<tr>
+<td><code>min-width: 1024px</code></td>
+<td>Экран <strong>шире или равен</strong> 1024px</td>
+</tr>
+<tr>
+<td><code>and</code></td>
+<td>Оба условия сразу</td>
+</tr>
+</tbody>
+</table><p>⚠️ Частая путаница: <code>max-width</code> в медиазапросе означает «до этой ширины»,
+то есть <strong>более узкие</strong> экраны. Легко перепутать с <code>max-width</code> у элемента,
+где смысл другой.</p><h3><strong>Типовые точки перелома</strong></h3><pre><code class="language-css"><span class="hljs-comment">/* Телефон:      до 600px  */</span>
+<span class="hljs-comment">/* Планшет:      600-900px */</span>
+<span class="hljs-comment">/* Ноутбук:      900-1200px */</span>
+<span class="hljs-comment">/* Большой экран: от 1200px */</span>
+</code></pre><p>Эти числа не священны. Правильный подход — <strong>сужать окно браузера и смотреть,
+где вёрстка начинает выглядеть плохо</strong>. Вот там и ставить точку перелома.</p><p>Гнаться за конкретными моделями телефонов бессмысленно: их сотни, и каждый год
+выходят новые.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Mobile-first: правильный порядок</span></div><p>Есть два способа писать адаптивный CSS.</p><h3><strong>Способ 1: от большого к малому</strong></h3><pre><code class="language-css"><span class="hljs-selector-class">.katalog</span> { <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-built_in">repeat</span>(<span class="hljs-number">4</span>, <span class="hljs-number">1</span>fr); }
+
+<span class="hljs-keyword">@media</span> (<span class="hljs-attribute">max-width</span>: <span class="hljs-number">900px</span>) { <span class="hljs-selector-class">.katalog</span> { <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-built_in">repeat</span>(<span class="hljs-number">2</span>, <span class="hljs-number">1</span>fr); } }
+<span class="hljs-keyword">@media</span> (<span class="hljs-attribute">max-width</span>: <span class="hljs-number">600px</span>) { <span class="hljs-selector-class">.katalog</span> { <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-number">1</span>fr; } }
+</code></pre><p>Сначала пишем для компьютера, потом «чиним» для телефона.</p><h3><strong>Способ 2: mobile-first — от малого к большому</strong></h3><pre><code class="language-css"><span class="hljs-selector-class">.katalog</span> { <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-number">1</span>fr; }
+
+<span class="hljs-keyword">@media</span> (<span class="hljs-attribute">min-width</span>: <span class="hljs-number">600px</span>) { <span class="hljs-selector-class">.katalog</span> { <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-built_in">repeat</span>(<span class="hljs-number">2</span>, <span class="hljs-number">1</span>fr); } }
+<span class="hljs-keyword">@media</span> (<span class="hljs-attribute">min-width</span>: <span class="hljs-number">900px</span>) { <span class="hljs-selector-class">.katalog</span> { <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-built_in">repeat</span>(<span class="hljs-number">4</span>, <span class="hljs-number">1</span>fr); } }
+</code></pre><p>Сначала пишем <strong>для телефона</strong>, потом добавляем колонки на широких экранах.</p><h3><strong>Почему mobile-first лучше</strong></h3><p><strong>Практическая причина.</strong> Телефон получает только базовые правила — простые
+и лёгкие. Компьютер получает базовые плюс дополнительные. Телефон, у которого
+обычно слабее и связь, и процессор, делает меньше работы.</p><p><strong>Причина посерьёзнее — про мышление.</strong> Начиная с узкого экрана, вы вынуждены
+сразу отвечать на вопрос: <em>что здесь действительно важно?</em> На 360 пикселях
+не поместится всё — придётся выбирать главное.</p><p>А потом на большом экране добавить второстепенное — легко.</p><p>Если начать с компьютера, вы напихаете всего, а потом будете мучительно решать,
+что выбросить. Обычно кончается тем, что не выбрасывают ничего, и на телефоне
+получается каша.</p></section><section class="vrezka v-kod"><div class="vrezka-shapka"><span class="vrezka-podpis">Код</span><span class="vrezka-zagolovok">Адаптивные стили для магазина</span></div><p>Добавьте в конец <code>style.css</code>:</p><pre><code class="language-css"><span class="hljs-comment">/* ===== Основа: пишем для телефона ===== */</span>
+
+<span class="hljs-selector-class">.container</span> {
+    <span class="hljs-attribute">max-width</span>: <span class="hljs-number">1200px</span>;
+    <span class="hljs-attribute">margin</span>: <span class="hljs-number">0</span> auto;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">0</span> <span class="hljs-number">16px</span>;
+}
+
+<span class="hljs-selector-tag">img</span> {
+    <span class="hljs-attribute">max-width</span>: <span class="hljs-number">100%</span>;
+    <span class="hljs-attribute">height</span>: auto;
+}
+
+<span class="hljs-selector-tag">body</span> {
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">16px</span>;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">16px</span>;
+}
+
+<span class="hljs-selector-tag">h1</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">24px</span>; }
+<span class="hljs-selector-tag">h2</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">20px</span>; }
+
+<span class="hljs-comment">/* Шапка на телефоне — в столбик */</span>
+<span class="hljs-selector-tag">header</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">flex-direction</span>: column;
+    <span class="hljs-attribute">align-items</span>: flex-start;
+    <span class="hljs-attribute">gap</span>: <span class="hljs-number">12px</span>;
+}
+
+<span class="hljs-comment">/* Меню переносится, если не влезает */</span>
+<span class="hljs-selector-tag">nav</span> <span class="hljs-selector-tag">ul</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">flex-wrap</span>: wrap;
+    <span class="hljs-attribute">gap</span>: <span class="hljs-number">16px</span>;
+    <span class="hljs-attribute">list-style</span>: none;
+}
+
+<span class="hljs-comment">/* Каталог: одна колонка */</span>
+<span class="hljs-selector-class">.katalog</span> {
+    <span class="hljs-attribute">display</span>: grid;
+    <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-number">1</span>fr;
+    <span class="hljs-attribute">gap</span>: <span class="hljs-number">16px</span>;
+}
+
+<span class="hljs-comment">/* Фильтры в столбик */</span>
+<span class="hljs-selector-class">.filtry</span> <span class="hljs-selector-tag">fieldset</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">flex-direction</span>: column;
+    <span class="hljs-attribute">gap</span>: <span class="hljs-number">10px</span>;
+}
+
+<span class="hljs-selector-class">.filtry</span> <span class="hljs-selector-tag">input</span>,
+<span class="hljs-selector-class">.filtry</span> <span class="hljs-selector-tag">select</span> {
+    <span class="hljs-attribute">width</span>: <span class="hljs-number">100%</span>;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">10px</span>;
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">16px</span>;
+}
+
+<span class="hljs-comment">/* Кнопки на телефоне — во всю ширину, пальцем не промахнёшься */</span>
+<span class="hljs-selector-tag">button</span> {
+    <span class="hljs-attribute">width</span>: <span class="hljs-number">100%</span>;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">14px</span>;
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">16px</span>;
+}
+
+<span class="hljs-comment">/* ===== Планшет: от 600px ===== */</span>
+<span class="hljs-keyword">@media</span> (<span class="hljs-attribute">min-width</span>: <span class="hljs-number">600px</span>) {
+    <span class="hljs-selector-tag">body</span> { <span class="hljs-attribute">padding</span>: <span class="hljs-number">24px</span>; }
+    <span class="hljs-selector-tag">h1</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">28px</span>; }
+
+    <span class="hljs-selector-class">.katalog</span> { <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-built_in">repeat</span>(<span class="hljs-number">2</span>, <span class="hljs-number">1</span>fr); }
+
+    <span class="hljs-selector-class">.filtry</span> <span class="hljs-selector-tag">fieldset</span> {
+        <span class="hljs-attribute">flex-direction</span>: row;
+        <span class="hljs-attribute">flex-wrap</span>: wrap;
+        <span class="hljs-attribute">align-items</span>: center;
+    }
+
+    <span class="hljs-selector-class">.filtry</span> <span class="hljs-selector-tag">input</span>,
+    <span class="hljs-selector-class">.filtry</span> <span class="hljs-selector-tag">select</span> { <span class="hljs-attribute">width</span>: auto; }
+
+    <span class="hljs-selector-tag">button</span> { <span class="hljs-attribute">width</span>: auto; }
+}
+
+<span class="hljs-comment">/* ===== Компьютер: от 900px ===== */</span>
+<span class="hljs-keyword">@media</span> (<span class="hljs-attribute">min-width</span>: <span class="hljs-number">900px</span>) {
+    <span class="hljs-selector-tag">h1</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">32px</span>; }
+
+    <span class="hljs-selector-tag">header</span> {
+        <span class="hljs-attribute">flex-direction</span>: row;
+        <span class="hljs-attribute">justify-content</span>: space-between;
+        <span class="hljs-attribute">align-items</span>: center;
+    }
+
+    <span class="hljs-selector-class">.katalog</span> {
+        <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-built_in">repeat</span>(auto-fill, <span class="hljs-built_in">minmax</span>(<span class="hljs-number">260px</span>, <span class="hljs-number">1</span>fr));
+    }
+}
+</code></pre><p>Заметьте порядок: сначала — как на телефоне, потом добавки.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Мелочи, которые решают на телефоне</span></div><p>Несколько вещей, о которых обычно не пишут в учебниках, но которые сразу видно
+живому человеку.</p><h3><strong>Размер шрифта в полях — минимум 16px</strong></h3><pre><code class="language-css"><span class="hljs-selector-tag">input</span>, <span class="hljs-selector-tag">select</span>, <span class="hljs-selector-tag">textarea</span> {
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">16px</span>;
+}
+</code></pre><p><strong>Почему именно 16.</strong> Safari на iPhone автоматически <strong>увеличивает страницу</strong>,
+когда человек нажимает на поле со шрифтом меньше 16px. Выглядит как сбой:
+человек тапнул в поле — сайт «прыгнул».</p><p>Ровно 16px и больше — не прыгает.</p><h3><strong>Кнопки не меньше 44 пикселей</strong></h3><pre><code class="language-css"><span class="hljs-selector-tag">button</span>, <span class="hljs-selector-class">.knopka</span> {
+    <span class="hljs-attribute">min-height</span>: <span class="hljs-number">44px</span>;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">12px</span> <span class="hljs-number">20px</span>;
+}
+</code></pre><p>44 пикселя — размер, который Apple вывела как минимальный для уверенного попадания
+пальцем. Меньше — человек промахивается и раздражается.</p><h3><strong>Ссылки в меню — с отступами</strong></h3><p>Маленькие ссылки рядом друг с другом на телефоне — беда. Отступ 12–16px между ними
+спасает от случайных нажатий.</p><h3><strong>Горизонтальная прокрутка — всегда ошибка</strong></h3><p>Если на телефоне страницу можно двигать вбок — что-то вылезло за края.
+Обычно виновники: широкая картинка без <code>max-width: 100%</code>, таблица,
+блок с жёсткой <code>width</code> или длинное слово без переносов.</p><p>Ищется так: в F12 включите режим телефона и постепенно сужайте — увидите,
+на чём начинается прокрутка.</p><h3><strong>Таблицы на телефоне</strong></h3><p>Таблица шириной в шесть колонок на экране 360px не помещается никак.
+Простейшее решение — разрешить ей прокручиваться внутри своего блока:</p><pre><code class="language-css"><span class="hljs-selector-class">.tablica-obertka</span> {
+    <span class="hljs-attribute">overflow-x</span>: auto;
+}
+</code></pre><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"tablica-obertka"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">table</span>&gt;</span>...<span class="hljs-tag">&lt;/<span class="hljs-name">table</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</code></pre><p>Теперь прокручивается только таблица, а страница остаётся на месте.</p></section><section class="vrezka v-ekran"><div class="vrezka-shapka"><span class="vrezka-podpis">На экране</span><span class="vrezka-zagolovok">На экране</span></div><p>Тот же самый файл, та же страница. Слева — на компьютере, справа — на телефоне
+шириной 390 пикселей:</p><p><img src="img/12-telefon.png" alt="Каталог на телефоне"></p><p>Мы не делали вторую версию сайта. <strong>Один HTML, один CSS</strong> — просто правила
+меняются при разной ширине.</p><p>Обратите внимание, что изменилось на узком экране:</p><ul>
+<li>каталог стал одноколоночным;</li>
+<li>шапка встала в столбик;</li>
+<li>фильтры выстроились вертикально и растянулись на всю ширину;</li>
+<li>кнопки стали во всю ширину — пальцем не промахнуться;</li>
+<li>поля крупные, страница не прыгает при нажатии.</li>
+</ul></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Как это проверять</span></div><p><strong>Способ 1: F12 → значок телефона.</strong>
+В панели разработчика есть кнопка переключения на мобильный вид (слева вверху панели,
+значок телефона с планшетом). Можно выбрать модель или задать ширину вручную.</p><p><strong>Способ 2: просто сузить окно браузера.</strong>
+Грубее, но быстро и показывает, где вёрстка ломается.</p><p><strong>Способ 3: открыть на настоящем телефоне.</strong>
+Самый честный. Пока сайт лежит у вас на компьютере, откройте его так:</p><pre><code class="language-bash">php -S 0.0.0.0:8000
+</code></pre><p>Узнайте свой IP в локальной сети (команда <code>ipconfig</code> на Windows, <code>ifconfig</code>
+или <code>ip a</code> на Mac и Linux) и откройте на телефоне <code>http://192.168.1.5:8000</code>,
+подставив свой адрес. Компьютер и телефон должны быть в одной Wi-Fi-сети.</p><p><strong>Обязательно проверяйте на настоящем телефоне.</strong> Эмулятор в браузере не покажет,
+как реагирует ваш палец, как ведёт себя клавиатура и насколько мелкий на самом деле
+текст.</p></section><section class="vrezka v-razbor"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбор по словам</span><span class="vrezka-zagolovok">Разбор по словам</span></div><table>
+<thead>
+<tr>
+<th>Запись</th>
+<th>Что означает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>@media (max-width: 768px)</code></td>
+<td>Правила для экранов <strong>уже</strong> 768px</td>
+</tr>
+<tr>
+<td><code>@media (min-width: 900px)</code></td>
+<td>Правила для экранов <strong>шире</strong> 900px</td>
+</tr>
+<tr>
+<td><code>max-width</code> у элемента</td>
+<td>«Не шире, чем». Уже — можно</td>
+</tr>
+<tr>
+<td><code>margin: 0 auto</code></td>
+<td>Центрировать блок по горизонтали</td>
+</tr>
+<tr>
+<td><code>width: 100%</code></td>
+<td>Во всю ширину родителя</td>
+</tr>
+<tr>
+<td><code>overflow-x: auto</code></td>
+<td>Разрешить горизонтальную прокрутку <strong>внутри</strong> блока</td>
+</tr>
+<tr>
+<td><code>min-height: 44px</code></td>
+<td>Минимальная высота — палец попадёт</td>
+</tr>
+<tr>
+<td><strong>mobile-first</strong></td>
+<td>Сначала стили для телефона, потом добавки для широких экранов</td>
+</tr>
+<tr>
+<td><strong>точка перелома</strong></td>
+<td>Ширина, на которой меняется раскладка</td>
+</tr>
+</tbody>
+</table></section><section class="vrezka v-grabli"><div class="vrezka-shapka"><span class="vrezka-podpis">Грабли</span><span class="vrezka-zagolovok">Грабли</span></div><p><strong>Забыть <code>&lt;meta name="viewport"&gt;</code>.</strong> Всё остальное бессмысленно: телефон уменьшит
+страницу целиком, и медиазапросы даже не сработают. Проверьте первым делом.</p><p><strong>Жёсткая <code>width</code> у блоков.</strong> Главная причина горизонтальной прокрутки.
+Замените на <code>max-width</code>.</p><p><strong>Шрифт в полях меньше 16px.</strong> Страница будет прыгать на iPhone.</p><p><strong>Слишком много точек перелома.</strong> Три-четыре достаточно. Десять — и вы сами
+перестанете понимать, что где включается.</p><p><strong>Прятать содержимое на телефоне через <code>display: none</code>.</strong> Соблазнительно
+(«не влезает — уберу»), но человек с телефона хочет того же, что и с компьютера.
+Не прячьте, а перестраивайте.</p><p><strong>Проверять только в эмуляторе.</strong> Откройте на настоящем телефоне хотя бы раз —
+обязательно найдёте что-то, чего эмулятор не показал.</p></section><section class="vrezka v-zadachi"><div class="vrezka-shapka"><span class="vrezka-podpis">Задачи</span><span class="vrezka-zagolovok">Задачи</span></div><p><strong>Задача 12.1.</strong> Сделайте свой каталог адаптивным по примеру из главы.
+Проверьте на трёх ширинах: 360px, 768px, 1200px.</p><p><strong>Задача 12.2.</strong> На какой ширине сработает каждый запрос?</p><pre><code class="language-css"><span class="hljs-keyword">@media</span> (<span class="hljs-attribute">max-width</span>: <span class="hljs-number">600px</span>) { }
+<span class="hljs-keyword">@media</span> (<span class="hljs-attribute">min-width</span>: <span class="hljs-number">900px</span>) { }
+<span class="hljs-keyword">@media</span> (<span class="hljs-attribute">min-width</span>: <span class="hljs-number">600px</span>) <span class="hljs-keyword">and</span> (<span class="hljs-attribute">max-width</span>: <span class="hljs-number">899px</span>) { }
+</code></pre><p><strong>Задача 12.3.</strong> Перепишите в стиле mobile-first:</p><pre><code class="language-css"><span class="hljs-selector-class">.blok</span> { <span class="hljs-attribute">display</span>: flex; <span class="hljs-attribute">gap</span>: <span class="hljs-number">20px</span>; }
+<span class="hljs-keyword">@media</span> (<span class="hljs-attribute">max-width</span>: <span class="hljs-number">700px</span>) {
+    <span class="hljs-selector-class">.blok</span> { <span class="hljs-attribute">display</span>: block; }
+}
+</code></pre><p><strong>Задача 12.4.</strong> Сузьте окно браузера на своём сайте до 320px — самый узкий
+современный телефон. Появилась горизонтальная прокрутка? Найдите виновника и почините.</p><p><strong>Задача 12.5.</strong> Сделайте таблицу прайса из главы 7 прокручиваемой на телефоне.</p><p><strong>Задача 12.6.</strong> Откройте свой сайт на настоящем телефоне. Запишите три вещи,
+которые оказались неудобными. Почините их.</p><p><strong>Задача 12.7.</strong> Проверьте свой сайт в <code>pagespeed.web.dev</code> — это бесплатный
+инструмент Google. Он покажет оценку для мобильных и список проблем.
+Какая оценка? Что он предлагает исправить?</p><p><strong>Задача 12.8.</strong> Найдите на любом сайте место, где на телефоне неудобно.
+Сформулируйте, почему именно, и как бы вы это исправили. Умение замечать
+неудобство — половина работы дизайнера.</p><p><em>Ответы — в <a href="../prilozheniya/G-otvety.md">Приложении Г</a>.</em></p></section><section class="vrezka v-vboyu"><div class="vrezka-shapka"><span class="vrezka-podpis">В бою</span><span class="vrezka-zagolovok">В бою</span></div><p>Загляните в <code>assets/css/custom.css</code> и поищите <code>@media</code>. Найдёте несколько блоков.</p><p>Самое интересное там — правила для меню каталога: на компьютере это боковая колонка,
+на телефоне оно превращается в выпадающий список. Не спрятано, а <strong>перестроено</strong> —
+ровно то, о чём мы говорили.</p><p>И маленький штрих из жизни: карточки товаров на боевом сайте специально сделаны
+с крупными кнопками. Не для красоты — потому что покупатель обычно стоит у машины,
+на улице, одной рукой держит телефон, и промахиваться ему нечем.</p></section><section class="vrezka v-itog"><div class="vrezka-shapka"><span class="vrezka-podpis">Итог</span><span class="vrezka-zagolovok">Итог</span></div><ul>
+<li>Больше половины покупателей придут <strong>с телефона</strong>. Это не «потом», это сразу.</li>
+<li>Три опоры адаптивности: <strong>viewport</strong>, <strong>гибкие размеры</strong>, <strong>медиазапросы</strong>.</li>
+<li><code>max-width</code> вместо <code>width</code>. <code>img { max-width: 100%; height: auto; }</code> в каждый проект.</li>
+<li><code>margin: 0 auto</code> центрирует блок.</li>
+<li><code>@media (max-width: ...)</code> — для узких, <code>(min-width: ...)</code> — для широких.</li>
+<li><strong>Mobile-first</strong>: сначала телефон, потом добавки. Заставляет выбрать главное.</li>
+<li>Шрифт в полях — <strong>минимум 16px</strong>, иначе iPhone будет прыгать.</li>
+<li>Кнопки — <strong>минимум 44px</strong> высотой.</li>
+<li>Горизонтальная прокрутка на телефоне — всегда ошибка.</li>
+<li>Не прячьте содержимое на телефоне. Перестраивайте.</li>
+<li>Проверяйте на <strong>настоящем</strong> телефоне.</li>
+</ul><p>Следующая глава — практическая. Доведём магазин до вида, который не стыдно показать.</p></section></div></article>
+<article class="glava" id="glava-13">
+    <header class="glava-shapka">
+      <div class="glava-metka">
+        <span class="glava-slovo">Глава</span>
+        <span class="glava-nomer">13</span>
+      </div>
+      <div class="glava-podpis">Часть III. CSS — внешность</div>
+      <h1 class="glava-nazvanie">Практика: каталог становится красивым</h1>
+    </header><div class="telo"><section class="vrezka v-zachem"><div class="vrezka-shapka"><span class="vrezka-podpis">Зачем это</span><span class="vrezka-zagolovok">Зачем эта глава</span></div><p>Каталог у вас уже работает и перестраивается под телефон. Но между «работает»
+и «выглядит хорошо» есть расстояние, и сегодня мы его пройдём.</p><p>Разберём то, о чём обычно не говорят в учебниках по CSS, а зря — потому что именно
+это отличает сайт, сделанный дизайнером, от сайта, сделанного программистом:</p><ul>
+<li><strong>переменные</strong> — как перекрасить весь сайт, поменяв три строчки;</li>
+<li><strong>шрифты</strong> — как подключить нормальный шрифт вместо системного;</li>
+<li><strong>шесть правил вёрстки</strong>, которые сразу видно;</li>
+<li><strong>состояния</strong> — что показывать, когда товаров нет.</li>
+</ul><p>К концу главы у вас будет магазин, который не стыдно показать.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Переменные CSS</span></div><h3><strong>Проблема</strong></h3><p>Откройте свой <code>style.css</code> и посчитайте, сколько раз там встречается <code>#b5411f</code>.
+Наверняка раз восемь: заголовок, цена, кнопка, наведение на кнопку, рамка, линия
+в шапке.</p><p>Теперь представьте, что заказчик просит сменить фирменный цвет. Восемь замен,
+и одну вы точно пропустите.</p><h3><strong>Решение</strong></h3><pre><code class="language-css"><span class="hljs-selector-pseudo">:root</span> {
+    <span class="hljs-attr">--cvet-osnovnoy</span>:  <span class="hljs-number">#b5411f</span>;
+    <span class="hljs-attr">--cvet-temnyi</span>:    <span class="hljs-number">#8f3418</span>;
+    <span class="hljs-attr">--cvet-text</span>:      <span class="hljs-number">#2b2622</span>;
+    <span class="hljs-attr">--cvet-tihii</span>:     <span class="hljs-number">#7c7166</span>;
+    <span class="hljs-attr">--cvet-fon</span>:       <span class="hljs-number">#faf7f2</span>;
+    <span class="hljs-attr">--cvet-karta</span>:     <span class="hljs-number">#ffffff</span>;
+    <span class="hljs-attr">--cvet-ramka</span>:     <span class="hljs-number">#e3d8c6</span>;
+    <span class="hljs-attr">--cvet-uspeh</span>:     <span class="hljs-number">#14584f</span>;
+
+    <span class="hljs-attr">--radius</span>:  <span class="hljs-number">8px</span>;
+    <span class="hljs-attr">--otstup</span>:  <span class="hljs-number">16px</span>;
+    <span class="hljs-attr">--ten</span>:     <span class="hljs-number">0</span> <span class="hljs-number">2px</span> <span class="hljs-number">8px</span> <span class="hljs-built_in">rgba</span>(<span class="hljs-number">34</span>, <span class="hljs-number">30</span>, <span class="hljs-number">26</span>, <span class="hljs-number">0.06</span>);
+}
+</code></pre><p>Теперь используем:</p><pre><code class="language-css"><span class="hljs-selector-tag">h1</span>     { <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--cvet-osnovnoy); }
+<span class="hljs-selector-tag">button</span> { <span class="hljs-attribute">background</span>: <span class="hljs-built_in">var</span>(--cvet-osnovnoy); <span class="hljs-attribute">border-radius</span>: <span class="hljs-built_in">var</span>(--radius); }
+<span class="hljs-selector-class">.tovar</span> { <span class="hljs-attribute">border</span>: <span class="hljs-number">1px</span> solid <span class="hljs-built_in">var</span>(--cvet-ramka); <span class="hljs-attribute">box-shadow</span>: <span class="hljs-built_in">var</span>(--ten); }
+</code></pre><table>
+<thead>
+<tr>
+<th>Часть</th>
+<th>Что значит</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>:root</code></td>
+<td>«Корень документа» — переменные видны везде</td>
+</tr>
+<tr>
+<td><code>--cvet-osnovnoy</code></td>
+<td>Имя переменной. <strong>Обязательно два дефиса</strong> в начале</td>
+</tr>
+<tr>
+<td><code>var(--cvet-osnovnoy)</code></td>
+<td>Подставить значение</td>
+</tr>
+</tbody>
+</table><p><strong>Что вы получаете.</strong> Меняете одну строчку — перекрашивается весь сайт.
+Можно за минуту показать заказчику три варианта цветовой схемы.</p><p><strong>Как называть переменные.</strong> По смыслу, а не по цвету:</p><pre><code class="language-css"><span class="hljs-attr">--cvet-osnovnoy</span>: <span class="hljs-number">#b5411f</span>;   ✅ понятно, зачем
+<span class="hljs-attr">--ryzhiy</span>: <span class="hljs-number">#b5411f</span>;          ❌ а если станет синим?
+</code></pre><p>Это общее правило для программирования: имена дают <strong>по роли</strong>, а не по текущему
+значению.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Нормальный шрифт</span></div><p>Системные шрифты (Georgia, Arial) есть у всех, но выглядят обыденно.
+Свой шрифт сразу поднимает уровень.</p><h3><strong>Как подключить</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">head</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">link</span> <span class="hljs-attr">rel</span>=<span class="hljs-string">"preconnect"</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"https://fonts.googleapis.com"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">link</span> <span class="hljs-attr">rel</span>=<span class="hljs-string">"preconnect"</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"https://fonts.gstatic.com"</span> <span class="hljs-attr">crossorigin</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">link</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&amp;display=swap"</span>
+          <span class="hljs-attr">rel</span>=<span class="hljs-string">"stylesheet"</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">head</span>&gt;</span>
+</code></pre><pre><code class="language-css"><span class="hljs-selector-tag">body</span> {
+    <span class="hljs-attribute">font-family</span>: <span class="hljs-string">'Manrope'</span>, system-ui, sans-serif;
+}
+</code></pre><p>Шрифты берутся с <code>fonts.google.com</code> — бесплатно, в том числе для коммерческих сайтов.</p><p>⚠️ <strong>Проверяйте кириллицу.</strong> Далеко не все шрифты её поддерживают. На Google Fonts
+есть фильтр по языкам — выберите Cyrillic, иначе русский текст подставится другим
+шрифтом и будет выглядеть чужеродно.</p><h3><strong>Хорошие пары для магазина</strong></h3><table>
+<thead>
+<tr>
+<th>Заголовки</th>
+<th>Текст</th>
+<th>Настроение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Manrope</td>
+<td>Manrope</td>
+<td>Современно, чисто</td>
+</tr>
+<tr>
+<td>Unbounded</td>
+<td>Golos Text</td>
+<td>Ярко, характерно</td>
+</tr>
+<tr>
+<td>Playfair Display</td>
+<td>Source Sans 3</td>
+<td>Дорого, солидно</td>
+</tr>
+<tr>
+<td>Oswald</td>
+<td>PT Sans</td>
+<td>Плотно, по-деловому</td>
+</tr>
+</tbody>
+</table><p><strong>Правило: два шрифта максимум.</strong> Три — уже разнобой. Многие хорошие сайты
+обходятся одним, играя насыщенностью и размером.</p><h3><strong>Сколько начертаний брать</strong></h3><pre><code>family=Manrope:wght@400;600;800
+</code></pre><p>Каждое начертание — отдельный файл, который скачает браузер. Три штуки достаточно:
+обычное (400), полужирное (600), очень жирное (800). Не подключайте все девять —
+сайт будет открываться дольше.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Шесть правил, которые сразу видно</span></div><p>Не дизайнерская теория, а конкретные приёмы. Примените — и разница будет заметна.</p><h3><strong>1. Отступы кратны одному числу</strong></h3><p>Возьмите базу — обычно 8 пикселей — и используйте только кратные:
+<code>8, 16, 24, 32, 40, 48</code>.</p><pre><code class="language-css"><span class="hljs-selector-pseudo">:root</span> {
+    <span class="hljs-attr">--s1</span>: <span class="hljs-number">8px</span>;
+    <span class="hljs-attr">--s2</span>: <span class="hljs-number">16px</span>;
+    <span class="hljs-attr">--s3</span>: <span class="hljs-number">24px</span>;
+    <span class="hljs-attr">--s4</span>: <span class="hljs-number">32px</span>;
+}
+</code></pre><p>Почему работает: случайные <code>13px</code>, <code>17px</code>, <code>22px</code> создают ощущение неаккуратности,
+даже если человек не может объяснить, что его смущает. Кратная сетка выглядит
+собранно.</p><h3><strong>2. Меньше цветов</strong></h3><p>Три-четыре цвета, не больше:</p><ul>
+<li>основной (акцент, кнопки, цены);</li>
+<li>тёмный (текст);</li>
+<li>светлый (фон);</li>
+<li>один служебный (успех/ошибка).</li>
+</ul><p>Радуга из десяти цветов — верный признак любительской работы.</p><h3><strong>3. Меньше размеров шрифта</strong></h3><p>Четыре-пять размеров на весь сайт:</p><pre><code class="language-css"><span class="hljs-attr">--text-mal</span>:   <span class="hljs-number">14px</span>;   <span class="hljs-comment">/* мелочи: артикул, примечания */</span>
+<span class="hljs-attr">--text-osn</span>:   <span class="hljs-number">16px</span>;   <span class="hljs-comment">/* основной текст */</span>
+<span class="hljs-attr">--text-bol</span>:   <span class="hljs-number">20px</span>;   <span class="hljs-comment">/* цена, подзаголовки */</span>
+<span class="hljs-attr">--text-zag</span>:   <span class="hljs-number">28px</span>;   <span class="hljs-comment">/* заголовки разделов */</span>
+<span class="hljs-attr">--text-glav</span>:  <span class="hljs-number">36px</span>;   <span class="hljs-comment">/* заголовок страницы */</span>
+</code></pre><h3><strong>4. Воздух важнее украшений</strong></h3><p>Самая частая ошибка новичка — всё лепится друг к другу.</p><p>Увеличьте отступы вдвое от того, что кажется достаточным. Почти всегда станет лучше.
+Пустое место — не потерянное место, а инструмент: оно показывает, что с чем связано.</p><h3><strong>5. Выравнивание по одной линии</strong></h3><p>Всё, что можно выровнять, должно быть выровнено. Заголовки, текст, кнопки
+в карточках — по одной вертикали.</p><p>Помните приём <code>margin-top: auto</code> из главы 11? Он ровно для этого: кнопки во всех
+карточках оказываются на одной линии.</p><h3><strong>6. Контраст текста</strong></h3><p>Светло-серый текст на белом фоне выглядит «дизайнерски», но читается плохо,
+особенно на телефоне при солнце.</p><p>Минимум — <code>#666</code> на белом. Лучше темнее. Проверить можно на <code>webaim.org/resources/contrastchecker</code>.</p></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Состояния, о которых забывают</span></div><p>Ваш каталог показывает шесть товаров. А что будет, если товаров <strong>ноль</strong>?</p><p>Три состояния, которые новички не делают, а потом получают «сайт сломался»:</p><h3><strong>Пусто</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"pusto"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"pusto-znak"</span>&gt;</span>🔍<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">h3</span>&gt;</span>Ничего не нашлось<span class="hljs-tag">&lt;/<span class="hljs-name">h3</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Попробуйте изменить фильтры или поискать по артикулу.<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">"/catalog"</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"knopka"</span>&gt;</span>Показать все товары<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</code></pre><pre><code class="language-css"><span class="hljs-selector-class">.pusto</span> {
+    <span class="hljs-attribute">text-align</span>: center;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">48px</span> <span class="hljs-number">24px</span>;
+    <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--cvet-tihii);
+}
+<span class="hljs-selector-class">.pusto-znak</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">40px</span>; <span class="hljs-attribute">margin-bottom</span>: <span class="hljs-number">8px</span>; }
+</code></pre><p><strong>Важно: пустой экран должен подсказывать, что делать дальше.</strong> Не просто
+«ничего не найдено», а кнопка выхода из тупика.</p><h3><strong>Загрузка</strong></h3><p>Когда данные ещё едут, показывают заглушки-«скелеты» вместо пустоты:</p><pre><code class="language-css"><span class="hljs-selector-class">.skelet</span> {
+    <span class="hljs-attribute">background</span>: <span class="hljs-built_in">linear-gradient</span>(<span class="hljs-number">90deg</span>, <span class="hljs-number">#eee</span> <span class="hljs-number">25%</span>, <span class="hljs-number">#f5f5f5</span> <span class="hljs-number">50%</span>, <span class="hljs-number">#eee</span> <span class="hljs-number">75%</span>);
+    <span class="hljs-attribute">background-size</span>: <span class="hljs-number">200%</span> <span class="hljs-number">100%</span>;
+    <span class="hljs-attribute">animation</span>: perelив <span class="hljs-number">1.4s</span> infinite;
+    <span class="hljs-attribute">border-radius</span>: <span class="hljs-built_in">var</span>(--radius);
+    <span class="hljs-attribute">height</span>: <span class="hljs-number">180px</span>;
+}
+
+<span class="hljs-keyword">@keyframes</span> perelив {
+    <span class="hljs-number">0%</span>   { <span class="hljs-attribute">background-position</span>: <span class="hljs-number">200%</span> <span class="hljs-number">0</span>; }
+    <span class="hljs-number">100%</span> { <span class="hljs-attribute">background-position</span>: -<span class="hljs-number">200%</span> <span class="hljs-number">0</span>; }
+}
+</code></pre><p>Это серый прямоугольник с бегущим бликом. Человек видит, что процесс идёт,
+и не думает, что сайт завис.</p><h3><strong>Ошибка</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"oshibka"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Не удалось загрузить товары. Проверьте связь и попробуйте снова.<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">button</span>&gt;</span>Повторить<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</code></pre><p>Правило: <strong>сообщение об ошибке должно говорить, что делать</strong>, а не только
+что случилось.</p><p>Плохо: «Ошибка 500». Хорошо: «Не удалось загрузить. Попробуйте обновить страницу».</p></section><section class="vrezka v-kod"><div class="vrezka-shapka"><span class="vrezka-podpis">Код</span><span class="vrezka-zagolovok">Итоговый файл стилей</span></div><pre><code class="language-css"><span class="hljs-comment">/* ===== Переменные ===== */</span>
+<span class="hljs-selector-pseudo">:root</span> {
+    <span class="hljs-attr">--cvet-osnovnoy</span>: <span class="hljs-number">#b5411f</span>;
+    <span class="hljs-attr">--cvet-temnyi</span>:   <span class="hljs-number">#8f3418</span>;
+    <span class="hljs-attr">--cvet-text</span>:     <span class="hljs-number">#2b2622</span>;
+    <span class="hljs-attr">--cvet-tihii</span>:    <span class="hljs-number">#7c7166</span>;
+    <span class="hljs-attr">--cvet-fon</span>:      <span class="hljs-number">#faf7f2</span>;
+    <span class="hljs-attr">--cvet-karta</span>:    <span class="hljs-number">#ffffff</span>;
+    <span class="hljs-attr">--cvet-ramka</span>:    <span class="hljs-number">#e8dfd0</span>;
+    <span class="hljs-attr">--cvet-uspeh</span>:    <span class="hljs-number">#14584f</span>;
+
+    <span class="hljs-attr">--s1</span>: <span class="hljs-number">8px</span>;  <span class="hljs-attr">--s2</span>: <span class="hljs-number">16px</span>;  <span class="hljs-attr">--s3</span>: <span class="hljs-number">24px</span>;  <span class="hljs-attr">--s4</span>: <span class="hljs-number">32px</span>;
+    <span class="hljs-attr">--radius</span>: <span class="hljs-number">10px</span>;
+    <span class="hljs-attr">--ten</span>:      <span class="hljs-number">0</span> <span class="hljs-number">2px</span> <span class="hljs-number">8px</span> <span class="hljs-built_in">rgba</span>(<span class="hljs-number">34</span>, <span class="hljs-number">30</span>, <span class="hljs-number">26</span>, <span class="hljs-number">0.05</span>);
+    <span class="hljs-attr">--ten-navel</span>: <span class="hljs-number">0</span> <span class="hljs-number">8px</span> <span class="hljs-number">24px</span> <span class="hljs-built_in">rgba</span>(<span class="hljs-number">181</span>, <span class="hljs-number">65</span>, <span class="hljs-number">31</span>, <span class="hljs-number">0.14</span>);
+}
+
+<span class="hljs-comment">/* ===== Сброс ===== */</span>
+* { <span class="hljs-attribute">margin</span>: <span class="hljs-number">0</span>; <span class="hljs-attribute">padding</span>: <span class="hljs-number">0</span>; <span class="hljs-attribute">box-sizing</span>: border-box; }
+
+<span class="hljs-selector-tag">img</span> { <span class="hljs-attribute">max-width</span>: <span class="hljs-number">100%</span>; <span class="hljs-attribute">height</span>: auto; <span class="hljs-attribute">display</span>: block; }
+
+<span class="hljs-selector-tag">body</span> {
+    <span class="hljs-attribute">font-family</span>: <span class="hljs-string">'Manrope'</span>, system-ui, -apple-system, sans-serif;
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">16px</span>;
+    <span class="hljs-attribute">line-height</span>: <span class="hljs-number">1.6</span>;
+    <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--cvet-text);
+    <span class="hljs-attribute">background</span>: <span class="hljs-built_in">var</span>(--cvet-fon);
+}
+
+<span class="hljs-selector-class">.container</span> {
+    <span class="hljs-attribute">max-width</span>: <span class="hljs-number">1200px</span>;
+    <span class="hljs-attribute">margin</span>: <span class="hljs-number">0</span> auto;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-built_in">var</span>(--s3) <span class="hljs-built_in">var</span>(--s2);
+}
+
+<span class="hljs-comment">/* ===== Шапка ===== */</span>
+<span class="hljs-selector-tag">header</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">flex-direction</span>: column;
+    <span class="hljs-attribute">gap</span>: <span class="hljs-built_in">var</span>(--s2);
+    <span class="hljs-attribute">padding-bottom</span>: <span class="hljs-built_in">var</span>(--s3);
+    <span class="hljs-attribute">border-bottom</span>: <span class="hljs-number">2px</span> solid <span class="hljs-built_in">var</span>(--cvet-osnovnoy);
+    <span class="hljs-attribute">margin-bottom</span>: <span class="hljs-built_in">var</span>(--s4);
+}
+
+<span class="hljs-selector-class">.logo</span> {
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">26px</span>;
+    <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">800</span>;
+    <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--cvet-osnovnoy);
+    <span class="hljs-attribute">letter-spacing</span>: -<span class="hljs-number">0.02em</span>;
+}
+
+<span class="hljs-selector-class">.slogan</span> { <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--cvet-tihii); <span class="hljs-attribute">font-size</span>: <span class="hljs-number">14px</span>; }
+
+<span class="hljs-selector-tag">nav</span> <span class="hljs-selector-tag">ul</span> { <span class="hljs-attribute">display</span>: flex; <span class="hljs-attribute">flex-wrap</span>: wrap; <span class="hljs-attribute">gap</span>: <span class="hljs-built_in">var</span>(--s3); <span class="hljs-attribute">list-style</span>: none; }
+
+<span class="hljs-selector-tag">nav</span> <span class="hljs-selector-tag">a</span> {
+    <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--cvet-text);
+    <span class="hljs-attribute">text-decoration</span>: none;
+    <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">600</span>;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-built_in">var</span>(--s1) <span class="hljs-number">0</span>;
+    <span class="hljs-attribute">border-bottom</span>: <span class="hljs-number">2px</span> solid transparent;
+    <span class="hljs-attribute">transition</span>: color .<span class="hljs-number">2s</span>, border-color .<span class="hljs-number">2s</span>;
+}
+
+<span class="hljs-selector-tag">nav</span> <span class="hljs-selector-tag">a</span><span class="hljs-selector-pseudo">:hover</span> {
+    <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--cvet-osnovnoy);
+    <span class="hljs-attribute">border-bottom-color</span>: <span class="hljs-built_in">var</span>(--cvet-osnovnoy);
+}
+
+<span class="hljs-comment">/* ===== Поиск ===== */</span>
+<span class="hljs-selector-class">.poisk</span> { <span class="hljs-attribute">display</span>: flex; <span class="hljs-attribute">gap</span>: <span class="hljs-built_in">var</span>(--s1); }
+
+<span class="hljs-selector-class">.poisk</span> <span class="hljs-selector-tag">input</span> {
+    <span class="hljs-attribute">flex</span>: <span class="hljs-number">1</span>;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">12px</span> <span class="hljs-built_in">var</span>(--s2);
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">16px</span>;
+    <span class="hljs-attribute">font-family</span>: inherit;
+    <span class="hljs-attribute">border</span>: <span class="hljs-number">1px</span> solid <span class="hljs-built_in">var</span>(--cvet-ramka);
+    <span class="hljs-attribute">border-radius</span>: <span class="hljs-built_in">var</span>(--radius);
+    <span class="hljs-attribute">background</span>: <span class="hljs-built_in">var</span>(--cvet-karta);
+    <span class="hljs-attribute">transition</span>: border-color .<span class="hljs-number">2s</span>, box-shadow .<span class="hljs-number">2s</span>;
+}
+
+<span class="hljs-selector-class">.poisk</span> <span class="hljs-selector-tag">input</span><span class="hljs-selector-pseudo">:focus</span> {
+    <span class="hljs-attribute">outline</span>: none;
+    <span class="hljs-attribute">border-color</span>: <span class="hljs-built_in">var</span>(--cvet-osnovnoy);
+    <span class="hljs-attribute">box-shadow</span>: <span class="hljs-number">0</span> <span class="hljs-number">0</span> <span class="hljs-number">0</span> <span class="hljs-number">3px</span> <span class="hljs-built_in">rgba</span>(<span class="hljs-number">181</span>, <span class="hljs-number">65</span>, <span class="hljs-number">31</span>, <span class="hljs-number">0.12</span>);
+}
+
+<span class="hljs-comment">/* ===== Кнопки ===== */</span>
+<span class="hljs-selector-tag">button</span>, <span class="hljs-selector-class">.knopka</span> {
+    <span class="hljs-attribute">display</span>: inline-flex;
+    <span class="hljs-attribute">align-items</span>: center;
+    <span class="hljs-attribute">justify-content</span>: center;
+    <span class="hljs-attribute">min-height</span>: <span class="hljs-number">44px</span>;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">12px</span> <span class="hljs-built_in">var</span>(--s3);
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">15px</span>;
+    <span class="hljs-attribute">font-family</span>: inherit;
+    <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">600</span>;
+    <span class="hljs-attribute">color</span>: <span class="hljs-number">#fff</span>;
+    <span class="hljs-attribute">background</span>: <span class="hljs-built_in">var</span>(--cvet-osnovnoy);
+    <span class="hljs-attribute">border</span>: none;
+    <span class="hljs-attribute">border-radius</span>: <span class="hljs-built_in">var</span>(--radius);
+    <span class="hljs-attribute">cursor</span>: pointer;
+    <span class="hljs-attribute">text-decoration</span>: none;
+    <span class="hljs-attribute">transition</span>: background .<span class="hljs-number">2s</span>, transform .<span class="hljs-number">1s</span>;
+}
+
+<span class="hljs-selector-tag">button</span><span class="hljs-selector-pseudo">:hover</span>, <span class="hljs-selector-class">.knopka</span><span class="hljs-selector-pseudo">:hover</span> { <span class="hljs-attribute">background</span>: <span class="hljs-built_in">var</span>(--cvet-temnyi); }
+<span class="hljs-selector-tag">button</span><span class="hljs-selector-pseudo">:active</span> { <span class="hljs-attribute">transform</span>: <span class="hljs-built_in">translateY</span>(<span class="hljs-number">1px</span>); }
+
+<span class="hljs-comment">/* ===== Фильтры ===== */</span>
+<span class="hljs-selector-class">.filtry</span> {
+    <span class="hljs-attribute">background</span>: <span class="hljs-built_in">var</span>(--cvet-karta);
+    <span class="hljs-attribute">border</span>: <span class="hljs-number">1px</span> solid <span class="hljs-built_in">var</span>(--cvet-ramka);
+    <span class="hljs-attribute">border-radius</span>: <span class="hljs-built_in">var</span>(--radius);
+    <span class="hljs-attribute">padding</span>: <span class="hljs-built_in">var</span>(--s3);
+    <span class="hljs-attribute">margin-bottom</span>: <span class="hljs-built_in">var</span>(--s4);
+}
+
+<span class="hljs-selector-class">.filtry</span> <span class="hljs-selector-tag">fieldset</span> { <span class="hljs-attribute">border</span>: none; <span class="hljs-attribute">display</span>: flex; <span class="hljs-attribute">flex-direction</span>: column; <span class="hljs-attribute">gap</span>: <span class="hljs-built_in">var</span>(--s2); }
+<span class="hljs-selector-class">.filtry</span> <span class="hljs-selector-tag">legend</span> { <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">800</span>; <span class="hljs-attribute">margin-bottom</span>: <span class="hljs-built_in">var</span>(--s1); }
+
+<span class="hljs-selector-class">.filtry</span> <span class="hljs-selector-tag">label</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">14px</span>; <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--cvet-tihii); <span class="hljs-attribute">display</span>: block; <span class="hljs-attribute">margin-bottom</span>: <span class="hljs-number">4px</span>; }
+
+<span class="hljs-selector-class">.filtry</span> <span class="hljs-selector-tag">input</span>, <span class="hljs-selector-class">.filtry</span> <span class="hljs-selector-tag">select</span> {
+    <span class="hljs-attribute">width</span>: <span class="hljs-number">100%</span>;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">10px</span> <span class="hljs-number">12px</span>;
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">16px</span>;
+    <span class="hljs-attribute">font-family</span>: inherit;
+    <span class="hljs-attribute">border</span>: <span class="hljs-number">1px</span> solid <span class="hljs-built_in">var</span>(--cvet-ramka);
+    <span class="hljs-attribute">border-radius</span>: <span class="hljs-built_in">var</span>(--radius);
+    <span class="hljs-attribute">background</span>: <span class="hljs-built_in">var</span>(--cvet-karta);
+}
+
+<span class="hljs-comment">/* ===== Каталог ===== */</span>
+<span class="hljs-selector-class">.katalog</span> {
+    <span class="hljs-attribute">display</span>: grid;
+    <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-number">1</span>fr;
+    <span class="hljs-attribute">gap</span>: <span class="hljs-built_in">var</span>(--s3);
+}
+
+<span class="hljs-selector-class">.tovar</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">flex-direction</span>: column;
+    <span class="hljs-attribute">background</span>: <span class="hljs-built_in">var</span>(--cvet-karta);
+    <span class="hljs-attribute">border</span>: <span class="hljs-number">1px</span> solid <span class="hljs-built_in">var</span>(--cvet-ramka);
+    <span class="hljs-attribute">border-radius</span>: <span class="hljs-built_in">var</span>(--radius);
+    <span class="hljs-attribute">padding</span>: <span class="hljs-built_in">var</span>(--s3);
+    <span class="hljs-attribute">box-shadow</span>: <span class="hljs-built_in">var</span>(--ten);
+    <span class="hljs-attribute">transition</span>: transform .<span class="hljs-number">2s</span>, box-shadow .<span class="hljs-number">2s</span>, border-color .<span class="hljs-number">2s</span>;
+}
+
+<span class="hljs-selector-class">.tovar</span><span class="hljs-selector-pseudo">:hover</span> {
+    <span class="hljs-attribute">transform</span>: <span class="hljs-built_in">translateY</span>(-<span class="hljs-number">2px</span>);
+    <span class="hljs-attribute">border-color</span>: <span class="hljs-built_in">var</span>(--cvet-osnovnoy);
+    <span class="hljs-attribute">box-shadow</span>: <span class="hljs-built_in">var</span>(--ten-navel);
+}
+
+<span class="hljs-selector-class">.tovar</span> <span class="hljs-selector-tag">h3</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">17px</span>; <span class="hljs-attribute">line-height</span>: <span class="hljs-number">1.35</span>; <span class="hljs-attribute">margin-bottom</span>: <span class="hljs-built_in">var</span>(--s1); }
+
+<span class="hljs-selector-class">.artikul</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">13px</span>; <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--cvet-tihii); }
+
+<span class="hljs-selector-class">.cena</span> {
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">24px</span>;
+    <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">800</span>;
+    <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--cvet-osnovnoy);
+    <span class="hljs-attribute">margin</span>: <span class="hljs-built_in">var</span>(--s2) <span class="hljs-number">0</span> <span class="hljs-number">4px</span>;
+}
+<span class="hljs-selector-class">.cena</span> <span class="hljs-selector-tag">span</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">14px</span>; <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">400</span>; <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--cvet-tihii); }
+
+<span class="hljs-selector-class">.nalichie</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">13px</span>; <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--cvet-uspeh); <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">600</span>; }
+<span class="hljs-selector-class">.nalichie</span><span class="hljs-selector-class">.nety</span> { <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--cvet-tihii); <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">400</span>; }
+
+<span class="hljs-selector-class">.tovar</span> <span class="hljs-selector-tag">form</span> { <span class="hljs-attribute">margin-top</span>: auto; <span class="hljs-attribute">padding-top</span>: <span class="hljs-built_in">var</span>(--s3); }
+<span class="hljs-selector-class">.tovar</span> <span class="hljs-selector-tag">button</span> { <span class="hljs-attribute">width</span>: <span class="hljs-number">100%</span>; }
+
+<span class="hljs-comment">/* ===== Пусто ===== */</span>
+<span class="hljs-selector-class">.pusto</span> { <span class="hljs-attribute">text-align</span>: center; <span class="hljs-attribute">padding</span>: <span class="hljs-number">48px</span> <span class="hljs-built_in">var</span>(--s3); <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--cvet-tihii); }
+<span class="hljs-selector-class">.pusto</span> <span class="hljs-selector-tag">h3</span> { <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--cvet-text); <span class="hljs-attribute">margin-bottom</span>: <span class="hljs-built_in">var</span>(--s1); }
+<span class="hljs-selector-class">.pusto</span> <span class="hljs-selector-tag">p</span> { <span class="hljs-attribute">margin-bottom</span>: <span class="hljs-built_in">var</span>(--s3); }
+
+<span class="hljs-comment">/* ===== Подвал ===== */</span>
+<span class="hljs-selector-tag">footer</span> {
+    <span class="hljs-attribute">margin-top</span>: <span class="hljs-number">48px</span>;
+    <span class="hljs-attribute">padding-top</span>: <span class="hljs-built_in">var</span>(--s3);
+    <span class="hljs-attribute">border-top</span>: <span class="hljs-number">1px</span> solid <span class="hljs-built_in">var</span>(--cvet-ramka);
+    <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--cvet-tihii);
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">14px</span>;
+}
+<span class="hljs-selector-tag">footer</span> <span class="hljs-selector-tag">a</span> { <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--cvet-osnovnoy); }
+
+<span class="hljs-comment">/* ===== Планшет ===== */</span>
+<span class="hljs-keyword">@media</span> (<span class="hljs-attribute">min-width</span>: <span class="hljs-number">640px</span>) {
+    <span class="hljs-selector-class">.katalog</span> { <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-built_in">repeat</span>(<span class="hljs-number">2</span>, <span class="hljs-number">1</span>fr); }
+    <span class="hljs-selector-class">.filtry</span> <span class="hljs-selector-tag">fieldset</span> { <span class="hljs-attribute">flex-direction</span>: row; <span class="hljs-attribute">flex-wrap</span>: wrap; <span class="hljs-attribute">align-items</span>: flex-end; }
+    <span class="hljs-selector-class">.filtry</span> <span class="hljs-selector-tag">input</span>, <span class="hljs-selector-class">.filtry</span> <span class="hljs-selector-tag">select</span> { <span class="hljs-attribute">width</span>: auto; }
+    <span class="hljs-selector-class">.tovar</span> <span class="hljs-selector-tag">button</span> { <span class="hljs-attribute">width</span>: auto; }
+}
+
+<span class="hljs-comment">/* ===== Компьютер ===== */</span>
+<span class="hljs-keyword">@media</span> (<span class="hljs-attribute">min-width</span>: <span class="hljs-number">960px</span>) {
+    <span class="hljs-selector-tag">header</span> {
+        <span class="hljs-attribute">flex-direction</span>: row;
+        <span class="hljs-attribute">justify-content</span>: space-between;
+        <span class="hljs-attribute">align-items</span>: center;
+        <span class="hljs-attribute">flex-wrap</span>: wrap;
+    }
+    <span class="hljs-selector-class">.logo</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">30px</span>; }
+    <span class="hljs-selector-class">.katalog</span> { <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-built_in">repeat</span>(auto-fill, <span class="hljs-built_in">minmax</span>(<span class="hljs-number">250px</span>, <span class="hljs-number">1</span>fr)); }
+}
+</code></pre></section><section class="vrezka v-ekran"><div class="vrezka-shapka"><span class="vrezka-podpis">На экране</span><span class="vrezka-zagolovok">На экране</span></div><p>Весь путь одной картинкой — от голого HTML до готового магазина:</p><p><img src="img/13-do-posle.png" alt="Путь от голого HTML до готового магазина"></p><p>Ещё раз, потому что это важно: <strong>HTML почти не менялся.</strong> Мы добавили пару классов
+и обёрток. Всё превращение сделал CSS.</p></section><section class="vrezka v-grabli"><div class="vrezka-shapka"><span class="vrezka-podpis">Грабли</span><span class="vrezka-zagolovok">Грабли</span></div><p><strong>Переменные не в <code>:root</code>.</strong> Объявите их внутри какого-нибудь класса — и они будут
+видны только там. Всегда <code>:root</code>.</p><p><strong>Забыть два дефиса.</strong> <code>--cvet: red;</code> — правильно. <code>-cvet</code> или <code>cvet</code> — не сработает.</p><p><strong>Подключить десять начертаний шрифта.</strong> Каждое — отдельный файл. Сайт станет
+заметно медленнее. Хватит трёх.</p><p><strong>Шрифт без кириллицы.</strong> Проверяйте на Google Fonts фильтром Cyrillic.</p><p><strong>Слишком много всего.</strong> Пять цветов, четыре шрифта, тени на всём, градиенты,
+анимации везде. Хороший интерфейс — сдержанный.</p><p><strong>Забыть про пустое состояние.</strong> Первый же покупатель отфильтрует так, что ничего
+не найдётся, и увидит белый экран.</p></section><section class="vrezka v-zadachi"><div class="vrezka-shapka"><span class="vrezka-podpis">Задачи</span><span class="vrezka-zagolovok">Задачи</span></div><p><strong>Задача 13.1.</strong> Переведите свой <code>style.css</code> на переменные. Все цвета, отступы
+и скругления — в <code>:root</code>.</p><p><strong>Задача 13.2.</strong> Поменяйте фирменный цвет магазина на другой, изменив <strong>одну</strong>
+строчку. Убедитесь, что перекрасилось всё.</p><p><strong>Задача 13.3.</strong> Подключите шрифт с Google Fonts. Обязательно проверьте
+поддержку кириллицы.</p><p><strong>Задача 13.4.</strong> Сделайте состояние «ничего не найдено» с кнопкой возврата.
+Чтобы увидеть, временно закомментируйте товары.</p><p><strong>Задача 13.5.</strong> Проверьте свои отступы. Все ли кратны 8? Найдите и почините
+случайные значения.</p><p><strong>Задача 13.6.</strong> Проверьте контраст текста на <code>webaim.org/resources/contrastchecker</code>.
+Основной текст должен набрать не меньше 4.5:1.</p><p><strong>Задача 13.7.</strong> Сделайте три цветовые схемы своего магазина, меняя только
+переменные. Сохраните как три варианта и выберите лучшую.</p><p><strong>Задача 13.8.</strong> Покажите сайт трём людям, которые не программируют. Задайте
+каждому три вопроса: что это за сайт? как найти товар? как купить? Записывайте,
+где они запинаются.</p><p>Это называется <strong>юзабилити-тест</strong>, и он работает лучше любой теории. Три человека
+находят большинство проблем.</p><p><em>Ответы — в <a href="../prilozheniya/G-otvety.md">Приложении Г</a>.</em></p></section><section class="vrezka v-vboyu"><div class="vrezka-shapka"><span class="vrezka-podpis">В бою</span><span class="vrezka-zagolovok">В бою</span></div><p>В <code>assets/css/custom.css</code> вы найдёте те же приёмы: переменные наверху файла,
+кратные отступы, состояния для пустого каталога.</p><p>Обратите внимание на одну боевую деталь: у карточек товаров задана
+<strong>минимальная высота</strong>. Причина простая — названия запчастей бывают очень разной
+длины («Колодки Bosch» и «Комплект сцепления Sachs 3000 951 081 в сборе»),
+и без минимальной высоты сетка выглядела рвано.</p><p>Такие вещи невозможно предусмотреть заранее. Они находятся, когда в каталог
+заливают настоящие данные. <strong>Верстайте на реальных, а не на придуманных данных</strong> —
+это сэкономит вам переделку.</p></section><section class="vrezka v-itog"><div class="vrezka-shapka"><span class="vrezka-podpis">Итог</span><span class="vrezka-zagolovok">Итог</span></div><ul>
+<li><strong>Переменные</strong> в <code>:root</code> через <code>--imya</code> и <code>var(--imya)</code>. Меняете один раз —
+перекрашивается всё.</li>
+<li>Имена переменных — <strong>по роли</strong>, а не по цвету.</li>
+<li>Шрифт с Google Fonts, обязательно с кириллицей. <strong>Максимум два</strong> шрифта,
+три начертания.</li>
+<li>Отступы <strong>кратны 8</strong>. Цветов <strong>3-4</strong>. Размеров шрифта <strong>4-5</strong>.</li>
+<li><strong>Воздуха больше</strong>, чем кажется нужным.</li>
+<li>Контраст текста не ниже 4.5:1.</li>
+<li>Обязательно сделайте состояния: <strong>пусто</strong>, <strong>загрузка</strong>, <strong>ошибка</strong>.
+Каждое должно подсказывать, что делать.</li>
+<li>Верстайте на настоящих данных, а не на «Товар 1, Товар 2».</li>
+</ul><p><strong>Часть III закончена.</strong> У вас есть красивый адаптивный магазин. Но он
+неподвижен: кнопки ничего не делают, поиск не ищет.</p><p>Со следующей главы начинается JavaScript — и страница оживёт.</p></section></div></article>
 
 <footer class="konec">
   <div class="konec-znak">§</div>

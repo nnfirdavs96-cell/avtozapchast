@@ -1,0 +1,57 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<style>
+@font-face{font-family:'Unb';font-weight:700;src:url(../../tools/node_modules/@fontsource/unbounded/files/unbounded-cyrillic-700-normal.woff2) format('woff2');}
+@font-face{font-family:'Spe';font-weight:400;src:url(../../tools/node_modules/@fontsource/spectral/files/spectral-cyrillic-400-normal.woff2) format('woff2');}
+@font-face{font-family:'Spe';font-weight:600;src:url(../../tools/node_modules/@fontsource/spectral/files/spectral-cyrillic-600-normal.woff2) format('woff2');}
+@font-face{font-family:'JB';font-weight:400;src:url(../../tools/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-cyrillic-400-normal.woff2) format('woff2');}
+:root{--bum:#FBF7F0;--ram:#E3D8C6;--chern:#221E1A;--prig:#6E6459;--rzh:#B5411F;--hv:#14584F;--oh:#A8710C;--mor:#1B4F79}
+*{box-sizing:border-box;margin:0}
+body{width:1120px;background:var(--bum);font-family:'Spe',Georgia,serif;color:var(--chern);padding:38px 40px}
+.tit{font-family:'Unb';font-weight:700;font-size:27px;letter-spacing:-.03em;margin-bottom:8px}
+.pod{font-size:19px;color:var(--prig);margin-bottom:30px}
+.ryad{display:grid;grid-template-columns:520px 1fr;gap:44px;align-items:start}
+.m{background:#F3DCC9;padding:44px;border-radius:6px;position:relative}
+.b{border:14px solid #D8B98A;position:relative}
+.p{background:#DCEAE5;padding:38px;position:relative}
+.c{background:#fff;border:1px solid var(--ram);padding:24px 20px;text-align:center;font-size:19px}
+.mtk{position:absolute;font-family:'JB';font-size:14px;font-weight:400;letter-spacing:.04em}
+.m>.mtk{top:9px;left:14px;color:#A05A22}
+.b>.mtk{top:-30px;left:14px;color:#8A6420}
+.p>.mtk{top:8px;left:14px;color:#14584F}
+.spis{display:flex;flex-direction:column;gap:16px}
+.el{display:grid;grid-template-columns:26px 1fr;gap:14px;align-items:start}
+.kv{width:22px;height:22px;border-radius:4px;margin-top:4px}
+.k1{background:#fff;border:1px solid var(--ram)} .k2{background:#DCEAE5}
+.k3{background:#D8B98A} .k4{background:#F3DCC9}
+.im{font-family:'Unb';font-weight:700;font-size:16px;letter-spacing:-.02em;margin-bottom:3px}
+.op{font-size:17px;line-height:1.45;color:#3A342E}
+.op b{font-weight:600}
+.vyvod{margin-top:30px;background:#F4EDE1;border-left:5px solid var(--oh);border-radius:5px;
+  padding:18px 22px;font-size:18px;line-height:1.5}
+.vyvod code{font-family:'JB';font-size:15.5px;background:#fff;border:1px solid var(--ram);border-radius:3px;padding:2px 7px;color:#6B2E14}
+</style></head><body>
+<div class="tit">Блочная модель: четыре слоя каждой коробки</div>
+<div class="pod">Изнутри наружу — и почему <span style="font-family:'JB';font-size:16px">width</span> обманывает</div>
+<div class="ryad">
+  <div class="m"><span class="mtk">margin</span>
+    <div class="b"><span class="mtk">border</span>
+      <div class="p"><span class="mtk">padding</span>
+        <div class="c">содержимое<br><span style="font-size:15px;color:#6E6459">width × height</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="spis">
+    <div class="el"><div class="kv k1"></div><div><div class="im">content — содержимое</div>
+      <div class="op">Текст, картинка, вложенные блоки. Сам товар</div></div></div>
+    <div class="el"><div class="kv k2"></div><div><div class="im">padding — отступ внутри</div>
+      <div class="op">Между содержимым и рамкой. <b>Фон сюда заходит.</b> Пузырчатая плёнка в коробке</div></div></div>
+    <div class="el"><div class="kv k3"></div><div><div class="im">border — рамка</div>
+      <div class="op">Стенки коробки. Толщина, тип, цвет</div></div></div>
+    <div class="el"><div class="kv k4"></div><div><div class="im">margin — отступ снаружи</div>
+      <div class="op">До соседних блоков. <b>Прозрачный</b>, фон сюда не заходит. Расстояние между коробками на складе</div></div></div>
+  </div>
+</div>
+<div class="vyvod"><b>Ловушка:</b> по умолчанию <code>width: 300px</code> — это ширина только содержимого,
+а padding и border добавляются сверху. Итог 344px вместо 300. Лечится одной строчкой:
+<code>* { box-sizing: border-box; }</code> — пишите её первой в каждом проекте.</div>
+</body></html>

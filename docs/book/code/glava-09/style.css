@@ -1,0 +1,106 @@
+/* Сброс: у браузеров разные отступы по умолчанию */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Основа страницы */
+body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #2b2622;
+    background: #faf7f2;
+    padding: 24px;
+}
+
+/* Шапка */
+header {
+    border-bottom: 2px solid #b5411f;
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+}
+
+h1 {
+    font-size: 30px;
+    color: #b5411f;
+}
+
+/* Меню */
+nav ul {
+    list-style: none;
+    display: flex;
+    gap: 20px;
+    margin: 12px 0;
+}
+
+nav a {
+    color: #2b2622;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+nav a:hover {
+    color: #b5411f;
+}
+
+/* Карточка товара */
+.tovar {
+    background: white;
+    border: 1px solid #e3d8c6;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.tovar h3 {
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+
+.artikul {
+    color: #7c7166;
+    font-size: 14px;
+}
+
+.cena {
+    font-size: 22px;
+    color: #b5411f;
+    margin: 8px 0;
+}
+
+.nalichie {
+    color: #14584f;
+    font-size: 14px;
+}
+
+/* Нет в наличии — приглушаем */
+.nalichie.nety {
+    color: #9a9088;
+}
+
+/* Кнопки */
+button {
+    background: #b5411f;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+button:hover {
+    background: #8f3418;
+}
+
+/* Подвал */
+footer {
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px solid #e3d8c6;
+    color: #7c7166;
+    font-size: 14px;
+}

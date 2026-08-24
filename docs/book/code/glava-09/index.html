@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Автозапчасти Firdavs — запчасти в Худжанде</title>
+    <link rel="stylesheet" href="style.css">
+    <meta name="description" content="Автозапчасти для японских и немецких
+          автомобилей в Худжанде. Доставка по Таджикистану.">
+</head>
+<body>
+
+<!-- Шапка -->
+<header>
+    <h1>Автозапчасти Firdavs</h1>
+    <p>Запчасти для японских и немецких авто &mdash; Худжанд</p>
+
+    <nav>
+        <ul>
+            <li><a href="/">Главная</a></li>
+            <li><a href="/catalog">Каталог</a></li>
+            <li><a href="/delivery">Доставка</a></li>
+            <li><a href="/contacts">Контакты</a></li>
+        </ul>
+    </nav>
+
+    <form action="/search" method="GET">
+        <label for="q">Поиск по каталогу</label>
+        <input type="search" id="q" name="q" placeholder="Название или артикул">
+        <button type="submit">Найти</button>
+    </form>
+</header>
+<!-- /Шапка -->
+
+<main>
+    <h2>Каталог запчастей</h2>
+
+    <!-- Фильтры -->
+    <form action="/catalog" method="GET">
+        <fieldset>
+            <legend>Подобрать</legend>
+
+            <label for="brand">Бренд</label>
+            <select id="brand" name="brand">
+                <option value="">Все</option>
+                <option value="bosch">Bosch</option>
+                <option value="mann">Mann</option>
+                <option value="denso">Denso</option>
+                <option value="brembo">Brembo</option>
+            </select>
+
+            <label for="min">Цена от</label>
+            <input type="number" id="min" name="min" min="0" placeholder="0">
+
+            <label for="max">до</label>
+            <input type="number" id="max" name="max" min="0" placeholder="5000">
+
+            <button type="submit">Показать</button>
+        </fieldset>
+    </form>
+    <!-- /Фильтры -->
+
+    <!-- Товары -->
+    <article class="tovar">
+        <h3>Тормозные колодки Bosch</h3>
+        <p class="artikul">Артикул: <code>0986424815</code></p>
+        <p class="cena"><strong>250</strong>&nbsp;сомони</p>
+        <p class="nalichie">В наличии: 7&nbsp;шт.</p>
+        <form action="/cart.php" method="POST">
+            <input type="hidden" name="tovar_id" value="1">
+            <button type="submit">В корзину</button>
+        </form>
+    </article>
+
+    <article class="tovar">
+        <h3>Масляный фильтр Mann W71280</h3>
+        <p class="artikul">Артикул: <code>W71280</code></p>
+        <p class="cena"><strong>45</strong>&nbsp;сомони</p>
+        <p class="nalichie">В наличии: 23&nbsp;шт.</p>
+        <form action="/cart.php" method="POST">
+            <input type="hidden" name="tovar_id" value="2">
+            <button type="submit">В корзину</button>
+        </form>
+    </article>
+
+    <article class="tovar">
+        <h3>Свечи зажигания Denso</h3>
+        <p class="artikul">Артикул: <code>IK20</code></p>
+        <p class="cena"><strong>120</strong>&nbsp;сомони</p>
+        <p class="nalichie nety">Под заказ, 5&nbsp;дней</p>
+        <form action="/cart.php" method="POST">
+            <input type="hidden" name="tovar_id" value="3">
+            <button type="submit">В корзину</button>
+        </form>
+    </article>
+
+    <article class="tovar">
+        <h3>Тормозные диски Brembo</h3>
+        <p class="artikul">Артикул: <code>09.9468.11</code></p>
+        <p class="cena"><strong>780</strong>&nbsp;сомони</p>
+        <p class="nalichie">В наличии: 2&nbsp;шт.</p>
+        <form action="/cart.php" method="POST">
+            <input type="hidden" name="tovar_id" value="4">
+            <button type="submit">В корзину</button>
+        </form>
+    </article>
+
+    <article class="tovar">
+        <h3>Воздушный фильтр Mann C25114</h3>
+        <p class="artikul">Артикул: <code>C25114</code></p>
+        <p class="cena"><strong>65</strong>&nbsp;сомони</p>
+        <p class="nalichie">В наличии: 14&nbsp;шт.</p>
+        <form action="/cart.php" method="POST">
+            <input type="hidden" name="tovar_id" value="5">
+            <button type="submit">В корзину</button>
+        </form>
+    </article>
+
+    <article class="tovar">
+        <h3>Аккумулятор Bosch S4 60Ah</h3>
+        <p class="artikul">Артикул: <code>0092S40050</code></p>
+        <p class="cena"><strong>950</strong>&nbsp;сомони</p>
+        <p class="nalichie">В наличии: 4&nbsp;шт.</p>
+        <form action="/cart.php" method="POST">
+            <input type="hidden" name="tovar_id" value="6">
+            <button type="submit">В корзину</button>
+        </form>
+    </article>
+    <!-- /Товары -->
+</main>
+
+<!-- Подвал -->
+<footer>
+    <h2>Контакты</h2>
+    <p>Худжанд, ул. Ленина&nbsp;15<br>
+       Телефон: <a href="tel:+992927777777">+992&nbsp;92&nbsp;777&nbsp;77&nbsp;77</a><br>
+       Почта: <a href="mailto:info@autodoc.tj">info@autodoc.tj</a></p>
+
+    <h3>Режим работы</h3>
+    <ul>
+        <li>Пн&ndash;Пт: 9:00&ndash;18:00</li>
+        <li>Сб: 9:00&ndash;14:00</li>
+        <li>Вс: выходной</li>
+    </ul>
+
+    <p><small>&copy; 2026 Автозапчасти Firdavs</small></p>
+</footer>
+<!-- /Подвал -->
+
+</body>
+</html>
