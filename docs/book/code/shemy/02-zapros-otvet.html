@@ -1,0 +1,71 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<style>
+@font-face{font-family:'Unb';font-weight:700;src:url(../../tools/node_modules/@fontsource/unbounded/files/unbounded-cyrillic-700-normal.woff2) format('woff2');}
+@font-face{font-family:'Spe';font-weight:400;src:url(../../tools/node_modules/@fontsource/spectral/files/spectral-cyrillic-400-normal.woff2) format('woff2');}
+@font-face{font-family:'Spe';font-weight:600;src:url(../../tools/node_modules/@fontsource/spectral/files/spectral-cyrillic-600-normal.woff2) format('woff2');}
+@font-face{font-family:'JB';font-weight:400;src:url(../../tools/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-cyrillic-400-normal.woff2) format('woff2');}
+:root{--bum:#FBF7F0;--bum2:#F4EDE1;--ram:#E3D8C6;--chern:#221E1A;--prig:#6E6459;--rzh:#B5411F;--hv:#14584F;--oh:#A8710C;--mor:#1B4F79}
+*{box-sizing:border-box;margin:0}
+body{width:1120px;background:var(--bum);font-family:'Spe',Georgia,serif;color:var(--chern);padding:38px 40px 34px}
+.tit{font-family:'Unb';font-weight:700;font-size:27px;letter-spacing:-.03em;margin-bottom:8px}
+.pod{font-size:19px;color:var(--prig);margin-bottom:32px}
+.shag{display:grid;grid-template-columns:52px 1fr;gap:20px;padding:16px 0;border-bottom:1.5px solid var(--ram)}
+.shag:last-of-type{border-bottom:0}
+.n{font-family:'Unb';font-weight:700;font-size:21px;color:#fff;background:var(--rzh);
+   width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.shag.otv .n{background:var(--hv)}
+.im{font-family:'Unb';font-weight:700;font-size:19px;letter-spacing:-.02em;margin-bottom:5px}
+.op{font-size:18px;line-height:1.5;color:#3A342E}
+.op code{font-family:'JB';font-size:15.5px;background:var(--bum2);border:1px solid var(--ram);
+  border-radius:3px;padding:2px 7px;color:#6B2E14}
+.kto{display:inline-block;font-family:'Unb';font-weight:700;font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;padding:4px 10px;border-radius:3px;color:#fff;margin-left:10px;vertical-align:2px}
+.k-br{background:var(--mor)} .k-dns{background:var(--oh)} .k-srv{background:var(--rzh)}
+.vyvod{margin-top:26px;background:var(--bum2);border-left:5px solid var(--oh);border-radius:5px;
+  padding:18px 22px;font-size:18.5px;line-height:1.5}
+.vyvod b{font-weight:600}
+</style></head><body>
+
+<div class="tit">Что происходит между вашим Enter и картинкой на экране</div>
+<div class="pod">Одно письмо туда, одно обратно — и десяток шагов между ними</div>
+
+<div class="shag">
+  <div class="n">1</div>
+  <div><div class="im">Разбирает адрес<span class="kto k-br">браузер</span></div>
+  <div class="op">Делит <code>https://autodoc.tj/catalog</code> на протокол, домен и путь</div></div>
+</div>
+<div class="shag">
+  <div class="n">2</div>
+  <div><div class="im">Спрашивает номер дома<span class="kto k-dns">DNS</span></div>
+  <div class="op">«Какой IP у autodoc.tj?» — «185.12.94.7». Справочник интернета</div></div>
+</div>
+<div class="shag">
+  <div class="n">3</div>
+  <div><div class="im">Стучится и договаривается о шифровании<span class="kto k-br">браузер</span></div>
+  <div class="op">Тот самый замочек в адресной строке появляется здесь</div></div>
+</div>
+<div class="shag">
+  <div class="n">4</div>
+  <div><div class="im">Отправляет запрос<span class="kto k-br">браузер</span></div>
+  <div class="op"><code>GET /catalog HTTP/1.1</code> — «покажи, пожалуйста, каталог»</div></div>
+</div>
+<div class="shag otv">
+  <div class="n">5</div>
+  <div><div class="im">Думает<span class="kto k-srv">сервер</span></div>
+  <div class="op">PHP идёт в базу через SQL, забирает товары и собирает HTML. 20–200 мс</div></div>
+</div>
+<div class="shag otv">
+  <div class="n">6</div>
+  <div><div class="im">Отвечает<span class="kto k-srv">сервер</span></div>
+  <div class="op"><code>200 OK</code> и готовый HTML. Или <code>404</code>, если такого адреса нет</div></div>
+</div>
+<div class="shag otv">
+  <div class="n">7</div>
+  <div><div class="im">Рисует страницу и просит остальное<span class="kto k-br">браузер</span></div>
+  <div class="op">За каждым стилем, скриптом и картинкой уходит <b>отдельный запрос</b>. Их бывает 30–80</div></div>
+</div>
+
+<div class="vyvod"><b>Где обычно ломается:</b> шаг 2 — домен куплен, но не настроен, сайт «не открывается».
+Шаг 5 — ошибка в вашем коде, приходит <b>500</b>. Шаг 6 — опечатка в адресе, приходит <b>404</b>.</div>
+
+</body></html>
