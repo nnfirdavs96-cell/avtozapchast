@@ -66,7 +66,7 @@ $whereSQL = 'WHERE ' . implode(' AND ', $where);
 // Считаем КАРТОЧКИ, а не предложения: иначе «найдено 120 товаров», а на страницах
 // их 80 — пагинация разъедется. brands/categories тут не нужны, условия смотрят
 // только на parts.
-$src = partsBuyBoxSource($whereSQL, $db);
+$src = partsBuyBoxSource($whereSQL, $db, '', true);
 $countStmt = $db->prepare("SELECT COUNT(*) FROM $src");
 $countStmt->execute($params);
 $total      = (int)$countStmt->fetchColumn();
