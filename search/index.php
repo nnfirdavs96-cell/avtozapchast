@@ -14,6 +14,8 @@ if ($q !== '' && preg_match('/^[A-HJ-NPR-Z0-9]{17}$/i', $q)) {
 
 $pageTitle = t('search') . ($q ? ': ' . $q : '') . ' — ' . getSetting('site_name');
 
+require_once dirname(__DIR__) . '/includes/parts/grouping.php';
+
 $db     = getDB();
 $where  = ['p.is_active=1', "(p.seller_id IS NULL OR p.moderation_status='active')"];
 $params = [];
@@ -26,14 +28,18 @@ if ($q !== '') {
 if ($catId) { $where[] = 'p.category_id=?'; $params[] = $catId; }
 
 $whereSql = 'WHERE ' . implode(' AND ', $where);
-$join     = "FROM parts p LEFT JOIN brands b ON b.id=p.brand_id LEFT JOIN categories c ON c.id=p.category_id";
 
-$total  = (int)$db->prepare("SELECT COUNT(*) $join $whereSql")->execute($params) ? 0 : 0;
-$cStmt  = $db->prepare("SELECT COUNT(*) $join $whereSql"); $cStmt->execute($params); $total = (int)$cStmt->fetchColumn();
+// brands джойним ВНУТРИ источника: поиск фильтрует по названию бренда (b.name),
+// значит таблица нужна ещё до отбора победителя. categories — снаружи, она нужна
+// только для вывода.
+$src   = partsBuyBoxSource($whereSql, $db, "LEFT JOIN brands b ON b.id=p.brand_id");
+$join  = "FROM $src LEFT JOIN brands b ON b.id=p.brand_id LEFT JOIN categories c ON c.id=p.category_id";
+
+$cStmt  = $db->prepare("SELECT COUNT(*) FROM $src"); $cStmt->execute($params); $total = (int)$cStmt->fetchColumn();
 $pages  = max(1, ceil($total / $perPage));
 $offset = ($page-1) * $perPage;
 
-$dStmt  = $db->prepare("SELECT p.*, b.name AS brand_name, c.name AS category_name $join $whereSql ORDER BY p.name LIMIT $perPage OFFSET $offset");
+$dStmt  = $db->prepare("SELECT p.*, b.name AS brand_name, c.name AS category_name $join ORDER BY p.name LIMIT $perPage OFFSET $offset");
 $dStmt->execute($params);
 $parts  = $dStmt->fetchAll();
 

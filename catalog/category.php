@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
+require_once dirname(__DIR__) . '/includes/parts/grouping.php';
 
 $slug = trim($_GET['slug'] ?? '');
 if (!$slug) {
@@ -43,7 +44,10 @@ $priceMin = (float)($_GET['price_min'] ?? 0);
 $priceMax = (float)($_GET['price_max'] ?? 0);
 
 // Build WHERE
-$where  = ["p.is_active = 1", "p.category_id IN ($inPlaces)"];
+// Модерация: без этого условия страница категории показывала неодобренные
+// листинги продавцов — в каталоге и поиске условие есть, а здесь его не было.
+$where  = ["p.is_active = 1", "(p.seller_id IS NULL OR p.moderation_status = 'active')",
+           "p.category_id IN ($inPlaces)"];
 $params = $allCatIds;
 
 if ($brandId) {
@@ -64,13 +68,9 @@ if ($priceMax > 0) {
 
 $whereSQL = 'WHERE ' . implode(' AND ', $where);
 
-// Count
-$countStmt = $db->prepare(
-    "SELECT COUNT(*) FROM parts p
-     LEFT JOIN brands b ON b.id = p.brand_id
-     LEFT JOIN categories c ON c.id = p.category_id
-     $whereSQL"
-);
+// Count — по карточкам, а не по предложениям (см. catalog/index.php)
+$src = partsBuyBoxSource($whereSQL, $db);
+$countStmt = $db->prepare("SELECT COUNT(*) FROM $src");
 $countStmt->execute($params);
 $total      = (int)$countStmt->fetchColumn();
 $totalPages = max(1, (int)ceil($total / $perPage));
@@ -88,10 +88,9 @@ $orderSQL = $orderMap[$sort] ?? 'p.created_at DESC';
 // Products
 $partsStmt = $db->prepare(
     "SELECT p.*, b.name AS brand_name, c.name AS category_name
-     FROM parts p
+     FROM $src
      LEFT JOIN brands b ON b.id = p.brand_id
      LEFT JOIN categories c ON c.id = p.category_id
-     $whereSQL
      ORDER BY $orderSQL
      LIMIT $perPage OFFSET $offset"
 );
@@ -377,6 +376,7 @@ $bcItems[] = ['label' => $catName];
                                                 <?= sanitize($part['brand_name']) ?>
                                             </a>
                                         </p>
+                                        <?= productOffersNote($part) ?>
                                         <h4 class="product_name">
                                             <a href="<?= partUrl($part) ?>">
                                                 <?= sanitize($part['name']) ?>
@@ -413,6 +413,7 @@ $bcItems[] = ['label' => $catName];
                                                 <?= sanitize($part['brand_name']) ?>
                                             </a>
                                         </p>
+                                        <?= productOffersNote($part) ?>
                                         <h4 class="product_name">
                                             <a href="<?= partUrl($part) ?>">
                                                 <?= sanitize($part['name']) ?>
@@ -486,6 +487,7 @@ $bcItems[] = ['label' => $catName];
                                                 <?= sanitize($part['brand_name']) ?>
                                             </a>
                                         </p>
+                                        <?= productOffersNote($part) ?>
                                         <h4 class="product_name">
                                             <a href="<?= partUrl($part) ?>">
                                                 <?= sanitize(truncate($part['name'], 55)) ?>
@@ -522,6 +524,7 @@ $bcItems[] = ['label' => $catName];
                                                 <?= sanitize($part['brand_name']) ?>
                                             </a>
                                         </p>
+                                        <?= productOffersNote($part) ?>
                                         <h4 class="product_name">
                                             <a href="<?= partUrl($part) ?>">
                                                 <?= sanitize($part['name']) ?>

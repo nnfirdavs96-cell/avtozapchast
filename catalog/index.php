@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
+require_once dirname(__DIR__) . '/includes/parts/grouping.php';
 
 $db = getDB();
 
@@ -62,12 +63,11 @@ if ($priceMax > 0) {
 $whereSQL = 'WHERE ' . implode(' AND ', $where);
 
 // ── Count ───────────────────────────────────────────────────────────────────
-$countStmt = $db->prepare(
-    "SELECT COUNT(*) FROM parts p
-     LEFT JOIN brands b ON b.id = p.brand_id
-     LEFT JOIN categories c ON c.id = p.category_id
-     $whereSQL"
-);
+// Считаем КАРТОЧКИ, а не предложения: иначе «найдено 120 товаров», а на страницах
+// их 80 — пагинация разъедется. brands/categories тут не нужны, условия смотрят
+// только на parts.
+$src = partsBuyBoxSource($whereSQL, $db);
+$countStmt = $db->prepare("SELECT COUNT(*) FROM $src");
 $countStmt->execute($params);
 $total      = (int)$countStmt->fetchColumn();
 $totalPages = max(1, (int)ceil($total / $perPage));
@@ -90,10 +90,9 @@ $orderSQL = $orderMap[$sort] ?? 'p.created_at DESC';
 // ── Products ────────────────────────────────────────────────────────────────
 $partsStmt = $db->prepare(
     "SELECT p.*, b.name AS brand_name, c.name AS category_name
-     FROM parts p
+     FROM $src
      LEFT JOIN brands b ON b.id = p.brand_id
      LEFT JOIN categories c ON c.id = p.category_id
-     $whereSQL
      ORDER BY $orderSQL
      LIMIT $perPage OFFSET $offset"
 );
@@ -420,6 +419,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                 <?= sanitize($part['brand_name']) ?>
                                             </a>
                                         </p>
+                                        <?= productOffersNote($part) ?>
                                         <h4 class="product_name">
                                             <a href="<?= partUrl($part) ?>">
                                                 <?= sanitize($part['name']) ?>
@@ -450,6 +450,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                 <?= sanitize($part['brand_name']) ?>
                                             </a>
                                         </p>
+                                        <?= productOffersNote($part) ?>
                                         <h4 class="product_name">
                                             <a href="<?= partUrl($part) ?>">
                                                 <?= sanitize($part['name']) ?>
@@ -520,6 +521,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                 <?= sanitize($part['brand_name']) ?>
                                             </a>
                                         </p>
+                                        <?= productOffersNote($part) ?>
                                         <h4 class="product_name">
                                             <a href="<?= partUrl($part) ?>">
                                                 <?= sanitize(truncate($part['name'], 55)) ?>
@@ -550,6 +552,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                 <?= sanitize($part['brand_name']) ?>
                                             </a>
                                         </p>
+                                        <?= productOffersNote($part) ?>
                                         <h4 class="product_name">
                                             <a href="<?= partUrl($part) ?>">
                                                 <?= sanitize($part['name']) ?>

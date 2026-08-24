@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
+require_once dirname(__DIR__) . '/includes/parts/grouping.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -13,12 +14,19 @@ if (mb_strlen($q) < 2) {
 try {
     $db    = getDB();
     $param = '%' . $q . '%';
+    // Модерация: без этого условия немодерированные листинги продавцов утекали в
+    // подсказки поиска — товар ещё не одобрен, а его название уже видно всем.
+    // Группировка — чтобы один товар от трёх продавцов не занял три строки из восьми.
+    $src   = partsBuyBoxSource(
+        "WHERE p.is_active = 1
+           AND (p.seller_id IS NULL OR p.moderation_status = 'active')
+           AND (p.name LIKE ? OR p.part_number LIKE ?)",
+        $db
+    );
     $stmt  = $db->prepare(
         "SELECT p.id, p.part_number, p.name, p.price, b.name AS brand_name
-         FROM parts p
+         FROM $src
          LEFT JOIN brands b ON b.id = p.brand_id
-         WHERE p.is_active = 1
-           AND (p.name LIKE ? OR p.part_number LIKE ?)
          ORDER BY
            CASE WHEN p.part_number = ? THEN 0
                 WHEN p.part_number LIKE ? THEN 1

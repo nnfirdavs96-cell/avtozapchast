@@ -68,6 +68,127 @@ function partsFamilyKeyExpr(string $alias = 'p'): string
 }
 
 /**
+ * Правило buy-box: чьё предложение показывать покупателю.
+ *
+ * «Сначала в наличии, среди них — дешевле». Намеренно совпадает с правилом для
+ * предложений поставщика (`AutoEuroPriceProvider::offersByOem`): покупатель не
+ * должен видеть на одной витрине две разные логики выбора. `id` в конце — чтобы
+ * при равных цене и наличии порядок был устойчивым и карточка не «прыгала»
+ * между обновлениями страницы.
+ */
+function partsBuyBoxOrder(string $alias = 'p'): string
+{
+    return "($alias.stock > 0) DESC, $alias.price ASC, $alias.id ASC";
+}
+
+/**
+ * Поддерживает ли сервер оконные функции (MySQL 8+, MariaDB 10.2+)?
+ *
+ * Проверяем пробным запросом, а не разбором VERSION(): строка версии у разных
+ * сборок выглядит по-разному, а пробник отвечает на реальный вопрос — выполнится
+ * запрос или нет. Результат кэшируется на время запроса.
+ */
+function dbSupportsWindowFunctions(?PDO $db = null): bool
+{
+    static $ok = null;
+    if ($ok !== null) return $ok;
+    try {
+        ($db ?: getDB())->query("SELECT ROW_NUMBER() OVER (ORDER BY 1) AS rn")->fetchColumn();
+        $ok = true;
+    } catch (Throwable $e) { $ok = false; }
+    return $ok;
+}
+
+/**
+ * Источник товаров для витрины: по одному ПОБЕДИТЕЛЮ на карточку.
+ *
+ * Возвращает подзапрос под псевдонимом `p`, которым заменяется `FROM parts p` —
+ * поэтому все существующие условия, сортировки и джойны в вызывающем коде
+ * продолжают работать без правок.
+ *
+ * Два уровня отбора, и оба нужны:
+ *   1) один товар от одного ПРОДАВЦА на карточку. Продавец не может конкурировать
+ *      сам с собой: два его предложения на один артикул — это дубль в данных, а не
+ *      выбор для покупателя. Ровно так устроены Ozon и Amazon;
+ *   2) среди оставшихся — победитель по правилу buy-box.
+ *
+ * Добавляет две колонки: `card_key` (номер карточки) и `offers_count` (сколько
+ * ПРОДАВЦОВ предлагают этот товар — по нему рисуется «ещё N предложений»).
+ *
+ * Фильтры применяются ДО группировки: карточка попадает в выдачу, если условию
+ * отвечает хотя бы одно её предложение. Иначе фильтр «в наличии» прятал бы товар,
+ * у которого нужный товар есть у второго продавца.
+ *
+ * $joins — джойны, нужные САМОМУ условию отбора (например поиск по названию бренда
+ * фильтрует по `b.name`, значит brands надо присоединить внутри). Джойны ради полей
+ * для вывода вешайте снаружи, на результат: тогда они отработают по одной строке на
+ * карточку, а не по каждому предложению.
+ *
+ * Если сервер не умеет оконные функции — отдаёт плоский список, как было до
+ * buy-box. Витрина продолжит работать, просто без группировки.
+ */
+function partsBuyBoxSource(string $whereSQL, ?PDO $db = null, string $joins = ''): string
+{
+    $card = 'COALESCE(p.product_id, p.id)';
+
+    if (!dbSupportsWindowFunctions($db)) {
+        // Запасной путь: прежнее поведение плюс те же колонки, чтобы вызывающий
+        // код был одинаковым в обоих случаях.
+        return "(SELECT p.*, $card AS card_key, 1 AS offers_count FROM parts p $joins $whereSQL) p";
+    }
+
+    $bbInner = partsBuyBoxOrder('p');
+    $bbOuter = partsBuyBoxOrder('w');
+
+    return "(
+        SELECT s.* FROM (
+            SELECT w.*,
+                   ROW_NUMBER() OVER (PARTITION BY w.card_key ORDER BY $bbOuter) AS rn_card,
+                   COUNT(*)     OVER (PARTITION BY w.card_key)                   AS offers_count
+              FROM (
+                SELECT p.*, $card AS card_key,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY $card, COALESCE(p.seller_id, 0)
+                           ORDER BY $bbInner
+                       ) AS rn_seller
+                  FROM parts p
+                  $joins
+                  $whereSQL
+              ) w
+             WHERE w.rn_seller = 1
+        ) s
+        WHERE s.rn_card = 1
+    ) p";
+}
+
+/**
+ * Дубли: один продавец выложил один и тот же товар дважды.
+ *
+ * Витрина такие прячет (см. отбор выше), поэтому сами по себе они ничего не ломают,
+ * но это ошибка в данных: у одной детали оказываются две разные цены, и какая из
+ * них верная — знает только владелец. Показываем в админке, чтобы почистил.
+ *
+ * Возвращает id проигравших предложений (победитель по buy-box в список не входит).
+ */
+function partsDuplicateOfferIds(PDO $db): array
+{
+    if (!dbSupportsWindowFunctions($db)) return [];
+    $card = 'COALESCE(p.product_id, p.id)';
+    $bb   = partsBuyBoxOrder('p');
+
+    $rows = $db->query(
+        "SELECT id FROM (
+            SELECT p.id, ROW_NUMBER() OVER (
+                       PARTITION BY $card, COALESCE(p.seller_id, 0) ORDER BY $bb
+                   ) AS rn
+              FROM parts p
+         ) d WHERE d.rn > 1"
+    )->fetchAll(PDO::FETCH_COLUMN);
+
+    return array_map('intval', $rows ?: []);
+}
+
+/**
  * Найти номер карточки для «артикул + бренд», если такой товар уже кто-то выложил.
  *
  * Возвращает номер группы или null, если товар первый в своём роде — тогда он сам
