@@ -5,6 +5,7 @@
  */
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/seller.php';
+require_once dirname(__DIR__) . '/includes/parts/grouping.php';
 $seller = requireSeller();
 
 if ($seller['status'] !== 'approved') {
@@ -45,6 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stock = max(0, (int)($_POST['stock'] ?? 0));
         $weight = trim($_POST['weight'] ?? '') !== '' ? (float)str_replace(',', '.', $_POST['weight']) : null;
         $dims   = trim($_POST['dimensions'] ?? '');
+        // Уникальный товар: б/у, разборка, позиция без заводского артикула. Такой
+        // не сводится в общую карточку с чужими — двигатель с разборки от двух
+        // продавцов это два разных товара, а не два предложения на один.
+        $uniq   = !empty($_POST['is_unique_item']);
 
         $existingImgs = json_decode($_POST['existing_images'] ?? '[]', true) ?: [];
         $newImgs      = array_filter(array_map('trim', explode(',', $_POST['new_images'] ?? '')));
@@ -56,11 +61,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($cat <= 0)                 $errors[] = 'Выберите категорию.';
         if ($price <= 0)               $errors[] = 'Укажите цену больше нуля.';
 
-        // Артикул уникален по всей базе (в Фазе 1). Проверяем занятость.
-        if ($pnum !== '' && empty($errors)) {
-            $chk = $db->prepare("SELECT id FROM parts WHERE part_number = ? AND id != ? LIMIT 1");
-            $chk->execute([$pnum, $pid]);
-            if ($chk->fetch()) $errors[] = 'Этот артикул уже используется. Укажите другой (или свяжитесь с поддержкой, если это ваш товар).';
+        // Один и тот же артикул у РАЗНЫХ продавцов — норма, они и должны
+        // конкурировать. Ошибка — когда продавец выкладывает его сам себе дважды:
+        // тогда у одной детали две цены от одного магазина.
+        if ($pnum !== '' && empty($errors)
+            && partsSellerHasArticle($db, $pnum, $brand, $sid, $pid ?: null)) {
+            $errors[] = 'Вы уже выложили товар с этим артикулом и брендом. '
+                      . 'Отредактируйте существующий товар вместо создания второго.';
         }
 
         if (empty($errors)) {
@@ -73,6 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         moderation_status='pending', reject_reason=NULL, updated_at=NOW()
                      WHERE id=? AND seller_id=?"
                 )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $oldP, $stock, $weight, $dims ?: null, $imagesJson, $pid, $sid]);
+                partsApplyGrouping($db, $pid, $pnum, $brand, $uniq);
                 flashMessage('success', 'Товар обновлён и отправлен на проверку.');
             } else {
                 $db->prepare(
@@ -80,6 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         price, old_price, stock, weight, dimensions, images, is_active, moderation_status, created_by, created_at)
                      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1,'pending',?,NOW())"
                 )->execute([$sid, $pnum, $name, $desc ?: null, $brand, $cat, $price, $oldP, $stock, $weight, $dims ?: null, $imagesJson, (int)$_SESSION['user_id']]);
+                // После вставки — уже есть id, поэтому товар не найдёт сам себя.
+                partsApplyGrouping($db, (int)$db->lastInsertId(), $pnum, $brand, $uniq);
                 flashMessage('success', 'Товар добавлен и отправлен на проверку. После одобрения он появится в каталоге.');
             }
             redirect(APP_URL . '/seller/products.php');
@@ -125,6 +135,20 @@ require_once dirname(__DIR__) . '/includes/header.php';
         <label class="sl-field">
           <span>Артикул (номер детали) <b>*</b></span>
           <input type="text" name="part_number" value="<?= sanitize($edit['part_number'] ?? '') ?>" placeholder="Напр.: 90915-YZZE1" required>
+        </label>
+
+        <!-- Уникальный товар не сводится в общую карточку с товарами других
+             продавцов: у б/у детали своё состояние, свой пробег и свои фото —
+             это отдельный товар, а не ещё одно предложение на тот же. -->
+        <label class="sl-check">
+          <input type="checkbox" name="is_unique_item" value="1"
+                 <?= !empty($edit['is_unique_item']) ? 'checked' : '' ?>>
+          <span>
+            <b>Уникальный товар</b> — б/у, разборка или позиция без заводского артикула.
+            <small>Такой товар получит отдельную карточку и не будет объединён с товарами
+            других продавцов. Для новых запчастей с артикулом галочку не ставьте —
+            иначе покупатель не увидит вашу цену рядом с ценами конкурентов.</small>
+          </span>
         </label>
 
         <label class="sl-field">

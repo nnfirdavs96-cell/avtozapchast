@@ -277,6 +277,59 @@ function partsResolveProductId(PDO $db, string $article, ?int $brandId, ?int $ex
 }
 
 /**
+ * Занят ли этот артикул У ЭТОГО ЖЕ ПРОДАВЦА?
+ *
+ * Заменяет прежнюю проверку «артикул уникален по всей базе». Та делала маркетплейс
+ * невозможным: если товар выложил один продавец, второй получал отказ.
+ *
+ * Новое правило: один и тот же артикул у РАЗНЫХ продавцов — это нормально (они и
+ * должны конкурировать), а у ОДНОГО продавца дважды — ошибка. Иначе у одной детали
+ * оказываются две цены от одного магазина, и непонятно, какая настоящая.
+ *
+ * $sellerId = null означает наш собственный каталог — он тоже один «продавец»,
+ * поэтому правило распространяется и на админку.
+ */
+function partsSellerHasArticle(PDO $db, string $article, ?int $brandId,
+                               ?int $sellerId, ?int $excludeId = null): bool
+{
+    $key = partsCanonicalArticle($article);
+    if ($key === '') return false;
+
+    $sql  = "SELECT id FROM parts
+              WHERE part_key = ? AND brand_id <=> ? AND seller_id <=> ?";
+    $args = [$key, $brandId, $sellerId];
+    if ($excludeId) { $sql .= " AND id <> ?"; $args[] = $excludeId; }
+    $sql .= " LIMIT 1";
+
+    $st = $db->prepare($sql);
+    $st->execute($args);
+    return (bool)$st->fetch();
+}
+
+/**
+ * Проставить товару ключи группировки после сохранения.
+ *
+ * Вызывать ПОСЛЕ INSERT/UPDATE — нужен уже существующий id, чтобы товар не нашёл
+ * сам себя при поиске группы.
+ *
+ * Уникальный товар (б/у, разборка, позиция без артикула) в группу не попадает
+ * никогда: `product_id` у него принудительно NULL, и ключ карточки становится его
+ * собственным id.
+ */
+function partsApplyGrouping(PDO $db, int $partId, string $article,
+                            ?int $brandId, bool $isUnique = false): void
+{
+    if ($partId <= 0) return;
+
+    $key       = partsCanonicalArticle($article);
+    $productId = $isUnique ? null : partsResolveProductId($db, $article, $brandId, $partId);
+
+    $db->prepare(
+        "UPDATE parts SET part_key = ?, product_id = ?, is_unique_item = ? WHERE id = ?"
+    )->execute([$key, $productId, $isUnique ? 1 : 0, $partId]);
+}
+
+/**
  * Пересчитать `part_key` и `product_id` по всей базе.
  *
  * Нужна при первом накате (товары заведены до появления группировки) и как

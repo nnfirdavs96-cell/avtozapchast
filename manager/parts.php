@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
+require_once dirname(__DIR__) . '/includes/parts/grouping.php';
 requireRole(['manager', 'admin', 'superadmin']);
 requirePermission('products');
 
@@ -53,13 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$cat)         $errors[] = 'Выберите категорию.';
     if ($price <= 0)   $errors[] = 'Укажите корректную цену (больше 0).';
 
-    // Uniqueness of part_number
-    if (empty($errors)) {
-        $chk = $db->prepare("SELECT id FROM parts WHERE part_number = ? AND id != ? LIMIT 1");
-        $chk->execute([$pnum, $pid]);
-        if ($chk->fetch()) {
-            $errors[] = 'Запчасть с таким артикулом уже существует.';
-        }
+    // Артикул больше не уникален по всей базе: у разных продавцов он и должен
+    // совпадать. Проверяем только НАШ каталог (seller_id IS NULL).
+    if (empty($errors) && partsSellerHasArticle($db, $pnum, $brand, null, $pid ?: null)) {
+        $errors[] = 'Запчасть с таким артикулом и брендом уже есть в нашем каталоге. '
+                  . 'Отредактируйте её вместо создания второй.';
     }
 
     if (empty($errors)) {
@@ -76,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      price=?, cost_price=?, markup_percent=?, stock=?, weight=?, dimensions=?, images=?, updated_at=NOW()
                  WHERE id=?"
             )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $costPrice, $markupPct, $stock, $weight, $dims, $imagesJson, $pid]);
+            partsApplyGrouping($db, $pid, $pnum, $brand, !empty($_POST['is_unique_item']));
             flashMessage('success', 'Запчасть обновлена.');
         } else {
             $db->prepare(
@@ -84,6 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       price, cost_price, markup_percent, stock, weight, dimensions, images, is_active, created_at)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())"
             )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $costPrice, $markupPct, $stock, $weight, $dims, $imagesJson]);
+            partsApplyGrouping($db, (int)$db->lastInsertId(), $pnum, $brand, !empty($_POST['is_unique_item']));
             flashMessage('success', 'Запчасть добавлена.');
         }
         redirect(APP_URL . '/manager/parts.php');
@@ -206,6 +207,16 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                                 <input type="text" name="part_number"
                                        value="<?= sanitize($editPart['part_number'] ?? ($_POST['part_number'] ?? '')) ?>"
                                        placeholder="BKR6EK" required>
+                                <!-- Уникальный товар (б/у, разборка, позиция без
+                                     заводского артикула) не сводится в общую карточку. -->
+                                <label style="display:flex;gap:7px;align-items:flex-start;margin-top:8px;font-weight:400;cursor:pointer;">
+                                    <input type="checkbox" name="is_unique_item" value="1" style="margin-top:3px;width:auto;"
+                                           <?= !empty($editPart['is_unique_item']) ? 'checked' : '' ?>>
+                                    <span style="font-size:.82rem;color:#555;">
+                                        Уникальный товар — б/у или без артикула
+                                        <small style="display:block;color:#999;">не объединяется в общую карточку с товарами продавцов</small>
+                                    </span>
+                                </label>
                             </div>
                             <div class="az-form-group">
                                 <label>Цена продажи (СМН) *</label>
