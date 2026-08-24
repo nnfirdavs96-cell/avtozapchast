@@ -1,0 +1,379 @@
+/* ============================================================
+   «Сайт с нуля» — оформление книги.
+
+   Направление: типографская мастерская. Тёплая бумага, окисленный
+   красный, геометрический гротеск в заголовках против литературной
+   антиквы в тексте. Не документация, а книга, которую держат в руках.
+   ============================================================ */
+
+:root {
+  --bumaga:      #FBF7F0;   /* тёплая бумага */
+  --bumaga-2:    #F4EDE1;   /* подложка блоков */
+  --bumaga-3:    #EDE3D3;   /* рамки и линейки */
+  --chernila:    #221E1A;   /* основной текст */
+  --chernila-2:  #4A423A;   /* второстепенный */
+  --priglush:    #7C7166;   /* подписи */
+  --rzhavy:      #B5411F;   /* акцент: заголовки, цифры, ударения */
+  --rzhavy-tusk: #F0DDD4;   /* его светлая подложка */
+  --hvoya:       #14584F;   /* второй акцент: «зачем», «в бою» */
+  --hvoya-tusk:  #DCEAE5;
+  --ohra:        #A8710C;   /* третий: «разбор по словам» */
+  --ohra-tusk:   #F6E9CE;
+  --tyomny:      #17130F;   /* обложка и блок задач */
+
+  --sherif: 'Spectral', 'PT Serif', Georgia, 'Times New Roman', serif;
+  --grotesk: 'Unbounded', 'Trebuchet MS', system-ui, sans-serif;
+  --mono: 'JBMono', 'DejaVu Sans Mono', 'Courier New', monospace;
+}
+
+/* ---------- база ---------- */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bumaga);
+  color: var(--chernila);
+  font-family: var(--sherif);
+  font-size: 11.6pt;
+  line-height: 1.68;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Зерно бумаги: еле заметная текстура, чтобы фон не был «пластиковым» */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  opacity: .035;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/></filter><rect width='120' height='120' filter='url(%23n)'/></svg>");
+}
+
+p { margin: 0 0 .85em; hyphens: auto; }
+strong { font-weight: 600; color: #171310; }
+em { font-style: italic; }
+a { color: var(--rzhavy); text-decoration: none; border-bottom: 1px solid var(--rzhavy-tusk); }
+
+/* ---------- обложка ---------- */
+
+.oblozhka {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  background: var(--tyomny);
+  color: var(--bumaga);
+  padding: 15vh 9vw 8vh;
+  display: flex; flex-direction: column; justify-content: center;
+  overflow: hidden;
+}
+/* Диагональный «луч» — чтобы обложка не была плоским прямоугольником */
+.oblozhka::after {
+  content: ''; position: absolute; inset: -30% -50% auto auto;
+  width: 90%; height: 160%;
+  background: linear-gradient(200deg, rgba(181,65,31,.30), rgba(181,65,31,0) 62%);
+  transform: rotate(-14deg);
+}
+.oblozhka > * { position: relative; z-index: 2; }
+
+.ob-nadpis {
+  font-family: var(--grotesk); font-weight: 500;
+  font-size: 8.5pt; letter-spacing: .22em; text-transform: uppercase;
+  color: #C9A08C; line-height: 1.9; margin-bottom: 3.2rem;
+}
+.ob-titul {
+  font-family: var(--grotesk); font-weight: 800;
+  font-size: clamp(52px, 13vw, 132px); line-height: .84;
+  letter-spacing: -.045em; margin: 0 0 2.2rem;
+}
+.ob-akcent {
+  color: var(--rzhavy);
+  -webkit-text-stroke: 1.5px var(--rzhavy); color: transparent;
+}
+.ob-podzag {
+  font-size: 15pt; line-height: 1.5; color: #E4D6C6; max-width: 30ch;
+}
+.oblozhka strong { color: #FFF3E4; }
+.ob-liniya {
+  height: 2px; width: 120px; background: var(--rzhavy); margin: 3rem 0 1.6rem;
+}
+.ob-niz {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 2rem; flex-wrap: wrap;
+  font-size: 10pt; color: #A9998A;
+}
+.ob-domen {
+  font-family: var(--mono); font-size: 9.5pt; letter-spacing: .08em; color: #8A7A6C;
+}
+
+/* ---------- содержание ---------- */
+
+.oglavlenie {
+  position: relative; z-index: 1;
+  max-width: 40rem; margin: 0 auto; padding: 4.5rem 1.6rem 3rem;
+}
+.og-titul {
+  font-family: var(--grotesk); font-weight: 700; font-size: 15pt;
+  letter-spacing: -.02em; margin: 0 0 1.8rem;
+  padding-bottom: .7rem; border-bottom: 2px solid var(--rzhavy);
+}
+.og-spisok { list-style: none; margin: 0; padding: 0; }
+.og-spisok li {
+  display: flex; align-items: baseline; gap: 1rem;
+  padding: .5rem 0; border-bottom: 1px solid var(--bumaga-3);
+}
+.og-nomer {
+  font-family: var(--grotesk); font-weight: 700; font-size: 9.5pt;
+  color: var(--rzhavy); min-width: 2.2rem;
+}
+.og-spisok a { color: var(--chernila); border: 0; }
+.og-primechanie { margin-top: 1.6rem; font-size: 10pt; color: var(--priglush); font-style: italic; }
+
+/* ---------- глава ---------- */
+
+.glava {
+  position: relative; z-index: 1;
+  max-width: 40rem; margin: 0 auto; padding: 0 1.6rem 4rem;
+}
+
+.glava-shapka {
+  position: relative;
+  padding: 5.5rem 0 2rem; margin-bottom: 2.4rem;
+  border-bottom: 1px solid var(--bumaga-3);
+}
+.glava-metka {
+  display: flex; align-items: flex-end; gap: .9rem; margin-bottom: 1.4rem;
+}
+.glava-slovo {
+  font-family: var(--grotesk); font-weight: 500;
+  font-size: 8pt; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--priglush); padding-bottom: .95rem;
+}
+.glava-nomer {
+  font-family: var(--grotesk); font-weight: 800;
+  font-size: 62px; line-height: .8; letter-spacing: -.055em;
+  color: var(--rzhavy);
+}
+/* Тонкая линейка добивает строку до правого края — «шмуцтитул» главы */
+.glava-metka::after {
+  content: ''; flex: 1; height: 2px; background: var(--rzhavy);
+  opacity: .22; margin-bottom: .55rem;
+}
+.glava-podpis {
+  font-family: var(--grotesk); font-weight: 700;
+  font-size: 8pt; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--rzhavy); margin-bottom: .8rem;
+}
+.glava-nazvanie {
+  font-family: var(--grotesk); font-weight: 700;
+  font-size: 25pt; line-height: 1.12; letter-spacing: -.035em;
+  margin: 0; max-width: 17ch;
+}
+
+/* ---------- врезки ---------- */
+
+.vrezka {
+  margin: 2.2rem 0;
+  padding: 1.3rem 1.5rem 1rem;
+  border-radius: 3px;
+  background: var(--bumaga-2);
+  border-left: 3px solid var(--priglush);
+}
+.vrezka-shapka {
+  display: flex; align-items: baseline; gap: .8rem; flex-wrap: wrap;
+  margin: -.2rem 0 1rem;
+}
+.vrezka-podpis {
+  font-family: var(--grotesk); font-weight: 700;
+  font-size: 7.5pt; letter-spacing: .18em; text-transform: uppercase;
+  padding: .28rem .6rem; border-radius: 2px;
+  background: var(--priglush); color: var(--bumaga);
+}
+.vrezka-zagolovok {
+  font-family: var(--grotesk); font-weight: 700;
+  font-size: 13pt; letter-spacing: -.025em; color: var(--chernila);
+}
+.vrezka > :last-child { margin-bottom: 0; }
+
+.v-zachem      { background: var(--hvoya-tusk);  border-left-color: var(--hvoya); }
+.v-zachem      .vrezka-podpis { background: var(--hvoya); }
+.v-obyasnenie  { background: transparent; border-left-color: var(--bumaga-3); padding-left: 1.2rem; }
+.v-obyasnenie  .vrezka-podpis { background: var(--chernila-2); }
+.v-kod         { background: var(--bumaga-2); border-left-color: var(--chernila-2); }
+.v-kod         .vrezka-podpis { background: var(--chernila-2); }
+.v-razbor      { background: var(--ohra-tusk); border-left-color: var(--ohra); }
+.v-razbor      .vrezka-podpis { background: var(--ohra); }
+.v-ekran       { background: var(--bumaga-2); border-left-color: var(--hvoya); }
+.v-ekran       .vrezka-podpis { background: var(--hvoya); }
+.v-grabli      { background: var(--rzhavy-tusk); border-left-color: var(--rzhavy); }
+.v-grabli      .vrezka-podpis { background: var(--rzhavy); }
+.v-vboyu       { background: var(--hvoya-tusk); border-left-color: var(--hvoya); }
+.v-vboyu       .vrezka-podpis { background: var(--hvoya); }
+
+/* Задачи — тёмный блок: видно, что тут заканчивается чтение и начинается работа */
+.v-zadachi {
+  background: var(--tyomny); color: #E8DCCC; border-left-color: var(--rzhavy);
+  padding: 1.5rem 1.6rem 1.2rem;
+}
+.v-zadachi .vrezka-zagolovok { color: var(--bumaga); }
+.v-zadachi .vrezka-podpis { background: var(--rzhavy); }
+.v-zadachi strong { color: #FFF3E4; }
+.v-zadachi em { color: #B7A794; }
+.v-zadachi a { color: #E9906E; border-bottom-color: #5A3527; }
+.v-zadachi code { background: #2C241D; color: #F0C9A8; border-color: #3A2F26; }
+
+/* Итог — «печать» в конце главы */
+.v-itog {
+  background: transparent;
+  border: 1px solid var(--bumaga-3); border-left: 3px solid var(--rzhavy);
+}
+.v-itog .vrezka-podpis { background: var(--rzhavy); }
+
+/* ---------- заголовки внутри текста ---------- */
+
+h3 {
+  font-family: var(--grotesk); font-weight: 700;
+  font-size: 11.5pt; letter-spacing: -.02em;
+  margin: 1.7rem 0 .6rem;
+}
+h3::before {
+  content: '▸ '; color: var(--rzhavy);
+}
+h2 {
+  font-family: var(--grotesk); font-weight: 700;
+  font-size: 16pt; letter-spacing: -.03em; margin: 2.4rem 0 1rem;
+}
+
+/* ---------- списки ---------- */
+
+ul, ol { margin: 0 0 1em; padding-left: 1.35rem; }
+li { margin-bottom: .35em; }
+ul { list-style: none; padding-left: 1.1rem; }
+ul li { position: relative; }
+ul li::before {
+  content: ''; position: absolute; left: -.95rem; top: .62em;
+  width: 5px; height: 5px; background: var(--rzhavy); border-radius: 50%;
+}
+.v-zadachi ul li::before { background: #E9906E; }
+ol li::marker { font-family: var(--grotesk); font-weight: 700; color: var(--rzhavy); font-size: .85em; }
+
+/* ---------- код ---------- */
+
+code {
+  font-family: var(--mono); font-size: .845em;
+  background: var(--bumaga-2); border: 1px solid var(--bumaga-3);
+  padding: .08em .34em; border-radius: 3px;
+  color: #6B2E14;
+}
+pre {
+  margin: 1.1rem 0; padding: .95rem 1.1rem;
+  background: #F7F1E6; border: 1px solid var(--bumaga-3);
+  border-left: 3px solid var(--rzhavy);
+  border-radius: 3px; overflow-x: auto;
+}
+pre code {
+  background: none; border: 0; padding: 0; color: var(--chernila);
+  font-size: 9.2pt; line-height: 1.62;
+}
+
+/* Подсветка — светлая, спокойная, без «дискотеки» */
+.hljs-keyword, .hljs-selector-tag, .hljs-literal { color: #9B2C6F; font-weight: 700; }
+.hljs-string, .hljs-meta .hljs-string           { color: #1E6B4A; }
+.hljs-number, .hljs-symbol                      { color: #B5411F; }
+.hljs-comment, .hljs-quote                      { color: #97897A; font-style: italic; }
+.hljs-title, .hljs-name, .hljs-section          { color: #145A9E; }
+.hljs-attr, .hljs-attribute, .hljs-variable     { color: #8A5A0B; }
+.hljs-tag                                        { color: #4A423A; }
+.hljs-built_in, .hljs-type                      { color: #145A9E; }
+.hljs-selector-class, .hljs-selector-id         { color: #9B2C6F; }
+
+/* ---------- таблицы ---------- */
+
+table {
+  width: 100%; border-collapse: collapse;
+  margin: 1.2rem 0; font-size: 10.2pt;
+}
+thead th {
+  font-family: var(--grotesk); font-weight: 700;
+  font-size: 7.8pt; letter-spacing: .12em; text-transform: uppercase;
+  text-align: left; color: var(--rzhavy);
+  padding: .5rem .6rem; border-bottom: 2px solid var(--rzhavy);
+}
+tbody td {
+  padding: .48rem .6rem; border-bottom: 1px solid var(--bumaga-3);
+  vertical-align: top;
+}
+tbody tr:nth-child(even) { background: rgba(237,227,211,.35); }
+.v-zadachi table tbody tr:nth-child(even) { background: rgba(255,255,255,.04); }
+.v-zadachi thead th { color: #E9906E; border-bottom-color: #5A3527; }
+.v-zadachi tbody td { border-bottom-color: #2E251D; }
+
+/* ---------- цитаты, картинки, разделители ---------- */
+
+blockquote {
+  margin: 1.3rem 0; padding: .2rem 0 .2rem 1.1rem;
+  border-left: 3px solid var(--ohra);
+  color: var(--chernila-2); font-style: italic;
+}
+img {
+  max-width: 100%; height: auto; display: block;
+  margin: 1.3rem auto; border: 1px solid var(--bumaga-3);
+  border-radius: 3px; box-shadow: 0 8px 24px -12px rgba(34,30,26,.4);
+}
+hr {
+  border: 0; height: 1px; background: var(--bumaga-3);
+  margin: 2.2rem 0;
+}
+
+/* ---------- концовка ---------- */
+
+.konec {
+  position: relative; z-index: 1;
+  text-align: center; padding: 4rem 1rem 6rem; color: var(--priglush);
+}
+.konec-znak {
+  font-family: var(--grotesk); font-size: 26pt; color: var(--rzhavy);
+  opacity: .5; margin-bottom: .6rem;
+}
+
+/* ---------- печать ---------- */
+
+@page { size: A4; margin: 16mm 18mm 18mm 20mm; }
+
+@media print {
+  body { background: #fff; font-size: 10.4pt; }
+  body::before { display: none; }
+
+  .oblozhka {
+    min-height: 247mm; page-break-after: always;
+    padding: 45mm 18mm 25mm;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .ob-titul { font-size: 74pt; }
+  .ob-podzag { font-size: 13pt; }
+
+  .oglavlenie { page-break-after: always; max-width: none; padding: 0; }
+  .glava { page-break-before: always; max-width: none; padding: 0 0 1rem; }
+  .glava-shapka { padding-top: 0; }
+  .glava-nomer { font-size: 52px; }
+  .glava-nazvanie { font-size: 21pt; }
+
+  /* Что нельзя разрывать между страницами */
+  .vrezka-shapka, h2, h3, thead { break-after: avoid; page-break-after: avoid; }
+  pre, table, img, blockquote { break-inside: avoid; page-break-inside: avoid; }
+  .vrezka { break-inside: auto; }
+  p, li { orphans: 3; widows: 3; }
+
+  a { color: var(--chernila); border-bottom: 0; }
+  .konec { page-break-before: avoid; }
+}
+
+/* ---------- узкий экран ---------- */
+
+@media (max-width: 640px) {
+  body { font-size: 11pt; }
+  .glava, .oglavlenie { padding-left: 1.1rem; padding-right: 1.1rem; }
+  .glava-nomer { font-size: 46px; }
+  .glava-nazvanie { font-size: 19pt; }
+  .oblozhka { padding: 12vh 7vw 6vh; }
+  .vrezka { padding: 1.1rem 1rem .9rem; }
+  table { font-size: 9.4pt; }
+}
