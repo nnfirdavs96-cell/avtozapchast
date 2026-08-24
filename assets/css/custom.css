@@ -4278,3 +4278,55 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .sl-check span { font-size: .86rem; color: #33343d; line-height: 1.45; }
 .sl-check b { font-weight: 700; }
 .sl-check small { display: block; margin-top: 4px; font-size: .78rem; color: #8b8b98; line-height: 1.4; }
+
+/* Атрибуты и семейство в форме продавца (buy-box, варианты). */
+.sl-hint {
+    display: block; margin-top: 6px; font-size: .78rem;
+    color: #8b8b98; line-height: 1.45; font-weight: 400;
+}
+.sl-hint b { color: #5a5a68; }
+
+.sl-attrs { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+.sl-attrs th {
+    text-align: left; padding: 7px 8px; font-size: .74rem; font-weight: 600;
+    color: #8b8b98; text-transform: uppercase; letter-spacing: .3px;
+    border-bottom: 1px solid #eeeef4;
+}
+.sl-attrs td { padding: 5px 4px; }
+.sl-attrs td:first-child { padding-left: 0; }
+.sl-attrs td:last-child  { padding-right: 0; }
+.sl-attrs input, .sl-attrs select {
+    width: 100%; padding: 8px 10px; border: 1px solid #d9d9e3;
+    border-radius: 8px; font-size: .86rem; outline: none;
+}
+.sl-attrs input:focus, .sl-attrs select:focus { border-color: #C70909; }
+
+@media (max-width: 575px) {
+    /* На телефоне таблица в три колонки нечитаема — разворачиваем в карточки. */
+    .sl-attrs thead { display: none; }
+    .sl-attrs tr { display: block; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #f0f0f5; }
+    .sl-attrs td { display: block; padding: 3px 0; }
+}
+
+/* Переключатель исполнений и характеристики на странице товара (buy-box, варианты).
+   Варианты — ссылки, а не JS: у каждого своя цена и наличие, то есть своя страница. */
+.bb_variants { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+.bb_variant {
+    display: flex; flex-direction: column; gap: 2px; min-width: 96px;
+    padding: 8px 12px; border: 1px solid #d9d9e3; border-radius: 10px;
+    color: #33343d; text-decoration: none; transition: border-color .15s, background .15s;
+}
+.bb_variant:hover { border-color: #C70909; text-decoration: none; color: #33343d; }
+.bb_variant--current { border-color: #C70909; background: #fdf3f3; cursor: default; }
+.bb_variant_label { font-size: .85rem; font-weight: 600; }
+.bb_variant_price { font-size: .8rem; color: #C70909; font-weight: 700; }
+.bb_variant_out { font-size: .7rem; color: #b9772a; }
+
+.bb_axes { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 12px; font-size: .85rem; color: #5a5a68; }
+.bb_axes b { color: #23242b; }
+
+.bb_specs { width: 100%; border-collapse: collapse; margin: 0 0 16px; font-size: .86rem; }
+.bb_specs td { padding: 7px 0; border-bottom: 1px solid #f2f2f7; }
+.bb_specs td:first-child { color: #8b8b98; width: 45%; }
+.bb_specs td:last-child { color: #23242b; font-weight: 600; }
+.bb_specs tr:last-child td { border-bottom: none; }
