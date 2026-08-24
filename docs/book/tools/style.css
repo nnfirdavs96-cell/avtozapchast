@@ -18,7 +18,13 @@
   --hvoya:       #14584F;   /* второй акцент: «зачем», «в бою» */
   --hvoya-tusk:  #DCEAE5;
   --ohra:        #A8710C;   /* третий: «разбор по словам» */
-  --ohra-tusk:   #F6E9CE;
+  --ohra-tusk:   #FBEFD6;
+  --more:        #1B4F79;   /* синий: «на экране», скриншоты */
+  --more-tusk:   #DCE8F2;
+  --sliva:       #6B3A63;   /* сливовый: задачи */
+  --sliva-tusk:  #F0E4EE;
+  --grafit:      #3A3B3E;   /* графит: блоки кода */
+  --grafit-tusk: #EAE7E1;
   --tyomny:      #17130F;   /* обложка и блок задач */
 
   --sherif: 'Spectral', 'PT Serif', Georgia, 'Times New Roman', serif;
@@ -170,22 +176,25 @@ a { color: var(--rzhavy); text-decoration: none; border-bottom: 1px solid var(--
 
 /* ---------- врезки ---------- */
 
+/* Врезка = светлая подложка + цветной корешок слева + «ушко» с названием.
+   Светлые подложки выбраны не случайно: тёмная плашка, разорванная границей
+   страницы, в печати выглядит как брак. Светлая рвётся незаметно. */
 .vrezka {
   margin: 2.2rem 0;
-  padding: 1.3rem 1.5rem 1rem;
-  border-radius: 3px;
+  padding: 1.25rem 1.5rem 1.05rem;
+  border-radius: 4px;
   background: var(--bumaga-2);
-  border-left: 3px solid var(--priglush);
+  border-left: 4px solid var(--priglush);
 }
 .vrezka-shapka {
-  display: flex; align-items: baseline; gap: .8rem; flex-wrap: wrap;
-  margin: -.2rem 0 1rem;
+  display: flex; align-items: baseline; gap: .75rem; flex-wrap: wrap;
+  margin: -.15rem 0 .95rem;
 }
 .vrezka-podpis {
   font-family: var(--grotesk); font-weight: 700;
-  font-size: 7.5pt; letter-spacing: .18em; text-transform: uppercase;
-  padding: .28rem .6rem; border-radius: 2px;
-  background: var(--priglush); color: var(--bumaga);
+  font-size: 7.4pt; letter-spacing: .16em; text-transform: uppercase;
+  padding: .3rem .62rem; border-radius: 3px;
+  background: var(--priglush); color: #fff;
 }
 .vrezka-zagolovok {
   font-family: var(--grotesk); font-weight: 700;
@@ -193,37 +202,44 @@ a { color: var(--rzhavy); text-decoration: none; border-bottom: 1px solid var(--
 }
 .vrezka > :last-child { margin-bottom: 0; }
 
-.v-zachem      { background: var(--hvoya-tusk);  border-left-color: var(--hvoya); }
-.v-zachem      .vrezka-podpis { background: var(--hvoya); }
-.v-obyasnenie  { background: transparent; border-left-color: var(--bumaga-3); padding-left: 1.2rem; }
-.v-obyasnenie  .vrezka-podpis { background: var(--chernila-2); }
-.v-kod         { background: var(--bumaga-2); border-left-color: var(--chernila-2); }
-.v-kod         .vrezka-podpis { background: var(--chernila-2); }
-.v-razbor      { background: var(--ohra-tusk); border-left-color: var(--ohra); }
-.v-razbor      .vrezka-podpis { background: var(--ohra); }
-.v-ekran       { background: var(--bumaga-2); border-left-color: var(--hvoya); }
-.v-ekran       .vrezka-podpis { background: var(--hvoya); }
-.v-grabli      { background: var(--rzhavy-tusk); border-left-color: var(--rzhavy); }
-.v-grabli      .vrezka-podpis { background: var(--rzhavy); }
-.v-vboyu       { background: var(--hvoya-tusk); border-left-color: var(--hvoya); }
-.v-vboyu       .vrezka-podpis { background: var(--hvoya); }
+.v-zachem     { background: var(--hvoya-tusk);  border-left-color: var(--hvoya); }
+.v-zachem     .vrezka-podpis { background: var(--hvoya); }
+.v-obyasnenie { background: transparent; border-left-color: var(--bumaga-3); padding-left: 1.25rem; }
+.v-obyasnenie .vrezka-podpis { background: var(--chernila-2); }
+.v-kod        { background: var(--grafit-tusk); border-left-color: var(--grafit); }
+.v-kod        .vrezka-podpis { background: var(--grafit); }
+.v-razbor     { background: var(--ohra-tusk);   border-left-color: var(--ohra); }
+.v-razbor     .vrezka-podpis { background: var(--ohra); }
+.v-ekran      { background: var(--more-tusk);   border-left-color: var(--more); }
+.v-ekran      .vrezka-podpis { background: var(--more); }
+.v-grabli     { background: var(--rzhavy-tusk); border-left-color: var(--rzhavy); }
+.v-grabli     .vrezka-podpis { background: var(--rzhavy); }
+.v-vboyu      { background: var(--hvoya-tusk);  border-left-color: var(--hvoya); }
+.v-vboyu      .vrezka-podpis { background: var(--hvoya); }
 
-/* Задачи — тёмный блок: видно, что тут заканчивается чтение и начинается работа */
-.v-zadachi {
-  background: var(--tyomny); color: #E8DCCC; border-left-color: var(--rzhavy);
-  padding: 1.5rem 1.6rem 1.2rem;
+/* Задачи — сливовый: сразу видно, что чтение кончилось и началась работа.
+   Каждая задача выделена своей карточкой, чтобы не сливались в стену. */
+.v-zadachi { background: var(--sliva-tusk); border-left-color: var(--sliva); }
+.v-zadachi .vrezka-podpis { background: var(--sliva); }
+.v-zadachi > p {
+  background: #fff; border: 1px solid #E2CFE0; border-radius: 4px;
+  padding: .7rem .9rem; margin-bottom: .6rem;
 }
-.v-zadachi .vrezka-zagolovok { color: var(--bumaga); }
-.v-zadachi .vrezka-podpis { background: var(--rzhavy); }
-.v-zadachi strong { color: #FFF3E4; }
-.v-zadachi em { color: #B7A794; }
-.v-zadachi a { color: #E9906E; border-bottom-color: #5A3527; }
-.v-zadachi code { background: #2C241D; color: #F0C9A8; border-color: #3A2F26; }
+.v-zadachi > p:last-child {
+  background: none; border: 0; padding: 0; font-style: italic; color: var(--sliva);
+}
+.v-zadachi strong:first-child { color: var(--sliva); }
+.v-zadachi ol, .v-zadachi ul {
+  background: #fff; border: 1px solid #E2CFE0; border-radius: 4px;
+  padding: .7rem .9rem .7rem 2.1rem; margin-bottom: .6rem;
+}
+.v-zadachi ol li::marker { color: var(--sliva); }
+.v-zadachi ul li::before { background: var(--sliva); }
 
 /* Итог — «печать» в конце главы */
 .v-itog {
-  background: transparent;
-  border: 1px solid var(--bumaga-3); border-left: 3px solid var(--rzhavy);
+  background: #fff;
+  border: 1px solid var(--bumaga-3); border-left: 4px solid var(--rzhavy);
 }
 .v-itog .vrezka-podpis { background: var(--rzhavy); }
 
@@ -252,7 +268,6 @@ ul li::before {
   content: ''; position: absolute; left: -.95rem; top: .62em;
   width: 5px; height: 5px; background: var(--rzhavy); border-radius: 50%;
 }
-.v-zadachi ul li::before { background: #E9906E; }
 ol li::marker { font-family: var(--grotesk); font-weight: 700; color: var(--rzhavy); font-size: .85em; }
 
 /* ---------- код ---------- */
@@ -302,9 +317,6 @@ tbody td {
   vertical-align: top;
 }
 tbody tr:nth-child(even) { background: rgba(237,227,211,.35); }
-.v-zadachi table tbody tr:nth-child(even) { background: rgba(255,255,255,.04); }
-.v-zadachi thead th { color: #E9906E; border-bottom-color: #5A3527; }
-.v-zadachi tbody td { border-bottom-color: #2E251D; }
 
 /* ---------- цитаты, картинки, разделители ---------- */
 
@@ -360,9 +372,15 @@ hr {
   .vrezka-shapka, h2, h3, thead { break-after: avoid; page-break-after: avoid; }
   pre, table, img, blockquote { break-inside: avoid; page-break-inside: avoid; }
   .vrezka { break-inside: auto; }
+  /* Разорвать врезку можно, но не в первых строках и не в последних —
+     иначе на странице остаётся «висячий» цветной огрызок. */
+  .vrezka > * { break-inside: avoid; }
+  .vrezka > :first-child, .vrezka > :nth-child(2) { break-after: avoid; }
+  .vrezka > :last-child { break-before: avoid; }
   p, li { orphans: 3; widows: 3; }
 
   a { color: var(--chernila); border-bottom: 0; }
+  img { width: 100%; box-shadow: none; }
   .konec { page-break-before: avoid; }
 }
 

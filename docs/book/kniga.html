@@ -38,7 +38,13 @@
   --hvoya:       #14584F;   /* второй акцент: «зачем», «в бою» */
   --hvoya-tusk:  #DCEAE5;
   --ohra:        #A8710C;   /* третий: «разбор по словам» */
-  --ohra-tusk:   #F6E9CE;
+  --ohra-tusk:   #FBEFD6;
+  --more:        #1B4F79;   /* синий: «на экране», скриншоты */
+  --more-tusk:   #DCE8F2;
+  --sliva:       #6B3A63;   /* сливовый: задачи */
+  --sliva-tusk:  #F0E4EE;
+  --grafit:      #3A3B3E;   /* графит: блоки кода */
+  --grafit-tusk: #EAE7E1;
   --tyomny:      #17130F;   /* обложка и блок задач */
 
   --sherif: 'Spectral', 'PT Serif', Georgia, 'Times New Roman', serif;
@@ -190,22 +196,25 @@ a { color: var(--rzhavy); text-decoration: none; border-bottom: 1px solid var(--
 
 /* ---------- врезки ---------- */
 
+/* Врезка = светлая подложка + цветной корешок слева + «ушко» с названием.
+   Светлые подложки выбраны не случайно: тёмная плашка, разорванная границей
+   страницы, в печати выглядит как брак. Светлая рвётся незаметно. */
 .vrezka {
   margin: 2.2rem 0;
-  padding: 1.3rem 1.5rem 1rem;
-  border-radius: 3px;
+  padding: 1.25rem 1.5rem 1.05rem;
+  border-radius: 4px;
   background: var(--bumaga-2);
-  border-left: 3px solid var(--priglush);
+  border-left: 4px solid var(--priglush);
 }
 .vrezka-shapka {
-  display: flex; align-items: baseline; gap: .8rem; flex-wrap: wrap;
-  margin: -.2rem 0 1rem;
+  display: flex; align-items: baseline; gap: .75rem; flex-wrap: wrap;
+  margin: -.15rem 0 .95rem;
 }
 .vrezka-podpis {
   font-family: var(--grotesk); font-weight: 700;
-  font-size: 7.5pt; letter-spacing: .18em; text-transform: uppercase;
-  padding: .28rem .6rem; border-radius: 2px;
-  background: var(--priglush); color: var(--bumaga);
+  font-size: 7.4pt; letter-spacing: .16em; text-transform: uppercase;
+  padding: .3rem .62rem; border-radius: 3px;
+  background: var(--priglush); color: #fff;
 }
 .vrezka-zagolovok {
   font-family: var(--grotesk); font-weight: 700;
@@ -213,37 +222,44 @@ a { color: var(--rzhavy); text-decoration: none; border-bottom: 1px solid var(--
 }
 .vrezka > :last-child { margin-bottom: 0; }
 
-.v-zachem      { background: var(--hvoya-tusk);  border-left-color: var(--hvoya); }
-.v-zachem      .vrezka-podpis { background: var(--hvoya); }
-.v-obyasnenie  { background: transparent; border-left-color: var(--bumaga-3); padding-left: 1.2rem; }
-.v-obyasnenie  .vrezka-podpis { background: var(--chernila-2); }
-.v-kod         { background: var(--bumaga-2); border-left-color: var(--chernila-2); }
-.v-kod         .vrezka-podpis { background: var(--chernila-2); }
-.v-razbor      { background: var(--ohra-tusk); border-left-color: var(--ohra); }
-.v-razbor      .vrezka-podpis { background: var(--ohra); }
-.v-ekran       { background: var(--bumaga-2); border-left-color: var(--hvoya); }
-.v-ekran       .vrezka-podpis { background: var(--hvoya); }
-.v-grabli      { background: var(--rzhavy-tusk); border-left-color: var(--rzhavy); }
-.v-grabli      .vrezka-podpis { background: var(--rzhavy); }
-.v-vboyu       { background: var(--hvoya-tusk); border-left-color: var(--hvoya); }
-.v-vboyu       .vrezka-podpis { background: var(--hvoya); }
+.v-zachem     { background: var(--hvoya-tusk);  border-left-color: var(--hvoya); }
+.v-zachem     .vrezka-podpis { background: var(--hvoya); }
+.v-obyasnenie { background: transparent; border-left-color: var(--bumaga-3); padding-left: 1.25rem; }
+.v-obyasnenie .vrezka-podpis { background: var(--chernila-2); }
+.v-kod        { background: var(--grafit-tusk); border-left-color: var(--grafit); }
+.v-kod        .vrezka-podpis { background: var(--grafit); }
+.v-razbor     { background: var(--ohra-tusk);   border-left-color: var(--ohra); }
+.v-razbor     .vrezka-podpis { background: var(--ohra); }
+.v-ekran      { background: var(--more-tusk);   border-left-color: var(--more); }
+.v-ekran      .vrezka-podpis { background: var(--more); }
+.v-grabli     { background: var(--rzhavy-tusk); border-left-color: var(--rzhavy); }
+.v-grabli     .vrezka-podpis { background: var(--rzhavy); }
+.v-vboyu      { background: var(--hvoya-tusk);  border-left-color: var(--hvoya); }
+.v-vboyu      .vrezka-podpis { background: var(--hvoya); }
 
-/* Задачи — тёмный блок: видно, что тут заканчивается чтение и начинается работа */
-.v-zadachi {
-  background: var(--tyomny); color: #E8DCCC; border-left-color: var(--rzhavy);
-  padding: 1.5rem 1.6rem 1.2rem;
+/* Задачи — сливовый: сразу видно, что чтение кончилось и началась работа.
+   Каждая задача выделена своей карточкой, чтобы не сливались в стену. */
+.v-zadachi { background: var(--sliva-tusk); border-left-color: var(--sliva); }
+.v-zadachi .vrezka-podpis { background: var(--sliva); }
+.v-zadachi > p {
+  background: #fff; border: 1px solid #E2CFE0; border-radius: 4px;
+  padding: .7rem .9rem; margin-bottom: .6rem;
 }
-.v-zadachi .vrezka-zagolovok { color: var(--bumaga); }
-.v-zadachi .vrezka-podpis { background: var(--rzhavy); }
-.v-zadachi strong { color: #FFF3E4; }
-.v-zadachi em { color: #B7A794; }
-.v-zadachi a { color: #E9906E; border-bottom-color: #5A3527; }
-.v-zadachi code { background: #2C241D; color: #F0C9A8; border-color: #3A2F26; }
+.v-zadachi > p:last-child {
+  background: none; border: 0; padding: 0; font-style: italic; color: var(--sliva);
+}
+.v-zadachi strong:first-child { color: var(--sliva); }
+.v-zadachi ol, .v-zadachi ul {
+  background: #fff; border: 1px solid #E2CFE0; border-radius: 4px;
+  padding: .7rem .9rem .7rem 2.1rem; margin-bottom: .6rem;
+}
+.v-zadachi ol li::marker { color: var(--sliva); }
+.v-zadachi ul li::before { background: var(--sliva); }
 
 /* Итог — «печать» в конце главы */
 .v-itog {
-  background: transparent;
-  border: 1px solid var(--bumaga-3); border-left: 3px solid var(--rzhavy);
+  background: #fff;
+  border: 1px solid var(--bumaga-3); border-left: 4px solid var(--rzhavy);
 }
 .v-itog .vrezka-podpis { background: var(--rzhavy); }
 
@@ -272,7 +288,6 @@ ul li::before {
   content: ''; position: absolute; left: -.95rem; top: .62em;
   width: 5px; height: 5px; background: var(--rzhavy); border-radius: 50%;
 }
-.v-zadachi ul li::before { background: #E9906E; }
 ol li::marker { font-family: var(--grotesk); font-weight: 700; color: var(--rzhavy); font-size: .85em; }
 
 /* ---------- код ---------- */
@@ -322,9 +337,6 @@ tbody td {
   vertical-align: top;
 }
 tbody tr:nth-child(even) { background: rgba(237,227,211,.35); }
-.v-zadachi table tbody tr:nth-child(even) { background: rgba(255,255,255,.04); }
-.v-zadachi thead th { color: #E9906E; border-bottom-color: #5A3527; }
-.v-zadachi tbody td { border-bottom-color: #2E251D; }
 
 /* ---------- цитаты, картинки, разделители ---------- */
 
@@ -380,9 +392,15 @@ hr {
   .vrezka-shapka, h2, h3, thead { break-after: avoid; page-break-after: avoid; }
   pre, table, img, blockquote { break-inside: avoid; page-break-inside: avoid; }
   .vrezka { break-inside: auto; }
+  /* Разорвать врезку можно, но не в первых строках и не в последних —
+     иначе на странице остаётся «висячий» цветной огрызок. */
+  .vrezka > * { break-inside: avoid; }
+  .vrezka > :first-child, .vrezka > :nth-child(2) { break-after: avoid; }
+  .vrezka > :last-child { break-before: avoid; }
   p, li { orphans: 3; widows: 3; }
 
   a { color: var(--chernila); border-bottom: 0; }
+  img { width: 100%; box-shadow: none; }
   .konec { page-break-before: avoid; }
 }
 
@@ -425,31 +443,41 @@ hr {
       </div>
       <div class="glava-podpis">Часть I. Знакомство</div>
       <h1 class="glava-nazvanie">Что такое сайт и что мы построим</h1>
-    </header><div class="telo"><section class="vrezka v-zachem"><div class="vrezka-shapka"><span class="vrezka-podpis">Зачем это</span><span class="vrezka-zagolovok">Зачем эта глава</span></div><p>Люди бросают программирование не потому, что оно сложное. А потому, что первые две недели
-учат непонятно что и непонятно зачем. Учат «переменные», не понимая, где они в итоге окажутся.</p><p>Поэтому первая глава — не про код. Она про <strong>карту местности</strong>. Через полчаса вы будете
-понимать, из каких частей состоит любой сайт, кто их делает и чем эти люди отличаются.
-Дальше каждая новая тема будет ложиться на понятное место.</p><hr></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Сайт — это магазин</span></div><p>Забудьте на минуту про компьютеры. Представьте обычный магазин автозапчастей на улице.</p><p>В нём есть <strong>три зоны</strong>, и они очень разные:</p><p><strong>1. Торговый зал.</strong> Полки, ценники, витрина, касса. Это то, что видит покупатель.
-Красиво разложено, подписано, всё понятно. Покупатель никогда не заходит дальше.</p><p><strong>2. Подсобка.</strong> Туда покупателя не пускают. Там принимают товар, считают деньги,
-оформляют накладные, решают, кому какая скидка. Там работают сотрудники.</p><p><strong>3. Складской журнал.</strong> Толстая тетрадь (или программа), где записано: какой товар,
-сколько штук, по какой цене, кто привёз, кому продали. Без неё магазин не магазин,
-а куча коробок.</p><p><strong>Сайт устроен точно так же.</strong> Слово в слово:</p><table>
+    </header><div class="telo"><section class="vrezka v-zachem"><div class="vrezka-shapka"><span class="vrezka-podpis">Зачем это</span><span class="vrezka-zagolovok">Зачем эта глава</span></div><p>Здравствуйте. Если вы открыли эту книгу, скорее всего, вы уже пробовали подступиться
+к программированию — и что-то пошло не так. Так бывает почти у всех, и дело обычно не в вас.</p><p>Смотрите, что происходит на типичных курсах. Первые две недели вам рассказывают про
+«переменные», «циклы» и «типы данных». Всё это правда нужно. Но вы сидите и думаете:
+<em>а где, собственно, сайт?</em> Знания вроде появляются, а куда их приложить — непонятно.
+Это как учиться водить, изучая устройство карбюратора: полезно, но до машины вы так
+и не дошли.</p><p>Поэтому первая глава — не про код вообще. Она про <strong>карту местности</strong>.</p><p>Мы разберёмся, из каких частей состоит любой сайт, кто эти части делает и как они
+между собой связаны. И когда в главе 20 появятся те самые переменные, вы уже будете
+точно знать, в каком месте магазина они живут и зачем нужны.</p><p>Никакого кода набирать пока не надо. Просто читайте — как будто вам показывают дом
+перед тем, как дать в руки инструменты.</p><hr></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Начнём с обычного магазина</span></div><p>Забудьте на минуту про компьютеры. Правда, совсем забудьте.</p><p>Представьте магазин автозапчастей на вашей улице. Тот самый, куда вы заходили за
+щётками стеклоочистителя. Что там есть?</p><p><strong>Во-первых, торговый зал.</strong> Полки, товар, ценники, витрина у входа, касса.
+Всё разложено так, чтобы покупатель разобрался сам: колодки — сюда, фильтры — туда,
+акция — на видном месте. Здесь красиво и понятно. Покупатель дальше этой зоны не заходит.</p><p><strong>Во-вторых, подсобка.</strong> Дверь с табличкой «Посторонним вход воспрещён». Там принимают
+товар, считают выручку, оформляют накладные, решают, кому дать скидку, а кому нет.
+Там же лежат деньги. Покупателю туда нельзя — и это не из вредности, а просто потому,
+что иначе цены на ценниках начнут переписывать все кому не лень.</p><p><strong>В-третьих, складской журнал.</strong> Толстая тетрадь или программа на компьютере,
+где записано: какой товар, сколько штук, почём куплено, почём продаём, кто привёз,
+кому отгрузили. Скучная штука. Но потеряйте её — и магазин превратится в склад коробок,
+про которые никто ничего не знает.</p><p>Всё. Три зоны. Держите эту картинку в голове — сейчас будет главное.</p><h3><strong>Сайт устроен ровно так же</strong></h3><p>Не «похоже». Не «примерно». А один в один:</p><table>
 <thead>
 <tr>
-<th>В магазине</th>
+<th>В магазине на улице</th>
 <th>На сайте</th>
-<th>Как это называют программисты</th>
+<th>Как это зовут программисты</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Торговый зал</td>
 <td>То, что видно в браузере</td>
-<td><strong>Фронтенд</strong> (frontend, «передняя часть»)</td>
+<td><strong>Фронтенд</strong> (frontend — «передняя часть»)</td>
 </tr>
 <tr>
 <td>Подсобка</td>
 <td>Программа на сервере</td>
-<td><strong>Бэкенд</strong> (backend, «задняя часть»)</td>
+<td><strong>Бэкенд</strong> (backend — «задняя часть»)</td>
 </tr>
 <tr>
 <td>Складской журнал</td>
@@ -457,29 +485,123 @@ hr {
 <td><strong>БД</strong> (database)</td>
 </tr>
 </tbody>
-</table><p>Человек, который умеет работать <strong>во всех трёх зонах</strong>, называется <strong>fullstack-разработчик</strong>
-(«полный набор»). Это и есть цель книги.</p><hr></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Пять технологий и роль каждой</span></div><p>Чтобы построить магазин, нужно пять инструментов. Не пятьдесят — пять. Вот они,
-и вот зачем каждый:</p><h3>HTML — скелет</h3><p>Определяет, <strong>что</strong> есть на странице: тут заголовок, тут картинка, тут кнопка,
-тут таблица. Никакой красоты — только содержание и структура.</p><p>Аналогия: <strong>скелет человека</strong>. Есть череп, рёбра, руки. Не очень симпатично,
-но понятно, где что.</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">h1</span>&gt;</span>Тормозные колодки<span class="hljs-tag">&lt;/<span class="hljs-name">h1</span>&gt;</span>
+</table><p>Когда вы заходите на любой сайт — маркетплейс, банк, доставку еды — вы всегда стоите
+в торговом зале. Всё остальное происходит за дверью, куда вас не пускают.</p><p>А человек, который умеет работать <strong>во всех трёх зонах</strong>, называется
+<strong>fullstack-разработчик</strong>. Дословно — «полный набор». Именно им вы и станете
+к концу книги.</p><h3><strong>Ещё немного про эти три зоны</strong></h3><p>Чтобы совсем закрепилось, вот та же тройка на других примерах.</p><p><strong>Ресторан.</strong> Зал со столиками и меню — фронтенд. Кухня, где готовят и считают
+себестоимость, — бэкенд. Список продуктов на складе и книга заказов — база данных.</p><p><strong>Поликлиника.</strong> Регистратура и коридор с креслами — фронтенд. Кабинет врача,
+где принимают решения, — бэкенд. Картотека с медкартами — база данных.</p><p><strong>Такси в телефоне.</strong> Карта с машинками и кнопка «Заказать» — фронтенд. Программа,
+которая ищет ближайшего водителя и считает цену, — бэкенд. Хранилище поездок,
+водителей и оценок — база данных.</p><p>Заметили? Везде одно и то же: <strong>красивая витрина</strong>, <strong>скрытая от глаз логика</strong>
+и <strong>место, где всё записано</strong>. Любой сайт, любое приложение, любой сервис.</p><hr></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Пять инструментов, и всё</span></div><p>Хорошая новость: чтобы построить магазин, нужно не пятьдесят технологий. Нужно <strong>пять</strong>.
+Давайте познакомимся с каждой — с примерами, чтобы не осталось тумана.</p><h3><strong>HTML — скелет</strong></h3><p>HTML отвечает на вопрос <strong>«что здесь есть?»</strong>. Не «как выглядит», а именно «что есть».</p><p>Он говорит браузеру: тут заголовок, тут абзац текста, тут картинка, тут кнопка,
+тут список из трёх пунктов, тут таблица. И всё — на этом его работа заканчивается.
+Красотой он не занимается принципиально.</p><p><strong>Примеры того, что делает HTML:</strong></p><ul>
+<li>на странице появился заголовок «Тормозные колодки»;</li>
+<li>под ним — абзац с описанием;</li>
+<li>слева — фотография товара;</li>
+<li>ниже — список характеристик: производитель, артикул, вес;</li>
+<li>в конце — кнопка «Купить».</li>
+</ul><p><strong>Аналогия:</strong> скелет человека. Есть череп, рёбра, руки, ноги. На свидание в таком виде
+не пойдёшь, но сразу понятно: это человек, вот голова, вот конечности.</p><p>Ещё точнее — <strong>чертёж дома</strong>. На чертеже нет обоев и мебели, но видно: тут комната,
+тут окно, тут дверь.</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">h1</span>&gt;</span>Тормозные колодки<span class="hljs-tag">&lt;/<span class="hljs-name">h1</span>&gt;</span>
 <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Цена: 250 сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
 <span class="hljs-tag">&lt;<span class="hljs-name">button</span>&gt;</span>Купить<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
-</code></pre><p>Это уже рабочая страница. Уродливая, но рабочая.</p><h3>CSS — внешность</h3><p>Отвечает за то, <strong>как это выглядит</strong>: цвета, шрифты, размеры, отступы, тени, расположение.</p><p>Аналогия: <strong>одежда и внешность</strong>. Тот же скелет, но теперь на нём мышцы, кожа и костюм.</p><pre><code class="language-css"><span class="hljs-selector-tag">button</span> { <span class="hljs-attribute">background</span>: <span class="hljs-number">#d92b2b</span>; <span class="hljs-attribute">color</span>: white; <span class="hljs-attribute">border-radius</span>: <span class="hljs-number">8px</span>; }
-</code></pre><p>Кнопка стала красной, белые буквы, скруглённые углы. Скелет тот же — вид другой.</p><h3>JavaScript — рефлексы в браузере</h3><p>Реагирует на действия <strong>прямо в браузере, без перезагрузки страницы</strong>. Нажали «Купить» —
-счётчик корзины прибавился. Набрали в поиске три буквы — снизу выпали подсказки.</p><p>Аналогия: <strong>рефлексы</strong>. Дотронулись до горячего — рука отдёрнулась мгновенно,
-мозг ещё не успел подумать.</p><pre><code class="language-javascript">button.<span class="hljs-property">onclick</span> = <span class="hljs-function">() =&gt;</span> <span class="hljs-title function_">alert</span>(<span class="hljs-string">'Товар добавлен в корзину'</span>);
-</code></pre><h3>PHP — мозг на сервере</h3><p>Живёт <strong>не в браузере, а на сервере</strong> — на чужом компьютере, который работает круглосуточно.
-Решает всё важное: кто вошёл, что показать, сколько стоит, можно ли этому человеку в админку,
-записывать ли заказ.</p><p>Аналогия: <strong>мозг и директор магазина в одном лице</strong>. Принимает решения, к которым покупателя
-не подпускают.</p><pre><code class="language-php"><span class="hljs-keyword">if</span> (<span class="hljs-variable">$user</span>[<span class="hljs-string">'role'</span>] === <span class="hljs-string">'admin'</span>) {
+</code></pre><p>Это уже настоящая, рабочая страница. Уродливая до слёз — но рабочая. Браузер её откроет.</p><h3><strong>CSS — внешность</strong></h3><p>CSS отвечает на вопрос <strong>«а как это выглядит?»</strong>.</p><p>Тот же самый скелет, но теперь у него появились цвет, шрифт, размер, отступы, тени,
+скруглённые углы и понятное расположение на экране.</p><p><strong>Примеры того, что делает CSS:</strong></p><ul>
+<li>кнопка стала красной, а буквы на ней белыми;</li>
+<li>заголовок — крупный и жирный, описание — помельче и посветлее;</li>
+<li>между карточками товаров появились ровные промежутки;</li>
+<li>товары выстроились в три колонки вместо кучи;</li>
+<li>на телефоне те же товары встали в одну колонку;</li>
+<li>при наведении мышкой карточка чуть приподнялась.</li>
+</ul><p><strong>Аналогия:</strong> одежда, причёска и осанка. Скелет тот же, а впечатление совсем другое.</p><p>Ещё точнее — <strong>ремонт в квартире</strong>. Планировка не изменилась: те же комнаты, те же окна.
+Но после ремонта это другое жильё.</p><pre><code class="language-css"><span class="hljs-selector-tag">button</span> { <span class="hljs-attribute">background</span>: <span class="hljs-number">#d92b2b</span>; <span class="hljs-attribute">color</span>: white; <span class="hljs-attribute">border-radius</span>: <span class="hljs-number">8px</span>; }
+</code></pre><p>Одна строчка — и серая системная кнопка превратилась в красную кнопку с мягкими углами.</p><h3><strong>JavaScript — рефлексы браузера</strong></h3><p>JavaScript отвечает на вопрос <strong>«что произойдёт, если человек что-то сделает?»</strong> —
+причём прямо здесь, в браузере, <strong>без перезагрузки страницы</strong>.</p><p><strong>Примеры того, что делает JavaScript:</strong></p><ul>
+<li>нажали «Купить» — счётчик корзины мгновенно стал «3»;</li>
+<li>набрали в поиске «коло» — снизу выпали подсказки: «колодки», «кольцо», «коллектор»;</li>
+<li>кликнули на фото — оно открылось на весь экран;</li>
+<li>на телефоне нажали три полоски — выехало меню;</li>
+<li>начали заполнять форму и забыли телефон — поле подсветилось красным ещё до отправки;</li>
+<li>пролистали страницу вниз — шапка «прилипла» к верху экрана.</li>
+</ul><p><strong>Аналогия:</strong> рефлексы. Дотронулись до горячего — рука отдёрнулась сама, мозг ещё
+даже не понял, что случилось.</p><p>Ещё точнее — <strong>автоматические двери в магазине</strong>. Никто не звонит директору,
+чтобы вам открыли. Датчик увидел человека — двери разъехались.</p><pre><code class="language-javascript">button.<span class="hljs-property">onclick</span> = <span class="hljs-function">() =&gt;</span> <span class="hljs-title function_">alert</span>(<span class="hljs-string">'Товар добавлен в корзину'</span>);
+</code></pre><h3><strong>PHP — мозг на сервере</strong></h3><p>А вот это самое важное место, и здесь нужно быть внимательным.</p><p>PHP работает <strong>не в браузере</strong>. Он живёт на <strong>сервере</strong> — на чужом компьютере, который
+стоит где-то в дата-центре и работает круглосуточно. Покупатель до него не дотягивается
+в принципе.</p><p>PHP принимает все серьёзные решения.</p><p><strong>Примеры того, что делает PHP:</strong></p><ul>
+<li>проверяет, правильный ли пароль ввели при входе;</li>
+<li>решает, показать человеку кнопку «Админка» или не показывать;</li>
+<li>считает итоговую цену: цена поставщика + наценка + доставка;</li>
+<li>применяет скидку постоянному покупателю — или не применяет;</li>
+<li>записывает заказ и присваивает ему номер;</li>
+<li>отправляет письмо «ваш заказ принят»;</li>
+<li>не даёт продавцу Ахмаду редактировать товары продавца Сафара.</li>
+</ul><p><strong>Аналогия:</strong> мозг. Или директор магазина — тот, кто решает, а не тот, кто улыбается
+в зале.</p><p><strong>А теперь — правило, которое стоит запомнить прямо сейчас.</strong></p><p>JavaScript выполняется <strong>на компьютере покупателя</strong>. Это значит, что покупатель может
+его открыть, почитать и переписать. Это не сложно — любой браузер позволяет.</p><p>PHP выполняется <strong>на вашем сервере</strong>. Покупатель его не видит и изменить не может.</p><p>Представьте, что цена товара считается на JavaScript. Тогда покупатель открывает
+инструменты браузера, меняет 250 на 1 — и оформляет заказ на сомони. Это как если бы
+в магазине разрешили покупателям самим переклеивать ценники.</p><p>Поэтому <strong>цены, скидки, доступы и всё, что связано с деньгами, считает только PHP.
+Никогда — JavaScript.</strong> Мы к этому ещё вернёмся не раз, но услышать это лучше в первой
+главе.</p><pre><code class="language-php"><span class="hljs-keyword">if</span> (<span class="hljs-variable">$user</span>[<span class="hljs-string">'role'</span>] === <span class="hljs-string">'admin'</span>) {
     <span class="hljs-keyword">echo</span> <span class="hljs-string">'Добро пожаловать в админку'</span>;
 }
-</code></pre><p><strong>Ключевая мысль, запомните её сразу:</strong> JavaScript выполняется на компьютере покупателя,
-и покупатель может его переписать. PHP выполняется на вашем сервере, и покупатель до него
-не дотянется. Поэтому цены, доступы и деньги считает <strong>только PHP</strong>. Никогда — JavaScript.</p><h3>SQL — память</h3><p>Язык общения с базой данных. Спрашивает и записывает.</p><p>Аналогия: <strong>разговор с кладовщиком</strong>. «Дай все тормозные колодки дешевле 300 сомони,
-которые есть в наличии» — и он приносит список.</p><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> name, price <span class="hljs-keyword">FROM</span> products <span class="hljs-keyword">WHERE</span> price <span class="hljs-operator">&lt;</span> <span class="hljs-number">300</span> <span class="hljs-keyword">AND</span> in_stock <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;
-</code></pre><hr></section><section class="vrezka v-razbor"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбор по словам</span><span class="vrezka-zagolovok">Разбор по словам</span></div><p>Выше вы увидели пять кусочков кода. Сейчас разберём <strong>каждый значок</strong>. Не запоминайте —
-просто прочитайте, чтобы код перестал выглядеть как шифр.</p><h3>HTML: почему всё в «уголках»</h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">h1</span>&gt;</span>Тормозные колодки<span class="hljs-tag">&lt;/<span class="hljs-name">h1</span>&gt;</span>
+</code></pre><h3><strong>SQL — разговор с памятью</strong></h3><p>SQL — это язык, на котором разговаривают с базой данных. Спрашивают и записывают.</p><p><strong>Примеры того, что делает SQL:</strong></p><ul>
+<li>найти все тормозные колодки дешевле 300 сомони, которые есть в наличии;</li>
+<li>достать данные одного товара по его номеру;</li>
+<li>добавить новый заказ;</li>
+<li>изменить статус заказа с «новый» на «отправлен»;</li>
+<li>посчитать, на какую сумму продал каждый продавец за месяц;</li>
+<li>найти покупателей, которые не заходили полгода.</li>
+</ul><p><strong>Аналогия:</strong> разговор с кладовщиком. Вы не идёте на склад сами и не роетесь в коробках.
+Вы говорите: «дай мне все колодки Bosch, что есть в наличии» — и он приносит список.</p><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> name, price <span class="hljs-keyword">FROM</span> products <span class="hljs-keyword">WHERE</span> price <span class="hljs-operator">&lt;</span> <span class="hljs-number">300</span> <span class="hljs-keyword">AND</span> in_stock <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;
+</code></pre><h3><strong>Коротко, чтобы уложилось</strong></h3><table>
+<thead>
+<tr>
+<th>Инструмент</th>
+<th>Отвечает на вопрос</th>
+<th>Где работает</th>
+<th>Бытовая аналогия</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HTML</strong></td>
+<td>Что здесь есть?</td>
+<td>В браузере</td>
+<td>Скелет, чертёж дома</td>
+</tr>
+<tr>
+<td><strong>CSS</strong></td>
+<td>Как это выглядит?</td>
+<td>В браузере</td>
+<td>Одежда, ремонт</td>
+</tr>
+<tr>
+<td><strong>JavaScript</strong></td>
+<td>Что будет, если нажать?</td>
+<td>В браузере</td>
+<td>Рефлексы, автодвери</td>
+</tr>
+<tr>
+<td><strong>PHP</strong></td>
+<td>Что решаем и что показываем?</td>
+<td>На сервере</td>
+<td>Мозг, директор</td>
+</tr>
+<tr>
+<td><strong>SQL</strong></td>
+<td>Где это записано?</td>
+<td>В базе данных</td>
+<td>Кладовщик, картотека</td>
+</tr>
+</tbody>
+</table><p>Если сейчас каша в голове — это абсолютно нормально. Никто не запоминает пять новых
+понятий с первого раза. Мы к каждому вернёмся отдельной главой, и не по одному разу.</p><hr></section><section class="vrezka v-razbor"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбор по словам</span><span class="vrezka-zagolovok">Разбор по словам</span></div><p>Выше промелькнуло пять кусочков кода, и они наверняка выглядели как шифр. Давайте
+расшифруем — <strong>каждый значок</strong>.</p><p>Запоминать ничего не нужно. Просто прочитайте один раз, чтобы код перестал пугать.
+Это как впервые посмотреть на ноты: сначала мурашки, потом оказывается, что там
+всего семь букв.</p><h3><strong>HTML: почему всё в «уголках»</strong></h3><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">h1</span>&gt;</span>Тормозные колодки<span class="hljs-tag">&lt;/<span class="hljs-name">h1</span>&gt;</span>
 <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Цена: 250 сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
 <span class="hljs-tag">&lt;<span class="hljs-name">button</span>&gt;</span>Купить<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
 </code></pre><table>
@@ -494,17 +616,17 @@ hr {
 <tr>
 <td><code>&lt;</code> и <code>&gt;</code></td>
 <td>«уголки», угловые скобки</td>
-<td>Внутри уголков — <strong>команда браузеру</strong>, а не текст для чтения. Браузер их не показывает</td>
+<td>Внутри уголков — <strong>команда браузеру</strong>, а не текст для чтения. На экране их не будет</td>
 </tr>
 <tr>
 <td><code>&lt;h1&gt;</code></td>
 <td>«эйч-один»</td>
-<td><strong>Заголовок первого уровня</strong>, самый главный на странице. От английского <em>heading</em> — заголовок. Есть <code>&lt;h1&gt;</code>…<code>&lt;h6&gt;</code>, чем больше цифра, тем мельче</td>
+<td><strong>Заголовок первого уровня</strong>, самый главный на странице. От английского <em>heading</em> — заголовок. Бывают <code>&lt;h1&gt;</code>…<code>&lt;h6&gt;</code>: чем больше цифра, тем мельче заголовок</td>
 </tr>
 <tr>
 <td><code>&lt;/h1&gt;</code></td>
 <td>«закрывающий эйч-один»</td>
-<td>Косая черта <code>/</code> означает <strong>конец</strong>. «Заголовок закончился здесь»</td>
+<td>Косая черта <code>/</code> означает <strong>конец</strong>. «Заголовок закончился вот здесь»</td>
 </tr>
 <tr>
 <td><code>&lt;p&gt;</code></td>
@@ -519,20 +641,22 @@ hr {
 <tr>
 <td>Текст между тегами</td>
 <td></td>
-<td>То, что реально увидит человек на экране</td>
+<td>То единственное, что реально увидит человек на экране</td>
 </tr>
 </tbody>
-</table><p>Пара «открывающий тег + содержимое + закрывающий тег» называется <strong>элемент</strong>.
-Это как скобки в математике: что открыли — то надо закрыть.</p><p><strong>А что такое <code>&lt;div&gt;</code>?</strong> Вы это слово будете встречать чаще всех остальных.
-<code>&lt;div&gt;</code> — это <strong>пустая коробка</strong>. Он ничего не значит и никак не выглядит.
-Его задача — сгруппировать другие элементы, чтобы потом можно было сказать:
-«вот эту коробку покрасить в серый и сдвинуть вправо».</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+</table><p>Пара «открывающий тег + содержимое + закрывающий тег» называется <strong>элемент</strong>.</p><p>Правило простое, как в математике: <strong>что открыли — то надо закрыть</strong>. Забыли закрыть —
+браузер начнёт фантазировать, и страница поедет.</p><p><strong>А что такое <code>&lt;div&gt;</code>?</strong></p><p>Это слово вы будете встречать чаще всех остальных, поэтому знакомимся сразу.</p><p><code>&lt;div&gt;</code> — это <strong>пустая коробка</strong>. Он ничего не означает и никак не выглядит. На экране
+его не видно вообще.</p><p>Зачем тогда нужен? Чтобы <strong>сложить в него другие элементы</strong> и потом обращаться
+ко всей группе сразу.</p><pre><code class="language-html"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
     <span class="hljs-tag">&lt;<span class="hljs-name">h1</span>&gt;</span>Тормозные колодки<span class="hljs-tag">&lt;/<span class="hljs-name">h1</span>&gt;</span>
     <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Цена: 250 сомони<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
     <span class="hljs-tag">&lt;<span class="hljs-name">button</span>&gt;</span>Купить<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
 <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
-</code></pre><p>Теперь заголовок, цена и кнопка лежат <strong>в одной коробке</strong> — это карточка товара.
-Название <code>div</code> — от английского <em>division</em>, «раздел». Подробно — в главе 5.</p><h3>CSS: почему фигурные скобки</h3><pre><code class="language-css"><span class="hljs-selector-tag">button</span> { <span class="hljs-attribute">background</span>: <span class="hljs-number">#d92b2b</span>; <span class="hljs-attribute">color</span>: white; <span class="hljs-attribute">border-radius</span>: <span class="hljs-number">8px</span>; }
+</code></pre><p>Теперь заголовок, цена и кнопка лежат в одной коробке. И можно сказать: «вот эту коробку
+сделай белой, добавь рамку, скругли углы и отодвинь от соседних». Получится <strong>карточка
+товара</strong> — та самая, из которых собран любой каталог.</p><p>Название <code>div</code> — сокращение от английского <em>division</em>, «раздел», «отделение».
+Думайте о нём как о коробке из-под обуви: сама по себе не нужна, но сложить в неё вещи
+и подписать — очень удобно. Подробно разберём в главе 5.</p><h3><strong>CSS: почему фигурные скобки</strong></h3><pre><code class="language-css"><span class="hljs-selector-tag">button</span> { <span class="hljs-attribute">background</span>: <span class="hljs-number">#d92b2b</span>; <span class="hljs-attribute">color</span>: white; <span class="hljs-attribute">border-radius</span>: <span class="hljs-number">8px</span>; }
 </code></pre><table>
 <thead>
 <tr>
@@ -545,12 +669,12 @@ hr {
 <tr>
 <td><code>button</code></td>
 <td>селектор</td>
-<td><strong>Кого красим.</strong> Здесь: все кнопки на странице</td>
+<td><strong>Кого красим.</strong> Здесь — все кнопки на странице</td>
 </tr>
 <tr>
 <td><code>{ }</code></td>
 <td>фигурные скобки</td>
-<td>«Начало и конец списка указаний». Всё, что внутри, относится к кнопке</td>
+<td>«Начало и конец списка указаний». Всё внутри относится к кнопке</td>
 </tr>
 <tr>
 <td><code>background</code></td>
@@ -565,25 +689,25 @@ hr {
 <tr>
 <td><code>#d92b2b</code></td>
 <td>значение</td>
-<td>Цвет в виде кода. <code>#</code> + шесть символов — красный оттенок</td>
+<td>Цвет в виде кода: <code>#</code> и шесть символов. Здесь — красный</td>
 </tr>
 <tr>
 <td><code>;</code></td>
 <td>точка с запятой</td>
-<td><strong>Конец одного указания.</strong> Дальше идёт следующее</td>
+<td><strong>Конец одного указания.</strong> Дальше пойдёт следующее</td>
 </tr>
 <tr>
 <td><code>color: white</code></td>
 <td></td>
-<td>Цвет <strong>текста</strong> — белый (не путать с <code>background</code>, это фон)</td>
+<td>Цвет <strong>текста</strong> — белый. Не путайте с <code>background</code>: это фон</td>
 </tr>
 <tr>
 <td><code>border-radius: 8px</code></td>
 <td></td>
-<td>Скругление углов на 8 пикселей</td>
+<td>Скруглить углы на 8 пикселей</td>
 </tr>
 </tbody>
-</table><p>Формула CSS всегда одна: <strong>кого</strong> <code>{</code> <strong>что-меняем</strong><code>:</code> <strong>на-что</strong><code>;</code> <code>}</code></p><h3>JavaScript: точки и стрелки</h3><pre><code class="language-javascript">button.<span class="hljs-property">onclick</span> = <span class="hljs-function">() =&gt;</span> <span class="hljs-title function_">alert</span>(<span class="hljs-string">'Товар добавлен в корзину'</span>);
+</table><p>Формула CSS всегда одна и та же:</p><p><strong>кого</strong> <code>{</code> <strong>что меняем</strong> <code>:</code> <strong>на что</strong> <code>;</code> <code>}</code></p><p>Выучите её один раз — и любой CSS в мире станет читаемым.</p><h3><strong>JavaScript: точки и стрелки</strong></h3><pre><code class="language-javascript">button.<span class="hljs-property">onclick</span> = <span class="hljs-function">() =&gt;</span> <span class="hljs-title function_">alert</span>(<span class="hljs-string">'Товар добавлен в корзину'</span>);
 </code></pre><table>
 <thead>
 <tr>
@@ -596,12 +720,12 @@ hr {
 <tr>
 <td><code>button</code></td>
 <td></td>
-<td>Кнопка, которую мы раньше нашли на странице</td>
+<td>Кнопка, которую мы до этого нашли на странице</td>
 </tr>
 <tr>
 <td><code>.</code></td>
 <td>точка</td>
-<td>«Возьми <strong>у этого</strong> его свойство». Как «Иван**.**телефон» — телефон Ивана</td>
+<td>«Возьми <strong>у этого</strong> вот это». Как «Иван**.**телефон» — телефон Ивана</td>
 </tr>
 <tr>
 <td><code>onclick</code></td>
@@ -616,7 +740,7 @@ hr {
 <tr>
 <td><code>() =&gt;</code></td>
 <td>«стрелочная функция»</td>
-<td>«Вот <strong>действие</strong>, которое надо выполнить». Круглые скобки — место для входных данных, здесь их нет</td>
+<td>«Вот <strong>действие</strong>, которое надо выполнить». В круглых скобках — место для входных данных, здесь они не нужны</td>
 </tr>
 <tr>
 <td><code>alert(...)</code></td>
@@ -626,7 +750,7 @@ hr {
 <tr>
 <td><code>'...'</code></td>
 <td>кавычки</td>
-<td>Внутри кавычек — <strong>текст</strong>, а не команда. Компьютер не пытается его выполнять</td>
+<td>Внутри кавычек — <strong>текст</strong>, а не команда. Компьютер не пытается его выполнить</td>
 </tr>
 <tr>
 <td><code>;</code></td>
@@ -634,10 +758,11 @@ hr {
 <td>Конец строки-команды</td>
 </tr>
 </tbody>
-</table><h3>PHP: доллары и условия</h3><pre><code class="language-php"><span class="hljs-keyword">if</span> (<span class="hljs-variable">$user</span>[<span class="hljs-string">'role'</span>] === <span class="hljs-string">'admin'</span>) {
+</table><h3><strong>PHP: доллары и условия</strong></h3><pre><code class="language-php"><span class="hljs-keyword">if</span> (<span class="hljs-variable">$user</span>[<span class="hljs-string">'role'</span>] === <span class="hljs-string">'admin'</span>) {
     <span class="hljs-keyword">echo</span> <span class="hljs-string">'Добро пожаловать в админку'</span>;
 }
-</code></pre><p>Вот это и есть знаменитый <strong><code>if</code></strong> — самое важное слово в любом языке.</p><table>
+</code></pre><p>Вот здесь появилось <strong><code>if</code></strong> — пожалуй, самое важное слово во всём программировании.
+Оно есть в каждом языке, и работает везде одинаково.</p><table>
 <thead>
 <tr>
 <th>Что видим</th>
@@ -649,7 +774,7 @@ hr {
 <tr>
 <td><code>if</code></td>
 <td>«иф», по-английски «если»</td>
-<td><strong>Проверка.</strong> «Если условие верно — сделай то, что в фигурных скобках. Если нет — пропусти»</td>
+<td><strong>Проверка.</strong> «Если условие верно — сделай то, что в фигурных скобках. Если нет — просто пропусти»</td>
 </tr>
 <tr>
 <td><code>( )</code></td>
@@ -664,12 +789,12 @@ hr {
 <tr>
 <td><code>$user['role']</code></td>
 <td></td>
-<td>Достать из коробочки <code>$user</code> поле <code>role</code> (роль). Квадратные скобки — «возьми вот эту часть»</td>
+<td>Достать из коробочки <code>$user</code> поле <code>role</code> — роль. Квадратные скобки: «возьми вот эту часть»</td>
 </tr>
 <tr>
 <td><code>===</code></td>
 <td>«строго равно»</td>
-<td><strong>Сравнение</strong>: «а точно ли слева то же самое, что справа?» Три знака, не один!</td>
+<td><strong>Сравнение</strong>: «а точно ли слева то же самое, что справа?» Три знака, не один</td>
 </tr>
 <tr>
 <td><code>'admin'</code></td>
@@ -692,17 +817,22 @@ hr {
 <td>Конец команды</td>
 </tr>
 </tbody>
-</table><p><strong>Один <code>=</code> или три <code>===</code>?</strong> Самая частая ошибка новичка:</p><ul>
-<li><code>=</code> — <strong>записать</strong>. <code>$x = 5</code> значит «положи пятёрку в коробочку x».</li>
-<li><code>===</code> — <strong>спросить</strong>. <code>$x === 5</code> значит «а в коробочке правда пятёрка?»</li>
-</ul><p>Перепутаете — программа вместо проверки молча запишет значение.</p><p><strong>А где же <code>else</code>?</strong> <code>else</code> («иначе») — это вторая половина <code>if</code>. Читается как в жизни:</p><pre><code class="language-php"><span class="hljs-keyword">if</span> (<span class="hljs-variable">$user</span>[<span class="hljs-string">'role'</span>] === <span class="hljs-string">'admin'</span>) {
+</table><p><strong>Один <code>=</code> или три <code>===</code>? Самая частая ошибка новичка.</strong></p><ul>
+<li><code>=</code> — это <strong>записать</strong>. <code>$x = 5</code> значит «положи пятёрку в коробочку x».</li>
+<li><code>===</code> — это <strong>спросить</strong>. <code>$x === 5</code> значит «а в коробочке правда пятёрка?»</li>
+</ul><p>Первое — действие, второе — вопрос. Перепутаете — программа вместо проверки молча
+запишет значение, и ошибку вы будете искать долго.</p><p><strong>А где же <code>else</code>?</strong></p><p><code>else</code> — «иначе» — это вторая половина <code>if</code>. Читается ровно как в жизни:</p><pre><code class="language-php"><span class="hljs-keyword">if</span> (<span class="hljs-variable">$user</span>[<span class="hljs-string">'role'</span>] === <span class="hljs-string">'admin'</span>) {
     <span class="hljs-keyword">echo</span> <span class="hljs-string">'Добро пожаловать в админку'</span>;
 } <span class="hljs-keyword">else</span> {
     <span class="hljs-keyword">echo</span> <span class="hljs-string">'Вам сюда нельзя'</span>;
 }
 </code></pre><p>Дословно: <strong>если</strong> роль администратор — покажи приветствие, <strong>иначе</strong> — откажи.
-Одно из двух выполнится обязательно. Подробно — в главе 21.</p><h3>SQL: запрос как предложение</h3><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> name, price <span class="hljs-keyword">FROM</span> products <span class="hljs-keyword">WHERE</span> price <span class="hljs-operator">&lt;</span> <span class="hljs-number">300</span> <span class="hljs-keyword">AND</span> in_stock <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;
-</code></pre><p>SQL специально сделан похожим на английскую фразу. Читайте по кускам:</p><table>
+Одно из двух выполнится обязательно, третьего не дано.</p><p>Вы пользуетесь этой конструкцией каждый день, просто не называете её так:</p><ul>
+<li><strong>если</strong> дождь — беру зонт, <strong>иначе</strong> — не беру;</li>
+<li><strong>если</strong> денег хватает — покупаю, <strong>иначе</strong> — откладываю;</li>
+<li><strong>если</strong> на светофоре зелёный — иду, <strong>иначе</strong> — стою.</li>
+</ul><p>Вот и всё программирование. Подробно — в главе 21.</p><h3><strong>SQL: запрос как обычная фраза</strong></h3><pre><code class="language-sql"><span class="hljs-keyword">SELECT</span> name, price <span class="hljs-keyword">FROM</span> products <span class="hljs-keyword">WHERE</span> price <span class="hljs-operator">&lt;</span> <span class="hljs-number">300</span> <span class="hljs-keyword">AND</span> in_stock <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;
+</code></pre><p>SQL специально сделали похожим на английское предложение. Читайте по кусочкам:</p><table>
 <thead>
 <tr>
 <th>Что видим</th>
@@ -734,7 +864,7 @@ hr {
 <tr>
 <td><code>WHERE</code></td>
 <td>«вэа» — где, при условии</td>
-<td><strong>Какие строки</strong> брать, а какие пропустить</td>
+<td><strong>Какие строки</strong> берём, а какие пропускаем</td>
 </tr>
 <tr>
 <td><code>price &lt; 300</code></td>
@@ -744,7 +874,7 @@ hr {
 <tr>
 <td><code>AND</code></td>
 <td>«энд» — и</td>
-<td>Оба условия должны выполниться разом</td>
+<td>Оба условия должны выполниться одновременно</td>
 </tr>
 <tr>
 <td><code>in_stock = 1</code></td>
@@ -757,18 +887,18 @@ hr {
 <td>Конец запроса</td>
 </tr>
 </tbody>
-</table><p>Целиком: <em>«Выбери название и цену из таблицы товаров, где цена меньше 300 и товар в наличии»</em>.
-Почти обычное предложение.</p><h3>Что общего у всех пяти</h3><p>Заметили? Значки повторяются из языка в язык:</p><table>
+</table><p>Целиком получается: <em>«Выбери название и цену из таблицы товаров, где цена меньше 300
+и товар в наличии»</em>. Практически человеческая фраза.</p><h3><strong>Что общего у всех пяти языков</strong></h3><p>А теперь приятное. Присмотритесь к таблицам выше — значки-то повторяются:</p><table>
 <thead>
 <tr>
 <th>Значок</th>
-<th>Почти везде означает</th>
+<th>Почти в любом языке означает</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>{ }</code></td>
-<td>«блок»: начало и конец группы</td>
+<td>«блок»: вот начало группы, вот конец</td>
 </tr>
 <tr>
 <td><code>( )</code></td>
@@ -780,84 +910,108 @@ hr {
 </tr>
 <tr>
 <td><code>' '</code> или <code>" "</code></td>
-<td>«внутри — текст, не выполняй его»</td>
+<td>«внутри текст, выполнять его не надо»</td>
 </tr>
 <tr>
 <td><code>//</code> или <code>#</code></td>
-<td>комментарий: заметка для человека, компьютер её игнорирует</td>
+<td>комментарий: заметка для человека, компьютер её не читает</td>
 </tr>
 </tbody>
-</table><p>Выучив это один раз, вы будете узнавать их в любом языке — хоть в Python, хоть в Java.</p><hr></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Собираем картину целиком</span></div><p>Вот что происходит, когда покупатель открывает страницу товара. Прочитайте медленно —
-это самая важная схема в книге:</p><ol>
+</table><p>Разобравшись один раз, вы будете узнавать их везде — хоть в Python, хоть в Java,
+хоть в языке, который придумают через десять лет. Языков много, а привычки у них общие.</p><hr></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">А теперь всё вместе</span></div><p>Давайте проследим, что происходит, когда покупатель открывает страницу товара.
+Прочитайте медленно — это самая важная схема в книге, всё остальное будет крутиться
+вокруг неё.</p><ol>
 <li>Покупатель нажимает ссылку «Тормозные колодки».</li>
-<li>Браузер отправляет запрос на сервер: <em>«дай мне страницу товара номер 42»</em>.</li>
-<li>На сервере просыпается <strong>PHP</strong> и думает: «так, номер 42, надо узнать подробности».</li>
-<li>PHP пишет запрос на <strong>SQL</strong> и отправляет в <strong>базу данных</strong>:
+<li>Браузер отправляет на сервер запрос: <em>«дайте мне страницу товара номер 42»</em>.</li>
+<li>На сервере просыпается <strong>PHP</strong> и думает: «сорок второй, значит. Надо узнать подробности».</li>
+<li>PHP составляет запрос на <strong>SQL</strong> и отправляет его в <strong>базу данных</strong>:
 <code>SELECT * FROM products WHERE id = 42</code>.</li>
 <li>База отвечает: <em>«Колодки тормозные, Bosch, 250 сомони, на складе 7 штук»</em>.</li>
-<li>PHP берёт эти данные и <strong>строит из них HTML</strong> — вставляет название в заголовок,
-цену в ценник, картинку в блок картинки.</li>
+<li>PHP берёт эти данные и <strong>строит из них HTML</strong>: название вставляет в заголовок,
+цену — в ценник, картинку — в блок картинки.</li>
 <li>Готовый HTML улетает обратно в браузер.</li>
-<li>Браузер читает HTML, применяет к нему <strong>CSS</strong> — и страница становится красивой.</li>
+<li>Браузер читает HTML, применяет <strong>CSS</strong> — и страница из чёрно-белого текста
+превращается в нормальный магазин.</li>
 <li>Подключается <strong>JavaScript</strong> и начинает следить за кнопкой «Купить».</li>
-</ol><p><img src="img/01-arhitektura.png" alt="Как связаны части сайта"></p><p>Все пять технологий сработали за доли секунды. Каждая сделала ровно свою часть.</p><p><strong>Разделение обязанностей</strong> — вот главная идея всей веб-разработки. HTML не красит.
-CSS не считает. JavaScript не лезет в базу. PHP не рисует. Каждый занят своим делом.</p><hr></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Что именно мы построим</span></div><p>Не учебный «примерчик на три кнопки». Настоящий интернет-магазин автозапчастей —
-такой, каким пользуются живые люди.</p><p>К концу книги у вас будет работать:</p><p><strong>Для покупателя:</strong></p><ul>
-<li>каталог запчастей с поиском по названию и артикулу;</li>
+</ol><p><img src="img/01-arhitektura.png" alt="Как связаны части сайта"></p><p>Всё это заняло меньше секунды. Пять технологий, и каждая сделала ровно свою часть работы.</p><p><strong>Разделение обязанностей</strong> — вот главная идея всей веб-разработки. HTML не красит.
+CSS не считает. JavaScript не лезет в базу. PHP не рисует. Каждый занят своим делом
+и не мешает соседям.</p><p>Звучит как формальность, но именно поэтому сайты вообще можно чинить. Сломалась
+внешность — идёте в CSS и точно знаете, что база данных тут ни при чём.</p><hr></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Что именно мы построим</span></div><p>Не «примерчик на три кнопки». Настоящий интернет-магазин — такой, каким пользуются
+живые люди и в котором ходят реальные деньги.</p><p><strong>Для покупателя:</strong></p><ul>
+<li>каталог запчастей с поиском по названию и по артикулу;</li>
 <li>фильтры: бренд, цена, наличие;</li>
 <li>карточка товара с фото, описанием и характеристиками;</li>
 <li>корзина: добавить, изменить количество, удалить;</li>
 <li>оформление заказа с адресом и телефоном;</li>
-<li>личный кабинет: история заказов и их статусы.</li>
-</ul><p><strong>Для продавца</strong> (магазин будет не только ваш — это маркетплейс):</p><ul>
-<li>регистрация продавца;</li>
+<li>личный кабинет с историей заказов и их статусами.</li>
+</ul><p><strong>Для продавца</strong> — потому что магазин будет не только ваш, а маркетплейс:</p><ul>
+<li>регистрация продавца и его страница;</li>
 <li>выкладка своих товаров;</li>
-<li>свои заказы и их обработка;</li>
-<li>баланс: сколько заработано, сколько уже выплачено.</li>
+<li>свои заказы и работа с ними;</li>
+<li>баланс: сколько заработано и сколько уже выплачено.</li>
 </ul><p><strong>Для администратора:</strong></p><ul>
 <li>модерация: проверять товары продавцов до публикации;</li>
 <li>управление всеми заказами и статусами;</li>
 <li>расчёт комиссии магазина;</li>
 <li>реестр выплат продавцам.</li>
-</ul><p><strong>Плюс взрослые вещи, которых не бывает в учебниках:</strong></p><ul>
+</ul><p><strong>И взрослые вещи, которых обычно нет в учебниках:</strong></p><ul>
 <li>подключение внешнего API поставщика запчастей;</li>
-<li>пересчёт цены из рублей в сомони по живому курсу плюс наценка и доставка;</li>
+<li>пересчёт цены из рублей в сомони по живому курсу, плюс наценка и доставка;</li>
 <li>защита от взлома: SQL-инъекции, XSS, кража сессии;</li>
-<li>выкладка сайта на настоящий хостинг под настоящим доменом с HTTPS.</li>
-</ul><hr></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Почему именно эти технологии</span></div><p>Честный ответ на вопрос «а не устарел ли PHP».</p><p>PHP выбран не потому, что он самый модный. А потому, что для первого сайта он <strong>самый
-подходящий</strong>, и вот почему:</p><ul>
-<li><strong>Виден результат сразу.</strong> Создал файл, открыл в браузере — работает. Не нужно
-собирать проект, ставить пятьдесят пакетов и настраивать сборщик.</li>
-<li><strong>Дешёвый хостинг.</strong> PHP крутится на хостинге за 3-5 долларов в месяц. Это важно,
-когда вы делаете первый настоящий проект.</li>
-<li><strong>Огромная база примеров.</strong> Любая ваша проблема уже решена и описана.</li>
-<li><strong>На нём работает больше половины сайтов в мире.</strong> WordPress, а значит четверть
-всего интернета, — это PHP.</li>
-</ul><p>А главное: <strong>навык не в языке</strong>. Научившись думать «запрос → логика → база → ответ»,
-вы пересядете на Python или Node.js за пару недель. Языки меняются, мышление остаётся.</p><hr></section><section class="vrezka v-grabli"><div class="vrezka-shapka"><span class="vrezka-podpis">Грабли</span><span class="vrezka-zagolovok">Грабли новичка</span></div><p><strong>«Сначала выучу всё, потом начну делать».</strong>
-Не работает. Знания без практики выветриваются за неделю. Правильно наоборот: делаем
-маленькую вещь → упираемся в незнание → узнаём ровно столько, сколько нужно → делаем дальше.</p><p><strong>«Надо сразу выбрать самый лучший язык».</strong>
-Лучшего языка нет. Есть подходящий для задачи. Спор «PHP против Python» для новичка —
-это спор о том, каким молотком забивать первый гвоздь.</p><p><strong>«Программисты знают всё наизусть».</strong>
-Нет. Программист с пятнадцатью годами опыта гуглит синтаксис по десять раз в день.
-Ценность не в памяти, а в умении разбить задачу на куски и понять, что искать.</p><p><strong>«Я не математик, значит не смогу».</strong>
-Для веб-разработки нужна арифметика уровня седьмого класса. Складывать цены и считать
-проценты. Всё.</p><hr></section><section class="vrezka v-zadachi"><div class="vrezka-shapka"><span class="vrezka-podpis">Задачи</span><span class="vrezka-zagolovok">Задачи</span></div><p><strong>Задача 1.1.</strong> Откройте любой знакомый сайт (маркетплейс, новости, банк). Выпишите
-пять вещей, которые вы <strong>видите</strong>, — это работа фронтенда. Потом пять вещей, которые
-происходят <strong>невидимо</strong> (проверка пароля, расчёт доставки, сохранение заказа) — это бэкенд.</p><p><strong>Задача 1.2.</strong> Для каждой строки определите, кто отвечает — HTML, CSS, JavaScript, PHP или SQL:</p><ol>
+<li>выкладка сайта на настоящий хостинг, под настоящим доменом, с замочком HTTPS.</li>
+</ul><p>Дойти до конца — это работа на несколько месяцев. Но каждая глава заканчивается чем-то,
+что можно открыть в браузере и показать. Ощущение «у меня получилось» будет приходить
+регулярно, а не один раз в самом конце.</p><hr></section><section class="vrezka v-obyasnenie"><div class="vrezka-shapka"><span class="vrezka-podpis">Разбираемся</span><span class="vrezka-zagolovok">Почему PHP, а не что-то модное</span></div><p>Отвечу честно, потому что вопрос вы всё равно услышите. В интернете любят повторять,
+что «PHP устарел».</p><p>PHP выбран не потому, что он самый модный. А потому, что для <strong>первого</strong> сайта он самый
+удобный:</p><ul>
+<li><strong>Результат виден сразу.</strong> Создали файл, открыли в браузере — работает. Не нужно
+ставить пятьдесят пакетов и настраивать сборщик, чтобы вывести на экран слово «привет».</li>
+<li><strong>Дешёвый хостинг.</strong> PHP работает на хостинге за 3–5 долларов в месяц. Для первого
+настоящего проекта это важно: сайт можно показать людям, не разорившись.</li>
+<li><strong>Огромная база готовых ответов.</strong> Какую бы проблему вы ни встретили, её уже кто-то
+решил и описал.</li>
+<li><strong>На нём работает больше половины сайтов в мире.</strong> Один только WordPress — это
+примерно четверть всего интернета.</li>
+</ul><p>Но главное вот что. <strong>Навык — не в языке.</strong></p><p>Когда вы научитесь думать «пришёл запрос → проверили права → сходили в базу →
+собрали ответ», вы пересядете на Python или Node.js за пару недель. Синтаксис разный,
+мышление одно и то же.</p><p>Языки приходят и уходят. Умение раскладывать задачу на части остаётся.</p><hr></section><section class="vrezka v-grabli"><div class="vrezka-shapka"><span class="vrezka-podpis">Грабли</span><span class="vrezka-zagolovok">Грабли</span></div><p>Четыре мысли, которые чаще всего мешают новичкам. Если поймаете себя на любой из них —
+вспомните эту страницу.</p><p><strong>«Сначала выучу всё, потом начну делать».</strong>
+Не сработает, проверено многими. Знания без практики выветриваются за неделю.
+Правильный порядок обратный: делаем маленькую вещь → упираемся в незнание → узнаём
+ровно столько, сколько нужно прямо сейчас → делаем дальше. Скучно, зато держится.</p><p><strong>«Надо сразу выбрать самый лучший язык».</strong>
+Лучшего языка не существует, есть подходящий для задачи. Споры «PHP против Python»
+для новичка — это спор о том, каким молотком забивать первый в жизни гвоздь.
+Забейте хоть каким, потом разберётесь.</p><p><strong>«Настоящие программисты знают всё наизусть».</strong>
+Нет. Разработчик с пятнадцатью годами опыта гуглит синтаксис по десять раз в день,
+и это нормально. Ценность не в памяти, а в умении разбить задачу на части и понять,
+что именно искать.</p><p><strong>«Я не математик, значит, не потяну».</strong>
+Для веб-разработки нужна арифметика уровня седьмого класса: сложить цены, посчитать
+проценты, поделить на количество. Всё. Высшая математика понадобится, если вы пойдёте
+в машинное обучение — но это совсем другая история.</p><hr></section><section class="vrezka v-zadachi"><div class="vrezka-shapka"><span class="vrezka-podpis">Задачи</span><span class="vrezka-zagolovok">Задачи</span></div><p>Пять упражнений. Ни в одном не нужен компьютер с редактором — только голова и браузер.
+Не пропускайте: именно на задачах прочитанное превращается в понятое.</p><p><strong>Задача 1.1.</strong> Откройте любой знакомый сайт — маркетплейс, новости, банк.
+Выпишите пять вещей, которые вы <strong>видите</strong> (это работа фронтенда). Потом пять вещей,
+которые происходят <strong>невидимо</strong>: проверка пароля, расчёт доставки, сохранение заказа
+(это бэкенд).</p><p><strong>Задача 1.2.</strong> Для каждой строки определите, кто отвечает — HTML, CSS, JavaScript,
+PHP или SQL:</p><ol>
 <li>Кнопка стала синей вместо серой.</li>
 <li>На странице появился второй заголовок.</li>
-<li>При наборе букв в поиске снизу выпадают подсказки.</li>
+<li>При наборе букв в поиске выпадают подсказки.</li>
 <li>Проверка, что пароль при входе правильный.</li>
 <li>Достать из базы 20 самых дешёвых товаров.</li>
-<li>Меню на телефоне схлопывается в три полоски.</li>
-<li>Заказ записался и ему присвоился номер.</li>
-</ol><p><strong>Задача 1.3.</strong> Объясните вслух (правда вслух, это работает) своими словами разницу
-между фронтендом и бэкендом. Уложитесь в два предложения без слов «фронтенд» и «бэкенд».</p><p><strong>Задача 1.4.</strong> Почему скидку постоянного покупателя нельзя считать на JavaScript?
-Ответ на одну строчку.</p><p><strong>Задача 1.5.</strong> Нажмите на любом сайте правую кнопку мыши → «Посмотреть код страницы».
-То, что открылось, — это HTML, который прислал сервер. Найдите в нём заголовок
-страницы. Пока непонятно — это нормально, к главе 8 вы будете читать это свободно.</p><p><em>Ответы — в <a href="../prilozheniya/G-otvety.md">Приложении Г</a>.</em></p><hr></section><section class="vrezka v-vboyu"><div class="vrezka-shapka"><span class="vrezka-podpis">В бою</span><span class="vrezka-zagolovok">В бою</span></div><p>Загляните в корень этого репозитория — там лежит реальный autodoc.tj. Пока просто
-посмотрите на названия папок, вы уже можете угадать, что где:</p><table>
+<li>Меню на телефоне схлопнулось в три полоски.</li>
+<li>Заказ записался, и ему присвоился номер.</li>
+<li>Между карточками товаров появились отступы.</li>
+</ol><p><strong>Задача 1.3.</strong> Объясните вслух — правда вслух, это работает — своими словами разницу
+между фронтендом и бэкендом. Уложитесь в два предложения и не используйте сами слова
+«фронтенд» и «бэкенд».</p><p><strong>Задача 1.4.</strong> Почему скидку постоянного покупателя нельзя считать на JavaScript?
+Ответ — одна строчка.</p><p><strong>Задача 1.5.</strong> Нажмите на любом сайте правую кнопку мыши и выберите «Посмотреть код
+страницы». Откроется HTML, который прислал сервер. Найдите в нём заголовок страницы
+(ищите <code>&lt;h1&gt;</code> или <code>&lt;title&gt;</code>). Если сейчас это выглядит как сплошная каша — так и должно
+быть. К главе 8 вы будете читать её свободно.</p><p><strong>Задача 1.6.</strong> Придумайте три своих аналогии для тройки «витрина — подсобка — журнал».
+Не из книги, а свои: школа, аэропорт, парикмахерская — что угодно. Чем больше своих
+примеров, тем прочнее держится в голове.</p><p><em>Ответы — в <a href="../prilozheniya/G-otvety.md">Приложении Г</a>.</em></p><hr></section><section class="vrezka v-vboyu"><div class="vrezka-shapka"><span class="vrezka-podpis">В бою</span><span class="vrezka-zagolovok">В бою</span></div><p>А теперь заглянем в настоящий проект. В корне этого репозитория лежит код
+работающего магазина autodoc.tj. Открывать файлы пока не нужно — просто посмотрите
+на названия папок. Вы уже можете угадать, что где:</p><table>
 <thead>
 <tr>
 <th>Папка</th>
@@ -878,12 +1032,12 @@ CSS не считает. JavaScript не лезет в базу. PHP не рис
 </tr>
 <tr>
 <td><code>includes/</code></td>
-<td>Общая логика</td>
+<td>Общая логика, которую используют все страницы</td>
 <td>Бэкенд (PHP)</td>
 </tr>
 <tr>
 <td><code>sql/</code></td>
-<td>Структура базы</td>
+<td>Структура базы данных</td>
 <td>База данных</td>
 </tr>
 <tr>
@@ -898,18 +1052,25 @@ CSS не считает. JavaScript не лезет в базу. PHP не рис
 </tr>
 <tr>
 <td><code>api/</code></td>
-<td>Точки для JavaScript</td>
+<td>Точки, куда обращается JavaScript</td>
 <td>Стык фронта и бэка</td>
 </tr>
 </tbody>
-</table><p>Тот самый магазин из аналогии. Торговый зал, подсобка и складской журнал.</p><hr></section><section class="vrezka v-itog"><div class="vrezka-shapka"><span class="vrezka-podpis">Итог</span><span class="vrezka-zagolovok">Итог главы</span></div><ul>
-<li>Сайт = торговый зал (фронтенд) + подсобка (бэкенд) + журнал (база данных).</li>
+</table><p>Узнаёте? Это тот самый магазин из начала главы. Торговый зал, подсобка и складской
+журнал — только разложенные по папкам.</p><p>Через шестьдесят глав вы откроете любой из этих файлов и будете понимать, что там
+написано, строчка за строчкой.</p><hr></section><section class="vrezka v-itog"><div class="vrezka-shapka"><span class="vrezka-podpis">Итог</span><span class="vrezka-zagolovok">Итог</span></div><ul>
+<li>Сайт — это <strong>торговый зал</strong> (фронтенд), <strong>подсобка</strong> (бэкенд) и <strong>складской журнал</strong>
+(база данных). Всегда, у любого сайта.</li>
 <li><strong>HTML</strong> — скелет, <strong>CSS</strong> — внешность, <strong>JavaScript</strong> — рефлексы в браузере,
 <strong>PHP</strong> — мозг на сервере, <strong>SQL</strong> — разговор с памятью.</li>
-<li>JavaScript выполняется у покупателя, PHP — у вас. Деньги и доступы считает только PHP.</li>
-<li>Fullstack — тот, кто работает во всех трёх зонах.</li>
+<li>JavaScript выполняется у покупателя и переписывается им за минуту. PHP выполняется
+у вас. Поэтому деньги и доступы считает <strong>только PHP</strong>.</li>
+<li><code>if</code> — это «если», <code>else</code> — «иначе». <code>=</code> записывает, <code>===</code> спрашивает.
+<code>&lt;div&gt;</code> — пустая коробка для группировки.</li>
+<li><strong>Fullstack</strong> — тот, кто работает во всех трёх зонах. Это вы через шестьдесят глав.</li>
 <li>Учиться нужно от задачи к теории, а не наоборот.</li>
-</ul><hr></section></div></article>
+</ul><p>В следующей главе разберёмся, что вообще происходит между моментом, когда вы вводите
+адрес сайта, и моментом, когда на экране появляется картинка. Спойлер: там интересно.</p><hr></section></div></article>
 
 <footer class="konec">
   <div class="konec-znak">§</div>

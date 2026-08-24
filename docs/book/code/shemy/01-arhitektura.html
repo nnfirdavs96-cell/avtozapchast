@@ -1,0 +1,99 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<style>
+@font-face{font-family:'Unb';font-weight:700;src:url(../../tools/node_modules/@fontsource/unbounded/files/unbounded-cyrillic-700-normal.woff2) format('woff2');}
+@font-face{font-family:'Spe';font-weight:400;src:url(../../tools/node_modules/@fontsource/spectral/files/spectral-cyrillic-400-normal.woff2) format('woff2');}
+@font-face{font-family:'Spe';font-weight:600;src:url(../../tools/node_modules/@fontsource/spectral/files/spectral-cyrillic-600-normal.woff2) format('woff2');}
+@font-face{font-family:'JB';font-weight:400;src:url(../../tools/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-cyrillic-400-normal.woff2) format('woff2');}
+:root{--bum:#FBF7F0;--bum2:#F4EDE1;--ram:#E3D8C6;--chern:#221E1A;--prig:#6E6459;--rzh:#B5411F;--hv:#14584F;--oh:#A8710C}
+*{box-sizing:border-box;margin:0}
+body{width:1120px;background:var(--bum);font-family:'Spe',Georgia,serif;color:var(--chern);padding:38px 40px 34px}
+.tit{font-family:'Unb';font-weight:700;font-size:27px;letter-spacing:-.03em;line-height:1.2;margin-bottom:8px}
+.pod{font-size:19px;color:var(--prig);margin-bottom:34px}
+.zony{display:grid;grid-template-columns:1fr 118px 1fr;gap:0 0;align-items:stretch}
+.zona{border:2px solid var(--ram);border-radius:8px;background:#fff;padding:22px 24px 24px}
+.z1{border-color:#B3CFC7} .z2{border-color:#EBBFAE} .z3{border-color:#E6CE9C;grid-column:1 / -1;margin-top:26px}
+.zona-shapka{font-family:'Unb';font-weight:700;font-size:13px;letter-spacing:.14em;text-transform:uppercase;
+  padding:6px 12px;border-radius:4px;color:#fff;display:inline-block;margin-bottom:16px}
+.z1 .zona-shapka{background:var(--hv)} .z2 .zona-shapka{background:var(--rzh)} .z3 .zona-shapka{background:var(--oh)}
+.zona-imya{font-family:'Unb';font-weight:700;font-size:24px;letter-spacing:-.025em;margin-bottom:6px}
+.zona-gde{font-size:18px;color:var(--prig);margin-bottom:20px;line-height:1.45}
+.teh{display:flex;flex-direction:column;gap:11px}
+.t{display:flex;align-items:baseline;gap:13px;font-size:18px;line-height:1.4}
+.t b{font-family:'JB';font-weight:400;font-size:16px;background:var(--bum2);border:1.5px solid var(--ram);
+  border-radius:4px;padding:4px 11px;color:#6B2E14;white-space:nowrap;min-width:126px;text-align:center}
+.z3 .teh{flex-direction:row;gap:38px}
+.strelki{display:flex;flex-direction:column;justify-content:center;gap:74px}
+.str{position:relative;height:3px;background:var(--rzh)}
+.str::after{content:'';position:absolute;right:-2px;top:-6px;border:7.5px solid transparent;border-left-color:var(--rzh)}
+.str.nazad{background:var(--hv)}
+.str.nazad::after{right:auto;left:-2px;border-left-color:transparent;border-right-color:var(--hv)}
+.nom{position:absolute;top:-36px;left:50%;transform:translateX(-50%);
+  font-family:'Unb';font-weight:700;font-size:15px;color:#fff;background:var(--rzh);
+  width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.str.nazad .nom{background:var(--hv)}
+.podpis{position:absolute;top:12px;left:50%;transform:translateX(-50%);white-space:nowrap;
+  font-size:16px;color:var(--prig);font-style:italic}
+.vniz{grid-column:1 / -1;display:grid;grid-template-columns:1fr 118px 1fr;padding:22px 0 0}
+.vstrelki{grid-column:3;display:flex;justify-content:center;gap:110px}
+.vstr{position:relative;width:3px;height:56px;background:var(--rzh)}
+.vstr::after{content:'';position:absolute;bottom:-2px;left:-6px;border:7.5px solid transparent;border-top-color:var(--rzh)}
+.vstr.nazad{background:var(--hv)}
+.vstr.nazad::after{bottom:auto;top:-2px;border-top-color:transparent;border-bottom-color:var(--hv)}
+.vstr .nom{top:50%;left:auto;right:16px;transform:translateY(-50%)}
+.vstr.nazad .nom{right:auto;left:16px}
+.vyvod{margin-top:30px;background:var(--bum2);border-left:5px solid var(--oh);border-radius:5px;
+  padding:18px 22px;font-size:18.5px;line-height:1.5}
+.vyvod b{font-weight:600}
+</style></head><body>
+
+<div class="tit">Что происходит, когда покупатель открывает страницу товара</div>
+<div class="pod">Три зоны, пять технологий — и меньше секунды на всё</div>
+
+<div class="zony">
+  <div class="zona z1">
+    <div class="zona-shapka">торговый зал</div>
+    <div class="zona-imya">Браузер покупателя</div>
+    <div class="zona-gde">Его телефон или компьютер.<br>Ваш код сюда только присылают</div>
+    <div class="teh">
+      <div class="t"><b>HTML</b><span>скелет: что есть на странице</span></div>
+      <div class="t"><b>CSS</b><span>внешность: цвета и раскладка</span></div>
+      <div class="t"><b>JavaScript</b><span>рефлексы: реакция на клики</span></div>
+    </div>
+  </div>
+
+  <div class="strelki">
+    <div class="str"><span class="nom">1</span><span class="podpis">запрос</span></div>
+    <div class="str nazad"><span class="nom">4</span><span class="podpis">готовый&nbsp;HTML</span></div>
+  </div>
+
+  <div class="zona z2">
+    <div class="zona-shapka">подсобка</div>
+    <div class="zona-imya">Ваш сервер</div>
+    <div class="zona-gde">Чужой компьютер, работающий круглосуточно. Покупателю сюда хода нет</div>
+    <div class="teh">
+      <div class="t"><b>PHP</b><span>мозг: решает, что показать и почём</span></div>
+      <div class="t"><b>SQL</b><span>язык, на котором он спрашивает базу</span></div>
+    </div>
+  </div>
+
+  <div class="vniz">
+    <div class="vstrelki">
+      <div class="vstr"><span class="nom">2</span></div>
+      <div class="vstr nazad"><span class="nom">3</span></div>
+    </div>
+  </div>
+
+  <div class="zona z3">
+    <div class="zona-shapka">складской журнал</div>
+    <div class="zona-imya">База данных</div>
+    <div class="zona-gde">Хранит всё: товары, цены, заказы, пользователей</div>
+    <div class="teh">
+      <div class="t"><b>MySQL</b><span>таблицы со строками и столбцами</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="vyvod"><b>Главное правило:</b> каждый занят своим делом. HTML не красит, CSS не считает,
+JavaScript не лезет в базу, PHP не рисует. Это и есть <b>разделение обязанностей</b>.</div>
+
+</body></html>
