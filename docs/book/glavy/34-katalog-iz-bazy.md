@@ -246,9 +246,18 @@ require __DIR__ . '/includes/header.php';
             <label for="sort">Сортировка</label>
             <select id="sort" name="sort">
                 <option value="nazvanie">По названию</option>
-                <option value="cena_vozr" <?= $filtry['sort'] === 'cena_vozr' ? 'selected' : '' ?>>Сначала дешёвые</option>
-                <option value="cena_ubyv" <?= $filtry['sort'] === 'cena_ubyv' ? 'selected' : '' ?>>Сначала дорогие</option>
-                <option value="novye"     <?= $filtry['sort'] === 'novye'     ? 'selected' : '' ?>>Сначала новые</option>
+                <option value="cena_vozr"
+                        <?= $filtry['sort'] === 'cena_vozr' ? 'selected' : '' ?>>
+                    Сначала дешёвые
+                </option>
+                <option value="cena_ubyv"
+                        <?= $filtry['sort'] === 'cena_ubyv' ? 'selected' : '' ?>>
+                    Сначала дорогие
+                </option>
+                <option value="novye"
+                        <?= $filtry['sort'] === 'novye'     ? 'selected' : '' ?>>
+                    Сначала новые
+                </option>
             </select>
         </div>
 

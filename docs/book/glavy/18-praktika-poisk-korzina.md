@@ -178,14 +178,70 @@ function podsvetit(tekst, zapros) {
 // ===== Данные =====
 
 const tovary = [
-    { id: 1, nazvanie: 'Тормозные колодки Bosch',  artikul: '0986424815', cena: 250, ostatok: 7,  brend: 'Bosch' },
-    { id: 2, nazvanie: 'Масляный фильтр Mann',     artikul: 'W71280',     cena: 45,  ostatok: 23, brend: 'Mann' },
-    { id: 3, nazvanie: 'Свечи зажигания Denso',    artikul: 'IK20',       cena: 120, ostatok: 0,  brend: 'Denso' },
-    { id: 4, nazvanie: 'Тормозные диски Brembo',   artikul: '09.9468.11', cena: 780, ostatok: 2,  brend: 'Brembo' },
-    { id: 5, nazvanie: 'Воздушный фильтр Mann',    artikul: 'C25114',     cena: 65,  ostatok: 14, brend: 'Mann' },
-    { id: 6, nazvanie: 'Аккумулятор Bosch S4',     artikul: '0092S40050', cena: 950, ostatok: 4,  brend: 'Bosch' },
-    { id: 7, nazvanie: 'Салонный фильтр Mann',     artikul: 'CU2545',     cena: 55,  ostatok: 9,  brend: 'Mann' },
-    { id: 8, nazvanie: 'Ремень ГРМ Bosch',         artikul: '1987949095', cena: 310, ostatok: 3,  brend: 'Bosch' }
+    {
+        id: 1,
+        nazvanie: 'Тормозные колодки Bosch',
+        artikul: '0986424815',
+        cena: 250,
+        ostatok: 7,
+        brend: 'Bosch'
+    },
+    {
+        id: 2,
+        nazvanie: 'Масляный фильтр Mann',
+        artikul: 'W71280',
+        cena: 45,
+        ostatok: 23,
+        brend: 'Mann'
+    },
+    {
+        id: 3,
+        nazvanie: 'Свечи зажигания Denso',
+        artikul: 'IK20',
+        cena: 120,
+        ostatok: 0,
+        brend: 'Denso'
+    },
+    {
+        id: 4,
+        nazvanie: 'Тормозные диски Brembo',
+        artikul: '09.9468.11',
+        cena: 780,
+        ostatok: 2,
+        brend: 'Brembo'
+    },
+    {
+        id: 5,
+        nazvanie: 'Воздушный фильтр Mann',
+        artikul: 'C25114',
+        cena: 65,
+        ostatok: 14,
+        brend: 'Mann'
+    },
+    {
+        id: 6,
+        nazvanie: 'Аккумулятор Bosch S4',
+        artikul: '0092S40050',
+        cena: 950,
+        ostatok: 4,
+        brend: 'Bosch'
+    },
+    {
+        id: 7,
+        nazvanie: 'Салонный фильтр Mann',
+        artikul: 'CU2545',
+        cena: 55,
+        ostatok: 9,
+        brend: 'Mann'
+    },
+    {
+        id: 8,
+        nazvanie: 'Ремень ГРМ Bosch',
+        artikul: '1987949095',
+        cena: 310,
+        ostatok: 3,
+        brend: 'Bosch'
+    },
 ];
 
 // ===== Корзина: только id и количество =====

@@ -309,13 +309,62 @@ function somoni(int $diram): string {
 
 // --- Каталог: так же придут данные из базы ---
 $tovary = [
-    ['id'=>1,'nazvanie'=>'Тормозные колодки Bosch','artikul'=>'0986424815','cena'=>25000,'ostatok'=>7, 'brend'=>'Bosch'],
-    ['id'=>2,'nazvanie'=>'Масляный фильтр Mann',   'artikul'=>'W71280',    'cena'=>4500, 'ostatok'=>23,'brend'=>'Mann'],
-    ['id'=>3,'nazvanie'=>'Свечи зажигания Denso',  'artikul'=>'IK20',      'cena'=>12000,'ostatok'=>0, 'brend'=>'Denso'],
-    ['id'=>4,'nazvanie'=>'Тормозные диски Brembo', 'artikul'=>'09.9468.11','cena'=>78000,'ostatok'=>2, 'brend'=>'Brembo'],
-    ['id'=>5,'nazvanie'=>'Воздушный фильтр Mann',  'artikul'=>'C25114',    'cena'=>6500, 'ostatok'=>14,'brend'=>'Mann'],
-    ['id'=>6,'nazvanie'=>'Аккумулятор Bosch S4',   'artikul'=>'0092S40050','cena'=>95000,'ostatok'=>4, 'brend'=>'Bosch'],
-    ['id'=>7,'nazvanie'=>'Салонный фильтр Mann',   'artikul'=>'CU2545',    'cena'=>5500, 'ostatok'=>9, 'brend'=>'Mann'],
+    [
+        'id' => 1,
+        'nazvanie' => 'Тормозные колодки Bosch',
+        'artikul' => '0986424815',
+        'cena' => 25000,
+        'ostatok' => 7,
+        'brend' => 'Bosch',
+    ],
+    [
+        'id' => 2,
+        'nazvanie' => 'Масляный фильтр Mann',
+        'artikul' => 'W71280',
+        'cena' => 4500,
+        'ostatok' => 23,
+        'brend' => 'Mann',
+    ],
+    [
+        'id' => 3,
+        'nazvanie' => 'Свечи зажигания Denso',
+        'artikul' => 'IK20',
+        'cena' => 12000,
+        'ostatok' => 0,
+        'brend' => 'Denso',
+    ],
+    [
+        'id' => 4,
+        'nazvanie' => 'Тормозные диски Brembo',
+        'artikul' => '09.9468.11',
+        'cena' => 78000,
+        'ostatok' => 2,
+        'brend' => 'Brembo',
+    ],
+    [
+        'id' => 5,
+        'nazvanie' => 'Воздушный фильтр Mann',
+        'artikul' => 'C25114',
+        'cena' => 6500,
+        'ostatok' => 14,
+        'brend' => 'Mann',
+    ],
+    [
+        'id' => 6,
+        'nazvanie' => 'Аккумулятор Bosch S4',
+        'artikul' => '0092S40050',
+        'cena' => 95000,
+        'ostatok' => 4,
+        'brend' => 'Bosch',
+    ],
+    [
+        'id' => 7,
+        'nazvanie' => 'Салонный фильтр Mann',
+        'artikul' => 'CU2545',
+        'cena' => 5500,
+        'ostatok' => 9,
+        'brend' => 'Mann',
+    ],
 ];
 
 // --- Фильтры (пока задаём прямо здесь, в главе 24 возьмём из формы) ---

@@ -312,12 +312,42 @@ function e(string $t): string {
 
 // --- Данные ---
 $tovary = [
-    ['nazvanie' => 'Тормозные колодки Bosch', 'zakup' => 18500, 'ostatok' => 7,  'status' => 'hit'],
-    ['nazvanie' => 'Масляный фильтр Mann',    'zakup' => 3300,  'ostatok' => 23, 'status' => 'obychny'],
-    ['nazvanie' => 'Свечи зажигания Denso',   'zakup' => 8900,  'ostatok' => 0,  'status' => 'obychny'],
-    ['nazvanie' => 'Тормозные диски Brembo',  'zakup' => 57800, 'ostatok' => 2,  'status' => 'akciya'],
-    ['nazvanie' => 'Воздушный фильтр Mann',   'zakup' => 4800,  'ostatok' => 14, 'status' => 'obychny'],
-    ['nazvanie' => 'Аккумулятор Bosch S4',    'zakup' => 70400, 'ostatok' => 4,  'status' => 'hit'],
+    [
+        'nazvanie' => 'Тормозные колодки Bosch',
+        'zakup' => 18500,
+        'ostatok' => 7,
+        'status' => 'hit',
+    ],
+    [
+        'nazvanie' => 'Масляный фильтр Mann',
+        'zakup' => 3300,
+        'ostatok' => 23,
+        'status' => 'obychny',
+    ],
+    [
+        'nazvanie' => 'Свечи зажигания Denso',
+        'zakup' => 8900,
+        'ostatok' => 0,
+        'status' => 'obychny',
+    ],
+    [
+        'nazvanie' => 'Тормозные диски Brembo',
+        'zakup' => 57800,
+        'ostatok' => 2,
+        'status' => 'akciya',
+    ],
+    [
+        'nazvanie' => 'Воздушный фильтр Mann',
+        'zakup' => 4800,
+        'ostatok' => 14,
+        'status' => 'obychny',
+    ],
+    [
+        'nazvanie' => 'Аккумулятор Bosch S4',
+        'zakup' => 70400,
+        'ostatok' => 4,
+        'status' => 'hit',
+    ],
 ];
 
 // --- Логика: считаем цены и статусы ---

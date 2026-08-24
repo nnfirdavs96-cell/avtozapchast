@@ -310,12 +310,48 @@ console.log(tovar.vesa);          // undefined — такого свойства
 
 ```javascript
 const tovary = [
-    { id: 1, nazvanie: 'Тормозные колодки Bosch', cena: 250, ostatok: 7,  brend: 'Bosch' },
-    { id: 2, nazvanie: 'Масляный фильтр Mann',    cena: 45,  ostatok: 23, brend: 'Mann' },
-    { id: 3, nazvanie: 'Свечи зажигания Denso',   cena: 120, ostatok: 0,  brend: 'Denso' },
-    { id: 4, nazvanie: 'Тормозные диски Brembo',  cena: 780, ostatok: 2,  brend: 'Brembo' },
-    { id: 5, nazvanie: 'Воздушный фильтр Mann',   cena: 65,  ostatok: 14, brend: 'Mann' },
-    { id: 6, nazvanie: 'Аккумулятор Bosch S4',    cena: 950, ostatok: 4,  brend: 'Bosch' }
+    {
+        id: 1,
+        nazvanie: 'Тормозные колодки Bosch',
+        cena: 250,
+        ostatok: 7,
+        brend: 'Bosch'
+    },
+    {
+        id: 2,
+        nazvanie: 'Масляный фильтр Mann',
+        cena: 45,
+        ostatok: 23,
+        brend: 'Mann'
+    },
+    {
+        id: 3,
+        nazvanie: 'Свечи зажигания Denso',
+        cena: 120,
+        ostatok: 0,
+        brend: 'Denso'
+    },
+    {
+        id: 4,
+        nazvanie: 'Тормозные диски Brembo',
+        cena: 780,
+        ostatok: 2,
+        brend: 'Brembo'
+    },
+    {
+        id: 5,
+        nazvanie: 'Воздушный фильтр Mann',
+        cena: 65,
+        ostatok: 14,
+        brend: 'Mann'
+    },
+    {
+        id: 6,
+        nazvanie: 'Аккумулятор Bosch S4',
+        cena: 950,
+        ostatok: 4,
+        brend: 'Bosch'
+    },
 ];
 
 for (const t of tovary) {
@@ -411,12 +447,48 @@ console.log(itogo);
 
 ```javascript
 const tovary = [
-    { id: 1, nazvanie: 'Тормозные колодки Bosch', cena: 250, ostatok: 7,  brend: 'Bosch' },
-    { id: 2, nazvanie: 'Масляный фильтр Mann',    cena: 45,  ostatok: 23, brend: 'Mann' },
-    { id: 3, nazvanie: 'Свечи зажигания Denso',   cena: 120, ostatok: 0,  brend: 'Denso' },
-    { id: 4, nazvanie: 'Тормозные диски Brembo',  cena: 780, ostatok: 2,  brend: 'Brembo' },
-    { id: 5, nazvanie: 'Воздушный фильтр Mann',   cena: 65,  ostatok: 14, brend: 'Mann' },
-    { id: 6, nazvanie: 'Аккумулятор Bosch S4',    cena: 950, ostatok: 4,  brend: 'Bosch' }
+    {
+        id: 1,
+        nazvanie: 'Тормозные колодки Bosch',
+        cena: 250,
+        ostatok: 7,
+        brend: 'Bosch'
+    },
+    {
+        id: 2,
+        nazvanie: 'Масляный фильтр Mann',
+        cena: 45,
+        ostatok: 23,
+        brend: 'Mann'
+    },
+    {
+        id: 3,
+        nazvanie: 'Свечи зажигания Denso',
+        cena: 120,
+        ostatok: 0,
+        brend: 'Denso'
+    },
+    {
+        id: 4,
+        nazvanie: 'Тормозные диски Brembo',
+        cena: 780,
+        ostatok: 2,
+        brend: 'Brembo'
+    },
+    {
+        id: 5,
+        nazvanie: 'Воздушный фильтр Mann',
+        cena: 65,
+        ostatok: 14,
+        brend: 'Mann'
+    },
+    {
+        id: 6,
+        nazvanie: 'Аккумулятор Bosch S4',
+        cena: 950,
+        ostatok: 4,
+        brend: 'Bosch'
+    },
 ];
 
 // Показать товар одной строкой

@@ -333,9 +333,18 @@ require __DIR__ . '/includes/header.php';
             <label for="sort">Сортировка</label>
             <select id="sort" name="sort">
                 <option value="nazvanie">По названию</option>
-                <option value="cena_vozr" <?= $filtry['sort'] === 'cena_vozr' ? 'selected' : '' ?>>Сначала дешёвые</option>
-                <option value="cena_ubyv" <?= $filtry['sort'] === 'cena_ubyv' ? 'selected' : '' ?>>Сначала дорогие</option>
-                <option value="ostatok"   <?= $filtry['sort'] === 'ostatok'   ? 'selected' : '' ?>>Больше в наличии</option>
+                <option value="cena_vozr"
+                        <?= $filtry['sort'] === 'cena_vozr' ? 'selected' : '' ?>>
+                    Сначала дешёвые
+                </option>
+                <option value="cena_ubyv"
+                        <?= $filtry['sort'] === 'cena_ubyv' ? 'selected' : '' ?>>
+                    Сначала дорогие
+                </option>
+                <option value="ostatok"
+                        <?= $filtry['sort'] === 'ostatok'   ? 'selected' : '' ?>>
+                    Больше в наличии
+                </option>
             </select>
         </div>
 
@@ -473,7 +482,10 @@ require __DIR__ . '/includes/header.php';
     </form>
 </article>
 
-<?php $rekomendacii = pohozhie((int) $tovar['id'], $tovar['kategoriya_id'] ? (int) $tovar['kategoriya_id'] : null); ?>
+<?php
+$kat = $tovar['kategoriya_id'] ? (int) $tovar['kategoriya_id'] : null;
+$rekomendacii = pohozhie((int) $tovar['id'], $kat);
+?>
 <?php if ($rekomendacii): ?>
     <h2>Похожие товары</h2>
     <div class="katalog">

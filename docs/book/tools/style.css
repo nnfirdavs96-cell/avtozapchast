@@ -274,6 +274,7 @@ ol li::marker { font-family: var(--grotesk); font-weight: 700; color: var(--rzha
 
 code {
   font-family: var(--mono); font-size: .845em;
+  font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0;
   background: var(--bumaga-2); border: 1px solid var(--bumaga-3);
   padding: .08em .34em; border-radius: 3px;
   color: #6B2E14;
@@ -287,7 +288,20 @@ pre {
 pre code {
   background: none; border: 0; padding: 0; color: var(--chernila);
   font-size: 9.2pt; line-height: 1.62;
+  font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0;
 }
+
+/* Длинные строки переносим, а не прячем за краем.
+   В PDF горизонтальной прокрутки нет — обрезанный код читатель не увидит.
+   Отступ у перенесённого куска показывает, что это продолжение строки. */
+pre, pre code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  tab-size: 4;
+}
+/* Висячий отступ в pre применился бы ко всем строкам, а не только
+   к перенесённым, и сдвинул бы весь блок. Поэтому без него. */
 
 /* Подсветка — светлая, спокойная, без «дискотеки» */
 .hljs-keyword, .hljs-selector-tag, .hljs-literal { color: #9B2C6F; font-weight: 700; }
@@ -381,6 +395,11 @@ hr {
 
   a { color: var(--chernila); border-bottom: 0; }
   img { width: 100%; box-shadow: none; }
+
+  /* Код в печати: мельче и всегда с переносом, ничего не обрезается */
+  pre { overflow: visible; padding: .75rem .9rem; }
+  pre code { font-size: 8.4pt; line-height: 1.5; }
+  code { font-size: .8em; }
   .konec { page-break-before: avoid; }
 }
 
