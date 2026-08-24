@@ -4265,3 +4265,16 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     .bb_offer_price { min-width: auto; margin-left: auto; }
     .bb_offer_pick { min-width: auto; }
 }
+
+/* Галочка «уникальный товар» в форме продавца (buy-box).
+   Своя, а не .sl-field: у поля с чекбоксом другая раскладка — квадратик слева,
+   пояснение справа в две строки. */
+.sl-check {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: #fafafc; border: 1px solid #e7e7ee; border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 16px; cursor: pointer;
+}
+.sl-check input { margin-top: 3px; flex: 0 0 auto; width: 16px; height: 16px; cursor: pointer; }
+.sl-check span { font-size: .86rem; color: #33343d; line-height: 1.45; }
+.sl-check b { font-weight: 700; }
+.sl-check small { display: block; margin-top: 4px; font-size: .78rem; color: #8b8b98; line-height: 1.4; }
