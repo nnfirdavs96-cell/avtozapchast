@@ -93,7 +93,12 @@ function dbSupportsWindowFunctions(?PDO $db = null): bool
     static $ok = null;
     if ($ok !== null) return $ok;
     try {
-        ($db ?: getDB())->query("SELECT ROW_NUMBER() OVER (ORDER BY 1) AS rn")->fetchColumn();
+        // Сортируем по НАСТОЯЩЕЙ колонке настоящей таблицы. Соблазнительное
+        // `OVER (ORDER BY 1)` не годится: MySQL принимает число в ORDER BY за
+        // номер колонки и падает, а SQLite считает его константой и выполняет.
+        // Из-за такого расхождения пробник врал бы именно на боевом сервере —
+        // и вся витрина тихо уходила бы на запасной путь без группировки.
+        ($db ?: getDB())->query("SELECT ROW_NUMBER() OVER (ORDER BY id) AS rn FROM parts LIMIT 1")->fetchAll();
         $ok = true;
     } catch (Throwable $e) { $ok = false; }
     return $ok;

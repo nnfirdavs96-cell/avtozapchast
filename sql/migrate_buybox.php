@@ -16,6 +16,8 @@
  *
  * Запуск (повторный безопасен):
  *   php sql/migrate_buybox.php
+ *   php sql/migrate_buybox.php --check      # работает ли группировка на этом сервере
+ *   php sql/migrate_buybox.php --report     # какие товары попали в одну карточку
  *   php sql/migrate_buybox.php --regroup    # только пересчёт группировки
  */
 
@@ -27,10 +29,40 @@ require_once dirname(__DIR__) . '/includes/parts/grouping.php';
 $db          = getDB();
 $regroupOnly = in_array('--regroup', $argv, true);
 $reportOnly  = in_array('--report', $argv, true);
+$checkOnly   = in_array('--check', $argv, true);
 
 echo "Маркетплейс · buy-box, этап 1 — модель товара\n";
 echo "База: " . DB_NAME . "\n";
 echo str_repeat('-', 60) . "\n";
+
+// ── Диагностика: работает ли группировка на этом сервере ─────────────────────
+// Вся витрина опирается на оконные функции. Если сервер их не умеет, код молча
+// уходит на запасной путь (плоский список) — сайт работает, но buy-box нет, и
+// понять это по внешнему виду трудно. Этот режим отвечает прямо.
+if ($checkOnly) {
+    $ver = $db->query("SELECT VERSION()")->fetchColumn();
+    echo "Версия сервера БД: $ver\n";
+
+    $ok = dbSupportsWindowFunctions($db);
+    echo "Оконные функции: " . ($ok ? "ЕСТЬ — группировка работает"
+                                    : "НЕТ — витрина работает без buy-box") . "\n";
+    if (!$ok) {
+        // Показываем настоящую ошибку, а не просто «нет»: без неё непонятно,
+        // сервер старый или запрос не тот.
+        try { $db->query("SELECT ROW_NUMBER() OVER (ORDER BY id) AS rn FROM parts LIMIT 1")->fetchAll(); }
+        catch (Throwable $e) { echo "  причина: " . $e->getMessage() . "\n"; }
+    }
+
+    $offers = (int)$db->query("SELECT COUNT(*) FROM parts")->fetchColumn();
+    $cards  = (int)$db->query("SELECT COUNT(DISTINCT COALESCE(product_id, id)) FROM parts")->fetchColumn();
+    echo "Предложений: $offers, карточек: $cards\n";
+
+    $dups = partsDuplicateOfferIds($db);
+    echo "Дублей (один продавец выложил товар дважды): "
+       . ($dups ? implode(', ', $dups) . " — эти id должны быть помечены в Админ → Товары"
+                : "нет") . "\n";
+    exit;
+}
 
 // ── Просмотр: какие товары оказались в одной карточке ────────────────────────
 // Нужен ДО того, как витрина начнёт показывать группы (этап 2): нормализация
