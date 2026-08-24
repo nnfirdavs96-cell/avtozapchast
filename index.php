@@ -10,29 +10,37 @@ if (preg_match('#/product/([0-9]+)#', strtok($_SERVER['REQUEST_URI'] ?? '', '?')
     exit;
 }
 
+require_once __DIR__ . '/includes/parts/grouping.php';
+
 $pageTitle = t('home') . ' — ' . getSetting('site_name', t('site_name'));
 
 $db = getDB();
 
 $categories = $db->query("SELECT * FROM categories WHERE is_active=1 AND parent_id IS NULL ORDER BY sort_order LIMIT 7")->fetchAll();
 
+// Витрины главной берут товары по одному ПОБЕДИТЕЛЮ на карточку: иначе в
+// «Новинках» и «Скидках» один и тот же товар от разных продавцов занял бы
+// несколько плиток подряд.
+$vis     = "WHERE p.is_active=1 AND (p.seller_id IS NULL OR p.moderation_status='active')";
+$srcAll  = partsBuyBoxSource($vis, $db);
+$srcSale = partsBuyBoxSource($vis . " AND p.old_price IS NOT NULL AND p.old_price > p.price", $db);
+
 $featParts = $db->query("SELECT p.*, b.name AS brand_name, c.name AS category_name
-    FROM parts p LEFT JOIN brands b ON b.id=p.brand_id LEFT JOIN categories c ON c.id=p.category_id
-    WHERE p.is_active=1 AND (p.seller_id IS NULL OR p.moderation_status='active') ORDER BY p.created_at DESC LIMIT 10")->fetchAll();
+    FROM $srcAll LEFT JOIN brands b ON b.id=p.brand_id LEFT JOIN categories c ON c.id=p.category_id
+    ORDER BY p.created_at DESC LIMIT 10")->fetchAll();
 
 $bestParts = $db->query("SELECT p.*, b.name AS brand_name,
         (SELECT COALESCE(SUM(oi.quantity),0) FROM order_items oi
          JOIN orders o ON o.id=oi.order_id
          WHERE oi.part_id=p.id AND o.status<>'cancelled') AS sold_qty
-    FROM parts p LEFT JOIN brands b ON b.id=p.brand_id
-    WHERE p.is_active=1 AND (p.seller_id IS NULL OR p.moderation_status='active') ORDER BY sold_qty DESC, p.stock DESC, p.created_at DESC LIMIT 10")->fetchAll();
+    FROM $srcAll LEFT JOIN brands b ON b.id=p.brand_id
+    ORDER BY sold_qty DESC, p.stock DESC, p.created_at DESC LIMIT 10")->fetchAll();
 
-$newParts = $db->query("SELECT p.*, b.name AS brand_name FROM parts p
-    LEFT JOIN brands b ON b.id=p.brand_id WHERE p.is_active=1 AND (p.seller_id IS NULL OR p.moderation_status='active') ORDER BY p.created_at DESC, p.id DESC LIMIT 10")->fetchAll();
+$newParts = $db->query("SELECT p.*, b.name AS brand_name FROM $srcAll
+    LEFT JOIN brands b ON b.id=p.brand_id ORDER BY p.created_at DESC, p.id DESC LIMIT 10")->fetchAll();
 
-$saleParts = $db->query("SELECT p.*, b.name AS brand_name FROM parts p
+$saleParts = $db->query("SELECT p.*, b.name AS brand_name FROM $srcSale
     LEFT JOIN brands b ON b.id=p.brand_id
-    WHERE p.is_active=1 AND (p.seller_id IS NULL OR p.moderation_status='active') AND p.old_price IS NOT NULL AND p.old_price > p.price
     ORDER BY (p.old_price - p.price)/p.old_price DESC LIMIT 10")->fetchAll();
 
 $ratings = getProductRatings(array_merge(

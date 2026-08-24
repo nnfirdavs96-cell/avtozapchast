@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
+require_once dirname(__DIR__) . '/includes/parts/grouping.php';
 requireRole(['admin', 'superadmin']);
 requirePermission('products');
 
@@ -136,6 +137,11 @@ $partsStmt = $db->prepare(
 );
 $partsStmt->execute($params);
 $parts = $partsStmt->fetchAll();
+
+// Дубли: один продавец выложил один и тот же товар дважды. Витрина такие прячет
+// (показывает одно предложение), но в данных остаются две разные цены — какая
+// верная, знает только владелец. Помечаем в списке, чтобы почистил.
+$dupIds = array_flip(partsDuplicateOfferIds($db));
 
 $pageTitle = 'Товары — Администратор';
 require_once dirname(__DIR__) . '/includes/admin-header.php';
@@ -474,7 +480,15 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                                             </div>
                                         <?php endif; ?>
                                     </td>
-                                    <td><code style="font-size:0.8rem;"><?= sanitize($p['part_number']) ?></code></td>
+                                    <td>
+                                        <code style="font-size:0.8rem;"><?= sanitize($p['part_number']) ?></code>
+                                        <?php if (isset($dupIds[(int)$p['id']])): ?>
+                                        <div style="font-size:.72rem;color:#c0392b;font-weight:600;margin-top:3px;"
+                                             title="Этот же товар уже выложен тем же продавцом. Витрина показывает только одно предложение — второе стоит удалить или исправить артикул.">
+                                            <i class="fa fa-exclamation-triangle"></i> дубль
+                                        </div>
+                                        <?php endif; ?>
+                                    </td>
                                     <td style="font-size:0.875rem;max-width:180px;"><?= sanitize(truncate($p['name'], 45)) ?></td>
                                     <td style="font-size:0.8rem;color:#777;">
                                         <?= sanitize($p['brand_name'] ?? '—') ?><br>

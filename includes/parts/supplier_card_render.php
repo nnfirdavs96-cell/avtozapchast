@@ -5,20 +5,26 @@
  * — чтобы разметка карточек совпадала.
  */
 
+require_once __DIR__ . '/grouping.php';   // partsCanonicalArticle() для поиска фото
+
 if (!function_exists('supplierHybridImage')) {
     /** Фото-гибрид: наше фото, если такой артикул есть в каталоге, иначе заглушка. */
     function supplierHybridImage(PDO $db, string $code): string
     {
         static $stmt = null;
         if ($stmt === null) {
+            // Ищем по part_key — заранее посчитанной канонической форме артикула.
+            // Раньше нормализация считалась прямо в запросе цепочкой REPLACE: во-первых,
+            // функция на колонке не даёт использовать индекс (полный перебор таблицы на
+            // КАЖДУЮ карточку поставщика), во-вторых, она вырезала только пробел, дефис
+            // и точку — то есть правило расходилось с partsCanonicalArticle().
             $stmt = $db->prepare(
                 "SELECT images FROM parts
-                 WHERE is_active=1
-                   AND UPPER(REPLACE(REPLACE(REPLACE(part_number,' ',''),'-',''),'.','')) = ?
+                 WHERE is_active=1 AND part_key = ? AND images IS NOT NULL AND images <> ''
                  LIMIT 1"
             );
         }
-        $norm = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $code));
+        $norm = partsCanonicalArticle($code);
         if ($norm !== '') {
             $stmt->execute([$norm]);
             $row = $stmt->fetch();
