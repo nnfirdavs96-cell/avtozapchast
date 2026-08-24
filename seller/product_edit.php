@@ -50,6 +50,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // не сводится в общую карточку с чужими — двигатель с разборки от двух
         // продавцов это два разных товара, а не два предложения на один.
         $uniq   = !empty($_POST['is_unique_item']);
+        // Семейство задаётся ссылкой на свой же товар: «это тот же чехол, только
+        // бежевый». 0 — самостоятельный товар.
+        $parent = (int)($_POST['variant_of'] ?? 0);
+
+        // Атрибуты приходят тремя параллельными массивами. Пустые пары
+        // отбрасываются в partsSaveAttributes — форма всегда шлёт запасные строки.
+        $attrs = [];
+        foreach ((array)($_POST['attr_name'] ?? []) as $k => $an) {
+            $attrs[] = [
+                'kind'  => (($_POST['attr_kind'][$k] ?? 'spec') === 'axis') ? 'axis' : 'spec',
+                'name'  => (string)$an,
+                'value' => (string)($_POST['attr_value'][$k] ?? ''),
+            ];
+        }
 
         $existingImgs = json_decode($_POST['existing_images'] ?? '[]', true) ?: [];
         $newImgs      = array_filter(array_map('trim', explode(',', $_POST['new_images'] ?? '')));
@@ -81,6 +95,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      WHERE id=? AND seller_id=?"
                 )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $oldP, $stock, $weight, $dims ?: null, $imagesJson, $pid, $sid]);
                 partsApplyGrouping($db, $pid, $pnum, $brand, $uniq);
+                partsApplyFamily($db, $pid, $parent, $sid);
+                partsSaveAttributes($db, $pid, $attrs);
                 flashMessage('success', 'Товар обновлён и отправлен на проверку.');
             } else {
                 $db->prepare(
@@ -89,7 +105,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1,'pending',?,NOW())"
                 )->execute([$sid, $pnum, $name, $desc ?: null, $brand, $cat, $price, $oldP, $stock, $weight, $dims ?: null, $imagesJson, (int)$_SESSION['user_id']]);
                 // После вставки — уже есть id, поэтому товар не найдёт сам себя.
-                partsApplyGrouping($db, (int)$db->lastInsertId(), $pnum, $brand, $uniq);
+                $newId = (int)$db->lastInsertId();
+                partsApplyGrouping($db, $newId, $pnum, $brand, $uniq);
+                partsApplyFamily($db, $newId, $parent, $sid);
+                partsSaveAttributes($db, $newId, $attrs);
                 flashMessage('success', 'Товар добавлен и отправлен на проверку. После одобрения он появится в каталоге.');
             }
             redirect(APP_URL . '/seller/products.php');
@@ -100,6 +119,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $imgs = json_decode($edit['images'] ?? '[]', true) ?: [];
+
+// Мои товары для выбора семейства. Исключаем редактируемый: товар не может быть
+// вариантом самого себя. Показываем только «ведущих» и самостоятельных — привязка
+// к варианту второго уровня превратила бы плоское семейство в дерево, а
+// переключатель на витрине умеет только один уровень.
+$myProducts = [];
+if ($sid) {
+    $mp = $db->prepare(
+        "SELECT id, name, part_number FROM parts
+          WHERE seller_id = ? AND product_group_id IS NULL AND id <> ?
+       ORDER BY name LIMIT 200"
+    );
+    $mp->execute([$sid, $pid ?: 0]);
+    $myProducts = $mp->fetchAll();
+}
+
+// Уже сохранённые атрибуты + запасные пустые строки, чтобы было куда дописать.
+$myAttrs = $pid ? (partsAttributes($db, [$pid])[$pid] ?? []) : [];
+while (count($myAttrs) < 3) $myAttrs[] = ['kind' => 'spec', 'name' => '', 'value' => ''];
 $sellerNavActive = $edit && $pid ? 'products' : 'add';
 $pageTitle = ($pid ? 'Редактировать товар' : 'Добавить товар') . ' — ' . getSetting('site_name');
 require_once dirname(__DIR__) . '/includes/header.php';
@@ -136,6 +174,59 @@ require_once dirname(__DIR__) . '/includes/header.php';
           <span>Артикул (номер детали) <b>*</b></span>
           <input type="text" name="part_number" value="<?= sanitize($edit['part_number'] ?? '') ?>" placeholder="Напр.: 90915-YZZE1" required>
         </label>
+
+        <label class="sl-field">
+          <span>Вариант товара</span>
+          <select name="variant_of">
+            <option value="0">— самостоятельный товар —</option>
+            <?php foreach ($myProducts as $mp2):
+                $selVal = (int)($edit['product_group_id'] ?? 0) ?: (int)($_POST['variant_of'] ?? 0); ?>
+            <option value="<?= (int)$mp2['id'] ?>" <?= $selVal === (int)$mp2['id'] ? 'selected' : '' ?>>
+              <?= sanitize(mb_substr($mp2['name'], 0, 60)) ?> (<?= sanitize($mp2['part_number']) ?>)
+            </option>
+            <?php endforeach; ?>
+          </select>
+          <small class="sl-hint">
+            Если это тот же товар в другом исполнении — цвет, размер, объём, возрастная
+            группа — выберите основной товар. На витрине они соберутся в одну карточку
+            с переключателем. Различие укажите ниже как <b>ось варианта</b>.
+          </small>
+        </label>
+
+        <!-- Атрибуты. Ось варианта отличает исполнения друг от друга и имеет свою
+             цену с наличием; характеристика — просто описание. Различать
+             обязательно: «вес ребёнка» у автокресла это ось, «вес посылки» — нет. -->
+        <div class="sl-field">
+          <span>Характеристики и варианты</span>
+          <table class="sl-attrs">
+            <thead>
+              <tr><th style="width:150px;">Тип</th><th>Название</th><th>Значение</th></tr>
+            </thead>
+            <tbody id="attrRows">
+            <?php foreach ($myAttrs as $a2): ?>
+              <tr>
+                <td>
+                  <select name="attr_kind[]">
+                    <option value="spec" <?= ($a2['kind'] ?? 'spec') === 'spec' ? 'selected' : '' ?>>Характеристика</option>
+                    <option value="axis" <?= ($a2['kind'] ?? '') === 'axis' ? 'selected' : '' ?>>Ось варианта</option>
+                  </select>
+                </td>
+                <td><input type="text" name="attr_name[]" value="<?= sanitize($a2['name'] ?? '') ?>" placeholder="Цвет"></td>
+                <td><input type="text" name="attr_value[]" value="<?= sanitize($a2['value'] ?? '') ?>" placeholder="Чёрный"></td>
+              </tr>
+            <?php endforeach; ?>
+            </tbody>
+          </table>
+          <button type="button" class="sl-btn sl-btn-outline sl-btn-sm" onclick="addAttrRow()">
+            <i class="fa fa-plus"></i> Ещё строка
+          </button>
+          <small class="sl-hint">
+            <b>Ось варианта</b> — то, чем исполнения отличаются друг от друга (цвет,
+            объём, возраст). У каждого своя цена и наличие.<br>
+            <b>Характеристика</b> — просто описание: вес, страна, гарантия. Пустые
+            строки не сохраняются.
+          </small>
+        </div>
 
         <!-- Уникальный товар не сводится в общую карточку с товарами других
              продавцов: у б/у детали своё состояние, свой пробег и свои фото —
@@ -259,6 +350,18 @@ async function slUpload(input){
     } catch(e){ alert('Ошибка сети: ' + e.message); }
   }
   status.textContent=''; input.value='';
+}
+</script>
+
+<script>
+// Клонируем последнюю строку атрибутов и чистим значения. Без библиотек —
+// в кабинете продавца больше ничего динамического нет, тянуть ради этого JS-фреймворк незачем.
+function addAttrRow() {
+  var tb = document.getElementById('attrRows');
+  if (!tb || !tb.lastElementChild) return;
+  var row = tb.lastElementChild.cloneNode(true);
+  row.querySelectorAll('input').forEach(function (i) { i.value = ''; });
+  tb.appendChild(row);
 }
 </script>
 

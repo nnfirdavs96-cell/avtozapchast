@@ -59,12 +59,19 @@ function partsCardKeyExpr(string $alias = 'p'): string
 
 /**
  * SQL-выражение ключа СЕМЕЙСТВА (тот же товар в другом исполнении).
- * Падает обратно на карточку, а та — на сам товар: товар без семейства это
- * семейство из одного элемента.
+ *
+ * Товар без семейства — семейство из одного элемента, поэтому падаем сразу на его
+ * собственный id.
+ *
+ * ⚠️ Через `product_id` падать НЕЛЬЗЯ, хотя соблазн есть: карточка и семейство —
+ * разные оси. У главного варианта `product_group_id` пуст, а `product_id` вполне
+ * может быть заполнен (тот же артикул продаёт кто-то ещё). Тогда его ключ семейства
+ * стал бы номером ЧУЖОЙ карточки, а у его же вариантов — его собственным id, и
+ * семейство развалилось бы надвое.
  */
 function partsFamilyKeyExpr(string $alias = 'p'): string
 {
-    return "COALESCE($alias.product_group_id, $alias.product_id, $alias.id)";
+    return "COALESCE($alias.product_group_id, $alias.id)";
 }
 
 /**
@@ -266,7 +273,7 @@ function partsResolveProductId(PDO $db, string $article, ?int $brandId, ?int $ex
     // и его собственный id и есть номер группы.
     $sql = "SELECT MIN(COALESCE(product_id, id))
               FROM parts
-             WHERE part_key = ? AND brand_id <=> ? AND is_unique_item = 0";
+             WHERE part_key = ? AND brand_id = ? AND is_unique_item = 0";
     $args = [$key, $brandId];
     if ($excludeId) { $sql .= " AND id <> ?"; $args[] = $excludeId; }
 
@@ -295,9 +302,13 @@ function partsSellerHasArticle(PDO $db, string $article, ?int $brandId,
     $key = partsCanonicalArticle($article);
     if ($key === '') return false;
 
+    // seller_id = NULL означает наш каталог, а `= NULL` в SQL никогда не истинно.
+    // Строим условие в PHP, а не через MySQL-овский `<=>`: так запрос остаётся
+    // обычным SQL и его можно прогнать на любой СУБД, в том числе в тестах.
+    $sellerCond = $sellerId === null ? 'seller_id IS NULL' : 'seller_id = ?';
     $sql  = "SELECT id FROM parts
-              WHERE part_key = ? AND brand_id <=> ? AND seller_id <=> ?";
-    $args = [$key, $brandId, $sellerId];
+              WHERE part_key = ? AND brand_id = ? AND $sellerCond";
+    $args = $sellerId === null ? [$key, $brandId] : [$key, $brandId, $sellerId];
     if ($excludeId) { $sql .= " AND id <> ?"; $args[] = $excludeId; }
     $sql .= " LIMIT 1";
 
@@ -376,9 +387,10 @@ function partsRebuildGrouping(PDO $db): array
     $grouped = 0;
     // Ведущему товару product_id не ставим намеренно: его id и есть номер группы,
     // а лишняя запись создала бы второй источник правды.
+    // brand_id объявлен NOT NULL, поэтому обычного `=` достаточно.
     $set = $db->prepare(
         "UPDATE parts SET product_id = ?
-          WHERE part_key = ? AND brand_id <=> ? AND is_unique_item = 0 AND id <> ?"
+          WHERE part_key = ? AND brand_id = ? AND is_unique_item = 0 AND id <> ?"
     );
     foreach ($groups as $g) {
         $set->execute([(int)$g['leader'], $g['part_key'], $g['brand_id'], (int)$g['leader']]);
@@ -386,6 +398,67 @@ function partsRebuildGrouping(PDO $db): array
     }
 
     return [$keyed, $grouped];
+}
+
+/**
+ * Привязать товар к семейству другого товара — «это тот же чехол, только бежевый».
+ *
+ * Семейство задаётся ССЫЛКОЙ на существующий товар, а не текстовым названием
+ * модели: тогда не нужна ни отдельная колонка-ключ, ни борьба с опечатками в
+ * названии («Комфорт» против «комфорт »). Продавец просто выбирает свой товар из
+ * списка.
+ *
+ * Семейство принадлежит ОДНОМУ продавцу. Варианты — это его собственные исполнения
+ * товара, а не предложения конкурентов: за конкуренцию отвечает `product_id`.
+ * Поэтому чужой товар как родителя не принимаем.
+ *
+ * $parentId = 0 → товар самостоятельный, семейство сбрасывается.
+ */
+function partsApplyFamily(PDO $db, int $partId, int $parentId, ?int $sellerId): void
+{
+    if ($partId <= 0) return;
+
+    $groupId = null;
+    if ($parentId > 0 && $parentId !== $partId) {
+        $cond = $sellerId === null ? 'seller_id IS NULL' : 'seller_id = ?';
+        $st = $db->prepare(
+            "SELECT id, product_group_id FROM parts WHERE id = ? AND $cond LIMIT 1"
+        );
+        $st->execute($sellerId === null ? [$parentId] : [$parentId, $sellerId]);
+        if ($row = $st->fetch()) {
+            // Ключ семейства ведущего товара: у него самого product_group_id пуст,
+            // и тогда номером семейства служит его id.
+            $groupId = (int)($row['product_group_id'] ?: $row['id']);
+            // Сам себе родителем товар быть не может — это дало бы цикл.
+            if ($groupId === $partId) $groupId = null;
+        }
+    }
+
+    $db->prepare("UPDATE parts SET product_group_id = ? WHERE id = ?")
+       ->execute([$groupId, $partId]);
+}
+
+/**
+ * Все варианты семейства — включая сам товар, по порядку добавления.
+ *
+ * Для переключателя на странице товара: «Цвет: чёрный / бежевый». Возвращает
+ * товары ОДНОГО продавца: семейство — это его линейка исполнений.
+ */
+function partsFamilyVariants(PDO $db, int $familyKey, ?int $sellerId): array
+{
+    if ($familyKey <= 0) return [];
+    $cond = $sellerId === null ? 'seller_id IS NULL' : 'seller_id = ?';
+    $st = $db->prepare(
+        "SELECT * FROM parts
+          WHERE COALESCE(product_group_id, id) = ?
+            AND $cond
+            AND is_active = 1 AND (seller_id IS NULL OR moderation_status = 'active')
+       ORDER BY id"
+    );
+    $st->bindValue(1, $familyKey, PDO::PARAM_INT);
+    if ($sellerId !== null) $st->bindValue(2, $sellerId, PDO::PARAM_INT);
+    $st->execute();
+    return $st->fetchAll();
 }
 
 /**
@@ -432,17 +505,25 @@ function partsSaveAttributes(PDO $db, int $partId, array $attrs): void
     $db->prepare("DELETE FROM part_attributes WHERE part_id = ?")->execute([$partId]);
     if (!$attrs) return;
 
-    $ins = $db->prepare(
-        "INSERT INTO part_attributes (part_id, kind, name, value, sort_order)
-         VALUES (?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE value = VALUES(value), sort_order = VALUES(sort_order)"
-    );
-    $i = 0;
+    // Схлопываем повторы ДО вставки: продавец легко напишет «Цвет» дважды, а в
+    // таблице стоит UNIQUE(part_id, kind, name) — вторая вставка упала бы. Побеждает
+    // последнее введённое значение, как в любой форме.
+    $clean = [];
     foreach ($attrs as $a) {
         $kind  = ($a['kind'] ?? 'spec') === 'axis' ? 'axis' : 'spec';
-        $name  = trim((string)($a['name'] ?? ''));
-        $value = trim((string)($a['value'] ?? ''));
+        $name  = mb_substr(trim((string)($a['name'] ?? '')), 0, 60);
+        $value = mb_substr(trim((string)($a['value'] ?? '')), 0, 120);
         if ($name === '' || $value === '') continue;   // пустые пары не храним
-        $ins->execute([$partId, $kind, mb_substr($name, 0, 60), mb_substr($value, 0, 120), $i++]);
+        $clean[$kind . "\0" . mb_strtolower($name)] = [$kind, $name, $value];
+    }
+    if (!$clean) return;
+
+    $ins = $db->prepare(
+        "INSERT INTO part_attributes (part_id, kind, name, value, sort_order)
+         VALUES (?, ?, ?, ?, ?)"
+    );
+    $i = 0;
+    foreach ($clean as [$kind, $name, $value]) {
+        $ins->execute([$partId, $kind, $name, $value, $i++]);
     }
 }

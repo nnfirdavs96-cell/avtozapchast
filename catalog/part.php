@@ -44,6 +44,19 @@ $cardKey   = (int)($part['product_id'] ?: $part['id']);
 $cardOffers = partsCardOffers($db, $cardKey);
 $bestOfferId = $cardOffers ? (int)$cardOffers[0]['id'] : 0;   // победитель buy-box
 
+// Варианты — то же самое от ТОГО ЖЕ продавца в другом исполнении (цвет, объём,
+// возраст). Не путать с предложениями выше: там конкуренты, здесь линейка одного
+// магазина. Ключ семейства намеренно не смотрит на product_id (см. grouping.php).
+$familyKey = (int)($part['product_group_id'] ?: $part['id']);
+$variants  = partsFamilyVariants($db, $familyKey, isset($part['seller_id']) ? (int)$part['seller_id'] ?: null : null);
+if (count($variants) < 2) $variants = [];   // семейство из одного — показывать нечего
+
+// Атрибуты: оси вариантов рисуем переключателем, характеристики — таблицей.
+$variantIds  = $variants ? array_column($variants, 'id') : [(int)$part['id']];
+$allAttrs    = partsAttributes($db, $variantIds);
+$myAxes      = array_filter($allAttrs[(int)$part['id']] ?? [], fn($a) => $a['kind'] === 'axis');
+$mySpecs     = array_filter($allAttrs[(int)$part['id']] ?? [], fn($a) => $a['kind'] === 'spec');
+
 // Related products (same category)
 // Модерация: без этого условия в «похожих» показывались неодобренные листинги
 // продавцов. Группировка — чтобы один товар от трёх продавцов не занял всю
@@ -275,6 +288,40 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 <?php endif; ?>
                             </div>
 
+            <?php if ($variants): ?>
+                            <!-- Переключатель исполнений: каждый вариант — своя страница
+                                 со своей ценой и наличием, поэтому это ссылки, а не JS. -->
+                            <div class="bb_variants">
+                              <?php foreach ($variants as $v):
+                                  $vAxes = array_filter($allAttrs[(int)$v['id']] ?? [], fn($a) => $a['kind'] === 'axis');
+                                  // Подпись варианта — значения его осей («Чёрный · 1–3 года»).
+                                  // Если осей нет, честнее показать название, чем пустую кнопку.
+                                  $label = $vAxes
+                                      ? implode(' · ', array_column($vAxes, 'value'))
+                                      : mb_substr((string)$v['name'], 0, 28);
+                                  $isCur = (int)$v['id'] === (int)$part['id'];
+                              ?>
+                              <a class="bb_variant<?= $isCur ? ' bb_variant--current' : '' ?>"
+                                 href="<?= $isCur ? 'javascript:void(0)' : sanitize(partUrl($v)) ?>"
+                                 title="<?= sanitize($v['name']) ?>">
+                                <span class="bb_variant_label"><?= sanitize($label) ?></span>
+                                <span class="bb_variant_price"><?= formatPrice((float)$v['price']) ?></span>
+                                <?php if ((int)$v['stock'] <= 0): ?>
+                                <span class="bb_variant_out">под заказ</span>
+                                <?php endif; ?>
+                              </a>
+                              <?php endforeach; ?>
+                            </div>
+            <?php endif; ?>
+
+            <?php if ($myAxes): ?>
+                            <p class="bb_axes">
+                              <?php foreach ($myAxes as $ax): ?>
+                              <span><?= sanitize($ax['name']) ?>: <b><?= sanitize($ax['value']) ?></b></span>
+                              <?php endforeach; ?>
+                            </p>
+            <?php endif; ?>
+
             <?php if (count($cardOffers) > 1): ?>
                             <!-- Предложения продавцов (buy-box).
                                  Каждая строка — ссылка на страницу того предложения:
@@ -317,6 +364,17 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 <p><?= nl2br(sanitize(truncate($part['description'], 300))) ?></p>
                                 <?php endif; ?>
                             </div>
+
+            <?php if ($mySpecs): ?>
+                            <table class="bb_specs">
+                              <?php foreach ($mySpecs as $sp): ?>
+                              <tr>
+                                <td><?= sanitize($sp['name']) ?></td>
+                                <td><?= sanitize($sp['value']) ?></td>
+                              </tr>
+                              <?php endforeach; ?>
+                            </table>
+            <?php endif; ?>
 
                             <!-- Availability -->
                             <div class="product_variant" style="margin-bottom:16px;">
