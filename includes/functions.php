@@ -685,11 +685,22 @@ function productOffersNote(array $part): string {
     $n = (int)($part['offers_count'] ?? 1);
     if ($n < 2) return '';
     $more = $n - 1;
-    // 1 предложение / 2 предложения / 5 предложений — русские числительные.
-    $tail = ($more % 10 === 1 && $more % 100 !== 11) ? 'е'
-          : (($more % 10 >= 2 && $more % 10 <= 4 && ($more % 100 < 10 || $more % 100 >= 20)) ? 'я' : 'й');
-    return '<p class="offers_note"><i class="fa fa-users"></i> ещё ' . $more
-         . ' предложени' . $tail . '</p>';
+    return '<p class="offers_note"><i class="fa fa-users"></i> ещё ' . $more . ' '
+         . pluralRu($more, 'предложение', 'предложения', 'предложений') . '</p>';
+}
+
+/**
+ * Русское числительное: 1 продавец / 2 продавца / 5 продавцов.
+ * Отдельной функцией, потому что правило нужно в нескольких местах, а ошибиться
+ * в нём легко — особенно на 11–14, которые ведут себя как «много».
+ */
+function pluralRu(int $n, string $one, string $few, string $many): string {
+    $n = abs($n);
+    if ($n % 100 >= 11 && $n % 100 <= 14) return $many;
+    $d = $n % 10;
+    if ($d === 1) return $one;
+    if ($d >= 2 && $d <= 4) return $few;
+    return $many;
 }
 
 /**

@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
+require_once dirname(__DIR__) . '/includes/parts/grouping.php';
 
 $id = (int)($_GET['id'] ?? 0);
 if (!$id) {
@@ -36,16 +37,33 @@ if (strpos($_SERVER['REQUEST_URI'] ?? '', '/catalog/part.php') !== false) {
     exit;
 }
 
+// Предложения этой карточки — кто ещё продаёт ту же деталь.
+// Номер карточки берём у открытого предложения: покупатель мог прийти по ссылке
+// на любое из них, и все они должны показывать один и тот же список.
+$cardKey   = (int)($part['product_id'] ?: $part['id']);
+$cardOffers = partsCardOffers($db, $cardKey);
+$bestOfferId = $cardOffers ? (int)$cardOffers[0]['id'] : 0;   // победитель buy-box
+
 // Related products (same category)
+// Модерация: без этого условия в «похожих» показывались неодобренные листинги
+// продавцов. Группировка — чтобы один товар от трёх продавцов не занял всю
+// подборку; заодно исключаем всю карточку целиком, а не только открытое
+// предложение, иначе «похожим» оказался бы тот же самый товар от соседа.
+$relSrc = partsBuyBoxSource(
+    "WHERE p.is_active = 1
+       AND (p.seller_id IS NULL OR p.moderation_status = 'active')
+       AND COALESCE(p.product_id, p.id) <> ?
+       AND p.category_id = ?",
+    $db
+);
 $relStmt = $db->prepare(
     "SELECT p.*, b.name AS brand_name
-     FROM parts p
+     FROM $relSrc
      LEFT JOIN brands b ON b.id = p.brand_id
-     WHERE p.is_active = 1 AND p.id != ? AND p.category_id = ?
      ORDER BY p.created_at DESC
      LIMIT 5"
 );
-$relStmt->execute([$id, $part['category_id']]);
+$relStmt->execute([$cardKey, $part['category_id']]);
 $related = $relStmt->fetchAll();
 
 // Parse images
@@ -94,7 +112,14 @@ $pageDescription = $cleanDesc !== ''
     ? $cleanDesc
     : trim($part['name'] . (!empty($part['brand_name']) ? ', ' . $part['brand_name'] : '') . '. ' . ($part['category_name'] ?? ''));
 
-$canonical = $prettyUrl;
+// Канонический адрес карточки — страница ПОБЕДИТЕЛЯ buy-box. У одного товара
+// столько адресов, сколько продавцов, и содержимое у них почти одинаковое: без
+// canonical поисковик считал бы это дублями и размазывал вес между ними.
+// Победитель — то же предложение, что показано в каталоге, поэтому адрес совпадает
+// с тем, по которому покупатель обычно и приходит.
+$canonical = $bestOfferId && $bestOfferId !== (int)$part['id']
+    ? partUrl($cardOffers[0])
+    : $prettyUrl;
 $ogType    = 'product';
 
 // Absolute image URL for og:image / schema
@@ -249,6 +274,43 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 <span class="current_price"><?= formatPrice($part['price']) ?></span>
                                 <?php endif; ?>
                             </div>
+
+            <?php if (count($cardOffers) > 1): ?>
+                            <!-- Предложения продавцов (buy-box).
+                                 Каждая строка — ссылка на страницу того предложения:
+                                 так работает без JS, ссылки остаются рабочими и
+                                 индексируются. Открытое сейчас предложение подсвечено. -->
+                            <div class="bb_offers">
+                              <div class="bb_offers_head">
+                                <i class="fa fa-users"></i>
+                                <?php $oc = count($cardOffers); ?>
+                                Этот товар продают <?= $oc ?> <?= pluralRu($oc, 'продавец', 'продавца', 'продавцов') ?>
+                                — <span>выберите, у кого купить</span>
+                              </div>
+                              <?php foreach ($cardOffers as $o):
+                                  $isCur  = (int)$o['id'] === (int)$part['id'];
+                                  $isBest = (int)$o['id'] === $bestOfferId;
+                                  $oStock = (int)$o['stock'];
+                              ?>
+                              <a class="bb_offer<?= $isCur ? ' bb_offer--current' : '' ?>"
+                                 href="<?= $isCur ? 'javascript:void(0)' : sanitize(partUrl($o)) ?>">
+                                <span class="bb_offer_seller">
+                                  <?php if (!empty($o['shop_name'])): ?>
+                                    <i class="fa fa-briefcase"></i> <?= sanitize($o['shop_name']) ?>
+                                  <?php else: ?>
+                                    <i class="fa fa-home"></i> Наш магазин
+                                  <?php endif; ?>
+                                  <?php if ($isBest): ?><em class="bb_best">лучшее предложение</em><?php endif; ?>
+                                </span>
+                                <span class="bb_offer_stock <?= $oStock > 0 ? 'ok' : 'no' ?>">
+                                  <?= $oStock > 0 ? 'в наличии' : 'под заказ' ?>
+                                </span>
+                                <span class="bb_offer_price"><?= formatPrice((float)$o['price']) ?></span>
+                                <span class="bb_offer_pick"><?= $isCur ? 'вы смотрите' : 'выбрать' ?></span>
+                              </a>
+                              <?php endforeach; ?>
+                            </div>
+            <?php endif; ?>
 
                             <div class="product_desc" style="margin-bottom:16px;">
                                 <?php if ($part['description']): ?>
