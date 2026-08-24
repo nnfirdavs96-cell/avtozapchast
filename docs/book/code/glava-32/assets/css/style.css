@@ -1,0 +1,276 @@
+/* ===== Переменные ===== */
+:root {
+    --cvet-osnovnoy: #b5411f;
+    --cvet-temnyi:   #8f3418;
+    --cvet-text:     #2b2622;
+    --cvet-tihii:    #7c7166;
+    --cvet-fon:      #faf7f2;
+    --cvet-karta:    #ffffff;
+    --cvet-ramka:    #e8dfd0;
+    --cvet-uspeh:    #14584f;
+
+    --s1: 8px;  --s2: 16px;  --s3: 24px;  --s4: 32px;
+    --radius: 10px;
+    --ten:      0 2px 8px rgba(34, 30, 26, 0.05);
+    --ten-navel: 0 8px 24px rgba(181, 65, 31, 0.14);
+}
+
+/* ===== Сброс ===== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+img { max-width: 100%; height: auto; display: block; }
+
+body {
+    font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--cvet-text);
+    background: var(--cvet-fon);
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--s3) var(--s2);
+}
+
+/* ===== Шапка ===== */
+header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    padding-bottom: var(--s3);
+    border-bottom: 2px solid var(--cvet-osnovnoy);
+    margin-bottom: var(--s4);
+}
+
+.logo {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--cvet-osnovnoy);
+    letter-spacing: -0.02em;
+}
+
+.slogan { color: var(--cvet-tihii); font-size: 14px; }
+
+nav ul { display: flex; flex-wrap: wrap; gap: var(--s3); list-style: none; }
+
+nav a {
+    color: var(--cvet-text);
+    text-decoration: none;
+    font-weight: 600;
+    padding: var(--s1) 0;
+    border-bottom: 2px solid transparent;
+    transition: color .2s, border-color .2s;
+}
+
+nav a:hover {
+    color: var(--cvet-osnovnoy);
+    border-bottom-color: var(--cvet-osnovnoy);
+}
+
+/* ===== Поиск ===== */
+.poisk { display: flex; gap: var(--s1); }
+
+.poisk input {
+    flex: 1;
+    padding: 12px var(--s2);
+    font-size: 16px;
+    font-family: inherit;
+    border: 1px solid var(--cvet-ramka);
+    border-radius: var(--radius);
+    background: var(--cvet-karta);
+    transition: border-color .2s, box-shadow .2s;
+}
+
+.poisk input:focus {
+    outline: none;
+    border-color: var(--cvet-osnovnoy);
+    box-shadow: 0 0 0 3px rgba(181, 65, 31, 0.12);
+}
+
+/* ===== Кнопки ===== */
+button, .knopka {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 12px var(--s3);
+    font-size: 15px;
+    font-family: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: var(--cvet-osnovnoy);
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .2s, transform .1s;
+}
+
+button:hover, .knopka:hover { background: var(--cvet-temnyi); }
+button:active { transform: translateY(1px); }
+
+/* ===== Фильтры ===== */
+.filtry {
+    background: var(--cvet-karta);
+    border: 1px solid var(--cvet-ramka);
+    border-radius: var(--radius);
+    padding: var(--s3);
+    margin-bottom: var(--s4);
+}
+
+.filtry fieldset { border: none; display: flex; flex-direction: column; gap: var(--s2); }
+.filtry legend { font-weight: 800; margin-bottom: var(--s1); }
+
+.filtry label { font-size: 14px; color: var(--cvet-tihii); display: block; margin-bottom: 4px; }
+
+.filtry input, .filtry select {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 16px;
+    font-family: inherit;
+    border: 1px solid var(--cvet-ramka);
+    border-radius: var(--radius);
+    background: var(--cvet-karta);
+}
+
+/* ===== Каталог ===== */
+.katalog {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--s3);
+}
+
+.tovar {
+    display: flex;
+    flex-direction: column;
+    background: var(--cvet-karta);
+    border: 1px solid var(--cvet-ramka);
+    border-radius: var(--radius);
+    padding: var(--s3);
+    box-shadow: var(--ten);
+    transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+
+.tovar:hover {
+    transform: translateY(-2px);
+    border-color: var(--cvet-osnovnoy);
+    box-shadow: var(--ten-navel);
+}
+
+.tovar h3 { font-size: 17px; line-height: 1.35; margin-bottom: var(--s1); }
+
+.artikul { font-size: 13px; color: var(--cvet-tihii); }
+
+.cena {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--cvet-osnovnoy);
+    margin: var(--s2) 0 4px;
+}
+.cena span { font-size: 14px; font-weight: 400; color: var(--cvet-tihii); }
+
+.nalichie { font-size: 13px; color: var(--cvet-uspeh); font-weight: 600; }
+.nalichie.nety { color: var(--cvet-tihii); font-weight: 400; }
+
+.tovar form { margin-top: auto; padding-top: var(--s3); }
+.tovar button { width: 100%; }
+
+/* ===== Пусто ===== */
+.pusto { text-align: center; padding: 48px var(--s3); color: var(--cvet-tihii); }
+.pusto h3 { color: var(--cvet-text); margin-bottom: var(--s1); }
+.pusto p { margin-bottom: var(--s3); }
+
+/* ===== Подвал ===== */
+footer {
+    margin-top: 48px;
+    padding-top: var(--s3);
+    border-top: 1px solid var(--cvet-ramka);
+    color: var(--cvet-tihii);
+    font-size: 14px;
+}
+footer a { color: var(--cvet-osnovnoy); }
+
+/* ===== Планшет ===== */
+@media (min-width: 640px) {
+    .katalog { grid-template-columns: repeat(2, 1fr); }
+    .filtry fieldset { flex-direction: row; flex-wrap: wrap; align-items: flex-end; }
+    .filtry input, .filtry select { width: auto; }
+    .tovar button { width: auto; }
+}
+
+/* ===== Компьютер ===== */
+@media (min-width: 960px) {
+    header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .logo { font-size: 30px; }
+    .katalog { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+}
+
+
+/* --- глава 21 --- */
+.tovar { position: relative; }
+.metka {
+    position: absolute; top: -1px; right: -1px;
+    background: var(--cvet-osnovnoy); color: #fff;
+    font-size: 11px; font-weight: 800; letter-spacing: .04em;
+    padding: 5px 10px; border-radius: 0 var(--radius) 0 var(--radius);
+}
+.nalichie.malo { color: #A8710C; }
+button[disabled] { background: #cfc7bc; cursor: not-allowed; }
+.schetchik { color: var(--cvet-tihii); font-size: 14px; margin-bottom: var(--s3); }
+
+/* --- глава 24: формы --- */
+.forma { max-width: 560px; }
+.pole { margin-bottom: var(--s3); }
+.pole > label { display: block; font-weight: 600; margin-bottom: 6px; }
+.pole input[type=text], .pole input[type=tel], .pole input[type=number],
+.pole select, .pole textarea {
+    width: 100%; padding: 11px 13px; font-size: 16px; font-family: inherit;
+    border: 1px solid var(--cvet-ramka); border-radius: var(--radius);
+    background: var(--cvet-karta);
+}
+.pole input.plohoe, .pole select.plohoe, .pole textarea.plohoe {
+    border-color: #b5411f; border-width: 2px; background: #fdf4f1;
+}
+.podskazka { display: block; margin-top: 5px; font-size: 13px; color: #b5411f; }
+.galka { display: flex; align-items: center; gap: 8px; font-weight: 400; margin-bottom: 6px; }
+.galka input { width: auto; }
+.oshibka-obshaya {
+    background: #fdeee9; border-left: 4px solid #b5411f; border-radius: var(--radius);
+    padding: 13px 16px; margin-bottom: var(--s3); color: #7d2d12;
+}
+.uspeh {
+    background: #e7f2ee; border-left: 4px solid #14584f; border-radius: var(--radius);
+    padding: var(--s3); max-width: 560px;
+}
+.uspeh h2 { color: #14584f; margin-bottom: var(--s2); }
+.uspeh p { margin-bottom: 6px; }
+
+/* --- глава 25: каталог, пагинация, страница товара --- */
+.tovar h3 a { color: var(--cvet-text); border: 0; text-decoration: none; }
+.tovar h3 a:hover { color: var(--cvet-osnovnoy); }
+.stranicy { display: flex; gap: 6px; margin-top: var(--s4); flex-wrap: wrap; }
+.stranicy a, .stranicy .tekushaya {
+    min-width: 40px; height: 40px; display: inline-flex; align-items: center;
+    justify-content: center; border: 1px solid var(--cvet-ramka);
+    border-radius: var(--radius); text-decoration: none; color: var(--cvet-text);
+}
+.stranicy a:hover { border-color: var(--cvet-osnovnoy); color: var(--cvet-osnovnoy); }
+.stranicy .tekushaya { background: var(--cvet-osnovnoy); color: #fff; border-color: var(--cvet-osnovnoy); font-weight: 800; }
+.hlebnye-kroshki { font-size: 14px; color: var(--cvet-tihii); margin-bottom: var(--s3); }
+.hlebnye-kroshki a { color: var(--cvet-osnovnoy); }
+.tovar-podrobno { background: var(--cvet-karta); border: 1px solid var(--cvet-ramka);
+    border-radius: var(--radius); padding: var(--s4); margin-bottom: var(--s4); }
+.harakteristiki { width: 100%; max-width: 460px; margin: var(--s3) 0; border-collapse: collapse; }
+.harakteristiki th { text-align: left; font-weight: 400; color: var(--cvet-tihii);
+    padding: 9px 0; border-bottom: 1px solid var(--cvet-ramka); width: 40%; }
+.harakteristiki td { padding: 9px 0; border-bottom: 1px solid var(--cvet-ramka); font-weight: 600; }
+.cena-bolshaya { font-size: 38px; font-weight: 800; color: var(--cvet-osnovnoy); margin: var(--s3) 0; }
+.cena-bolshaya span { font-size: 16px; font-weight: 400; color: var(--cvet-tihii); }
+.filtry .ryad > div { min-width: 150px; }

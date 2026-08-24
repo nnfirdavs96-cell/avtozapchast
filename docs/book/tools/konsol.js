@@ -18,11 +18,8 @@ const ekran = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g
 const punkty = stroki.map((s) =>
   `<div class="str"><span class="mtk">&rsaquo;</span><span class="txt">${ekran(s)}</span></div>`).join('\n');
 
-const F = '../../tools/node_modules/@fontsource';
 const html = `<!doctype html><html><head><meta charset="utf-8"><style>
-@font-face{font-family:'Unb';font-weight:700;src:url(${F}/unbounded/files/unbounded-cyrillic-700-normal.woff2) format('woff2');}
-@font-face{font-family:'Spe';font-weight:400;src:url(${F}/spectral/files/spectral-cyrillic-400-normal.woff2) format('woff2');}
-@font-face{font-family:'JB';font-weight:400;src:url(${F}/jetbrains-mono/files/jetbrains-mono-cyrillic-400-normal.woff2) format('woff2');}
+@import url("shrifty.css");
 *{box-sizing:border-box;margin:0}
 body{width:940px;background:#FBF7F0;font-family:'Spe',serif;padding:30px 32px}
 .tit{font-family:'Unb';font-weight:700;font-size:21px;letter-spacing:-.03em;margin-bottom:16px}
