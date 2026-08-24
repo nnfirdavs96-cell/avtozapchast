@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Каталог с поиском и корзиной</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+    <header>
+        <div>
+            <div class="logo">Автозапчасти Firdavs</div>
+            <div class="slogan">Поиск, фильтры и корзина — без единой перезагрузки</div>
+        </div>
+        <div class="korzina">
+            Корзина: <span class="korzina-shtuk">0</span> шт. ·
+            <span class="korzina-summa">0</span> сомони
+            <button class="korzina-ochistit" hidden>Очистить</button>
+        </div>
+    </header>
+
+    <main>
+        <form class="filtry">
+            <div class="ryad">
+                <div>
+                    <label for="poisk">Поиск по названию или артикулу</label>
+                    <input type="search" id="poisk" placeholder="например, фильтр или W71280">
+                </div>
+                <div>
+                    <label for="brend">Бренд</label>
+                    <select id="brend">
+                        <option value="">Все бренды</option>
+                        <option value="Bosch">Bosch</option>
+                        <option value="Mann">Mann</option>
+                        <option value="Denso">Denso</option>
+                        <option value="Brembo">Brembo</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="sort">Сортировка</label>
+                    <select id="sort">
+                        <option value="">По умолчанию</option>
+                        <option value="cena-vozr">Сначала дешёвые</option>
+                        <option value="cena-ubyv">Сначала дорогие</option>
+                        <option value="nazvanie">По названию</option>
+                    </select>
+                </div>
+                <div class="galka">
+                    <input type="checkbox" id="v-nalichii">
+                    <label for="v-nalichii">Только в наличии</label>
+                </div>
+            </div>
+        </form>
+
+        <p class="schetchik"></p>
+        <div class="katalog"></div>
+    </main>
+
+    <footer>
+        <p>Худжанд, ул. Ленина 15 · <a href="tel:+992927777777">+992 92 777 77 77</a></p>
+    </footer>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
