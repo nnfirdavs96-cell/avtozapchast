@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
+require_once dirname(__DIR__) . '/includes/seller_reviews.php';
 requireRole('buyer');
 
 $user   = getCurrentUser();
@@ -100,6 +101,11 @@ $ordersStmt->execute([$userId]);
 $orders = $ordersStmt->fetchAll();
 
 $pageTitle = 'Мои заказы';
+// Какие подзаказы этот покупатель ещё может оценить (доставлены и без отзыва).
+$reviewable = [];
+foreach (sellerReviewableOrders($db, $userId) as $r) $reviewable[(int)$r['order_seller_id']] = true;
+$csrfToken = generateCsrfToken();
+
 require_once dirname(__DIR__) . '/includes/header.php';
 ?>
 <meta name="csrf" content="<?= generateCsrfToken() ?>">
@@ -183,6 +189,29 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             </span>
                         </span>
                     </div>
+                    <?php
+                      // Оценить можно только доставленный заказ и только у продавца:
+                      // о нашем собственном складе отзывы собирает pages/reviews.php.
+                      $canRate = $os['status'] === 'delivered' && !empty($os['seller_id'])
+                                 && isset($reviewable[(int)$os['id']]);
+                    ?>
+                    <?php if ($canRate): ?>
+                    <form method="post" action="<?= APP_URL ?>/api/seller_review_submit.php" class="srev_form">
+                        <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
+                        <input type="hidden" name="order_seller_id" value="<?= (int)$os['id'] ?>">
+                        <span class="srev_form_label">Оцените продавца:</span>
+                        <select name="rating" required>
+                            <option value="5">★★★★★ отлично</option>
+                            <option value="4">★★★★☆ хорошо</option>
+                            <option value="3">★★★☆☆ нормально</option>
+                            <option value="2">★★☆☆☆ плохо</option>
+                            <option value="1">★☆☆☆☆ ужасно</option>
+                        </select>
+                        <input type="text" name="comment" maxlength="2000"
+                               placeholder="Что понравилось или нет (необязательно)">
+                        <button type="submit" class="az-btn az-btn-primary az-btn-sm">Отправить</button>
+                    </form>
+                    <?php endif; ?>
                     <?php endforeach; ?>
                 </div>
                 <?php endif; ?>

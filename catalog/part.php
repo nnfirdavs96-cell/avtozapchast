@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/parts/grouping.php';
+require_once dirname(__DIR__) . '/includes/seller_reviews.php';
 
 $id = (int)($_GET['id'] ?? 0);
 if (!$id) {
@@ -43,6 +44,10 @@ if (strpos($_SERVER['REQUEST_URI'] ?? '', '/catalog/part.php') !== false) {
 $cardKey   = (int)($part['product_id'] ?: $part['id']);
 $cardOffers = partsCardOffers($db, $cardKey);
 $bestOfferId = $cardOffers ? (int)$cardOffers[0]['id'] : 0;   // победитель buy-box
+
+// Рейтинги продавцов — покупателю нужно на что-то опереться, выбирая между
+// предложениями: цена не единственный критерий.
+$offerRatings = sellerRatings($db, array_column($cardOffers, 'seller_id'));
 
 // Варианты — то же самое от ТОГО ЖЕ продавца в другом исполнении (цвет, объём,
 // возраст). Не путать с предложениями выше: там конкуренты, здесь линейка одного
@@ -90,14 +95,19 @@ $reviews   = [];
 $myReview  = null;
 $canReview = false;
 try {
+    // Отзывы всей КАРТОЧКИ, а не только открытого предложения: покупатель писал о
+    // товаре, а не о том, у кого именно он его взял. Иначе на карточке победителя
+    // buy-box оказалось бы два отзыва вместо двадцати.
     $revStmt = $db->prepare(
         "SELECT r.rating, r.comment, r.created_at, u.username
          FROM product_reviews r
          JOIN users u ON u.id = r.user_id
-         WHERE r.part_id = ? AND r.status = 'approved'
+         JOIN parts p ON p.id = r.part_id
+         WHERE COALESCE(p.product_id, p.id) = ? AND r.status = 'approved'
          ORDER BY r.created_at DESC"
     );
-    $revStmt->execute([$id]);
+    $revStmt->bindValue(1, $cardKey, PDO::PARAM_INT);
+    $revStmt->execute();
     $reviews = $revStmt->fetchAll();
 
     // Current user's own review (any status) — so they see its moderation state
@@ -348,6 +358,11 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                     <i class="fa fa-home"></i> Наш магазин
                                   <?php endif; ?>
                                   <?php if ($isBest): ?><em class="bb_best">лучшее предложение</em><?php endif; ?>
+                                  <?php if (!empty($o['seller_id'])): ?>
+                                  <span class="bb_offer_rating">
+                                    <?= sellerRatingHtml($offerRatings[(int)$o['seller_id']] ?? null) ?>
+                                  </span>
+                                  <?php endif; ?>
                                 </span>
                                 <span class="bb_offer_stock <?= $oStock > 0 ? 'ok' : 'no' ?>">
                                   <?= $oStock > 0 ? 'в наличии' : 'под заказ' ?>
