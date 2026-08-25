@@ -4335,3 +4335,34 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .offers_note span { display: inline-flex; align-items: center; gap: 5px; }
 .offers_note span + span { margin-left: 12px; }
 .offers_note_var { color: #5b53b5; }
+
+/* Отзывы о продавцах (Фаза 4): звёзды в блоке предложений и форма оценки. */
+.bb_offer_rating { display: inline-flex; align-items: center; gap: 5px; margin-left: 8px; font-weight: 400; }
+.srev_stars { color: #f0a500; letter-spacing: 1px; font-size: .82rem; }
+.srev_count { font-size: .76rem; color: #8b8b98; }
+.srev_none  { font-size: .74rem; color: #b6b6c0; }
+
+.srev_form {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    background: #fafafc; border: 1px solid #e7e7ee; border-radius: 10px;
+    padding: 10px 14px; margin: -4px 0 8px;
+}
+.srev_form_label { font-size: .84rem; font-weight: 600; color: #33343d; }
+.srev_form select, .srev_form input[type="text"] {
+    padding: 7px 10px; border: 1px solid #d9d9e3; border-radius: 8px; font-size: .84rem;
+}
+.srev_form input[type="text"] { flex: 1 1 220px; min-width: 0; }
+
+/* Отзывы на странице магазина продавца (Фаза 4). */
+.srev_head { font-size: 1.1rem; font-weight: 700; color: #23242b; margin: 0 0 14px; }
+.srev_head span { color: #8b8b98; font-weight: 400; font-size: .9rem; }
+.srev_list { display: grid; gap: 10px; }
+.srev_item { background: #fff; border: 1px solid #e7e7ee; border-radius: 12px; padding: 14px 16px; }
+.srev_item_top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.srev_author { font-weight: 700; font-size: .88rem; color: #23242b; }
+.srev_date { font-size: .76rem; color: #9a9aa6; margin-left: auto; }
+.srev_text { margin: 0; font-size: .88rem; color: #43444d; line-height: 1.5; }
+.srev_reply {
+    margin: 8px 0 0; padding: 8px 12px; background: #fafafc; border-left: 3px solid #C70909;
+    border-radius: 0 8px 8px 0; font-size: .84rem; color: #43444d;
+}

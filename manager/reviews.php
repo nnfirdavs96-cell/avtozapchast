@@ -6,8 +6,18 @@ requirePermission('reviews');
 $db   = getDB();
 $csrf = generateCsrfToken();
 
-$type = ($_GET['type'] ?? 'product') === 'shop' ? 'shop' : 'product';
-$tbl  = $type === 'shop' ? 'shop_reviews' : 'product_reviews';
+// Три вида отзывов, и они отвечают на РАЗНЫЕ вопросы:
+//   product — каков товар;  shop — каков наш магазин;  seller — каков продавец.
+$TYPES = ['product' => 'product_reviews', 'shop' => 'shop_reviews', 'seller' => 'seller_reviews'];
+$type = isset($TYPES[$_GET['type'] ?? '']) ? $_GET['type'] : 'product';
+$tbl  = $TYPES[$type];
+
+// Таблица отзывов о продавцах появляется только после миграции Фазы 4.
+$sellerReviewsReady = (int)$db->query(
+    "SELECT COUNT(*) FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'seller_reviews'"
+)->fetchColumn() > 0;
+if ($type === 'seller' && !$sellerReviewsReady) { $type = 'product'; $tbl = 'product_reviews'; }
 
 // ── POST: moderation actions ────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -17,10 +27,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $rid     = (int)($_POST['id'] ?? 0);
     $do      = $_POST['do'] ?? '';
-    $pType   = ($_POST['type'] ?? 'product') === 'shop' ? 'shop' : 'product';
-    $pTbl    = $pType === 'shop' ? 'shop_reviews' : 'product_reviews';
-    $allowed = ['shop_reviews', 'product_reviews'];
-    if (!in_array($pTbl, $allowed, true)) $pTbl = 'product_reviews';
+    $pType   = isset($TYPES[$_POST['type'] ?? '']) ? $_POST['type'] : 'product';
+    $pTbl    = $TYPES[$pType];
+    // Список таблиц закрытый: имя подставляется в SQL, и брать его прямо из
+    // запроса нельзя.
+    if (!in_array($pTbl, $TYPES, true)) { $pTbl = 'product_reviews'; $pType = 'product'; }
+    // «Витрина о нас» есть только у отзывов о товарах и магазине — у отзывов о
+    // продавцах колонки is_featured нет.
+    $hasFeatured = $pTbl !== 'seller_reviews';
     $return  = APP_URL . '/manager/reviews.php?type=' . $pType . '&status=' . urlencode($_POST['status'] ?? 'pending');
 
     if ($do === 'save_messages') {
@@ -36,12 +50,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db->prepare("UPDATE `$pTbl` SET status='approved' WHERE id=?")->execute([$rid]);
         flashMessage('success', 'Отзыв опубликован.');
     } elseif ($rid && $do === 'reject') {
-        $db->prepare("UPDATE `$pTbl` SET status='rejected', is_featured=0 WHERE id=?")->execute([$rid]);
+        $db->prepare("UPDATE `$pTbl` SET status='rejected'" . ($hasFeatured ? ", is_featured=0" : "") . " WHERE id=?")
+           ->execute([$rid]);
         flashMessage('success', 'Отзыв отклонён.');
     } elseif ($rid && $do === 'delete') {
         $db->prepare("DELETE FROM `$pTbl` WHERE id=?")->execute([$rid]);
         flashMessage('success', 'Отзыв удалён.');
-    } elseif ($rid && $do === 'feature') {
+    } elseif ($rid && $do === 'feature' && $hasFeatured) {
         // Only approved reviews can be featured on the About page
         $db->prepare("UPDATE `$pTbl` SET is_featured = NOT is_featured WHERE id=? AND status='approved'")->execute([$rid]);
         flashMessage('success', 'Витрина «О нас» обновлена.');
@@ -55,7 +70,19 @@ $validStatus  = ['pending', 'approved', 'rejected', 'all'];
 if (!in_array($statusFilter, $validStatus, true)) $statusFilter = 'pending';
 $where = $statusFilter === 'all' ? '' : 'WHERE r.status = ' . $db->quote($statusFilter);
 
-if ($type === 'shop') {
+if ($type === 'seller') {
+    // Показываем, ЗА КАКОЙ заказ оставлен отзыв: без этого модератор не отличит
+    // претензию по делу от сведения счётов.
+    $rows = $db->query(
+        "SELECT r.*, u.username, u.email, 0 AS is_featured, 0 AS part_id,
+                CONCAT(s.shop_name, ' · заказ #', os.order_id) AS part_name
+           FROM seller_reviews r
+           JOIN users u   ON u.id = r.user_id
+           JOIN sellers s ON s.id = r.seller_id
+           LEFT JOIN order_sellers os ON os.id = r.order_seller_id
+         $where ORDER BY (r.status='pending') DESC, r.created_at DESC"
+    )->fetchAll();
+} elseif ($type === 'shop') {
     $rows = $db->query(
         "SELECT r.*, u.username, u.email, NULL AS part_name, 0 AS part_id
          FROM shop_reviews r JOIN users u ON u.id = r.user_id
@@ -82,7 +109,9 @@ function reviewCounts(PDO $db, string $tbl): array {
 $counts        = reviewCounts($db, $tbl);
 $pendingProduct = (int)$db->query("SELECT COUNT(*) FROM product_reviews WHERE status='pending'")->fetchColumn();
 $pendingShop    = (int)$db->query("SELECT COUNT(*) FROM shop_reviews WHERE status='pending'")->fetchColumn();
-$pendingTotal   = $pendingProduct + $pendingShop;
+$pendingSeller  = $sellerReviewsReady
+    ? (int)$db->query("SELECT COUNT(*) FROM seller_reviews WHERE status='pending'")->fetchColumn() : 0;
+$pendingTotal   = $pendingProduct + $pendingShop + $pendingSeller;
 
 $pageTitle = 'Отзывы — Менеджер';
 require_once dirname(__DIR__) . '/includes/admin-header.php';
@@ -169,6 +198,13 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                     <i class="fa fa-building-o"></i> Отзывы о магазине
                     <?php if ($pendingShop): ?><span style="background:#d32f2f;color:#fff;border-radius:10px;padding:1px 6px;font-size:0.68rem;"><?= $pendingShop ?></span><?php endif; ?>
                 </a>
+                <?php if ($sellerReviewsReady): ?>
+                <a href="?type=seller&status=<?= $statusFilter ?>"
+                   style="padding:10px 20px;font-weight:600;font-size:0.92rem;text-decoration:none;border-bottom:3px solid <?= $type==='seller' ? '#d32f2f' : 'transparent' ?>;color:<?= $type==='seller' ? '#d32f2f' : '#666' ?>;">
+                    <i class="fa fa-briefcase"></i> Отзывы о продавцах
+                    <?php if ($pendingSeller): ?><span style="background:#d32f2f;color:#fff;border-radius:10px;padding:1px 6px;font-size:0.68rem;"><?= $pendingSeller ?></span><?php endif; ?>
+                </a>
+                <?php endif; ?>
             </div>
 
             <?php

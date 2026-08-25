@@ -4,6 +4,7 @@
  * Показывает название магазина и его опубликованные (active) товары.
  */
 require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/includes/seller_reviews.php';
 
 $slug = trim($_GET['slug'] ?? '');
 $db = getDB();
@@ -38,6 +39,12 @@ $st = $db->prepare(
 $st->execute([$sid]);
 $parts = $st->fetchAll();
 
+// Рейтинг и отзывы: покупателю, выбирающему между предложениями, нужен ответ на
+// вопрос «каков этот продавец», а не только «какова цена».
+$sellerId  = (int)$seller['id'];
+$srRating  = sellerRatings($db, [$sellerId])[$sellerId] ?? null;
+$srReviews = sellerReviewList($db, $sellerId, 30);
+
 $pageTitle = sanitize($seller['shop_name']) . ' — ' . getSetting('site_name');
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -50,7 +57,10 @@ require_once __DIR__ . '/includes/header.php';
       <div class="sl-shop-logo"><i class="fa fa-briefcase"></i></div>
       <div>
         <h1 class="sl-shop-name"><?= sanitize($seller['shop_name']) ?></h1>
-        <p class="sl-shop-meta">Продавец на маркетплейсе · товаров: <?= $total ?></p>
+        <p class="sl-shop-meta">
+          Продавец на маркетплейсе · товаров: <?= $total ?>
+          &nbsp;·&nbsp; <?= sellerRatingHtml($srRating) ?>
+        </p>
         <?php if (!empty($seller['description'])): ?>
         <p class="sl-shop-desc"><?= sanitize($seller['description']) ?></p>
         <?php endif; ?>
@@ -99,5 +109,28 @@ require_once __DIR__ . '/includes/header.php';
     <?php endif; ?>
   </div>
 </div>
+
+<?php if ($srReviews): ?>
+<div class="container" style="padding-bottom:40px;">
+  <h3 class="srev_head">Отзывы покупателей <span><?= count($srReviews) ?></span></h3>
+  <div class="srev_list">
+    <?php foreach ($srReviews as $r): ?>
+    <div class="srev_item">
+      <div class="srev_item_top">
+        <span class="srev_author"><?= sanitize($r['username']) ?></span>
+        <span class="srev_stars"><?= str_repeat('★', (int)$r['rating']) . str_repeat('☆', 5 - (int)$r['rating']) ?></span>
+        <span class="srev_date"><?= date('d.m.Y', strtotime($r['created_at'])) ?></span>
+      </div>
+      <?php if (!empty($r['comment'])): ?>
+      <p class="srev_text"><?= nl2br(sanitize($r['comment'])) ?></p>
+      <?php endif; ?>
+      <?php if (!empty($r['reply'])): ?>
+      <p class="srev_reply"><b>Ответ продавца:</b> <?= nl2br(sanitize($r['reply'])) ?></p>
+      <?php endif; ?>
+    </div>
+    <?php endforeach; ?>
+  </div>
+</div>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

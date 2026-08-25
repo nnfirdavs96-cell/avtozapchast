@@ -554,20 +554,44 @@ function getProductRatings(array $partIds): array {
     $in  = implode(',', array_fill(0, count($partIds), '?'));
     $db  = getDB();
     try {
-        $st = $db->prepare(
-            "SELECT part_id, AVG(rating) avg_r, COUNT(*) cnt
-             FROM product_reviews
-             WHERE status='approved' AND part_id IN ($in)
-             GROUP BY part_id"
+        // Считаем по КАРТОЧКЕ, а не по предложению. После buy-box один товар
+        // продают несколько магазинов, и у каждого своя строка в parts. Отзыв же
+        // покупатель пишет о ТОВАРЕ — если считать по строке, отзывы разъедутся
+        // по продавцам, и на карточке победителя их окажется два вместо двадцати.
+        // Каков продавец — отдельный вопрос, на него отвечают seller_reviews.
+        $cards = $db->prepare(
+            "SELECT id, COALESCE(product_id, id) AS card FROM parts WHERE id IN ($in)"
         );
-        $st->execute($partIds);
+        $cards->execute($partIds);
+        $partToCard = [];
+        foreach ($cards->fetchAll() as $r) $partToCard[(int)$r['id']] = (int)$r['card'];
+        if (!$partToCard) return [];
+
+        $cardIds = array_values(array_unique($partToCard));
+        $cin = implode(',', array_fill(0, count($cardIds), '?'));
+        $st  = $db->prepare(
+            "SELECT COALESCE(p.product_id, p.id) AS card,
+                    AVG(r.rating) avg_r, COUNT(*) cnt
+               FROM product_reviews r
+               JOIN parts p ON p.id = r.part_id
+              WHERE r.status='approved' AND COALESCE(p.product_id, p.id) IN ($cin)
+           GROUP BY card"
+        );
+        $st->execute($cardIds);
     } catch (PDOException $e) {
         // Reviews migration not applied yet — degrade gracefully
         return [];
     }
-    $out = [];
+
+    $byCard = [];
     foreach ($st as $row) {
-        $out[(int)$row['part_id']] = ['avg' => round((float)$row['avg_r'], 1), 'count' => (int)$row['cnt']];
+        $byCard[(int)$row['card']] = ['avg' => round((float)$row['avg_r'], 1), 'count' => (int)$row['cnt']];
+    }
+    // Возвращаем по тем же ключам, что попросили, — вызывающий код индексирует
+    // результат по id товара и о карточках ничего не знает.
+    $out = [];
+    foreach ($partToCard as $pid => $card) {
+        if (isset($byCard[$card])) $out[$pid] = $byCard[$card];
     }
     return $out;
 }
