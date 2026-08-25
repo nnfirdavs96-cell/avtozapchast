@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/seller_reviews.php';
+require_once dirname(__DIR__) . '/includes/returns.php';
 requireRole('buyer');
 
 $user   = getCurrentUser();
@@ -104,6 +105,11 @@ $pageTitle = 'Мои заказы';
 // Какие подзаказы этот покупатель ещё может оценить (доставлены и без отзыва).
 $reviewable = [];
 foreach (sellerReviewableOrders($db, $userId) as $r) $reviewable[(int)$r['order_seller_id']] = true;
+
+// Возвраты этого покупателя, разложенные по подзаказам: под каждой частью заказа
+// надо показать либо статус уже поданной заявки, либо кнопку «оформить возврат».
+$myReturns = [];
+foreach (returnList($db, ['user_id' => $userId]) as $r) $myReturns[(int)$r['order_seller_id']][] = $r;
 $csrfToken = generateCsrfToken();
 
 require_once dirname(__DIR__) . '/includes/header.php';
@@ -211,6 +217,56 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                placeholder="Что понравилось или нет (необязательно)">
                         <button type="submit" class="az-btn az-btn-primary az-btn-sm">Отправить</button>
                     </form>
+                    <?php endif; ?>
+
+                    <?php $rets = $myReturns[(int)$os['id']] ?? []; ?>
+                    <?php foreach ($rets as $r): ?>
+                    <div class="ret_row ret_row--<?= sanitize($r['status']) ?>">
+                      <span class="ret_status"><?= sanitize(returnStatusLabel($r['status'])) ?></span>
+                      <span class="ret_meta">
+                        возврат <?= formatPrice((float)$r['amount']) ?>
+                        · <?= sanitize(returnReasons()[$r['reason']] ?? $r['reason']) ?>
+                        <?php if (!empty($r['part_name'])): ?>
+                        · <?= sanitize(mb_substr($r['part_name'], 0, 40)) ?>
+                        <?php endif; ?>
+                      </span>
+                      <?php if (!empty($r['resolution'])): ?>
+                      <span class="ret_resolution">Ответ: <?= sanitize($r['resolution']) ?></span>
+                      <?php endif; ?>
+                      <?php if ($r['status'] === 'requested'): ?>
+                      <form method="post" action="<?= APP_URL ?>/api/return_request.php" style="margin-left:auto;">
+                        <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
+                        <input type="hidden" name="do" value="cancel">
+                        <input type="hidden" name="return_id" value="<?= (int)$r['id'] ?>">
+                        <button type="submit" class="az-btn az-btn-outline az-btn-sm">Отозвать</button>
+                      </form>
+                      <?php endif; ?>
+                    </div>
+                    <?php endforeach; ?>
+
+                    <?php
+                      // Оформить возврат можно только по доставленному подзаказу и
+                      // только если по нему ещё нет открытой или одобренной заявки.
+                      $hasOpenReturn = false;
+                      foreach ($rets as $r) {
+                          if (in_array($r['status'], ['requested', 'approved'], true)) { $hasOpenReturn = true; break; }
+                      }
+                    ?>
+                    <?php if ($os['status'] === 'delivered' && !$hasOpenReturn): ?>
+                    <details class="ret_ask">
+                      <summary>Вернуть товар</summary>
+                      <form method="post" action="<?= APP_URL ?>/api/return_request.php" class="ret_form">
+                        <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
+                        <input type="hidden" name="order_seller_id" value="<?= (int)$os['id'] ?>">
+                        <select name="reason" required>
+                          <?php foreach (returnReasons() as $k => $label): ?>
+                          <option value="<?= sanitize($k) ?>"><?= sanitize($label) ?></option>
+                          <?php endforeach; ?>
+                        </select>
+                        <input type="text" name="comment" maxlength="1000" placeholder="Что именно не так (необязательно)">
+                        <button type="submit" class="az-btn az-btn-primary az-btn-sm">Отправить заявку</button>
+                      </form>
+                    </details>
                     <?php endif; ?>
                     <?php endforeach; ?>
                 </div>
