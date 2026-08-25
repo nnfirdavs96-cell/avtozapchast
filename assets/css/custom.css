@@ -4366,3 +4366,45 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     margin: 8px 0 0; padding: 8px 12px; background: #fafafc; border-left: 3px solid #C70909;
     border-radius: 0 8px 8px 0; font-size: .84rem; color: #43444d;
 }
+
+/* Возвраты (Фаза 4): статусы заявок, форма покупателя, предупреждение продавцу. */
+.ret_badge--requested { background: #fdf1e3; color: #b9772a; }
+.ret_badge--approved  { background: #e6f6ea; color: #1f8a3b; }
+.ret_badge--rejected  { background: #fdecec; color: #c0392b; }
+.ret_badge--cancelled { background: #f0f0f5; color: #7a7a88; }
+
+.ret_row {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: #fff; border: 1px solid #e7e7ee; border-left-width: 3px;
+    border-radius: 10px; padding: 9px 14px; margin: -4px 0 8px; font-size: .84rem;
+}
+.ret_row--requested { border-left-color: #b9772a; }
+.ret_row--approved  { border-left-color: #1f8a3b; }
+.ret_row--rejected  { border-left-color: #c0392b; }
+.ret_row--cancelled { border-left-color: #b6b6c0; }
+.ret_status { font-weight: 700; color: #23242b; }
+.ret_meta { color: #6b6b78; font-size: .8rem; }
+.ret_resolution { flex: 1 1 100%; color: #43444d; font-size: .82rem; }
+
+.ret_ask { margin: -4px 0 10px; }
+.ret_ask summary {
+    cursor: pointer; font-size: .82rem; color: #C70909; font-weight: 600;
+    list-style: none; display: inline-block; padding: 4px 0;
+}
+.ret_ask summary::-webkit-details-marker { display: none; }
+.ret_ask summary::before { content: '↩ '; }
+.ret_form {
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    background: #fafafc; border: 1px solid #e7e7ee; border-radius: 10px;
+    padding: 10px 14px; margin-top: 6px;
+}
+.ret_form select, .ret_form input[type="text"] {
+    padding: 7px 10px; border: 1px solid #d9d9e3; border-radius: 8px; font-size: .84rem;
+}
+.ret_form input[type="text"] { flex: 1 1 200px; min-width: 0; }
+
+.ret_warn {
+    background: #fff8ec; border: 1px solid #f2d9ae; border-radius: 10px;
+    padding: 9px 13px; margin: 8px 0; font-size: .84rem; color: #7a5a21;
+}
+.ret_warn b { color: #b9772a; }
