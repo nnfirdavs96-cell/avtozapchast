@@ -397,7 +397,7 @@ SELECT ostatok FROM tovary WHERE id = 5;
 UPDATE tovary SET ostatok = 3 WHERE id = 5;
 ```
 
-*Ответы — в [Приложении Г](../prilozheniya/G-otvety.md).*
+*Ответы — в [Приложении Г](../prilozheniya/4-G-otvety.md).*
 
 ## 🔗 В бою
 

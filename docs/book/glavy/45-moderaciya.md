@@ -446,7 +446,7 @@ function nuzhna_ruchnaya_proverka(array $tovar, array $prodavec): bool
 **Задача 45.9.** Отклоните свой товар и прочитайте сообщение глазами продавца.
 Понятно ли, что делать? Перепишите, если нет.
 
-*Ответы — в [Приложении Г](../prilozheniya/G-otvety.md).*
+*Ответы — в [Приложении Г](../prilozheniya/4-G-otvety.md).*
 
 ## 🔗 В бою
 

@@ -492,7 +492,7 @@ function katalog_s_buy_box(array $filtry, int $stranica = 1, int $na_stranice = 
 **Задача 48.9.** Разбейте переход на buy-box на четыре этапа так, чтобы
 после каждого сайт продолжал работать. Запишите план.
 
-*Ответы — в [Приложении Г](../prilozheniya/G-otvety.md).*
+*Ответы — в [Приложении Г](../prilozheniya/4-G-otvety.md).*
 
 ## 🔗 В бою
 

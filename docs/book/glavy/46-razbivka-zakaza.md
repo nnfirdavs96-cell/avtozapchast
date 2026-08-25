@@ -519,7 +519,7 @@ function otmenit_podzakaz(int $order_seller_id, string $prichina): void
 **Задача 46.9.** Что должно произойти с комиссией, если покупатель вернул
 товар? Продумайте и опишите словами.
 
-*Ответы — в [Приложении Г](../prilozheniya/G-otvety.md).*
+*Ответы — в [Приложении Г](../prilozheniya/4-G-otvety.md).*
 
 ## 🔗 В бою
 

@@ -1,0 +1,48 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<style>
+@import url("shrifty.css");
+:root{--bum:#FBF7F0;--bum2:#F4EDE1;--ram:#E3D8C6;--chern:#221E1A;--prig:#6E6459;
+      --rzh:#B5411F;--hv:#14584F;--oh:#A8710C;--mor:#1B4F79;--sl:#6B3A63}
+*{box-sizing:border-box;margin:0}
+body{width:1180px;background:var(--bum);font-family:'Spe',Georgia,serif;color:var(--chern);padding:38px 40px 32px}
+.tit{font-family:'Unb';font-weight:700;font-size:27px;letter-spacing:-.03em;margin-bottom:8px}
+.pod{font-size:19px;color:var(--prig);margin-bottom:34px}
+.stupeni{display:flex;flex-direction:column;gap:14px}
+.st{display:grid;grid-template-columns:200px 1fr 250px;gap:20px;align-items:center;
+    border:2px solid var(--ram);border-radius:8px;background:#fff;padding:16px 20px}
+.s0{border-left:6px solid var(--hv)}.s1{border-left:6px solid var(--oh)}
+.s2{border-left:6px solid var(--mor)}.s3{border-left:6px solid var(--sl)}
+.s4{border-left:6px solid var(--rzh)}
+.lvl{font-family:'Unb';font-weight:700;font-size:19px;letter-spacing:-.02em;line-height:1.25}
+.lvl span{display:block;font-family:'Spe',serif;font-weight:400;font-size:15.5px;
+  color:var(--prig);font-style:italic;margin-top:3px}
+.chto{font-size:17.5px;line-height:1.45}
+.kogda{font-size:16px;color:var(--prig);line-height:1.4;border-left:2px dashed var(--ram);padding-left:16px}
+.kogda b{font-family:'Unb';font-weight:700;color:var(--chern);font-size:15px;
+  display:block;margin-bottom:3px;letter-spacing:.02em}
+.niz{margin-top:26px;background:var(--bum2);border:2px solid var(--ram);border-left:5px solid var(--chern);
+  border-radius:6px;padding:15px 20px;font-size:18.5px;line-height:1.5}
+.niz b{font-family:'Unb';font-weight:700}
+</style></head><body>
+<div class="tit">Куда расти после этой книги</div>
+<div class="pod">Порядок важнее скорости: каждая ступень имеет смысл, только когда пройдена предыдущая</div>
+<div class="stupeni">
+  <div class="st s0"><div class="lvl">Вы здесь<span>магазин работает на бою</span></div>
+    <div class="chto">PHP без фреймворка, MySQL, git, деплой. Этого хватает, чтобы делать и продавать сайты.</div>
+    <div class="kogda"><b>Не спешите дальше</b>Сначала доведите свой магазин до состояния, за которое не стыдно</div></div>
+  <div class="st s1"><div class="lvl">Ступень 1<span>Composer и чужие библиотеки</span></div>
+    <div class="chto">Автозагрузка классов, PHPMailer, работа с датами, PDF-накладные. Перестать писать всё с нуля.</div>
+    <div class="kogda"><b>Когда пора</b>Когда ловите себя на копировании кода из проекта в проект</div></div>
+  <div class="st s2"><div class="lvl">Ступень 2<span>Тесты и качество кода</span></div>
+    <div class="chto">PHPUnit на расчёт цены и корзину, единый стиль кода. Правки перестают ломать соседнее.</div>
+    <div class="kogda"><b>Когда пора</b>Когда боитесь трогать код, который работает</div></div>
+  <div class="st s3"><div class="lvl">Ступень 3<span>Фреймворк: Laravel или Symfony</span></div>
+    <div class="chto">Маршруты, шаблоны, ORM, миграции, очереди — из коробки. Скорость разработки в разы выше.</div>
+    <div class="kogda"><b>Когда пора</b>Когда написали свой «мини-фреймворк» и он стал мешать</div></div>
+  <div class="st s4"><div class="lvl">Ступень 4<span>Выбор специализации</span></div>
+    <div class="chto">Фронтенд (Vue/React), бэкенд и высокие нагрузки, DevOps или мобильные приложения.</div>
+    <div class="kogda"><b>Когда пора</b>Когда поняли, какая часть работы вам самому интереснее</div></div>
+</div>
+<div class="niz"><b>Главное:</b> фреймворк — не «уровень выше», а инструмент под задачу.
+Человек, понимающий, что делает Laravel под капотом, стоит дороже человека, знающего только его команды.</div>
+</body></html>

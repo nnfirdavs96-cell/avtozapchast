@@ -130,6 +130,9 @@ a { color: var(--rzhavy); text-decoration: none; border-bottom: 1px solid var(--
   font-family: var(--grotesk); font-weight: 700; font-size: 9.5pt;
   color: var(--rzhavy); min-width: 2.2rem;
 }
+/* Приложения в оглавлении помечены буквой другого цвета — чтобы их
+   было видно с одного взгляда среди шестидесяти номеров. */
+.og-bukva { color: var(--hvoya); }
 .og-spisok a { color: var(--chernila); border: 0; }
 .og-primechanie { margin-top: 1.6rem; font-size: 10pt; color: var(--priglush); font-style: italic; }
 

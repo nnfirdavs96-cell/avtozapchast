@@ -650,7 +650,7 @@ for (const t of tovary) {
 }
 ```
 
-*Ответы — в [Приложении Г](../prilozheniya/G-otvety.md).*
+*Ответы — в [Приложении Г](../prilozheniya/4-G-otvety.md).*
 
 ## 🔗 В бою
 

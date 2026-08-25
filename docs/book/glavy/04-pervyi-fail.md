@@ -324,7 +324,7 @@ index.html
 «Посмотреть код страницы») и найдите в нём `<!DOCTYPE html>`, `<head>`, `<body>`
 и `<meta charset`. Убедитесь: у всех одно и то же.
 
-*Ответы — в [Приложении Г](../prilozheniya/G-otvety.md).*
+*Ответы — в [Приложении Г](../prilozheniya/4-G-otvety.md).*
 
 ## 🔗 В бою
 

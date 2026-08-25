@@ -350,7 +350,7 @@ mysqldump -u user -p magazin_db > backup-$(date +%F).sql
 **Задача 57.10.** Напишите свой чек-лист выкладки — десять пунктов —
 и положите его в `README.md` проекта.
 
-*Ответы — в [Приложении Г](../prilozheniya/G-otvety.md).*
+*Ответы — в [Приложении Г](../prilozheniya/4-G-otvety.md).*
 
 ## 🔗 В бою
 

@@ -142,6 +142,31 @@ function oformit(htmlRaw, meta) {
   return `<article class="glava" id="glava-${meta.nomer}">${shapka}${$.html(telo)}</article>`;
 }
 
+function oformitPrilozhenie(htmlText, meta) {
+  const $ = cheerio.load(`<div id="root">${htmlText}</div>`, null, false);
+
+  // Навигационная строка нужна на GitHub, но не в книге.
+  $('#root > blockquote').first().remove();
+  $('#root > p').each((_, el) => {
+    const t = $(el).text().trim();
+    if (/←|→/.test(t) && t.length < 120) $(el).remove();
+  });
+  const telo = $('#root');
+  telo.find('hr').remove();
+
+  const shapka = `
+    <header class="glava-shapka">
+      <div class="glava-metka">
+        <span class="glava-slovo">Приложение</span>
+        <span class="glava-nomer">${meta.bukva}</span>
+      </div>
+      <div class="glava-podpis">${meta.chast}</div>
+      <h1 class="glava-nazvanie">${meta.nazvanie}</h1>
+    </header>`;
+
+  return `<article class="glava" id="prilozhenie-${meta.bukva}">${shapka}${telo.html()}</article>`;
+}
+
 /* ---------- сборка ---------- */
 
 function razobratZagolovok(mdText, fallback) {
@@ -151,6 +176,17 @@ function razobratZagolovok(mdText, fallback) {
     nomer: m ? m[1] : fallback,
     nazvanie: m ? m[2].trim() : 'Без названия',
     chast: chast.trim(),
+  };
+}
+
+// Приложения нумеруются буквой, а не числом: «Приложение А» вместо «Глава 07».
+function razobratPrilozhenie(mdText, fallback) {
+  const m = mdText.match(/^#\s+Приложение\s+([А-Я])\.\s*(.+)$/m);
+  const podpis = (mdText.match(/^>\s*\*\*([^*]+)\*\*/m) || [])[1] || 'Справочник';
+  return {
+    bukva: m ? m[1] : fallback,
+    nazvanie: m ? m[2].trim() : 'Без названия',
+    chast: podpis.trim(),
   };
 }
 
@@ -168,9 +204,26 @@ function sobrat() {
     return { meta, html: oformit(md.render(text), meta) };
   });
 
+  // Приложения — та же сборка, но нумерация буквами.
+  const dirP = path.join(BOOK, 'prilozheniya');
+  const failyP = fs.existsSync(dirP)
+    ? fs.readdirSync(dirP).filter((f) => f.endsWith('.md')).sort()
+    : [];
+
+  const prilozheniya = failyP.map((f, i) => {
+    let text = fs.readFileSync(path.join(dirP, f), 'utf8');
+    const meta = razobratPrilozhenie(text, String(i + 1));
+    text = text.replace(/^#\s+Приложение.*$/m, '');
+    text = text.replace(/!\[([^\]]*)\]\(\.\.\//g, '![$1](');
+    return { meta, html: oformitPrilozhenie(md.render(text), meta) };
+  });
+
   const oglavlenie = glavy.map((g) =>
     `<li><span class="og-nomer">${g.meta.nomer}</span>` +
-    `<a href="#glava-${g.meta.nomer}">${g.meta.nazvanie}</a></li>`).join('\n');
+    `<a href="#glava-${g.meta.nomer}">${g.meta.nazvanie}</a></li>`).join('\n') +
+    prilozheniya.map((p2) =>
+      `<li><span class="og-nomer og-bukva">${p2.meta.bukva}</span>` +
+      `<a href="#prilozhenie-${p2.meta.bukva}">${p2.meta.nazvanie}</a></li>`).join('\n');
 
   const css = fs.readFileSync(path.join(__dirname, 'style.css'), 'utf8');
 
@@ -196,20 +249,21 @@ function sobrat() {
 <section class="oglavlenie">
   <h2 class="og-titul">Содержание</h2>
   <ol class="og-spisok">${oglavlenie}</ol>
-  <p class="og-primechanie">Книга пишется по частям. Здесь — главы, готовые на сегодня.</p>
+  <p class="og-primechanie">60 глав и 4 приложения. Весь код в книге — рабочий, все снимки экрана сделаны с настоящих запусков.</p>
 </section>
 
 ${glavy.map((g) => g.html).join('\n')}
+${prilozheniya.map((p2) => p2.html).join('\n')}
 
 <footer class="konec">
   <div class="konec-znak">§</div>
-  <p>Продолжение следует.</p>
+  <p>Конец книги.<br>Дальше — ваш собственный проект.</p>
 </footer>
 </body></html>`;
 
   fs.writeFileSync(OUT_HTML, html);
-  console.log(`HTML собран: ${OUT_HTML} (${glavy.length} глав, ${(html.length / 1048576).toFixed(1)} МБ)`);
-  return glavy.length;
+  console.log(`HTML собран: ${OUT_HTML} (${glavy.length} глав + ${prilozheniya.length} прил., ${(html.length / 1048576).toFixed(1)} МБ)`);
+  return glavy.length + prilozheniya.length;
 }
 
 async function pdf() {

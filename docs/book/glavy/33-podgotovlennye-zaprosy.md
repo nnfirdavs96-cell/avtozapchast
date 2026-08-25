@@ -421,7 +421,7 @@ $sql = "SELECT * FROM tovary
 **Задача 33.9.** Проверьте свой каталог из главы 25: попробуйте
 `?brend=' OR '1'='1` и `?sort=1;DROP TABLE tovary`. Что произошло?
 
-*Ответы — в [Приложении Г](../prilozheniya/G-otvety.md).*
+*Ответы — в [Приложении Г](../prilozheniya/4-G-otvety.md).*
 
 ## 🔗 В бою
 

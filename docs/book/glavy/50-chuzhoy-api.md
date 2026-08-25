@@ -458,7 +458,7 @@ function razobrat_otvet_postavshika(array $syroy): array
 GitHub) в разделе про лимиты. Сколько запросов разрешено? Что будет
 при превышении?
 
-*Ответы — в [Приложении Г](../prilozheniya/G-otvety.md).*
+*Ответы — в [Приложении Г](../prilozheniya/4-G-otvety.md).*
 
 ## 🔗 В бою
 

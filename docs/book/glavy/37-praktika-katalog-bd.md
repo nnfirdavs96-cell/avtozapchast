@@ -587,7 +587,7 @@ $rekomendacii = pohozhie((int) $tovar['id'], $kat);
 
 **Задача 37.9.** Проверьте сайт на телефоне. Всё удобно?
 
-*Ответы — в [Приложении Г](../prilozheniya/G-otvety.md).*
+*Ответы — в [Приложении Г](../prilozheniya/4-G-otvety.md).*
 
 ## 🔗 В бою
 
