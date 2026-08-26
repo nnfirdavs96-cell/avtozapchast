@@ -285,6 +285,15 @@ function renderRoleSidebar(string $active = ''): void {
         )->fetchColumn();
     } catch (Exception $e) { $returnsPending = 0; }
 
+    // Неоплаченные заказы. Считаем только доставленные: пока заказ в пути,
+    // «не оплачен» — нормальное состояние и дёргать владельца незачем.
+    $paymentsUnpaid = 0;
+    try {
+        $paymentsUnpaid = (int)getDB()->query(
+            "SELECT COUNT(*) FROM orders WHERE payment_status='unpaid' AND status='delivered'"
+        )->fetchColumn();
+    } catch (Exception $e) { $paymentsUnpaid = 0; }
+
     // Role-dependent destinations (the rest are shared pages that allow all admin roles).
     $dashHref     = $role === 'superadmin' ? "$url/superadmin/index.php"
                   : ($role === 'admin' ? "$url/admin/index.php" : "$url/manager/index.php");
@@ -311,6 +320,7 @@ function renderRoleSidebar(string $active = ''): void {
             ['key' => 'moderation', 'href' => "$url/admin/product_moderation.php",'icon' => 'fa-check-square-o','label' => 'Модерация товаров', 'badge' => $productsPending],
             ['key' => 'payouts',    'href' => "$url/admin/payouts.php",         'icon' => 'fa-money',       'label' => 'Выплаты продавцам'],
             ['key' => 'returns',    'href' => "$url/admin/returns.php",         'icon' => 'fa-undo',        'label' => 'Возвраты', 'badge' => $returnsPending],
+            ['key' => 'payments',   'href' => "$url/admin/payments.php",        'icon' => 'fa-credit-card', 'label' => 'Оплаты', 'badge' => $paymentsUnpaid],
             ['key' => 'messages',   'href' => "$url/admin/messages.php",       'icon' => 'fa-comments',    'label' => 'Сообщения', 'badge' => $staffUnread],
             ['key' => 'delivery',   'href' => "$url/superadmin/delivery.php",  'icon' => 'fa-truck',       'label' => 'Доставка'],
         ]],
@@ -350,7 +360,7 @@ function renderRoleSidebar(string $active = ''): void {
     // everything else by userCan() (superadmin always passes).
     $canSee = function (string $key) use ($role): bool {
         if (in_array($key, ['dashboard', 'messages'], true)) return true;
-        if (in_array($key, ['sellers', 'moderation', 'payouts', 'returns'], true)) return in_array($role, ['admin', 'superadmin'], true);
+        if (in_array($key, ['sellers', 'moderation', 'payouts', 'returns', 'payments'], true)) return in_array($role, ['admin', 'superadmin'], true);
         if ($role === 'superadmin') return true;
         if (in_array($key, ['permissions', 'backup', 'manual', 'catalog_library'], true)) return false;
         return userCan(permissionAlias($key));
