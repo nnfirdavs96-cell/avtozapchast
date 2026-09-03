@@ -26,6 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Delete
     if ($postAction === 'delete') {
+        // Удаление не делегируется: доступно только admin/superadmin, даже если
+        // менеджеру выдан этот раздел (см. canDelete).
+        if (!canDelete()) { flashMessage('danger', 'Удаление доступно только администратору.'); redirect(APP_URL . '/manager/categories.php'); }
         $delId = (int)($_POST['id'] ?? 0);
         if ($delId) {
             $cnt = $db->prepare("SELECT COUNT(*) FROM parts WHERE category_id = ? AND is_active = 1");
@@ -126,12 +129,14 @@ function renderCatRows(array $cats, string $csrf, int $depth = 0): void {
         echo '<td style="text-align:center;white-space:nowrap;">';
         echo '<a href="?action=edit&id=' . (int)$cat['id'] . '" class="az-btn az-btn-secondary az-btn-sm">'
            . '<i class="fa fa-pencil"></i> Ред.</a> ';
-        echo '<form method="POST" style="display:inline;" onsubmit="return confirm(\'Удалить категорию?\')">
+        if (canDelete()) {
+            echo '<form method="POST" style="display:inline;" onsubmit="return confirm(\'Удалить категорию?\')">
                 <input type="hidden" name="csrf_token" value="' . htmlspecialchars($csrf) . '">
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="id" value="' . (int)$cat['id'] . '">
                 <button type="submit" class="az-btn az-btn-danger az-btn-sm"><i class="fa fa-trash-o"></i></button>
               </form>';
+        }
         echo '</td>';
         echo '</tr>';
         if (!empty($cat['children'])) {

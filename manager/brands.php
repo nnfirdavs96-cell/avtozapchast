@@ -20,6 +20,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Delete
     if ($postAction === 'delete') {
+        // Удаление не делегируется: доступно только admin/superadmin, даже если
+        // менеджеру выдан этот раздел (см. canDelete).
+        if (!canDelete()) { flashMessage('danger', 'Удаление доступно только администратору.'); redirect(APP_URL . '/manager/brands.php'); }
         $delId = (int)($_POST['id'] ?? 0);
         if ($delId) {
             $cnt = $db->prepare("SELECT COUNT(*) FROM parts WHERE brand_id = ? AND is_active = 1");
@@ -298,7 +301,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                                                class="az-btn az-btn-secondary az-btn-sm">
                                                 <i class="fa fa-pencil"></i> Ред.
                                             </a>
-                                            <form method="POST" action="" style="display:inline;"
+                                            <?php if (canDelete()): ?><form method="POST" action="" style="display:inline;"
                                                   onsubmit="return confirm('Удалить бренд «<?= sanitize(addslashes($b['name'])) ?>»?')">
                                                 <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
                                                 <input type="hidden" name="action" value="delete">
@@ -306,7 +309,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                                                 <button type="submit" class="az-btn az-btn-danger az-btn-sm">
                                                     <i class="fa fa-trash-o"></i>
                                                 </button>
-                                            </form>
+                                            </form><?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>

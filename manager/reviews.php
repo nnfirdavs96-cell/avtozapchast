@@ -54,8 +54,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
            ->execute([$rid]);
         flashMessage('success', 'Отзыв отклонён.');
     } elseif ($rid && $do === 'delete') {
-        $db->prepare("DELETE FROM `$pTbl` WHERE id=?")->execute([$rid]);
-        flashMessage('success', 'Отзыв удалён.');
+        // Удаление не делегируется — только admin/superadmin (см. canDelete).
+        if (!canDelete()) {
+            flashMessage('danger', 'Удаление доступно только администратору.');
+        } else {
+            $db->prepare("DELETE FROM `$pTbl` WHERE id=?")->execute([$rid]);
+            flashMessage('success', 'Отзыв удалён.');
+        }
     } elseif ($rid && $do === 'feature' && $hasFeatured) {
         // Only approved reviews can be featured on the About page
         $db->prepare("UPDATE `$pTbl` SET is_featured = NOT is_featured WHERE id=? AND status='approved'")->execute([$rid]);
@@ -303,14 +308,14 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                                     <button type="submit" class="az-btn az-btn-secondary az-btn-sm" title="Отклонить"><i class="fa fa-ban"></i></button>
                                 </form>
                                 <?php endif; ?>
-                                <form method="POST" style="display:inline;" onsubmit="return confirm('Удалить отзыв безвозвратно?');">
+                                <?php if (canDelete()): ?><form method="POST" style="display:inline;" onsubmit="return confirm('Удалить отзыв безвозвратно?');">
                                     <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
                                     <input type="hidden" name="type" value="<?= $type ?>">
                                     <input type="hidden" name="status" value="<?= sanitize($statusFilter) ?>">
                                     <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
                                     <input type="hidden" name="do" value="delete">
                                     <button type="submit" class="az-btn az-btn-danger az-btn-sm" title="Удалить"><i class="fa fa-trash-o"></i></button>
-                                </form>
+                                </form><?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
