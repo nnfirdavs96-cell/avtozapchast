@@ -36,9 +36,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postAction = $_POST['action'] ?? '';
 
     if ($postAction === 'delete') {
-        // Удаление не делегируется: доступно только admin/superadmin, даже если
-        // менеджеру выдан этот раздел (см. canDelete).
-        if (!canDelete()) { flashMessage('danger', 'Удаление доступно только администратору.'); redirect(APP_URL . '/admin/banners.php'); }
         $delId = (int)($_POST['id'] ?? 0);
         if ($delId) $db->prepare("DELETE FROM banners WHERE id = ?")->execute([$delId]);
         flashMessage('success', 'Баннер удалён.');
@@ -382,13 +379,13 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                                         <i class="fa fa-<?= $banner['is_active'] ? 'eye-slash' : 'eye' ?>"></i>
                                     </button>
                                 </form>
-                                <?php if (canDelete()): ?><form method="POST" style="display:inline;"
+                                <form method="POST" style="display:inline;"
                                       onsubmit="return confirm('Удалить этот баннер?')">
                                     <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?= (int)$banner['id'] ?>">
                                     <button type="submit" class="az-btn az-btn-danger az-btn-sm"><i class="fa fa-trash-o"></i></button>
-                                </form><?php endif; ?>
+                                </form>
                             </div>
                         </div>
                     </div>

@@ -39,7 +39,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $adminRoles  = ['buyer', 'manager'];
         $superRoles  = ['buyer', 'manager', 'admin', 'superadmin'];
         $allowedRoles = hasRole('superadmin') ? $superRoles : $adminRoles;
-        if (in_array($role, $allowedRoles)) {
+        // Чью роль меняем. Пользователей выше по рангу (admin, superadmin) может
+        // трогать только суперадмин. Без этой проверки менеджер/админ через прямой
+        // POST с чужим id понизил бы суперадмина до покупателя — список его прячет,
+        // но форму можно подделать. Симметрично проверке в обработчике 'toggle'.
+        $tgt = $db->prepare("SELECT role FROM users WHERE id = ?");
+        $tgt->execute([$uid]);
+        $tgtRole = $tgt->fetchColumn();
+        $canTouch = $tgtRole && (hasRole('superadmin') || in_array($tgtRole, ['buyer', 'manager'], true));
+        if ($canTouch && in_array($role, $allowedRoles)) {
             $db->prepare("UPDATE users SET role = ?, updated_at = NOW() WHERE id = ?")->execute([$role, $uid]);
             flashMessage('success', 'Роль пользователя изменена.');
         } else {

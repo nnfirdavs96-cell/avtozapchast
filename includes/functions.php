@@ -215,18 +215,6 @@ function requirePermission(string $section): void {
 }
 
 /**
- * Право УДАЛЯТЬ (товар, категорию, отзыв, слайд, пользователя и т.п.).
- *
- * Удаление необратимо, поэтому его нельзя делегировать: доступ к разделу
- * (userCan) открывает создание и редактирование, но НЕ удаление. Удалять могут
- * только admin и superadmin — менеджеру с делегированным разделом кнопка удаления
- * не показывается, а серверный обработчик отбивает такой запрос.
- */
-function canDelete(): bool {
-    return in_array($_SESSION['role'] ?? '', ['admin', 'superadmin'], true);
-}
-
-/**
  * Redirect helper
  *
  * Relative targets ("/path") are anchored to APP_URL when it is set, so the

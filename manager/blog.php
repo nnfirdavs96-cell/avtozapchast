@@ -19,9 +19,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postAction = $_POST['action'] ?? '';
 
     if ($postAction === 'delete') {
-        // Удаление не делегируется: доступно только admin/superadmin, даже если
-        // менеджеру выдан этот раздел (см. canDelete).
-        if (!canDelete()) { flashMessage('danger', 'Удаление доступно только администратору.'); redirect(APP_URL . '/manager/blog.php'); }
         $delId = (int)($_POST['id'] ?? 0);
         if ($delId) $db->prepare("DELETE FROM blog_posts WHERE id = ?")->execute([$delId]);
         flashMessage('success', 'Статья удалена.');
@@ -446,13 +443,13 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                                             <i class="fa fa-<?= $post['is_published'] ? 'eye-slash' : 'eye' ?>"></i>
                                         </button>
                                     </form>
-                                    <?php if (canDelete()): ?><form method="POST" style="display:inline;"
+                                    <form method="POST" style="display:inline;"
                                           onsubmit="return confirm('Удалить статью «<?= sanitize(addslashes($post['title_ru'])) ?>»?')">
                                         <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id" value="<?= (int)$post['id'] ?>">
                                         <button type="submit" class="az-btn az-btn-danger az-btn-sm"><i class="fa fa-trash-o"></i></button>
-                                    </form><?php endif; ?>
+                                    </form>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
