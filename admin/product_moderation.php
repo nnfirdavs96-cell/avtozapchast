@@ -4,7 +4,9 @@
  * Одобрение / отклонение (с причиной) листингов продавцов.
  */
 require_once dirname(__DIR__) . '/config/config.php';
-requireRole(['admin', 'superadmin']);
+requireRole(['admin', 'superadmin', 'manager']);
+// Делегируется правом «Модерация товаров продавцов».
+requirePermission('moderation');
 
 $db   = getDB();
 $csrf = generateCsrfToken();

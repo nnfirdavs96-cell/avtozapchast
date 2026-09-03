@@ -112,6 +112,8 @@ function permissionSections(): array {
         'warehouse'  => 'Склад API',
         'vin'        => 'VIN-поиск',
         'orders'     => 'Заказы',
+        'sellers'    => 'Продавцы (одобрение/блок)',
+        'moderation' => 'Модерация товаров продавцов',
         'delivery'   => 'Доставка',
         'sliders'    => 'Слайдер / Баннеры',
         'blog'       => 'Блог',
@@ -143,7 +145,11 @@ function permissionAlias(string $key): string {
  */
 function roleDefaultSections(string $role): array {
     if ($role === 'admin') {
-        return ['products','markup','sliders','orders','users',
+        // sellers/moderation были зашиты как admin-only в меню; теперь они —
+        // обычные делегируемые секции, поэтому добавлены в дефолт админа, чтобы
+        // его текущий доступ не изменился. Менеджеру их по умолчанию НЕ даём —
+        // суперадмин выдаёт вручную в «Права доступа».
+        return ['products','markup','sliders','orders','users','sellers','moderation',
                 'categories','brands','blog','pages','reviews','vin'];
     }
     if ($role === 'manager') {
@@ -360,7 +366,7 @@ function renderRoleSidebar(string $active = ''): void {
     // everything else by userCan() (superadmin always passes).
     $canSee = function (string $key) use ($role): bool {
         if (in_array($key, ['dashboard', 'messages'], true)) return true;
-        if (in_array($key, ['sellers', 'moderation', 'payouts', 'returns', 'payments'], true)) return in_array($role, ['admin', 'superadmin'], true);
+        if (in_array($key, ['payouts', 'returns', 'payments'], true)) return in_array($role, ['admin', 'superadmin'], true);
         if ($role === 'superadmin') return true;
         if (in_array($key, ['permissions', 'backup', 'manual', 'catalog_library'], true)) return false;
         return userCan(permissionAlias($key));

@@ -4,7 +4,10 @@
  * Одобрение / блокировка заявок продавцов + установка комиссии.
  */
 require_once dirname(__DIR__) . '/config/config.php';
-requireRole(['admin', 'superadmin']);
+requireRole(['admin', 'superadmin', 'manager']);
+// Раздел делегируем: менеджер попадёт сюда, только если суперадмин выдал ему
+// право «Продавцы» в «Права доступа». admin/superadmin проходят как раньше.
+requirePermission('sellers');
 
 $db   = getDB();
 $csrf = generateCsrfToken();
