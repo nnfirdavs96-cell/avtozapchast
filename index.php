@@ -472,46 +472,6 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         </div>
     </div>
-    <!-- Стрелки ‹ › карусели скидок: самодостаточная подстраховка.
-         На мобильном стрелки не листали. Причина — в общем main.js: это один
-         IIFE без try/catch, и если что-то выше по файлу падает с ошибкой, до
-         навешивания обработчиков стрелок дело не доходит, а карусель остаётся
-         неинициализированной. Чиним локально и независимо от main.js:
-           1) ждём window.load — то есть ПОСЛЕ выполнения main.js;
-           2) если карусель скидок не поднялась как owl — поднимаем сами;
-           3) вешаем клик ПРЯМО на кнопки со stopImmediatePropagation. Прямой
-              обработчик срабатывает раньше делегированного на document (main.js),
-              и гасит всплытие — поэтому листания ровно одно, независимо от того,
-              жив main.js или нет, и в каком порядке всё навесилось.
-         Изолировано в своём scope, риск-места в try/catch — падение здесь не
-         затронет остальную страницу. -->
-    <script>
-    (function () {
-        function bindArrows($) {
-            $('.deal_prev, .deal_next').off('click.dealfix').on('click.dealfix', function (e) {
-                e.preventDefault(); e.stopImmediatePropagation();
-                var dir = $(this).hasClass('deal_next') ? 'next' : 'prev';
-                $('.sale_product_area .product_carousel').trigger(dir + '.owl.carousel');
-            });
-        }
-        function boot() {
-            var $ = window.jQuery; if (!$) return;
-            var $c = $('.sale_product_area .product_carousel');
-            if (!$c.length) return;
-            try {
-                if (!$c.hasClass('owl-loaded') && $.fn.owlCarousel) {
-                    $c.owlCarousel({
-                        loop: true, nav: false, dots: false, margin: 30, items: 1,
-                        responsive: { 0:{items:1}, 480:{items:2}, 768:{items:3}, 992:{items:2}, 1300:{items:3} }
-                    });
-                }
-            } catch (e) {}
-            bindArrows($);
-        }
-        if (document.readyState === 'complete') boot();
-        else window.addEventListener('load', boot);
-    })();
-    </script>
     <?php endif; ?>
     <!--sale products area end-->
 
