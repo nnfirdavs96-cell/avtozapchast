@@ -2784,20 +2784,44 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
    под кнопкой оставалась пустая белая полоса. Задаём формам единую высоту и
    растягиваем содержимое на неё; кнопку возвращаем в обычный поток. */
 @media (max-width: 991px) {
-    .header_middle .search_container.has_vin > form {
+    /* Обёртка .search_unibar на мобильном — просто вертикальный контейнер во всю
+       ширину: показанная форма занимает строку, лишней высоты не добавляет.
+       (На десктопе у неё своя flex-раскладка в @media min-width:992px.) */
+    .header_middle .search_unibar {
+        display: block !important; width: 100% !important;
+        height: auto !important; background: transparent !important;
+        box-shadow: none !important; border-radius: 0 !important;
+    }
+    /* Формы теперь лежат внутри .search_unibar, поэтому целимся ЧЕРЕЗ неё, а не
+       прямым потомком контейнера — иначе высота полю не задавалась и под ним
+       оставалась пустая белая полоса. */
+    .header_middle .search_container.has_vin .search_unibar > form {
         height: 46px !important;
         min-height: 46px;
         background: #fff;
         border-radius: 9px;
         overflow: hidden;                 /* отсекает любой «хвост» */
         box-shadow: 0 1px 3px rgba(0,0,0,.12);
+        /* Тема ставит форме align-items:center, из-за чего поле (24px) висело по
+           центру, а сверху и снизу оставались белые поля. Тянем содержимое на всю
+           высоту — процентную height:100% браузер здесь не резолвил. */
+        display: flex !important;
+        align-items: stretch !important;
     }
     /* Селект категорий и его JS-обёртку на мобильном не показываем */
     .header_middle .hover_category,
     .header_middle .nice-select { display: none !important; }
 
     .header_middle .search_container.has_vin .search_box {
-        display: flex !important; height: 100% !important; flex: 1 1 auto; min-width: 0;
+        display: flex !important; align-items: stretch !important;
+        /* Тема на мобильном вешает .search_box{margin-bottom:25px} и рамку — ровно
+           эти 25px и были «пустой белой полосой» под полем. Обнуляем. */
+        margin: 0 !important; border: 0 !important; border-radius: 0 !important;
+        /* Именно min-height, а не height/align-self: на этом flex-элементе
+           (flex:1 1 auto внутри формы темы) обычная высота и растяжение не
+           срабатывали — поле оставалось 24px по центру. min-height тянет надёжно. */
+        min-height: 46px !important;
+        flex: 1 1 auto; min-width: 0;
     }
     .header_middle .search_box input {
         flex: 1 1 auto; min-width: 0;
@@ -2887,10 +2911,10 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
         flex: 1 1 100% !important;
         width: auto !important; max-width: 100% !important; min-width: 0;
     }
-    .header_middle .search_container.has_vin > form { max-width: 100%; min-width: 0; }
+    .header_middle .search_container.has_vin .search_unibar > form { max-width: 100%; min-width: 0; }
 
     /* Ничего постороннего внутри форм поиска */
-    .header_middle .search_container.has_vin > form > *:not(.search_box):not(input):not(button) {
+    .header_middle .search_container.has_vin .search_unibar > form > *:not(.search_box):not(input):not(button) {
         display: none !important;
     }
     /* Переключатель прижат влево и не растягивается */
@@ -2902,7 +2926,7 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
    работать как ВЫСОТА — поле раздувалось в высокий белый блок ~210px.
    В колонке высоту задаём сами, flex-basis сбрасываем. */
 @media (max-width: 991px) {
-    .header_middle .search_container.has_vin > form,
+    .header_middle .search_container.has_vin .search_unibar > form,
     .header_middle .vin_search_form {
         flex: 0 0 auto !important;
         height: 46px !important;
