@@ -1,7 +1,41 @@
 (function ($) {
     "use strict";
 
-    new WOW().init();  
+    /* ── Стрелки ‹ › карусели «Товары со скидкой» ──────────────────────────
+       Ставим В САМОМ НАЧАЛЕ файла и вешаем на window.load. Причина: этот main.js —
+       один большой IIFE без try/catch, и если ЛЮБАЯ строка ниже упадёт с ошибкой,
+       весь код после неё не выполнится. Раньше обработчики стрелок стояли в конце
+       файла, поэтому на мобильном (где что-то падало раньше) они просто не
+       навешивались, а карусель оставалась неинициализированной.
+
+       Здесь обработчик регистрируется ДО первой рискованной строки, а внутри
+       ждём load — то есть момент, когда owl уже точно поднят (или не поднят, если
+       main.js упал). Логика самодостаточна:
+         • если карусель не поднялась как owl — поднимаем её сами;
+         • клик вешаем ПРЯМО на кнопки со stopImmediatePropagation — прямой
+           обработчик срабатывает раньше любого делегированного и гасит всплытие,
+           поэтому листание ровно одно, без дублей.
+       Файл грузится с ?v=filemtime, так что правка доезжает до браузера без
+       ручной чистки кеша. */
+    $(window).on('load', function () {
+        try {
+            var $c = $('.sale_product_area .product_carousel');
+            if (!$c.length) return;
+            if (!$c.hasClass('owl-loaded') && $.fn.owlCarousel) {
+                $c.owlCarousel({
+                    loop: true, nav: false, dots: false, margin: 30, items: 1,
+                    responsive: { 0:{items:1}, 480:{items:2}, 768:{items:3}, 992:{items:2}, 1300:{items:3} }
+                });
+            }
+            $('.deal_prev, .deal_next').off('click.dealfix').on('click.dealfix', function (e) {
+                e.preventDefault(); e.stopImmediatePropagation();
+                var dir = $(this).hasClass('deal_next') ? 'next' : 'prev';
+                $('.sale_product_area .product_carousel').trigger(dir + '.owl.carousel');
+            });
+        } catch (e) {}
+    });
+
+    new WOW().init();
 
     /*---background image---*/
 	function dataBackgroundImage() {
@@ -313,16 +347,8 @@
 		  }
     });
 
-    /*--- свои стрелки для блока «Товары со скидкой» ---*/
-    $(document).on('click', '.deal_next', function (e) {
-        e.preventDefault();
-        $('.sale_product_area .product_carousel').trigger('next.owl.carousel');
-    });
-    $(document).on('click', '.deal_prev', function (e) {
-        e.preventDefault();
-        $('.sale_product_area .product_carousel').trigger('prev.owl.carousel');
-    });
-
+    /* Стрелки блока «Товары со скидкой» перенесены в начало файла (window.load),
+       чтобы работали даже если что-то выше по main.js упадёт с ошибкой. */
 
     /*---product column2 activation---*/
        $('.product_column2').on('changed.owl.carousel initialized.owl.carousel', function (event) {
