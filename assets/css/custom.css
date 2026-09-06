@@ -2857,8 +2857,11 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
         display: flex !important; flex-direction: column; align-items: stretch;
     }
     /* Показываем только форму активного режима */
-    .header_middle .search_container.has_vin[data-active="parts"] form[data-mode="vin"],
-    .header_middle .search_container.has_vin[data-active="vin"]   form[data-mode="parts"] {
+    /* Начальное состояние задаём CSS, а не JS: без data-active (JS не успел/не
+       отработал, дубль id у прилипающей шапки) VIN-форма всё равно скрыта, и
+       вторая пустая белая полоса под полем не появляется. */
+    .header_middle .search_container.has_vin:not([data-active="vin"]) form[data-mode="vin"],
+    .header_middle .search_container.has_vin[data-active="vin"] form[data-mode="parts"] {
         display: none !important;
     }
     .header_middle .vin_search_form { margin-top: 0 !important; }
@@ -3589,6 +3592,20 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 /* Убираем «глаз» быстрого просмотра (как в каталоге) */
 .product_carousel .single_product .quick_button,
 .product_items .single_product .quick_button { display: none !important; }
+
+/* Цена на мобильном (карусели главной): узкая карточка не вмещала «old + new» в
+   одну строку (flex-wrap:nowrap, current 17px) — символ валюты «смн» уходил за
+   край. Разрешаем перенос и чуть уменьшаем цену, чтобы всё влезло. */
+@media (max-width: 767px) {
+    .product_carousel .single_product .price_box,
+    .product_items .single_product .price_box {
+        flex-wrap: wrap !important; gap: 1px 8px;
+    }
+    .product_carousel .single_product .price_box .current_price,
+    .product_items .single_product .price_box .current_price { font-size: 15px; }
+    .product_carousel .single_product .price_box .old_price,
+    .product_items .single_product .price_box .old_price { font-size: 11px; }
+}
 
 /* Hover на главной — БЕЗ скейла: у карусели owl-stage-outer имеет overflow:hidden,
    и увеличенная карточка обрезалась (наезд на соседей, кнопка «В корзину» уходила
