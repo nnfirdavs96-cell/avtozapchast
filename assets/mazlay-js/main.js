@@ -46,8 +46,15 @@
                 });
                 $('.deal_prev, .deal_next').off('click.dealfix').on('click.dealfix', function (e) {
                     e.preventDefault(); e.stopImmediatePropagation();
+                    // Целевую позицию считаем и ЖЁСТКО зажимаем в [0, max] сами:
+                    // на iOS scrollBy с плавной анимацией умеет проскочить за предел
+                    // и показать пустоту. scrollTo к зажатой позиции этого не даёт.
                     var step = Math.max(el.clientWidth * 0.82, 200);
-                    el.scrollBy({ left: ($(this).hasClass('deal_next') ? step : -step), behavior: 'smooth' });
+                    var max = el.scrollWidth - el.clientWidth;
+                    var target = el.scrollLeft + ($(this).hasClass('deal_next') ? step : -step);
+                    target = Math.max(0, Math.min(target, max));
+                    if (el.scrollTo) { el.scrollTo({ left: target, behavior: 'smooth' }); }
+                    else { el.scrollLeft = target; }
                 });
             } else {
                 if (!$c.hasClass('owl-loaded') && $.fn.owlCarousel) {
