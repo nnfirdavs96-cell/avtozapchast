@@ -18,13 +18,9 @@
        Файл грузится с ?v=filemtime, так что правка доезжает до браузера без
        ручной чистки кеша. */
     $(window).on('load', function () {
-        // Временная диагностика: показываем состояние только при ?dbg=1 в адресе,
-        // чтобы обычные посетители ничего не видели. Убрать после отладки стрелок.
-        var __dbg = (location.search.indexOf('dbg=1') >= 0);
         try {
             var $c = $('.sale_product_area .product_carousel');
-            var __had = $c.length ? $c.hasClass('owl-loaded') : '-';
-            if (!$c.length) { if (__dbg) alert('DBG: карусель не найдена (carousels=0)'); return; }
+            if (!$c.length) return;
             if (!$c.hasClass('owl-loaded') && $.fn.owlCarousel) {
                 $c.owlCarousel({
                     loop: true, nav: false, dots: false, margin: 30, items: 1,
@@ -34,21 +30,9 @@
             $('.deal_prev, .deal_next').off('click.dealfix').on('click.dealfix', function (e) {
                 e.preventDefault(); e.stopImmediatePropagation();
                 var dir = $(this).hasClass('deal_next') ? 'next' : 'prev';
-                var $car = $('.sale_product_area .product_carousel');
-                var t0 = ($car.find('.owl-stage')[0] || {}).style ? $car.find('.owl-stage')[0].style.transform : '?';
-                $car.trigger(dir + '.owl.carousel');
-                if (__dbg) {
-                    var t1 = ($car.find('.owl-stage')[0] || {}).style ? $car.find('.owl-stage')[0].style.transform : '?';
-                    alert('DBG тап: dir=' + dir + ' before=' + t0 + ' after=' + t1 + ' сдвинулось=' + (t0 !== t1));
-                }
+                $('.sale_product_area .product_carousel').trigger(dir + '.owl.carousel');
             });
-            if (__dbg) alert('DBG: owlPlugin=' + (!!$.fn.owlCarousel)
-                + ' carousels=' + $c.length
-                + ' loadedБыло=' + __had
-                + ' loadedСейчас=' + $c.hasClass('owl-loaded')
-                + ' items=' + $c.find('.owl-item').length
-                + ' стрелок=' + $('.deal_next').length);
-        } catch (e) { if (__dbg) alert('DBG ошибка: ' + e.message); }
+        } catch (e) {}
     });
 
     new WOW().init();
