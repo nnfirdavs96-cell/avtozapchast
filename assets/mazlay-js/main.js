@@ -2,36 +2,46 @@
     "use strict";
 
     /* ── Стрелки ‹ › карусели «Товары со скидкой» ──────────────────────────
-       Ставим В САМОМ НАЧАЛЕ файла и вешаем на window.load. Причина: этот main.js —
-       один большой IIFE без try/catch, и если ЛЮБАЯ строка ниже упадёт с ошибкой,
-       весь код после неё не выполнится. Раньше обработчики стрелок стояли в конце
-       файла, поэтому на мобильном (где что-то падало раньше) они просто не
-       навешивались, а карусель оставалась неинициализированной.
+       Ставим В САМОМ НАЧАЛЕ файла и вешаем на window.load, чтобы работало даже
+       если что-то ниже в этом IIFE упадёт с ошибкой (файл — один блок без
+       try/catch). Грузится с ?v=filemtime — правка доезжает до браузера сама.
 
-       Здесь обработчик регистрируется ДО первой рискованной строки, а внутри
-       ждём load — то есть момент, когда owl уже точно поднят (или не поднят, если
-       main.js упал). Логика самодостаточна:
-         • если карусель не поднялась как owl — поднимаем её сами;
-         • клик вешаем ПРЯМО на кнопки со stopImmediatePropagation — прямой
-           обработчик срабатывает раньше любого делегированного и гасит всплытие,
-           поэтому листание ровно одно, без дублей.
-       Файл грузится с ?v=filemtime, так что правка доезжает до браузера без
-       ручной чистки кеша. */
+       ДВА РАЗНЫХ МЕХАНИЗМА по ширине экрана:
+       • Десктоп/планшет (≥768): owl-карусель + стрелки через trigger — как в теме.
+       • Телефон (<768): owl на мобильном Safari двигает ленту «внутри», но экран
+         не перерисовывает — стрелки будто не работают (проверено: transform
+         меняется, а картинка стоит). Поэтому на телефоне owl РАЗБИРАЕМ и делаем
+         нативную горизонтальную прокрутку (класс .deal-scroll в CSS): она всегда
+         перерисовывается, листается и пальцем, и стрелками (scrollBy). */
     $(window).on('load', function () {
         try {
             var $c = $('.sale_product_area .product_carousel');
             if (!$c.length) return;
-            if (!$c.hasClass('owl-loaded') && $.fn.owlCarousel) {
-                $c.owlCarousel({
-                    loop: true, nav: false, dots: false, margin: 30, items: 1,
-                    responsive: { 0:{items:1}, 480:{items:2}, 768:{items:3}, 992:{items:2}, 1300:{items:3} }
+            var isPhone = window.matchMedia('(max-width: 767px)').matches;
+
+            if (isPhone) {
+                // Разбираем owl (если тема успела поднять) и включаем нативную ленту.
+                if ($c.hasClass('owl-loaded')) { try { $c.trigger('destroy.owl.carousel'); } catch (e) {} }
+                $c.addClass('deal-scroll');
+                var el = $c[0];
+                $('.deal_prev, .deal_next').off('click.dealfix').on('click.dealfix', function (e) {
+                    e.preventDefault(); e.stopImmediatePropagation();
+                    var step = Math.max(el.clientWidth * 0.85, 200);
+                    el.scrollBy({ left: ($(this).hasClass('deal_next') ? step : -step), behavior: 'smooth' });
+                });
+            } else {
+                if (!$c.hasClass('owl-loaded') && $.fn.owlCarousel) {
+                    $c.owlCarousel({
+                        loop: true, nav: false, dots: false, margin: 30, items: 3,
+                        responsive: { 0:{items:1}, 480:{items:2}, 768:{items:3}, 992:{items:2}, 1300:{items:3} }
+                    });
+                }
+                $('.deal_prev, .deal_next').off('click.dealfix').on('click.dealfix', function (e) {
+                    e.preventDefault(); e.stopImmediatePropagation();
+                    var dir = $(this).hasClass('deal_next') ? 'next' : 'prev';
+                    $('.sale_product_area .product_carousel').trigger(dir + '.owl.carousel');
                 });
             }
-            $('.deal_prev, .deal_next').off('click.dealfix').on('click.dealfix', function (e) {
-                e.preventDefault(); e.stopImmediatePropagation();
-                var dir = $(this).hasClass('deal_next') ? 'next' : 'prev';
-                $('.sale_product_area .product_carousel').trigger(dir + '.owl.carousel');
-            });
         } catch (e) {}
     });
 
