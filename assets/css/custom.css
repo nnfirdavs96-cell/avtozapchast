@@ -607,14 +607,15 @@
         gap: 12px; overflow-x: auto; overflow-y: hidden;
         min-width: 0; max-width: 100%;          /* строго в ширину экрана */
         -webkit-overflow-scrolling: touch;
-        scroll-snap-type: x mandatory; scroll-behavior: smooth;
-        scroll-padding-left: 2px;
+        scroll-behavior: smooth;
+        /* Без scroll-snap: mandatory: он «прилипал» последней карточкой к левому
+           краю и оставлял справа пустоту при долистывании до конца. Нативная
+           прокрутка сама упирается в конец без пустого хвоста. */
     }
     .sale_product_area .product_carousel.deal-scroll::-webkit-scrollbar { display: none; }
     .sale_product_area .product_carousel.deal-scroll > div {
         flex: 0 0 78% !important; max-width: 78% !important;
         margin: 0 !important; padding: 0 !important;  /* без 15px паддинга .col-* */
-        scroll-snap-align: start;
     }
 }
 
