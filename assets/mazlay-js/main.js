@@ -31,32 +31,25 @@
             var $c = $('.sale_product_area .product_carousel');
             if (!$c.length) return;
 
-            var __dbg = (location.search.indexOf('dbg=1') >= 0);
             if (__salePhone) {
                 var el = $c[0];
-                if (__dbg) {
-                    var kids = el.children;
-                    var stage = el.querySelector('.owl-stage');
-                    alert('DBG лента: путь=ТЕЛЕФОН'
-                        + ' детей=' + kids.length
-                        + ' 1йкласс=' + (kids[0] ? kids[0].className : '-')
-                        + ' owlStageВнутри=' + (stage ? 'ДА' : 'нет')
-                        + ' clientW=' + el.clientWidth
-                        + ' scrollW=' + el.scrollWidth
-                        + ' класс=' + el.className);
-                }
+                // Ширину карточек задаём ЗДЕСЬ, инлайн-стилем с important — надёжнее
+                // CSS: не зависит ни от специфичности, ни от кеша custom.css. Раньше
+                // CSS-правило ширины не доходило, карточки были рваной ширины —
+                // отсюда «пустоты». Теперь у всех одинаковые 80% экрана.
+                $c.children().each(function () {
+                    this.style.setProperty('flex', '0 0 80%', 'important');
+                    this.style.setProperty('width', '80%', 'important');
+                    this.style.setProperty('max-width', '80%', 'important');
+                    this.style.setProperty('margin', '0', 'important');
+                    this.style.setProperty('padding', '0', 'important');
+                });
                 $('.deal_prev, .deal_next').off('click.dealfix').on('click.dealfix', function (e) {
                     e.preventDefault(); e.stopImmediatePropagation();
-                    var step = Math.max(el.clientWidth * 0.85, 200);
+                    var step = Math.max(el.clientWidth * 0.82, 200);
                     el.scrollBy({ left: ($(this).hasClass('deal_next') ? step : -step), behavior: 'smooth' });
-                    if (__dbg) setTimeout(function () {
-                        alert('DBG тап: scrollLeft=' + Math.round(el.scrollLeft)
-                            + ' max=' + Math.round(el.scrollWidth - el.clientWidth)
-                            + ' scrollW=' + el.scrollWidth + ' clientW=' + el.clientWidth);
-                    }, 450);
                 });
             } else {
-                if (__dbg) alert('DBG лента: путь=ДЕСКТОП (isPhone=false) — не тот путь на телефоне!');
                 if (!$c.hasClass('owl-loaded') && $.fn.owlCarousel) {
                     $c.owlCarousel({
                         loop: true, nav: false, dots: false, margin: 30, items: 3,
