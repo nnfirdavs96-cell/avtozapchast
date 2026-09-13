@@ -583,6 +583,19 @@
     .sale_head .sale_head_line { flex-basis: 100%; margin: 10px 0 0; }
     .sale_head .deal_nav { margin-top: 8px; }
 }
+/* ── Телефон: листаемая карусель — СРАЗУ под стрелками ─────────────────────
+   На узком экране блок делится на две строки: крупная карточка-герой (самая
+   большая скидка) и под ней карусель мелких. Стрелки в заголовке листают
+   именно карусель — но она оказывалась НИЖЕ героя, за пределами экрана, и по
+   нажатию стрелки визуально ничего не менялось (хотя лента листалась). Меняем
+   порядок: под стрелки встаёт карусель, а карточка-герой уходит вниз. На
+   планшете (≥768) обе колонки и так стоят рядом — там переставлять не нужно. */
+@media (max-width: 767px) {
+    .sale_product_area .row { flex-direction: column; }
+    .sale_product_area .row > [class*="col-"]:first-child { order: 2; }  /* герой — вниз */
+    .sale_product_area .row > [class*="col-"]:last-child  { order: 1; }  /* карусель — вверх */
+    .sale_product_area .row > [class*="col-"]:last-child  { margin-bottom: 20px; }
+}
 
 .categories_product_inner:not(.owl-loaded) { display: flex; flex-wrap: wrap; }
 .categories_product_inner:not(.owl-loaded) > .single_categories_product { flex: 0 0 14.28%; max-width: 14.28%; }
