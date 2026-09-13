@@ -2,27 +2,36 @@
     "use strict";
 
     /* ── Стрелки ‹ › карусели «Товары со скидкой» ──────────────────────────
-       Ставим В САМОМ НАЧАЛЕ файла и вешаем на window.load, чтобы работало даже
-       если что-то ниже в этом IIFE упадёт с ошибкой (файл — один блок без
-       try/catch). Грузится с ?v=filemtime — правка доезжает до браузера сама.
+       Файл грузится с ?v=filemtime — правка доезжает до браузера сама.
 
        ДВА РАЗНЫХ МЕХАНИЗМА по ширине экрана:
        • Десктоп/планшет (≥768): owl-карусель + стрелки через trigger — как в теме.
        • Телефон (<768): owl на мобильном Safari двигает ленту «внутри», но экран
-         не перерисовывает — стрелки будто не работают (проверено: transform
-         меняется, а картинка стоит). Поэтому на телефоне owl РАЗБИРАЕМ и делаем
-         нативную горизонтальную прокрутку (класс .deal-scroll в CSS): она всегда
-         перерисовывается, листается и пальцем, и стрелками (scrollBy). */
+         не перерисовывает — стрелки будто не работают. Поэтому на телефоне owl
+         для этого блока ВООБЩЕ НЕ поднимаем и делаем нативную горизонтальную
+         прокрутку (класс .deal-scroll): всегда перерисовывается, листается и
+         пальцем, и стрелками (scrollBy).
+
+       ВАЖНО: класс product_column3/owl-carousel снимаем ПРЯМО СЕЙЧАС, синхронно,
+       ДО того как ниже по файлу тема вызовет $('.product_column3').owlCarousel().
+       Раньше пробовали owl уже поднять и затем destroy — destroy срабатывал
+       ненадёжно, и .deal-scroll оборачивал не карточки, а внутреннюю обёртку owl
+       одним блоком → справа зияла пустота. Теперь owl на телефоне не поднимается
+       вовсе, и в ленте лежат чистые карточки. */
+    var __salePhone = !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
+    if (__salePhone) {
+        // Снимаем «карусельные» классы, чтобы тема не подняла owl на этом блоке.
+        $('.sale_product_area .product_carousel')
+            .removeClass('owl-carousel product_column3')
+            .addClass('deal-scroll');
+    }
+
     $(window).on('load', function () {
         try {
             var $c = $('.sale_product_area .product_carousel');
             if (!$c.length) return;
-            var isPhone = window.matchMedia('(max-width: 767px)').matches;
 
-            if (isPhone) {
-                // Разбираем owl (если тема успела поднять) и включаем нативную ленту.
-                if ($c.hasClass('owl-loaded')) { try { $c.trigger('destroy.owl.carousel'); } catch (e) {} }
-                $c.addClass('deal-scroll');
+            if (__salePhone) {
                 var el = $c[0];
                 $('.deal_prev, .deal_next').off('click.dealfix').on('click.dealfix', function (e) {
                     e.preventDefault(); e.stopImmediatePropagation();
