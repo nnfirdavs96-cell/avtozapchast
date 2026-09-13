@@ -602,16 +602,27 @@
    обычная прокрутка overflow-x, которая всегда видна, листается пальцем и
    стрелками (scrollBy). scroll-snap делает остановку ровно по карточкам. */
 @media (max-width: 767px) {
+    /* Гасим боковой «вылет» страницы: у бутстраповского .row поля -15px, а сам
+       скролл-контейнер без min-width:0 распирает колонку шире экрана — из-за
+       этого появлялась горизонтальная прокрутка всей страницы. */
+    .sale_product_area .row { margin-left: 0 !important; margin-right: 0 !important; }
+    .sale_product_area .row > [class*="col-"] {
+        padding-left: 0 !important; padding-right: 0 !important;
+        min-width: 0; max-width: 100%;
+    }
     .sale_product_area .product_carousel.deal-scroll {
         display: flex !important; flex-wrap: nowrap !important;
         gap: 12px; overflow-x: auto; overflow-y: hidden;
+        min-width: 0; max-width: 100%;          /* строго в ширину экрана */
         -webkit-overflow-scrolling: touch;
         scroll-snap-type: x mandatory; scroll-behavior: smooth;
+        scroll-padding-left: 2px;
     }
     .sale_product_area .product_carousel.deal-scroll::-webkit-scrollbar { display: none; }
     .sale_product_area .product_carousel.deal-scroll > div {
-        flex: 0 0 72% !important; max-width: 72% !important;
-        margin: 0 !important; scroll-snap-align: start;
+        flex: 0 0 78% !important; max-width: 78% !important;
+        margin: 0 !important; padding: 0 !important;  /* без 15px паддинга .col-* */
+        scroll-snap-align: start;
     }
 }
 
