@@ -596,6 +596,24 @@
     .sale_product_area .row > [class*="col-"]:last-child  { order: 1; }  /* карусель — вверх */
     .sale_product_area .row > [class*="col-"]:last-child  { margin-bottom: 20px; }
 }
+/* ── Телефон: нативная горизонтальная лента вместо owl ────────────────────
+   owl на мобильном Safari двигает ленту, но не перерисовывает экран — стрелки
+   будто не работают. На телефоне JS разбирает owl и вешает класс .deal-scroll:
+   обычная прокрутка overflow-x, которая всегда видна, листается пальцем и
+   стрелками (scrollBy). scroll-snap делает остановку ровно по карточкам. */
+@media (max-width: 767px) {
+    .sale_product_area .product_carousel.deal-scroll {
+        display: flex !important; flex-wrap: nowrap !important;
+        gap: 12px; overflow-x: auto; overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory; scroll-behavior: smooth;
+    }
+    .sale_product_area .product_carousel.deal-scroll::-webkit-scrollbar { display: none; }
+    .sale_product_area .product_carousel.deal-scroll > div {
+        flex: 0 0 72% !important; max-width: 72% !important;
+        margin: 0 !important; scroll-snap-align: start;
+    }
+}
 
 .categories_product_inner:not(.owl-loaded) { display: flex; flex-wrap: wrap; }
 .categories_product_inner:not(.owl-loaded) > .single_categories_product { flex: 0 0 14.28%; max-width: 14.28%; }
