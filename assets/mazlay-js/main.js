@@ -34,7 +34,13 @@
             $('.deal_prev, .deal_next').off('click.dealfix').on('click.dealfix', function (e) {
                 e.preventDefault(); e.stopImmediatePropagation();
                 var dir = $(this).hasClass('deal_next') ? 'next' : 'prev';
-                $('.sale_product_area .product_carousel').trigger(dir + '.owl.carousel');
+                var $car = $('.sale_product_area .product_carousel');
+                var t0 = ($car.find('.owl-stage')[0] || {}).style ? $car.find('.owl-stage')[0].style.transform : '?';
+                $car.trigger(dir + '.owl.carousel');
+                if (__dbg) {
+                    var t1 = ($car.find('.owl-stage')[0] || {}).style ? $car.find('.owl-stage')[0].style.transform : '?';
+                    alert('DBG тап: dir=' + dir + ' before=' + t0 + ' after=' + t1 + ' сдвинулось=' + (t0 !== t1));
+                }
             });
             if (__dbg) alert('DBG: owlPlugin=' + (!!$.fn.owlCarousel)
                 + ' carousels=' + $c.length
