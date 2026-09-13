@@ -18,9 +18,13 @@
        Файл грузится с ?v=filemtime, так что правка доезжает до браузера без
        ручной чистки кеша. */
     $(window).on('load', function () {
+        // Временная диагностика: показываем состояние только при ?dbg=1 в адресе,
+        // чтобы обычные посетители ничего не видели. Убрать после отладки стрелок.
+        var __dbg = (location.search.indexOf('dbg=1') >= 0);
         try {
             var $c = $('.sale_product_area .product_carousel');
-            if (!$c.length) return;
+            var __had = $c.length ? $c.hasClass('owl-loaded') : '-';
+            if (!$c.length) { if (__dbg) alert('DBG: карусель не найдена (carousels=0)'); return; }
             if (!$c.hasClass('owl-loaded') && $.fn.owlCarousel) {
                 $c.owlCarousel({
                     loop: true, nav: false, dots: false, margin: 30, items: 1,
@@ -32,7 +36,13 @@
                 var dir = $(this).hasClass('deal_next') ? 'next' : 'prev';
                 $('.sale_product_area .product_carousel').trigger(dir + '.owl.carousel');
             });
-        } catch (e) {}
+            if (__dbg) alert('DBG: owlPlugin=' + (!!$.fn.owlCarousel)
+                + ' carousels=' + $c.length
+                + ' loadedБыло=' + __had
+                + ' loadedСейчас=' + $c.hasClass('owl-loaded')
+                + ' items=' + $c.find('.owl-item').length
+                + ' стрелок=' + $('.deal_next').length);
+        } catch (e) { if (__dbg) alert('DBG ошибка: ' + e.message); }
     });
 
     new WOW().init();
