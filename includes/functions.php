@@ -114,6 +114,7 @@ function permissionSections(): array {
         'orders'     => 'Заказы',
         'sellers'    => 'Продавцы (одобрение/блок)',
         'moderation' => 'Модерация товаров продавцов',
+        'email'      => 'Письма клиентам (e-mail)',
         'delivery'   => 'Доставка',
         'sliders'    => 'Слайдер / Баннеры',
         'blog'       => 'Блог',
@@ -149,11 +150,13 @@ function roleDefaultSections(string $role): array {
         // обычные делегируемые секции, поэтому добавлены в дефолт админа, чтобы
         // его текущий доступ не изменился. Менеджеру их по умолчанию НЕ даём —
         // суперадмин выдаёт вручную в «Права доступа».
-        return ['products','markup','sliders','orders','users','sellers','moderation',
+        return ['products','markup','sliders','orders','users','sellers','moderation','email',
                 'categories','brands','blog','pages','reviews','vin'];
     }
     if ($role === 'manager') {
-        return ['products','markup','categories','brands','blog','pages','reviews'];
+        // Письма клиентам менеджеру даём по умолчанию — это его рабочий инструмент;
+        // при необходимости суперадмин отберёт секцию в «Правах доступа».
+        return ['products','markup','categories','brands','blog','pages','reviews','email'];
     }
     return [];
 }
@@ -328,6 +331,7 @@ function renderRoleSidebar(string $active = ''): void {
             ['key' => 'returns',    'href' => "$url/admin/returns.php",         'icon' => 'fa-undo',        'label' => 'Возвраты', 'badge' => $returnsPending],
             ['key' => 'payments',   'href' => "$url/admin/payments.php",        'icon' => 'fa-credit-card', 'label' => 'Оплаты', 'badge' => $paymentsUnpaid],
             ['key' => 'messages',   'href' => "$url/admin/messages.php",       'icon' => 'fa-comments',    'label' => 'Сообщения', 'badge' => $staffUnread],
+            ['key' => 'email',      'href' => "$url/manager/email.php",        'icon' => 'fa-envelope',    'label' => 'Письма клиентам'],
             ['key' => 'delivery',   'href' => "$url/superadmin/delivery.php",  'icon' => 'fa-truck',       'label' => 'Доставка'],
         ]],
         ['label' => 'Контент', 'items' => [

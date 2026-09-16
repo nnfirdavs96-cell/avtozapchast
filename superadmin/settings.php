@@ -23,13 +23,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'global_markup',
         'online_discount_type', 'online_discount_value',
         'sms_provider', 'sms_osonsms_login', 'sms_osonsms_hash', 'sms_osonsms_sender', 'sms_osonsms_server',
+        'smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user', 'smtp_pass', 'smtp_from_email', 'smtp_from_name',
     ];
     // Checkboxes
     $checkboxes = ['show_language_switcher', 'show_currency_switcher', 'warehouse_api_enabled', 'auth_email_enabled',
-                   'online_payment_enabled', 'online_free_shipping'];
+                   'online_payment_enabled', 'online_free_shipping', 'mail_enabled'];
 
     foreach ($fields as $key) {
         $val = trim($_POST[$key] ?? '');
+        // Пароль SMTP не храним в значении формы и не показываем обратно; пустое
+        // поле = «не менять», иначе сохранение любой другой настройки затирало бы
+        // пароль пустотой.
+        if ($key === 'smtp_pass' && $val === '') continue;
         $db->prepare("INSERT INTO site_settings (`key`, `value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=?, updated_at=NOW()")
            ->execute([$key, $val, $val]);
     }
@@ -75,6 +80,25 @@ if (isset($_GET['test_sms'])) {
         $smsTest = ['ok' => false, 'error' => 'Некорректный номер телефона.', 'raw' => ''];
     } else {
         $smsTest = osonSmsSend($norm, 'Тестовое сообщение с сайта ' . getSetting('site_name', 'AutoDoc') . '.');
+    }
+}
+
+// Тест почты (кнопка «Отправить тест» в разделе SMTP)
+$mailTest = null;
+if (isset($_GET['test_mail'])) {
+    require_once dirname(__DIR__) . '/includes/mailer.php';
+    $testEmail = trim($_GET['test_mail']);
+    if (!mailValidAddress($testEmail)) {
+        $mailTest = ['ok' => false, 'error' => 'Некорректный адрес почты.'];
+    } else {
+        $siteName = getSetting('site_name', 'AutoDoc');
+        [$ok, $err] = smtpSend(
+            $testEmail,
+            'Тест почты — ' . $siteName,
+            '<p>Это тестовое письмо с сайта <b>' . sanitize($siteName) . '</b>.</p>'
+            . '<p>Если вы его получили — отправка почты настроена верно.</p>'
+        );
+        $mailTest = ['ok' => $ok, 'error' => $err];
     }
 }
 
@@ -503,6 +527,84 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                 <?php else: ?>
                   ❌ Ошибка: <?= sanitize($smsTest['error']) ?>
                   <?php if (!empty($smsTest['raw'])): ?><br><small style="opacity:.8;"><?= sanitize(mb_substr($smsTest['raw'], 0, 300)) ?></small><?php endif; ?>
+                <?php endif; ?>
+              </div>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+
+        <!-- Почта (SMTP) -->
+        <div class="az-card mb-24">
+          <div class="az-card-header"><h4 class="az-card-title">Почта (SMTP) — отправка писем клиентам</h4></div>
+          <div class="az-card-body">
+            <div class="az-form-group">
+              <div class="form-check mb-16">
+                <input type="checkbox" name="mail_enabled" id="mail_enabled" class="form-check-input"
+                       value="1" <?= ($settings['mail_enabled'] ?? '') === '1' ? 'checked' : '' ?>>
+                <label for="mail_enabled" class="form-check-label">Включить отправку писем</label>
+              </div>
+              <small style="color:#888;display:block;margin-top:-6px;">
+                Пока выключено — сотрудники не смогут отправлять письма, кнопка будет неактивна.
+              </small>
+            </div>
+
+            <div class="az-form-group">
+              <label>SMTP-сервер</label>
+              <input type="text" name="smtp_host" class="form-control" value="<?= sv($settings, 'smtp_host') ?>" placeholder="smtp.timeweb.ru" autocomplete="off">
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;">
+              <div class="az-form-group" style="flex:1 1 120px;">
+                <label>Порт</label>
+                <input type="text" name="smtp_port" class="form-control" value="<?= sv($settings, 'smtp_port', '465') ?>" placeholder="465">
+              </div>
+              <div class="az-form-group" style="flex:1 1 180px;">
+                <label>Шифрование</label>
+                <?php $sec = $settings['smtp_secure'] ?? 'ssl'; ?>
+                <select name="smtp_secure" class="form-control">
+                  <option value="ssl" <?= $sec === 'ssl' ? 'selected' : '' ?>>SSL (порт 465)</option>
+                  <option value="tls" <?= $sec === 'tls' ? 'selected' : '' ?>>STARTTLS (порт 587)</option>
+                  <option value="none" <?= $sec === 'none' ? 'selected' : '' ?>>Без шифрования</option>
+                </select>
+              </div>
+            </div>
+            <div class="az-form-group">
+              <label>Логин (полный адрес ящика)</label>
+              <input type="text" name="smtp_user" class="form-control" value="<?= sv($settings, 'smtp_user') ?>" placeholder="infoautodoctj@autodoc.tj" autocomplete="off">
+            </div>
+            <div class="az-form-group">
+              <label>Пароль от ящика</label>
+              <input type="password" name="smtp_pass" class="form-control" value="" placeholder="<?= ($settings['smtp_pass'] ?? '') !== '' ? '•••••••• (сохранён — оставьте пустым, чтобы не менять)' : 'введите пароль ящика' ?>" autocomplete="new-password">
+              <small style="color:#888;display:block;">Пароль хранится в настройках сайта и обратно не показывается. Оставьте поле пустым, чтобы не менять сохранённый.</small>
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;">
+              <div class="az-form-group" style="flex:1 1 220px;">
+                <label>Адрес отправителя</label>
+                <input type="text" name="smtp_from_email" class="form-control" value="<?= sv($settings, 'smtp_from_email') ?>" placeholder="совпадает с логином">
+                <small style="color:#888;display:block;">Обычно тот же ящик. Если пусто — берётся логин.</small>
+              </div>
+              <div class="az-form-group" style="flex:1 1 220px;">
+                <label>Имя отправителя</label>
+                <input type="text" name="smtp_from_name" class="form-control" value="<?= sv($settings, 'smtp_from_name') ?>" placeholder="AutoDoc">
+              </div>
+            </div>
+
+            <div class="az-form-group" style="margin-top:6px;border-top:1px solid #eee;padding-top:14px;">
+              <label>Проверить отправку</label>
+              <div style="display:flex;gap:8px;max-width:460px;">
+                <input type="text" id="mailTestAddr" value="<?= sanitize($_GET['test_mail'] ?? '') ?>"
+                       class="form-control" placeholder="куда прислать тест, напр. ваш gmail">
+                <button type="button" class="btn btn-secondary" onclick="var a=document.getElementById('mailTestAddr').value; if(a) window.location='?test_mail='+encodeURIComponent(a)+'#mail-test-result';">
+                  Отправить тест
+                </button>
+              </div>
+              <small style="color:#888;display:block;margin-top:4px;">Сначала сохраните настройки, затем отправьте тест на любой свой ящик.</small>
+              <?php if ($mailTest !== null): ?>
+              <div id="mail-test-result" style="margin-top:10px;padding:10px 14px;border-radius:8px;<?= $mailTest['ok'] ? 'background:#e8f5e9;color:#1b5e20;' : 'background:#fdecea;color:#b71c1c;' ?>">
+                <?php if ($mailTest['ok']): ?>
+                  ✅ Тестовое письмо отправлено. Проверьте почту (и папку «Спам»).
+                <?php else: ?>
+                  ❌ Ошибка: <?= sanitize($mailTest['error']) ?>
                 <?php endif; ?>
               </div>
               <?php endif; ?>
