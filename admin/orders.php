@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/messaging.php';
+require_once dirname(__DIR__) . '/includes/mailer.php';
 requireRole(['admin', 'manager', 'superadmin']);
 requirePermission('orders');
 
@@ -33,6 +34,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Автосообщение в переписку заказа, только если статус реально изменился.
         if ($ord && $ord['status'] !== $status && isset($statusMessages[$status])) {
             postSystemMessage((int)$ord['user_id'], $orderId, $statusMessages[$status]);
+            // И письмо на почту покупателю (тихо, если почты нет). Тот же текст,
+            // что и в переписке, но в фирменном оформлении.
+            notifyUser($db, (int)$ord['user_id'],
+                'Заказ №' . $orderId . ' — ' . getOrderStatusLabel($status),
+                '<p>' . sanitize($statusMessages[$status]) . '</p>'
+                . '<p style="margin-top:16px;">Номер заказа: <b>№' . $orderId . '</b><br>'
+                . 'Текущий статус: <b>' . sanitize(getOrderStatusLabel($status)) . '</b></p>'
+                . '<p style="margin-top:18px;"><a href="' . APP_URL . '/buyer/orders.php" '
+                . 'style="background:#C70909;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:700;display:inline-block;">Мои заказы</a></p>',
+                'Заказ №' . $orderId . ': ' . getOrderStatusLabel($status),
+                (int)($_SESSION['user_id'] ?? 0));
         }
         flashMessage('success', 'Статус заказа обновлён.');
     }

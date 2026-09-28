@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
+require_once dirname(__DIR__) . '/includes/mailer.php';
 
 // Оформление доступно и гостю (login-wall снят): заказ привяжем к аккаунту по телефону.
 $user = getCurrentUser() ?: [];   // [] для гостя
@@ -284,6 +285,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      . "Оплата: $payLabel\n"
                      . "Мы свяжемся с вами для подтверждения. По этому заказу можно писать прямо здесь.";
             postSystemMessage((int)$orderUserId, $orderId, $receipt);
+
+            // Письмо покупателю: подтверждение заказа (тихо, если у аккаунта нет
+            // email — например, гость, оформивший по телефону).
+            notifyUser($db, (int)$orderUserId,
+                'Заказ №' . $orderId . ' оформлен — ' . getSetting('site_name', 'AutoDoc'),
+                '<p>Спасибо за заказ!</p>'
+                . '<p>Ваш заказ <b>№' . $orderId . '</b> принят. Мы свяжемся с вами для подтверждения.</p>'
+                . '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:14px 0;font-size:14px;color:#333;">'
+                . '<tr><td style="padding:3px 0;color:#777;">Позиций:</td><td style="padding:3px 0 3px 14px;"><b>' . (int)$qty . '</b></td></tr>'
+                . '<tr><td style="padding:3px 0;color:#777;">Сумма к оплате:</td><td style="padding:3px 0 3px 14px;"><b>' . sanitize(formatPrice($grandTotal)) . '</b></td></tr>'
+                . '<tr><td style="padding:3px 0;color:#777;">Оплата:</td><td style="padding:3px 0 3px 14px;">' . sanitize($payLabel) . '</td></tr>'
+                . '</table>'
+                . '<p style="margin-top:16px;"><a href="' . APP_URL . '/buyer/orders.php" '
+                . 'style="background:#C70909;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:700;display:inline-block;">Мои заказы</a></p>',
+                'Заказ №' . $orderId . ' принят');
+
+            // Письмо продавцам: поступил новый заказ по их товарам.
+            try {
+                $sst = $db->prepare(
+                    "SELECT DISTINCT s.user_id, s.shop_name
+                       FROM order_sellers os JOIN sellers s ON s.id = os.seller_id
+                      WHERE os.order_id = ? AND os.seller_id IS NOT NULL"
+                );
+                $sst->execute([$orderId]);
+                foreach ($sst->fetchAll() as $sellerRow) {
+                    notifyUser($db, (int)$sellerRow['user_id'],
+                        'Новый заказ по вашему магазину — ' . getSetting('site_name', 'AutoDoc'),
+                        '<p>Здравствуйте!</p>'
+                        . '<p>По магазину «' . sanitize($sellerRow['shop_name']) . '» поступил новый заказ '
+                        . '<b>№' . $orderId . '</b>. Загляните в кабинет продавца, чтобы обработать его.</p>'
+                        . '<p style="margin-top:16px;"><a href="' . APP_URL . '/seller/orders.php" '
+                        . 'style="background:#C70909;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:700;display:inline-block;">Мои заказы</a></p>',
+                        'Новый заказ №' . $orderId);
+                }
+            } catch (Throwable $e) { /* до миграции Фазы 2 таблицы нет — не критично */ }
 
             flashMessage('success', t('order_placed') . " (#$orderId). Мы свяжемся с вами для подтверждения.");
             // Авторизованный видит детали заказа; гость не залогинен — на главную.
