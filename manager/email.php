@@ -26,10 +26,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $subject = trim($_POST['subject'] ?? '');
         $bodyTxt = trim($_POST['body'] ?? '');
 
+        // Собираем вложения из формы. Лимиты держим скромными: почтовики режут
+        // большие письма, а Timeweb SMTP имеет свой предел на размер сообщения.
+        $attachments = [];
+        $attachError = '';
+        $totalSize   = 0;
+        $MAX_TOTAL    = 12 * 1024 * 1024;   // суммарно до ~12 МБ (в base64 вырастет ~на треть)
+        $BLOCKED_EXT  = ['php','phtml','exe','bat','cmd','sh','js','jar','msi','scr','com','vbs'];
+        if (!empty($_FILES['attachments']) && is_array($_FILES['attachments']['name'])) {
+            foreach ($_FILES['attachments']['name'] as $i => $name) {
+                if (($_FILES['attachments']['error'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) continue;
+                if (($_FILES['attachments']['error'][$i] ?? 1) !== UPLOAD_ERR_OK) { $attachError = 'Ошибка загрузки файла «' . sanitize($name) . '».'; break; }
+                $tmp  = $_FILES['attachments']['tmp_name'][$i];
+                $size = (int)($_FILES['attachments']['size'][$i] ?? 0);
+                $ext  = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                if (in_array($ext, $BLOCKED_EXT, true)) { $attachError = 'Файл «' . sanitize($name) . '» такого типа отправлять нельзя.'; break; }
+                $totalSize += $size;
+                if ($totalSize > $MAX_TOTAL) { $attachError = 'Суммарный размер вложений больше 12 МБ.'; break; }
+                $content = @file_get_contents($tmp);
+                if ($content === false) { $attachError = 'Не удалось прочитать файл «' . sanitize($name) . '».'; break; }
+                $type = function_exists('mime_content_type') ? (@mime_content_type($tmp) ?: 'application/octet-stream') : 'application/octet-stream';
+                $attachments[] = ['name' => basename($name), 'type' => $type, 'content' => $content];
+            }
+        }
+
         if (!mailValidAddress($to)) {
             flashMessage('danger', 'Укажите корректный адрес получателя.');
         } elseif ($subject === '' || $bodyTxt === '') {
             flashMessage('danger', 'Заполните тему и текст письма.');
+        } elseif ($attachError !== '') {
+            flashMessage('danger', $attachError);
         } else {
             // Если адрес принадлежит нашему пользователю — привяжем письмо к нему.
             $toUserId = null;
@@ -40,14 +66,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($u = $st->fetch()) { $toUserId = (int)$u['id']; $toName = (string)$u['username']; }
             } catch (Throwable $e) { /* не критично */ }
 
-            // Текст письма — простой: экранируем и переносим строки в HTML.
-            $html = '<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#222;">'
-                  . nl2br(sanitize($bodyTxt))
-                  . '</div>';
+            // Текст письма → фирменный HTML-шаблон (шапка/подвал с брендом).
+            $inner = nl2br(sanitize($bodyTxt));
+            $html  = mailerWrap($inner);
 
-            [$ok, $err] = sendEmailLogged($db, $to, $subject, $html, $bodyTxt, $toName, $toUserId, $uid);
+            [$ok, $err] = sendEmailLogged($db, $to, $subject, $html, $bodyTxt, $toName, $toUserId, $uid, $attachments);
+            $extra = $attachments ? ' (вложений: ' . count($attachments) . ')' : '';
             flashMessage($ok ? 'success' : 'danger',
-                $ok ? 'Письмо отправлено на ' . sanitize($to) . '.'
+                $ok ? 'Письмо отправлено на ' . sanitize($to) . '.' . $extra
                     : 'Не удалось отправить: ' . sanitize($err));
         }
     }
@@ -111,7 +137,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
       <div class="az-card mb-24">
         <div class="az-card-header"><h4 class="az-card-title">Новое письмо</h4></div>
         <div class="az-card-body">
-          <form method="post" action="" style="max-width:720px;">
+          <form method="post" action="" enctype="multipart/form-data" style="max-width:720px;">
             <input type="hidden" name="csrf_token" value="<?= sanitize($csrf) ?>">
 
             <div class="az-form-group">
@@ -136,7 +162,13 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
               <label>Текст письма</label>
               <textarea name="body" class="form-control" rows="9"
                         placeholder="Здравствуйте! ..." required <?= $ready ? '' : 'disabled' ?>></textarea>
-              <small style="color:#888;display:block;">Обычный текст. Переносы строк сохранятся.</small>
+              <small style="color:#888;display:block;">Обычный текст. Переносы строк сохранятся. Письмо уйдёт в фирменном оформлении.</small>
+            </div>
+
+            <div class="az-form-group">
+              <label>Вложения (файлы, фото) — необязательно</label>
+              <input type="file" name="attachments[]" class="form-control" multiple <?= $ready ? '' : 'disabled' ?>>
+              <small style="color:#888;display:block;">Можно прикрепить несколько файлов. Суммарно до 12 МБ. Нельзя: exe, php и подобные исполняемые файлы.</small>
             </div>
 
             <button type="submit" class="az-btn az-btn-primary" style="min-width:200px;" <?= $ready ? '' : 'disabled' ?>>

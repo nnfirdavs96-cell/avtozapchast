@@ -47,7 +47,7 @@ function mailValidAddress(string $email): bool
  * Ошибку возвращаем текстом, чтобы показать в форме и записать в журнал.
  */
 function smtpSend(string $toEmail, string $subject, string $htmlBody,
-                  ?string $textBody = null, string $toName = ''): array
+                  ?string $textBody = null, string $toName = '', array $attachments = []): array
 {
     $s = mailerSettings();
     if (!$s['enabled'])                return [false, 'Отправка почты выключена в настройках.'];
@@ -138,7 +138,21 @@ function smtpSend(string $toEmail, string $subject, string $htmlBody,
     $enc = fn(string $t): string => '=?UTF-8?B?' . base64_encode($t) . '?=';
     $fromHeader = $s['from_name'] !== '' ? $enc($s['from_name']) . ' <' . $s['from_email'] . '>' : '<' . $s['from_email'] . '>';
     $toHeader   = $toName !== '' ? $enc($toName) . ' <' . $toEmail . '>' : '<' . $toEmail . '>';
-    $boundary   = 'bnd_' . bin2hex(random_bytes(12));
+    $b64 = fn(string $t): string => chunk_split(base64_encode($t));
+
+    // Текст+HTML всегда лежат в multipart/alternative. Если есть вложения — эту
+    // «альтернативу» кладём внутрь multipart/mixed, а рядом — файлы. Так письмо
+    // и читается как обычно, и несёт вложения.
+    $altBnd = 'alt_' . bin2hex(random_bytes(10));
+    $alt  = '--' . $altBnd . "\r\n";
+    $alt .= 'Content-Type: text/plain; charset=UTF-8' . "\r\n";
+    $alt .= 'Content-Transfer-Encoding: base64' . "\r\n\r\n";
+    $alt .= $b64($textBody) . "\r\n";
+    $alt .= '--' . $altBnd . "\r\n";
+    $alt .= 'Content-Type: text/html; charset=UTF-8' . "\r\n";
+    $alt .= 'Content-Transfer-Encoding: base64' . "\r\n\r\n";
+    $alt .= $b64($htmlBody) . "\r\n";
+    $alt .= '--' . $altBnd . '--' . "\r\n";
 
     $headers  = 'Date: ' . date('r') . "\r\n";
     $headers .= 'From: ' . $fromHeader . "\r\n";
@@ -147,18 +161,29 @@ function smtpSend(string $toEmail, string $subject, string $htmlBody,
     $headers .= 'Subject: ' . $enc($subject) . "\r\n";
     $headers .= 'MIME-Version: 1.0' . "\r\n";
     $headers .= 'Message-ID: <' . bin2hex(random_bytes(12)) . '@' . $host . ">\r\n";
-    $headers .= 'Content-Type: multipart/alternative; boundary="' . $boundary . '"' . "\r\n";
 
-    $b64 = fn(string $t): string => chunk_split(base64_encode($t));
-    $body  = '--' . $boundary . "\r\n";
-    $body .= 'Content-Type: text/plain; charset=UTF-8' . "\r\n";
-    $body .= 'Content-Transfer-Encoding: base64' . "\r\n\r\n";
-    $body .= $b64($textBody) . "\r\n";
-    $body .= '--' . $boundary . "\r\n";
-    $body .= 'Content-Type: text/html; charset=UTF-8' . "\r\n";
-    $body .= 'Content-Transfer-Encoding: base64' . "\r\n\r\n";
-    $body .= $b64($htmlBody) . "\r\n";
-    $body .= '--' . $boundary . '--' . "\r\n";
+    if (empty($attachments)) {
+        $headers .= 'Content-Type: multipart/alternative; boundary="' . $altBnd . '"' . "\r\n";
+        $body = $alt;
+    } else {
+        $mixBnd = 'mix_' . bin2hex(random_bytes(10));
+        $headers .= 'Content-Type: multipart/mixed; boundary="' . $mixBnd . '"' . "\r\n";
+        $body  = '--' . $mixBnd . "\r\n";
+        $body .= 'Content-Type: multipart/alternative; boundary="' . $altBnd . '"' . "\r\n\r\n";
+        $body .= $alt . "\r\n";
+        foreach ($attachments as $att) {
+            $name = (string)($att['name'] ?? 'file');
+            $type = (string)($att['type'] ?? 'application/octet-stream') ?: 'application/octet-stream';
+            $content = (string)($att['content'] ?? '');
+            if ($content === '') continue;
+            $body .= '--' . $mixBnd . "\r\n";
+            $body .= 'Content-Type: ' . $type . '; name="' . $enc($name) . '"' . "\r\n";
+            $body .= 'Content-Transfer-Encoding: base64' . "\r\n";
+            $body .= 'Content-Disposition: attachment; filename="' . $enc($name) . '"' . "\r\n\r\n";
+            $body .= $b64($content) . "\r\n";
+        }
+        $body .= '--' . $mixBnd . '--' . "\r\n";
+    }
 
     // Dot-stuffing: строки, начинающиеся с точки, экранируем — иначе «.» в начале
     // строки оборвёт передачу данных.
@@ -213,9 +238,85 @@ function emailLog(PDO $db, string $toEmail, ?int $toUserId, string $subject,
  */
 function sendEmailLogged(PDO $db, string $toEmail, string $subject, string $htmlBody,
                          ?string $textBody = null, string $toName = '',
-                         ?int $toUserId = null, ?int $sentBy = null): array
+                         ?int $toUserId = null, ?int $sentBy = null,
+                         array $attachments = []): array
 {
-    [$ok, $err] = smtpSend($toEmail, $subject, $htmlBody, $textBody, $toName);
+    [$ok, $err] = smtpSend($toEmail, $subject, $htmlBody, $textBody, $toName, $attachments);
     emailLog($db, $toEmail, $toUserId, $subject, $htmlBody, $ok, $err, $sentBy);
     return [$ok, $err];
+}
+
+/**
+ * Фирменная HTML-обёртка письма: шапка с названием магазина, тело, подвал с
+ * контактами. Вёрстка табличная и стили строго инлайновые — почтовики (особенно
+ * Gmail) вырезают <style> и внешний CSS, поэтому «красиво» делается только так.
+ *
+ * $innerHtml — уже готовый HTML содержимого (абзацы, кнопки и т.п.).
+ * $heading   — крупный заголовок над телом (необязательно).
+ */
+function mailerWrap(string $innerHtml, string $heading = ''): string
+{
+    $brand   = getSetting('site_name', 'AutoDoc');
+    $url     = defined('APP_URL') ? APP_URL : '';
+    $email   = getSetting('site_email', '');
+    $phone   = getSetting('site_phone', '');
+    $accent  = '#C70909';
+    $year    = date('Y');
+
+    $safeBrand = htmlspecialchars($brand, ENT_QUOTES, 'UTF-8');
+    $headingHtml = $heading !== ''
+        ? '<h1 style="margin:0 0 18px;font-size:20px;line-height:1.3;color:#1a1a1a;font-weight:700;">'
+          . htmlspecialchars($heading, ENT_QUOTES, 'UTF-8') . '</h1>'
+        : '';
+
+    $contacts = [];
+    if ($phone !== '') $contacts[] = htmlspecialchars($phone, ENT_QUOTES, 'UTF-8');
+    if ($email !== '') $contacts[] = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
+    $contactsLine = $contacts ? implode(' &middot; ', $contacts) : '';
+
+    return
+'<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f2f3f5;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2f3f5;padding:24px 12px;">
+<tr><td align="center">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;box-shadow:0 2px 10px rgba(20,22,30,.06);">
+    <tr><td style="background:' . $accent . ';padding:20px 28px;">
+      <span style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:.3px;">' . $safeBrand . '</span>
+    </td></tr>
+    <tr><td style="padding:28px;color:#333;font-size:15px;line-height:1.65;">
+      ' . $headingHtml . '
+      <div style="color:#333;font-size:15px;line-height:1.65;">' . $innerHtml . '</div>
+    </td></tr>
+    <tr><td style="padding:18px 28px;background:#fafafa;border-top:1px solid #eee;color:#8a8f98;font-size:12px;line-height:1.6;">
+      ' . ($contactsLine !== '' ? $contactsLine . '<br>' : '') . '
+      ' . ($url !== '' ? '<a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '" style="color:' . $accent . ';text-decoration:none;">' . htmlspecialchars(preg_replace('#^https?://#', '', $url), ENT_QUOTES, 'UTF-8') . '</a><br>' : '') . '
+      <span style="color:#b0b4bb;">&copy; ' . $year . ' ' . $safeBrand . '</span>
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body></html>';
+}
+
+/**
+ * Отправить письмо нашему пользователю по его id (найдём email и имя сами).
+ * Тело оборачиваем в фирменный шаблон. Тихо выходит, если почта не настроена
+ * или у пользователя нет email — событийные письма не должны ронять основную
+ * операцию (регистрацию, одобрение и т.п.).
+ */
+function notifyUser(PDO $db, int $userId, string $subject, string $innerHtml,
+                    string $heading = '', ?int $sentBy = null): bool
+{
+    if (!mailerReady()) return false;
+    try {
+        $st = $db->prepare("SELECT email, username FROM users WHERE id = ? LIMIT 1");
+        $st->execute([$userId]);
+        $u = $st->fetch();
+    } catch (Throwable $e) { return false; }
+    if (!$u || empty($u['email']) || !mailValidAddress($u['email'])) return false;
+
+    $html = mailerWrap($innerHtml, $heading);
+    [$ok] = sendEmailLogged($db, $u['email'], $subject, $html, null,
+                            (string)($u['username'] ?? ''), $userId, $sentBy);
+    return $ok;
 }
