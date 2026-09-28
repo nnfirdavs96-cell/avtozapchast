@@ -322,7 +322,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 </span>
                             </p>
                             <div class="login_submit">
-                                <a href="#"><?= t('forgot_password') ?></a>
+                                <a href="<?= APP_URL ?>/auth/forgot_password.php"><?= t('forgot_password') ?></a>
                                 <label for="remember_me">
                                     <input id="remember_me" type="checkbox" name="remember_me" value="1">
                                     <?= t('remember_me') ?>
