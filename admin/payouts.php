@@ -12,6 +12,7 @@
  */
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/seller_finance.php';
+require_once dirname(__DIR__) . '/includes/mailer.php';
 requireRole(['admin', 'superadmin']);
 
 $db   = getDB();
@@ -81,6 +82,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 (string)($_POST['period_to'] ?? '') ?: null,
                 (int)($_SESSION['user_id'] ?? 0)
             );
+            if ($id) {
+                // Письмо продавцу об уходящей выплате. Сумму даём числом (в письме
+                // валюту подписываем словом — без HTML из formatPrice).
+                $srow = $db->prepare("SELECT user_id, shop_name FROM sellers WHERE id=? LIMIT 1");
+                $srow->execute([$sid]);
+                if ($sr = $srow->fetch()) {
+                    $sumStr = number_format($amount, 2, '.', ' ') . ' ' . getSetting('payment_currency', 'сомони');
+                    notifyUser($db, (int)$sr['user_id'],
+                        'Выплата по вашему магазину — ' . getSetting('site_name', 'AutoDoc'),
+                        '<p>Здравствуйте!</p>'
+                        . '<p>По магазину «' . sanitize($sr['shop_name']) . '» проведена выплата на сумму '
+                        . '<b>' . sanitize($sumStr) . '</b>.</p>'
+                        . '<p>Детали и историю выплат можно посмотреть в разделе «Финансы» в кабинете продавца.</p>',
+                        'Выплата проведена',
+                        (int)($_SESSION['user_id'] ?? 0));
+                }
+            }
             flashMessage($id ? 'success' : 'danger',
                 $id ? 'Выплата проведена: ' . formatPrice($amount) : 'Не удалось провести выплату.');
         }
