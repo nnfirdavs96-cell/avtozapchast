@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
+require_once dirname(__DIR__) . '/includes/mailer.php';
 
 if (isLoggedIn()) {
     redirect(APP_URL . '/index.php');
@@ -128,6 +129,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'email
                          VALUES (?, ?, ?, 'buyer', 1, NOW())"
                     );
                     $stmt->execute([$username, $email, $hash]);
+                    $newBuyerId = (int)$db->lastInsertId();
+
+                    // Приветственное письмо покупателю (тихо — не должно ломать регистрацию).
+                    notifyUser($db, $newBuyerId,
+                        'Добро пожаловать в ' . getSetting('site_name', 'AutoDoc'),
+                        '<p>Здравствуйте, ' . sanitize($username) . '!</p>'
+                        . '<p>Спасибо за регистрацию в интернет-магазине автозапчастей '
+                        . '<b>' . sanitize(getSetting('site_name', 'AutoDoc')) . '</b>. '
+                        . 'Теперь вы можете оформлять заказы, следить за их статусом и пользоваться личным кабинетом.</p>'
+                        . '<p>Если письмо пришло по ошибке — просто проигнорируйте его.</p>',
+                        'Добро пожаловать!');
 
                     flashMessage('success', 'Регистрация прошла успешно! Войдите в систему.');
                     redirect(APP_URL . '/auth/login.php');
@@ -215,6 +227,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'selle
                         "INSERT INTO sellers (user_id, shop_name, slug, phone, status, commission_percent, created_at)
                          VALUES (?, ?, ?, ?, 'pending', ?, NOW())"
                     )->execute([$uid, $sellerShop, $slug, ($sellerPhone !== '' ? $sellerPhone : null), $commission]);
+
+                    // Письмо продавцу: заявка принята, ждёт модерации.
+                    notifyUser($db, $uid,
+                        'Заявка продавца принята — ' . getSetting('site_name', 'AutoDoc'),
+                        '<p>Здравствуйте, ' . sanitize($username) . '!</p>'
+                        . '<p>Мы получили вашу заявку на продажи в '
+                        . '<b>' . sanitize(getSetting('site_name', 'AutoDoc')) . '</b>. '
+                        . 'Магазин «' . sanitize($sellerShop) . '» отправлен на проверку модератору.</p>'
+                        . '<p>Как только заявку одобрят, вы получите ещё одно письмо и сможете войти и выкладывать товары.</p>',
+                        'Заявка продавца принята');
 
                     flashMessage('success', 'Заявка продавца принята! После проверки модератором вы сможете войти и выкладывать товары.');
                     redirect(APP_URL . '/auth/login.php');

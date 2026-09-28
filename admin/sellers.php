@@ -4,6 +4,7 @@
  * Одобрение / блокировка заявок продавцов + установка комиссии.
  */
 require_once dirname(__DIR__) . '/config/config.php';
+require_once dirname(__DIR__) . '/includes/mailer.php';
 requireRole(['admin', 'superadmin', 'manager']);
 // Раздел делегируем: менеджер попадёт сюда, только если суперадмин выдал ему
 // право «Продавцы» в «Права доступа». admin/superadmin проходят как раньше.
@@ -23,6 +24,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($act === 'approve') {
         $db->prepare("UPDATE sellers SET status='approved', reject_reason=NULL, updated_at=NOW() WHERE id=?")->execute([$sid]);
+        // Письмо продавцу: заявка одобрена. Берём его user_id и название магазина.
+        $srow = $db->prepare("SELECT user_id, shop_name FROM sellers WHERE id=? LIMIT 1");
+        $srow->execute([$sid]);
+        if ($sr = $srow->fetch()) {
+            notifyUser($db, (int)$sr['user_id'],
+                'Ваш магазин одобрен — ' . getSetting('site_name', 'AutoDoc'),
+                '<p>Поздравляем!</p>'
+                . '<p>Ваш магазин «' . sanitize($sr['shop_name']) . '» прошёл проверку и '
+                . '<b>одобрен</b>. Теперь вы можете войти в личный кабинет продавца и выкладывать товары.</p>'
+                . '<p style="margin-top:20px;"><a href="' . APP_URL . '/auth/login.php" '
+                . 'style="background:#C70909;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:700;display:inline-block;">Войти в кабинет</a></p>',
+                'Магазин одобрен',
+                (int)($_SESSION['user_id'] ?? 0));
+        }
         flashMessage('success', 'Продавец одобрен.');
     } elseif ($act === 'block') {
         $reason = trim($_POST['reason'] ?? '');
