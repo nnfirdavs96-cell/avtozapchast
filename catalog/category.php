@@ -43,6 +43,8 @@ $perPage  = 12;
 $view     = ($_GET['view'] ?? 'grid') === 'list' ? 'list' : 'grid';
 $priceMin = (float)($_GET['price_min'] ?? 0);
 $priceMax = (float)($_GET['price_max'] ?? 0);
+$vehicle  = (string)($_GET['vehicle'] ?? '');
+if (!isset(vehicleTypes()[$vehicle])) $vehicle = '';
 
 // Build WHERE
 // Модерация: без этого условия страница категории показывала неодобренные
@@ -65,6 +67,10 @@ if ($priceMin > 0) {
 if ($priceMax > 0) {
     $where[]  = 'p.price <= ?';
     $params[] = $priceMax;
+}
+if ($vehicle !== '') {
+    $where[]  = 'p.vehicle_type = ?';
+    $params[] = $vehicle;
 }
 
 // Фильтр по характеристикам раздела (шины/масла): ?f[Ширина]=205&f[Сезон]=Зимние.
@@ -249,6 +255,23 @@ $bcItems[] = ['label' => $catName];
                         </ul>
                     </div>
                     <?php endif; ?>
+
+                    <!-- Тип техники (легковой/грузовой/...) -->
+                    <div class="widget_list widget_categories">
+                        <h3>Тип техники</h3>
+                        <ul>
+                            <li class="<?= $vehicle === '' ? 'active_categorie' : '' ?>">
+                                <a href="?<?= http_build_query(array_diff_key($_GET, ['vehicle' => '', 'page' => ''])) ?>">Любой</a>
+                            </li>
+                            <?php foreach (vehicleTypes() as $vcode => $vlabel):
+                                $gv = array_merge(array_diff_key($_GET, ['page' => '']), ['vehicle' => $vcode]);
+                            ?>
+                            <li class="<?= $vehicle === $vcode ? 'active_categorie' : '' ?>">
+                                <a href="?<?= http_build_query($gv) ?>"><?= sanitize($vlabel) ?></a>
+                            </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
 
                     <!-- Характеристики раздела (шины/масла): фильтр по размерам/вязкости и т.п. -->
                     <?php foreach ($specFacets as $fname => $vals):

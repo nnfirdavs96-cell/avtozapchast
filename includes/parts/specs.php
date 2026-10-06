@@ -11,6 +11,25 @@
 
 require_once __DIR__ . '/grouping.php';   // part_attributes: partsAttributes/partsSaveAttributes
 
+/** Типы техники для классификации товара (parts.vehicle_type). */
+function vehicleTypes(): array
+{
+    return [
+        'car'        => 'Легковой',
+        'truck'      => 'Грузовой',
+        'commercial' => 'Коммерческий',
+        'moto'       => 'Мото',
+        'special'    => 'Спецтехника',
+    ];
+}
+
+/** Человеко-понятное имя типа техники по коду, или ''. */
+function vehicleTypeLabel(?string $code): string
+{
+    if ($code === null || $code === '') return '';
+    return vehicleTypes()[$code] ?? '';
+}
+
 /** Все схемы характеристик. Ключ схемы хранится в categories.spec_schema. */
 function partSpecSchemas(): array
 {

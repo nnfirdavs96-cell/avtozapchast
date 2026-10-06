@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/parts/grouping.php';
+require_once dirname(__DIR__) . '/includes/parts/specs.php';
 
 $db = getDB();
 
@@ -19,6 +20,8 @@ $perPage  = 12;
 $view     = $_getStr('view', 'grid') === 'list' ? 'list' : 'grid';
 $priceMin = (float)$_getStr('price_min', '0');
 $priceMax = (float)$_getStr('price_max', '0');
+$vehicle  = $_getStr('vehicle');
+if (!isset(vehicleTypes()[$vehicle])) $vehicle = '';
 
 // ── Build WHERE ─────────────────────────────────────────────────────────────
 $where  = ['p.is_active = 1', "(p.seller_id IS NULL OR p.moderation_status = 'active')"];
@@ -58,6 +61,10 @@ if ($priceMin > 0) {
 if ($priceMax > 0) {
     $where[]  = 'p.price <= ?';
     $params[] = $priceMax;
+}
+if ($vehicle !== '') {
+    $where[]  = 'p.vehicle_type = ?';
+    $params[] = $vehicle;
 }
 
 $whereSQL = 'WHERE ' . implode(' AND ', $where);
@@ -241,6 +248,23 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 <a href="?<?= http_build_query($qArr) ?>">
                                     <?= sanitize($b['name']) ?>
                                 </a>
+                            </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+
+                    <!-- Тип техники (легковой/грузовой/...) -->
+                    <div class="widget_list widget_categories">
+                        <h3>Тип техники</h3>
+                        <ul>
+                            <li class="<?= $vehicle === '' ? 'active_categorie' : '' ?>">
+                                <a href="?<?= http_build_query(array_diff_key($_GET, ['vehicle' => '', 'page' => ''])) ?>">Любой</a>
+                            </li>
+                            <?php foreach (vehicleTypes() as $vcode => $vlabel):
+                                $gv = array_merge(array_diff_key($_GET, ['page' => '']), ['vehicle' => $vcode]);
+                            ?>
+                            <li class="<?= $vehicle === $vcode ? 'active_categorie' : '' ?>">
+                                <a href="?<?= http_build_query($gv) ?>"><?= sanitize($vlabel) ?></a>
                             </li>
                             <?php endforeach; ?>
                         </ul>
