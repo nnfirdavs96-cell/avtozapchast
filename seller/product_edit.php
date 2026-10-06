@@ -42,6 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $desc  = trim($_POST['description'] ?? '');
         $brand = (int)($_POST['brand_id'] ?? 0);
         $cat   = (int)($_POST['category_id'] ?? 0);
+        // Тип техники (легковой/грузовой/...). Пустой/неизвестный → NULL.
+        $vtype = (string)($_POST['vehicle_type'] ?? '');
+        if (!isset(vehicleTypes()[$vtype])) $vtype = '';
         $price = (float)str_replace(',', '.', $_POST['price'] ?? '0');
         $oldP  = trim($_POST['old_price'] ?? '') !== '' ? (float)str_replace(',', '.', $_POST['old_price']) : null;
         $stock = max(0, (int)($_POST['stock'] ?? 0));
@@ -94,21 +97,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($edit) {
                 // Правки уходят на повторную проверку.
                 $db->prepare(
-                    "UPDATE parts SET part_number=?, name=?, description=?, brand_id=?, category_id=?,
+                    "UPDATE parts SET part_number=?, name=?, description=?, brand_id=?, category_id=?, vehicle_type=?,
                         price=?, old_price=?, stock=?, weight=?, dimensions=?, images=?,
                         moderation_status='pending', reject_reason=NULL, updated_at=NOW()
                      WHERE id=? AND seller_id=?"
-                )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $oldP, $stock, $weight, $dims ?: null, $imagesJson, $pid, $sid]);
+                )->execute([$pnum, $name, $desc ?: null, $brand, $cat, ($vtype ?: null), $price, $oldP, $stock, $weight, $dims ?: null, $imagesJson, $pid, $sid]);
                 partsApplyGrouping($db, $pid, $pnum, $brand, $uniq);
                 partsApplyFamily($db, $pid, $parent, $sid);
                 partsSaveAttributes($db, $pid, $attrs);
                 flashMessage('success', 'Товар обновлён и отправлен на проверку.');
             } else {
                 $db->prepare(
-                    "INSERT INTO parts (seller_id, part_number, name, description, brand_id, category_id,
+                    "INSERT INTO parts (seller_id, part_number, name, description, brand_id, category_id, vehicle_type,
                         price, old_price, stock, weight, dimensions, images, is_active, moderation_status, created_by, created_at)
-                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1,'pending',?,NOW())"
-                )->execute([$sid, $pnum, $name, $desc ?: null, $brand, $cat, $price, $oldP, $stock, $weight, $dims ?: null, $imagesJson, (int)$_SESSION['user_id']]);
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1,'pending',?,NOW())"
+                )->execute([$sid, $pnum, $name, $desc ?: null, $brand, $cat, ($vtype ?: null), $price, $oldP, $stock, $weight, $dims ?: null, $imagesJson, (int)$_SESSION['user_id']]);
                 // После вставки — уже есть id, поэтому товар не найдёт сам себя.
                 $newId = (int)$db->lastInsertId();
                 partsApplyGrouping($db, $newId, $pnum, $brand, $uniq);
@@ -281,6 +284,16 @@ require_once dirname(__DIR__) . '/includes/header.php';
             <option value="">— выберите —</option>
             <?php foreach ($categories as $c): ?>
             <option value="<?= (int)$c['id'] ?>" <?= ((int)($edit['category_id'] ?? 0))===(int)$c['id']?'selected':'' ?>><?= sanitize(tField($c,'name')) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+
+        <label class="sl-field">
+          <span>Тип техники</span>
+          <select name="vehicle_type">
+            <option value="">— не указано —</option>
+            <?php foreach (vehicleTypes() as $vcode => $vlabel): ?>
+            <option value="<?= $vcode ?>" <?= (($edit['vehicle_type'] ?? '') === $vcode) ? 'selected' : '' ?>><?= sanitize($vlabel) ?></option>
             <?php endforeach; ?>
           </select>
         </label>
