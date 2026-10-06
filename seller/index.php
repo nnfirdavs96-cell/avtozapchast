@@ -40,9 +40,15 @@ require_once dirname(__DIR__) . '/includes/header.php';
   <div class="container">
 
     <div class="sl-head">
-      <div>
-        <h1 class="sl-title"><i class="fa fa-briefcase"></i> <?= sanitize($seller['shop_name']) ?></h1>
-        <p class="sl-sub">Кабинет продавца</p>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <?php if (!empty($seller['logo'])): ?>
+        <img src="<?= sanitize($seller['logo']) ?>" alt="<?= sanitize($seller['shop_name']) ?>"
+             style="width:52px;height:52px;border-radius:10px;object-fit:cover;border:1px solid #e6e8ec;flex:0 0 auto;">
+        <?php endif; ?>
+        <div>
+          <h1 class="sl-title"><?php if (empty($seller['logo'])): ?><i class="fa fa-briefcase"></i> <?php endif; ?><?= sanitize($seller['shop_name']) ?></h1>
+          <p class="sl-sub">Кабинет продавца · <a href="<?= APP_URL ?>/seller/shop.php" style="color:#C70909;">настройки</a></p>
+        </div>
       </div>
       <?php require dirname(__DIR__) . '/includes/seller_nav.php'; ?>
     </div>

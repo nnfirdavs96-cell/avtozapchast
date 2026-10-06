@@ -54,7 +54,7 @@ require_once __DIR__ . '/includes/header.php';
 <div class="shop_area" style="padding:40px 0;">
   <div class="container">
     <div class="sl-shop-head">
-      <div class="sl-shop-logo"><i class="fa fa-briefcase"></i></div>
+      <div class="sl-shop-logo"><?php if (!empty($seller['logo'])): ?><img src="<?= sanitize($seller['logo']) ?>" alt="<?= sanitize($seller['shop_name']) ?>" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"><?php else: ?><i class="fa fa-briefcase"></i><?php endif; ?></div>
       <div>
         <h1 class="sl-shop-name"><?= sanitize($seller['shop_name']) ?></h1>
         <p class="sl-shop-meta">

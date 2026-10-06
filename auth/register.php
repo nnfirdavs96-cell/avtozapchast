@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/mailer.php';
+require_once dirname(__DIR__) . '/includes/uploads.php';
 
 if (isLoggedIn()) {
     redirect(APP_URL . '/index.php');
@@ -204,6 +205,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'selle
                     if ($stmt->fetch()) $errors[] = 'Это имя пользователя уже занято.';
                 }
 
+                // Логотип магазина — необязателен. Если прислали, но он битый —
+                // покажем ошибку и не создаём аккаунт (чтобы продавец переснял).
+                $logoUrl = '';
+                if (!empty($_FILES['logo']['name'])) {
+                    $logoUrl = saveUploadedImage($_FILES['logo'], 'sellers', $logoErr);
+                    if ($logoUrl === '') $errors[] = 'Логотип: ' . $logoErr;
+                }
+
                 if (empty($errors)) {
                     $hash = password_hash($password, PASSWORD_BCRYPT);
                     $db->prepare(
@@ -224,9 +233,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'selle
                     }
                     $commission = (float)str_replace(',', '.', getSetting('marketplace_commission', '0'));
                     $db->prepare(
-                        "INSERT INTO sellers (user_id, shop_name, slug, phone, status, commission_percent, created_at)
-                         VALUES (?, ?, ?, ?, 'pending', ?, NOW())"
-                    )->execute([$uid, $sellerShop, $slug, ($sellerPhone !== '' ? $sellerPhone : null), $commission]);
+                        "INSERT INTO sellers (user_id, shop_name, slug, phone, logo, status, commission_percent, created_at)
+                         VALUES (?, ?, ?, ?, ?, 'pending', ?, NOW())"
+                    )->execute([$uid, $sellerShop, $slug, ($sellerPhone !== '' ? $sellerPhone : null),
+                                ($logoUrl !== '' ? $logoUrl : null), $commission]);
 
                     // Письмо продавцу: заявка принята, ждёт модерации.
                     notifyUser($db, $uid,
@@ -396,12 +406,17 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <!-- Продавец -->
                         <div class="acct_pane" data-acct-pane="seller" style="<?= $accountType==='seller'?'':'display:none;' ?>">
                           <?php if ($emailSignup): ?>
-                          <form method="POST" action="<?= APP_URL ?>/auth/register.php" class="account_seller_form">
+                          <form method="POST" action="<?= APP_URL ?>/auth/register.php" class="account_seller_form" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="<?= sanitize($csrfToken) ?>">
                             <input type="hidden" name="action" value="seller_register">
                             <p>
                                 <label>Название магазина <span>*</span></label>
                                 <input type="text" name="shop_name" value="<?= sanitize($sellerShop) ?>" placeholder="Например: Авто Плюс" maxlength="150">
+                            </p>
+                            <p>
+                                <label>Логотип магазина</label>
+                                <input type="file" name="logo" accept="image/*">
+                                <small style="color:#888;display:block;margin-top:4px;">Необязательно. JPG, PNG, WEBP или GIF, до 5 МБ. Можно добавить позже в кабинете.</small>
                             </p>
                             <p>
                                 <label>Имя пользователя (логин) <span>*</span></label>
