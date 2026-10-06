@@ -159,6 +159,7 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
                     <div id="menu" class="text-left">
                         <ul class="offcanvas_main_menu">
                             <li><a href="<?= APP_URL ?>/index.php"><?= t('home') ?></a></li>
+                            <li><a href="<?= APP_URL ?>/catalog/catalogs.php"><i class="fa fa-th-large"></i> Каталоги</a></li>
                             <li class="menu-item-has-children">
                                 <a href="<?= APP_URL ?>/catalog/index.php"><?= t('shop') ?></a>
                                 <ul class="sub-menu">
@@ -412,6 +413,9 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
                                             </ul>
                                         </div>
                                     </li>
+
+                                    <!-- КАТАЛОГИ — хаб с плитками разделов -->
+                                    <li><a href="<?= APP_URL ?>/catalog/catalogs.php">Каталоги</a></li>
 
                                     <!-- МАГАЗИН — мега-меню -->
                                     <li class="menu-item-has-children az-has-megamenu az-has-megamenu--wide">
