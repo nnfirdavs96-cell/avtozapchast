@@ -6,6 +6,7 @@
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/seller.php';
 require_once dirname(__DIR__) . '/includes/parts/grouping.php';
+require_once dirname(__DIR__) . '/includes/parts/specs.php';
 $seller = requireSeller();
 
 if ($seller['status'] !== 'approved') {
@@ -64,6 +65,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'value' => (string)($_POST['attr_value'][$k] ?? ''),
             ];
         }
+        // Характеристики раздела (шины/масла): берём из $_POST['spec'] строго по
+        // схеме выбранной категории и дописываем к тем же атрибутам (kind='spec').
+        $attrs = array_merge($attrs,
+            partSpecAttrsFromPost(categorySpecKey($db, $cat), (array)($_POST['spec'] ?? [])));
 
         $existingImgs = json_decode($_POST['existing_images'] ?? '[]', true) ?: [];
         $newImgs      = array_filter(array_map('trim', explode(',', $_POST['new_images'] ?? '')));
@@ -135,8 +140,26 @@ if ($sid) {
     $myProducts = $mp->fetchAll();
 }
 
+// Характеристики раздела (шины/масла): схемы для JS, карта категория→схема,
+// текущие значения. Поля-характеристики редактируются отдельным блоком-подсказкой,
+// поэтому из общего редактора атрибутов их прячем, чтобы не задваивать.
+$specSchemasJson = json_encode(partSpecSchemas(), JSON_UNESCAPED_UNICODE);
+$catSpecMap = [];
+foreach ($categories as $c) {
+    $k = categorySpecKey($db, (int)$c['id']);
+    if ($k) $catSpecMap[(int)$c['id']] = $k;
+}
+$specValues  = $pid ? partReadSpecs($db, $pid) : [];
+$specNamesLC = [];
+$editSpecKey = $pid ? categorySpecKey($db, (int)($edit['category_id'] ?? 0)) : null;
+if ($editSpecKey && ($sc = partSpecSchema($editSpecKey))) {
+    foreach ($sc['fields'] as $f) $specNamesLC[mb_strtolower($f['name'])] = 1;
+}
+
 // Уже сохранённые атрибуты + запасные пустые строки, чтобы было куда дописать.
 $myAttrs = $pid ? (partsAttributes($db, [$pid])[$pid] ?? []) : [];
+$myAttrs = array_values(array_filter($myAttrs,
+    fn($a) => !(($a['kind'] ?? '') === 'spec' && isset($specNamesLC[mb_strtolower((string)($a['name'] ?? ''))]))));
 while (count($myAttrs) < 3) $myAttrs[] = ['kind' => 'spec', 'name' => '', 'value' => ''];
 $sellerNavActive = $edit && $pid ? 'products' : 'add';
 $pageTitle = ($pid ? 'Редактировать товар' : 'Добавить товар') . ' — ' . getSetting('site_name');
@@ -254,13 +277,20 @@ require_once dirname(__DIR__) . '/includes/header.php';
 
         <label class="sl-field">
           <span>Категория <b>*</b></span>
-          <select name="category_id" required>
+          <select name="category_id" id="catSelect" required>
             <option value="">— выберите —</option>
             <?php foreach ($categories as $c): ?>
             <option value="<?= (int)$c['id'] ?>" <?= ((int)($edit['category_id'] ?? 0))===(int)$c['id']?'selected':'' ?>><?= sanitize(tField($c,'name')) ?></option>
             <?php endforeach; ?>
           </select>
         </label>
+
+        <!-- Характеристики раздела (шины/масла) — появляются, когда выбрана
+             такая категория. Заполняются из списков, по ним работает фильтр. -->
+        <div id="specBlock" class="sl-field" style="display:none;">
+          <span id="specTitle" style="font-weight:600;">Характеристики</span>
+          <div id="specFields" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:6px;"></div>
+        </div>
 
         <label class="sl-field">
           <span>Цена, смн <b>*</b></span>
@@ -363,6 +393,54 @@ function addAttrRow() {
   row.querySelectorAll('input').forEach(function (i) { i.value = ''; });
   tb.appendChild(row);
 }
+</script>
+
+<script>
+// Характеристики раздела: показываем блок полей, когда выбрана категория со
+// схемой (шины/масла). Значения — из списков, по ним в каталоге строится фильтр.
+(function () {
+  var SCHEMAS = <?= $specSchemasJson ?: '{}' ?>;
+  var CAT_SPEC = <?= json_encode($catSpecMap, JSON_UNESCAPED_UNICODE) ?: '{}' ?>;
+  var VALUES = <?= json_encode($specValues, JSON_UNESCAPED_UNICODE) ?: '{}' ?>;
+  var sel = document.getElementById('catSelect');
+  var block = document.getElementById('specBlock');
+  var fields = document.getElementById('specFields');
+  var title = document.getElementById('specTitle');
+  if (!sel || !block || !fields) return;
+
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function render() {
+    var key = CAT_SPEC[sel.value];
+    var sc = key && SCHEMAS[key];
+    if (!sc) { block.style.display = 'none'; fields.innerHTML = ''; return; }
+    if (title) title.textContent = 'Характеристики: ' + sc.label;
+    var html = '';
+    sc.fields.forEach(function (f) {
+      var cur = VALUES[f.name] || '';
+      var lbl = f.name + (f.unit ? (', ' + f.unit) : '');
+      html += '<label style="display:block;font-size:.9rem;">' +
+              '<span style="display:block;color:#555;margin-bottom:3px;">' + esc(lbl) + '</span>';
+      if (f.options && f.options.length) {
+        html += '<select name="spec[' + esc(f.name) + ']" style="width:100%;padding:8px;border:1px solid #d9dce1;border-radius:7px;">';
+        html += '<option value="">—</option>';
+        f.options.forEach(function (o) {
+          var os = String(o);
+          html += '<option value="' + esc(os) + '"' + (os === String(cur) ? ' selected' : '') + '>' + esc(os) + '</option>';
+        });
+        html += '</select>';
+      } else {
+        html += '<input type="text" name="spec[' + esc(f.name) + ']" value="' + esc(cur) + '" style="width:100%;padding:8px;border:1px solid #d9dce1;border-radius:7px;">';
+      }
+      html += '</label>';
+    });
+    fields.innerHTML = html;
+    block.style.display = '';
+  }
+
+  sel.addEventListener('change', render);
+  render();
+})();
 </script>
 
 <?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>

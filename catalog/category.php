@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/parts/grouping.php';
+require_once dirname(__DIR__) . '/includes/parts/specs.php';
 
 $slug = trim($_GET['slug'] ?? '');
 if (!$slug) {
@@ -66,6 +67,26 @@ if ($priceMax > 0) {
     $params[] = $priceMax;
 }
 
+// Фильтр по характеристикам раздела (шины/масла): ?f[Ширина]=205&f[Сезон]=Зимние.
+// Каждое выбранное значение — EXISTS по part_attributes, т.е. у товара есть такая
+// характеристика с таким значением. Несколько полей сужают выборку (И).
+$specKey    = categorySpecKey($db, $catId);
+$specSchema = partSpecSchema($specKey);
+$specSel    = [];
+if ($specSchema) {
+    $f = (array)($_GET['f'] ?? []);
+    foreach ($specSchema['fields'] as $fld) {
+        $v = trim((string)($f[$fld['name']] ?? ''));
+        if ($v !== '') {
+            $specSel[$fld['name']] = $v;
+            $where[]  = "EXISTS (SELECT 1 FROM part_attributes pa WHERE pa.part_id = p.id "
+                      . "AND pa.kind = 'spec' AND pa.name = ? AND pa.value = ?)";
+            $params[] = $fld['name'];
+            $params[] = $v;
+        }
+    }
+}
+
 $whereSQL = 'WHERE ' . implode(' AND ', $where);
 
 // Count — по карточкам, а не по предложениям (см. catalog/index.php)
@@ -108,6 +129,9 @@ $brandsInCat = $db->prepare(
 );
 $brandsInCat->execute($allCatIds);
 $catBrands = $brandsInCat->fetchAll();
+
+// Facets для фильтра характеристик (какие значения вообще есть у товаров раздела).
+$specFacets = $specSchema ? categorySpecFacets($db, $allCatIds, $specKey) : [];
 
 $currentBrand = null;
 if ($brandId) {
@@ -225,6 +249,29 @@ $bcItems[] = ['label' => $catName];
                         </ul>
                     </div>
                     <?php endif; ?>
+
+                    <!-- Характеристики раздела (шины/масла): фильтр по размерам/вязкости и т.п. -->
+                    <?php foreach ($specFacets as $fname => $vals):
+                        $unit = '';
+                        foreach (($specSchema['fields'] ?? []) as $ff) { if ($ff['name'] === $fname) { $unit = (string)($ff['unit'] ?? ''); break; } }
+                    ?>
+                    <div class="widget_list widget_categories">
+                        <h3><?= sanitize($fname) . ($unit !== '' ? ', ' . sanitize($unit) : '') ?></h3>
+                        <ul>
+                            <?php foreach ($vals as $vv): [$v, $n] = $vv;
+                                $active = (($specSel[$fname] ?? null) === $v);
+                                $g = array_diff_key($_GET, ['page' => '']);
+                                if (!isset($g['f']) || !is_array($g['f'])) $g['f'] = [];
+                                if ($active) unset($g['f'][$fname]); else $g['f'][$fname] = $v;
+                                if (empty($g['f'])) unset($g['f']);
+                            ?>
+                            <li class="<?= $active ? 'active_categorie' : '' ?>">
+                                <a href="?<?= http_build_query($g) ?>"><?= sanitize($v) ?> <span style="color:#aaa;font-size:.85em;">(<?= (int)$n ?>)</span></a>
+                            </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                    <?php endforeach; ?>
 
                     <!-- Availability widget -->
                     <div class="widget_list widget_categories">
