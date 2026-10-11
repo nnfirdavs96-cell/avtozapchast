@@ -1085,6 +1085,21 @@ id первого выложившего, а не ссылка на строку
 выиграл buy-box. Ничего не теряется (вариант доступен в блоке предложений), но лечится
 только переносом вариантов на общую карточку — полная модель Ozon, отдельная задача.
 
+### 16.8 Фаза 4 — отзывы о продавцах и возвраты/споры ✅ (#382, #383)
+
+**Отзывы** (`includes/seller_reviews.php`, `api/seller_review_submit.php`):
+- таблица `seller_reviews` с `UNIQUE(order_seller_id)` — один отзыв на один доставленный
+  подзаказ; покупатель оставляет оценку+текст из «Мои заказы» по доставленному подзаказу;
+- агрегат по продавцу показывается на `seller_shop.php` и в карточке товара (`catalog/part.php`);
+- модерация отзывов — у менеджера (3-я вкладка `manager/reviews.php`).
+
+**Возвраты/споры** (`includes/returns.php`, миграция `sql/migrate_returns.php`):
+- таблица `order_returns` (+ `seller_ledger.return_id`, тип движения `refund`);
+- покупатель жмёт «Вернуть товар» в `buyer/orders.php` → заявка; решают в `admin/returns.php`
+  и `seller/returns.php`;
+- **возврат списывает ДОЛЮ продавца** (выплата минус комиссия, `returnPayoutShare`), а не
+  всю цену заказа — комиссия площадки за уже оказанную услугу не возвращается продавцу.
+
 ---
 
 ## 17. Обслуживание каталога Parts-Catalogs (важное)
@@ -1127,3 +1142,61 @@ php superadmin/pc_tree_probe.php --lib                          # реальны
 Тексты об отказах **нейтральны**: ни поставщик, ни наши лимиты не называются —
 «Каталог по этому автомобилю временно недоступен. Напишите менеджеру — подберём деталь
 вручную». Конфиденциальность цепочки поставок — требование заказчика.
+
+---
+
+## 18. Делегирование прав и защита пользователей (#385)
+
+- Секции прав: `permissionSections()` в `includes/functions.php`. Делегируемые разделы
+  (суперадмин выдаёт вручную в `superadmin/permissions.php`): `products, markup, categories,
+  brands, warehouse, vin, orders, sellers, moderation, email, delivery, sliders, blog, pages,
+  reviews, users, settings, currencies, languages`. **Не делегируются** (только суперадмин):
+  `permissions`, `backup`.
+- `roleDefaultSections($role)` — что роль видит по умолчанию, если суперадмин не настраивал
+  (admin и manager имеют разные дефолты; `email` есть у обоих по умолчанию).
+- `userCan()` / `requirePermission()` — гейт страницы (вызывать после `requireRole()`).
+- **Защита удаления пользователей выше по рангу**: в `admin/users.php` менеджер/админ не может
+  трогать аккаунты admin/superadmin (`$canTouch = hasRole('superadmin') || in_array($tgtRole,
+  ['buyer','manager'])`). Админ НЕ может делегировать права — только суперадмин.
+
+## 19. Почта (e-mail) — отправка и доставляемость (#401–#405)
+
+**SMTP-клиент — свой, без внешних библиотек** (`includes/mailer.php`):
+- `smtpSend()` — SSL(465)/STARTTLS(587), `AUTH LOGIN`, UTF-8 тема и тело (RFC 2047),
+  `multipart/alternative` (текст+HTML), **вложения** через `multipart/mixed`, dot-stuffing;
+- `mailerWrap()` — фирменный HTML-шаблон (шапка/подвал, инлайновые стили — почтовики режут CSS);
+- `notifyUser()` — письмо нашему пользователю по id (найдёт email/имя, обернёт в шаблон);
+  тихо выходит, если почта не настроена или у пользователя нет email;
+- `sendEmailLogged()` + журнал `email_log` (миграция `sql/migrate_email.php`).
+
+**Где используется:**
+- `manager/email.php` — «Письма клиентам»: форма (адрес с подсказкой из наших пользователей,
+  тема, текст, вложения до 12 МБ) + журнал; право `email`;
+- событийные письма: приветствие при регистрации (`auth/register.php`), заявка/одобрение
+  продавца (`admin/sellers.php`), выплата (`admin/payouts.php`), автоуведомления о заказах
+  (`buyer/checkout.php` — покупателю и продавцам; `admin/orders.php` — смена статуса);
+- восстановление пароля: `auth/forgot_password.php` + `auth/reset_password.php` +
+  `includes/password_reset.php` (таблица `password_resets`, токен — только sha256, срок 1 час,
+  одноразовый; миграция `sql/migrate_password_reset.php`).
+
+**Настройки SMTP — `superadmin/settings.php` → «Почта (SMTP)»** (ключи `smtp_host/port/secure/
+user/pass/from_email/from_name`, `mail_enabled`). Пароль не показывается обратно, в git не
+попадает. Кнопка «Тест». **Доставляемость**: домену нужны SPF + DKIM + DMARC в DNS. На боевом
+`autodoc.tj` (регистратор Navju Cloud, почта на Timeweb) настроены: SPF `v=spf1
+include:_spf.timeweb.ru ~all`, DKIM (`dkim._domainkey`, ключ от Timeweb), DMARC `p=none`.
+
+## 20. Разделы каталога с характеристиками (шины/масла) и тип техники (#406–#410)
+
+Подробности — в **CATALOG_PLAN.md §11**. Кратко:
+- **spec-схемы** (`includes/parts/specs.php`): `categories.spec_schema` = `tires`/`oils`;
+  значения характеристик — в `part_attributes` (kind='spec'); фильтр-facets в `catalog/category.php`;
+  поля во всех формах товара (общий JS `includes/parts/spec_form_js.php`), сохранение через
+  `partSaveSpecsMerge()`. Миграция `sql/migrate_catalog_specs.php` (создаёт категории
+  `shiny`, `masla-zhidkosti`).
+- **Тип техники** — колонка `parts.vehicle_type` (миграция `sql/migrate_vehicle_type.php`);
+  `vehicleTypes()`; фильтр в каталоге; раздел `/catalog/index.php?vehicle=truck`.
+- **Логотип магазина** — `sellers.logo`, приём картинок `includes/uploads.php`, редактирование
+  `seller/shop.php` + поле на форме регистрации.
+- **Страница-хаб «Каталоги»** — `catalog/catalogs.php` (плитки разделов), ссылка в меню.
+- **Мобильная вёрстка** (#386–#400): поиск в шапке (убрана пустая полоса), блок скидок на
+  телефоне — нативная горизонтальная лента вместо owl (owl на iOS не перерисовывался).
