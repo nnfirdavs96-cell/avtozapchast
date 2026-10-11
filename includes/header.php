@@ -371,11 +371,6 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
         <div class="header_bottom sticky-header">
             <div class="container">
                 <div class="row align-items-center">
-                    <!-- Компактный логотип: виден ТОЛЬКО в прилипшей шапке (CSS),
-                         в обычной строке nav он display:none и на вёрстку не влияет. -->
-                    <a class="hb_sticky_logo" href="<?= APP_URL ?>/index.php" aria-label="<?= sanitize($siteName) ?>">
-                        <img src="<?= APP_URL ?>/assets/img/logo/avtodoc-logo.png?v=<?= @filemtime(APP_ROOT.'/assets/img/logo/avtodoc-logo.png') ?>" alt="AutoDoc">
-                    </a>
                     <div class="col-lg-3">
                         <div class="categories_menu">
                             <div class="categories_title">
@@ -529,26 +524,12 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
                                             </ul>
                                         </div>
                                     </li>
-
-                                    <!-- «Ещё»: сборник пунктов, не влезших в строку. Пуст и скрыт,
-                                         пока JS в прилипшей шапке не перенесёт сюда лишние пункты. -->
-                                    <li class="hb_more" style="display:none">
-                                        <a href="javascript:void(0)">Ещё <i class="fa fa-angle-down"></i></a>
-                                        <ul class="hb_more_list"></ul>
-                                    </li>
                                 </ul>
                             </nav>
                         </div>
                     </div>
                     <div class="col-lg-3">
                         <div class="header_phone">
-                            <!-- Иконки: видны ТОЛЬКО в прилипшей шапке (лупа раскрывает поиск,
-                                 избранное и корзина — быстрый доступ без возврата наверх). -->
-                            <div class="hb_sticky_tools">
-                                <a class="hb_search_toggle" href="javascript:void(0)" aria-label="<?= t('search') ?>"><i class="fa fa-search"></i></a>
-                                <a class="hb_tool" href="<?= APP_URL ?>/buyer/wishlist.php" aria-label="<?= t('wishlist') ?>"><i class="icon-heart"></i><span class="hb_badge"><?= $wishCount ?></span></a>
-                                <a class="hb_tool" href="<?= APP_URL ?>/buyer/cart.php" aria-label="<?= t('shopping_cart') ?>"><i class="icon-shopping-bag2"></i><span class="hb_badge"><?= $cartCount ?></span></a>
-                            </div>
                             <div class="phone_inner">
                                 <p><?= t('call_us') ?>: <a href="tel:<?= sanitize(phoneTel($sitePhone)) ?>"><?= sanitize($sitePhone) ?></a></p>
                             </div>
@@ -572,75 +553,3 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
         <!-- /nav -->
     </div>
 </header>
-<script>
-/* Липкая шапка: 1) резерв места от прыжка контента, 2) перенос лишних пунктов
-   меню в «Ещё», 3) раскрытие поиска по лупе. Всё работает только на десктопе
-   (≥992px) — на планшете/мобиле тема не фиксирует nav, поэтому там выходим. */
-(function(){
-    var hb = document.querySelector('.header_bottom.sticky-header');
-    if (!hb) return;
-    var mq       = window.matchMedia('(min-width: 992px)');
-    var mainMenu = hb.querySelector('.main_menu');
-    var nav      = hb.querySelector('.main_menu nav > ul');
-    var more     = hb.querySelector('.hb_more');
-    var moreList = hb.querySelector('.hb_more_list');
-    var items    = nav ? Array.prototype.slice.call(nav.children).filter(function(li){ return li !== more; }) : [];
-
-    // Заглушка держит высоту, которую nav освобождает, становясь position:fixed.
-    var spacer = document.createElement('div');
-    spacer.className = 'hb_spacer';
-    hb.parentNode.insertBefore(spacer, hb.nextSibling);
-    var natH = hb.offsetHeight;   // высота шапки в обычном потоке (до фиксации)
-
-    function syncSpacer(){
-        // пока шапка в потоке — запоминаем её реальную высоту (она же освободится)
-        if (!hb.classList.contains('sticky')) natH = hb.offsetHeight || natH;
-        var on = hb.classList.contains('sticky') && mq.matches;
-        spacer.style.height  = on ? natH + 'px' : '0';
-        spacer.style.display = on ? 'block' : 'none';
-    }
-
-    function resetMenu(){
-        items.forEach(function(li){ if (li.parentNode !== nav && more) nav.insertBefore(li, more); });
-        if (more) more.style.display = 'none';
-    }
-
-    function reflowMenu(){
-        if (!nav || !more) return;
-        resetMenu();
-        if (!(hb.classList.contains('sticky') && mq.matches)) return;
-        var guard = 0;
-        while (guard++ < 30) {
-            var vis = items.filter(function(li){ return li.parentNode === nav; });
-            if (!vis.length) break;
-            var moved   = items.length - vis.length;
-            var reserve = moved > 0 ? 80 : 6;                     // место под сам «Ещё»
-            var limit   = mainMenu.getBoundingClientRect().right - reserve;
-            var last    = vis[vis.length - 1];
-            if (last.getBoundingClientRect().right <= limit) break;
-            more.style.display = '';
-            moreList.insertBefore(last, moreList.firstChild);     // prepend → порядок сохраняется
-        }
-        var inMore = items.filter(function(li){ return li.parentNode === moreList; });
-        more.style.display = inMore.length ? '' : 'none';
-    }
-
-    function update(){ syncSpacer(); reflowMenu(); }
-
-    window.addEventListener('scroll', update, { passive: true });
-    window.addEventListener('resize', function(){ if (!mq.matches) hb.classList.remove('search-open'); update(); });
-    update();
-
-    // Лупа раскрывает/прячет панель поиска под баром.
-    hb.addEventListener('click', function(e){
-        var t = e.target.closest('.hb_search_toggle');
-        if (!t) return;
-        e.preventDefault();
-        hb.classList.toggle('search-open');
-        if (hb.classList.contains('search-open')) {
-            var inp = hb.querySelector('.sticky_search input');
-            if (inp) inp.focus();
-        }
-    });
-})();
-</script>

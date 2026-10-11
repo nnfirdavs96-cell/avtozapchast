@@ -2487,124 +2487,26 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     .search_container.has_vin { margin-right: 10px; gap: 8px; }
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   ЛИПКАЯ ШАПКА (sticky header)
-   Правим ТОЛЬКО прилипшее состояние (.header_bottom.sticky-header.sticky) и
-   только на десктопе (≥992px). Обычная (непрокрученная) шапка, планшет и
-   мобайл не трогаются — там тема делает nav нефиксированным (position:inherit).
-   ══════════════════════════════════════════════════════════════════════ */
-
-/* Сплошной тёмный фон вместо полупрозрачного серого (сквозь него просвечивал
-   контент). Тот же #222, что у .main_header в обычном состоянии. Тень снизу —
-   отделить от страницы. Короткий fadeInDown (250ms) вместо 900ms — плавно. */
-.sticky-header.sticky {
-    background: #222 !important;
-    box-shadow: 0 3px 14px rgba(0,0,0,.28) !important;
-    z-index: 1000 !important;
-    border-bottom: 2px solid #C70909 !important;
-    animation-duration: 250ms !important;
-}
-
-/* Заглушка держит высоту, которую освобождает nav, уходя в position:fixed —
-   чтобы контент страницы не прыгал вверх (высоту проставляет JS). */
-.hb_spacer { display: none; }
-
-/* Логотип и иконки существуют в разметке всегда, но видны только в sticky. */
-.hb_sticky_logo,
-.hb_sticky_tools { display: none; }
-
-/* Панель поиска по умолчанию скрыта (раскрывается лупой в sticky). */
+/* Прилипающий поиск: скрыт, показывается только когда шапка «прилипла». */
 .sticky_search { display: none; }
+.sticky-header.sticky .sticky_search {
+    display: flex; gap: 10px; align-items: stretch; padding: 9px 0 5px;
+}
 .sticky_search .ss_form { display: flex; background: #fff; border-radius: 6px; overflow: hidden; }
 .sticky_search .ss_parts { flex: 1 1 auto; min-width: 0; }
-.sticky_search .ss_vin  { flex: 0 0 240px; }
-.sticky_search input { flex: 1; min-width: 0; border: 0; height: 42px; padding: 0 14px; font-size: .88rem; outline: none; }
+.sticky_search .ss_vin  { flex: 0 0 250px; }
+.sticky_search input {
+    flex: 1; min-width: 0; border: 0; height: 42px; padding: 0 14px; font-size: .88rem; outline: none;
+}
 .sticky_search .ss_vin input { text-transform: uppercase; letter-spacing: 1px; font-family: monospace; font-size: .82rem; }
-.sticky_search button { border: 0; background: #C70909; color: #fff; padding: 0 18px; cursor: pointer; font-weight: 700; font-size: .85rem; white-space: nowrap; transition: .15s; }
+.sticky_search button {
+    border: 0; background: #C70909; color: #fff; padding: 0 18px; cursor: pointer;
+    font-weight: 700; font-size: .85rem; white-space: nowrap; transition: .15s;
+}
 .sticky_search button:hover { background: #A00707; }
-
-@media (min-width: 992px) {
-    /* Одна строка, всё по центру по вертикали, без переносов. */
-    .sticky-header.sticky .row {
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        min-height: 66px;
-    }
-    /* Колонки темы (20/56/24%) в прилипшем виде — по содержимому;
-       меню растягивается и забирает остаток ширины. */
-    .sticky-header.sticky .col-lg-3:first-child,
-    .sticky-header.sticky .col-lg-3:last-child {
-        flex: 0 0 auto !important; max-width: none !important; width: auto !important;
-    }
-    .sticky-header.sticky .col-lg-6 {
-        flex: 1 1 auto !important; max-width: none !important; min-width: 0;
-    }
-
-    /* Компактный логотип слева. */
-    .sticky-header.sticky .hb_sticky_logo {
-        display: flex; align-items: center; flex: 0 0 auto;
-        height: 66px; margin-right: 18px; padding: 0;
-    }
-    .sticky-header.sticky .hb_sticky_logo img { height: 40px; width: auto; display: block; }
-
-    /* Кнопка «ВСЕ КАТЕГОРИИ» — по центру, компактная. */
-    .sticky-header.sticky .categories_menu { position: relative; }
-    .sticky-header.sticky .categories_title {
-        height: 44px; line-height: 44px; border-radius: 4px; white-space: nowrap;
-    }
-    /* Выпадашка категорий раскрывается поверх контента. */
-    .sticky-header.sticky .categories_menu_toggle {
-        position: absolute; top: 100%; left: 0; min-width: 240px; z-index: 1001;
-    }
-
-    /* Меню — строго одна строка, компактные отступы/шрифт. */
-    .sticky-header.sticky .main_menu nav > ul {
-        display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-start;
-    }
-    .sticky-header.sticky .main_menu nav > ul > li { margin-right: 16px !important; white-space: nowrap; }
-    .sticky-header.sticky .main_menu nav > ul > li > a { line-height: 66px; font-size: 13px !important; }
-
-    /* «Ещё» — сборник переполнения (JS наполняет), выпадашка по ховеру. */
-    .sticky-header.sticky .hb_more { position: relative; }
-    .sticky-header.sticky .hb_more > a { cursor: pointer; }
-    .sticky-header.sticky .hb_more_list {
-        position: absolute; top: 100%; right: 0; min-width: 190px; margin: 0; padding: 6px 0;
-        list-style: none; background: #2b2b2b; border: 1px solid #3a3a3a;
-        border-radius: 0 0 6px 6px; box-shadow: 0 10px 24px rgba(0,0,0,.3);
-        opacity: 0; visibility: hidden; transform: translateY(6px); transition: .18s ease; z-index: 1001;
-    }
-    .sticky-header.sticky .hb_more:hover .hb_more_list { opacity: 1; visibility: visible; transform: translateY(0); }
-    .sticky-header.sticky .hb_more_list > li { display: block; margin: 0 !important; }
-    .sticky-header.sticky .hb_more_list > li > a {
-        display: block; padding: 8px 18px; line-height: 1.3 !important;
-        font-size: 13px !important; color: #e8e8e8 !important; white-space: nowrap;
-    }
-    .sticky-header.sticky .hb_more_list > li > a:hover { background: #C70909; color: #fff !important; }
-    /* У свёрнутых пунктов мега-меню скрываем — только ссылка верхнего уровня. */
-    .sticky-header.sticky .hb_more_list .az-megamenu { display: none !important; }
-
-    /* Правый блок: иконки + телефон, по центру по вертикали. */
-    .sticky-header.sticky .header_phone {
-        display: flex; align-items: center; justify-content: flex-end; gap: 16px; height: 66px;
-    }
-    .sticky-header.sticky .header_phone .phone_inner p { margin: 0; line-height: 1.2; white-space: nowrap; }
-    .sticky-header.sticky .hb_sticky_tools { display: flex; align-items: center; gap: 14px; }
-    .sticky-header.sticky .hb_sticky_tools a { position: relative; color: #fff; font-size: 18px; line-height: 1; }
-    .sticky-header.sticky .hb_sticky_tools a:hover { color: #C70909; }
-    .sticky-header.sticky .hb_badge {
-        position: absolute; top: -8px; right: -10px; min-width: 16px; height: 16px; padding: 0 4px;
-        border-radius: 8px; background: #C70909; color: #fff; font-size: 10px; line-height: 16px;
-        text-align: center; font-weight: 700;
-    }
-
-    /* Поиск по лупе — выпадающая панель под баром. Абсолютная: не раздвигает
-       бар и не налезает на контент (сплошной фон, своя тень). */
-    .sticky-header.sticky .sticky_search {
-        position: absolute; top: 100%; left: 0; right: 0; margin: 0;
-        display: none; gap: 10px; align-items: stretch;
-        background: #222; padding: 12px 20px; box-shadow: 0 10px 20px rgba(0,0,0,.25); z-index: 1000;
-    }
-    .sticky-header.sticky.search-open .sticky_search { display: flex; }
+@media (max-width: 991px) {
+    .sticky_search .ss_vin { flex: 0 0 130px; }
+    .sticky_search input { height: 38px; }
 }
 
 /* ── Адаптив двойного поиска: планшет и телефон ───────────────────────── */
@@ -2632,6 +2534,15 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
         letter-spacing: .5px; border-radius: 4px 0 0 4px;
     }
     .vin_search_form button { min-height: 40px; padding: 0 16px; border-radius: 0 4px 4px 0; }
+}
+
+/* Прилипающий поиск — адаптив. На узких экранах VIN-поле уже, но остаётся тач-доступным. */
+@media (max-width: 767px) {
+    .sticky-header.sticky .sticky_search { gap: 6px; padding: 7px 0 4px; }
+    .sticky_search .ss_vin { flex: 0 0 108px; }
+    .sticky_search input { height: 38px; font-size: 16px; padding: 0 10px; }
+    .sticky_search .ss_vin input { font-size: 13px; letter-spacing: 0; padding: 0 8px; }
+    .sticky_search button { padding: 0 12px; font-size: .8rem; min-height: 38px; }
 }
 
 /* ── Плотность главной: убрать избыточную пустоту между блоками ───────────
