@@ -21,9 +21,19 @@ $where  = ['p.is_active=1', "(p.seller_id IS NULL OR p.moderation_status='active
 $params = [];
 
 if ($q !== '') {
-    $where[]  = '(p.name LIKE ? OR p.part_number LIKE ? OR b.name LIKE ? OR p.description LIKE ?)';
-    $like     = '%'.$q.'%';
-    $params   = array_merge($params, [$like,$like,$like,$like]);
+    // Поиск по артикулу должен работать независимо от разделителей: запрос
+    // «5257548040» обязан находить товар с part_number «52575-48040» и наоборот.
+    // Для этого отдельным условием сверяем нормализованный запрос с канонической
+    // колонкой part_key (только буквы/цифры, верхний регистр) — она индексирована.
+    $cond   = 'p.name LIKE ? OR p.part_number LIKE ? OR b.name LIKE ? OR p.description LIKE ?';
+    $like   = '%'.$q.'%';
+    $params = array_merge($params, [$like,$like,$like,$like]);
+    $canon  = partsCanonicalArticle($q);
+    if ($canon !== '') {
+        $cond    .= ' OR p.part_key LIKE ?';
+        $params[] = '%'.$canon.'%';
+    }
+    $where[] = '(' . $cond . ')';
 }
 if ($catId) { $where[] = 'p.category_id=?'; $params[] = $catId; }
 

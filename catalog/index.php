@@ -28,11 +28,20 @@ $where  = ['p.is_active = 1', "(p.seller_id IS NULL OR p.moderation_status = 'ac
 $params = [];
 
 if ($q !== '') {
-    $where[]  = '(p.name LIKE ? OR p.part_number LIKE ? OR p.description LIKE ?)';
+    // Артикул ищем без привязки к разделителям — сверяем нормализованный запрос
+    // с канонической колонкой part_key (см. search/index.php): «5257548040»
+    // обязан находить «52575-48040» и наоборот.
+    $cond     = 'p.name LIKE ? OR p.part_number LIKE ? OR p.description LIKE ?';
     $like     = '%' . $q . '%';
     $params[] = $like;
     $params[] = $like;
     $params[] = $like;
+    $canon    = partsCanonicalArticle($q);
+    if ($canon !== '') {
+        $cond    .= ' OR p.part_key LIKE ?';
+        $params[] = '%' . $canon . '%';
+    }
+    $where[] = '(' . $cond . ')';
 }
 if ($catId) {
     $subStmt = $db->prepare("SELECT id FROM categories WHERE parent_id = ? AND is_active = 1");
