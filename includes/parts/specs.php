@@ -115,6 +115,37 @@ function partSpecAttrsFromPost(?string $specKey, array $postSpec): array
 }
 
 /**
+ * Сохранить характеристики, НЕ затирая прочие атрибуты товара.
+ *
+ * partsSaveAttributes заменяет весь набор целиком — это ок для формы продавца,
+ * где общий редактор атрибутов присылает полное состояние. А в формах админа и
+ * менеджера такого редактора нет, и прямая замена снесла бы, например, варианты
+ * (kind='axis'). Поэтому: берём существующие атрибуты, выкидываем только те
+ * характеристики (kind='spec'), что входят в схему категории, и дописываем
+ * новые значения из формы.
+ */
+function partSaveSpecsMerge(PDO $db, int $partId, ?string $specKey, array $specAttrs): void
+{
+    if ($partId <= 0) return;
+
+    $schemaNames = [];
+    if ($sc = partSpecSchema($specKey)) {
+        foreach ($sc['fields'] as $f) $schemaNames[mb_strtolower($f['name'])] = 1;
+    }
+
+    $existing = partsAttributes($db, [$partId])[$partId] ?? [];
+    $keep = [];
+    foreach ($existing as $a) {
+        $isSchemaSpec = (($a['kind'] ?? '') === 'spec')
+            && isset($schemaNames[mb_strtolower((string)($a['name'] ?? ''))]);
+        if ($isSchemaSpec) continue;  // заменяем значениями из формы
+        $keep[] = ['kind' => $a['kind'], 'name' => $a['name'], 'value' => $a['value']];
+    }
+
+    partsSaveAttributes($db, $partId, array_merge($keep, $specAttrs));
+}
+
+/**
  * Данные для фильтра-сайдбара каталога: по каждому полю схемы — какие значения
  * реально встречаются у активных товаров этих категорий и сколько их.
  * Возвращает [fieldName => [ [value, count], … ], …].
