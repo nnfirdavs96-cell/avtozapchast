@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/parts/grouping.php';
+require_once dirname(__DIR__) . '/includes/parts/specs.php';
 requireRole(['admin', 'superadmin']);
 requirePermission('products');
 
@@ -46,6 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $desc      = trim($_POST['description'] ?? '');
     $brand     = (int)($_POST['brand_id'] ?? 0);
     $cat       = (int)($_POST['category_id'] ?? 0);
+    $vtype     = (string)($_POST['vehicle_type'] ?? '');
+    if (!isset(vehicleTypes()[$vtype])) $vtype = '';
     $price     = (float)str_replace(',', '.', $_POST['price'] ?? 0);
     $oldPrice  = ($_POST['old_price'] ?? '') !== '' ? (float)str_replace(',', '.', $_POST['old_price']) : null;
     $costPrice = ($_POST['cost_price'] ?? '') !== '' ? (float)str_replace(',', '.', $_POST['cost_price']) : null;
@@ -79,20 +82,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         $imagesJson = json_encode($allImages);
+        // Характеристики раздела (шины/масла) из $_POST['spec'] по схеме категории.
+        $specKeyNow = categorySpecKey($db, $cat);
+        $specAttrs  = partSpecAttrsFromPost($specKeyNow, (array)($_POST['spec'] ?? []));
         if ($pid) {
             $db->prepare(
-                "UPDATE parts SET part_number=?, name=?, description=?, brand_id=?, category_id=?,
+                "UPDATE parts SET part_number=?, name=?, description=?, brand_id=?, category_id=?, vehicle_type=?,
                  price=?, old_price=?, cost_price=?, markup_percent=?, stock=?, weight=?, dimensions=?, images=?, updated_at=NOW() WHERE id=?"
-            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $oldPrice, $costPrice, $markupPct, $stock, $weight, $dims, $imagesJson, $pid]);
+            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, ($vtype ?: null), $price, $oldPrice, $costPrice, $markupPct, $stock, $weight, $dims, $imagesJson, $pid]);
             partsApplyGrouping($db, $pid, $pnum, $brand, !empty($_POST['is_unique_item']));
+            partSaveSpecsMerge($db, $pid, $specKeyNow, $specAttrs);
             flashMessage('success', 'Товар обновлён.');
         } else {
             $db->prepare(
-                "INSERT INTO parts (part_number, name, description, brand_id, category_id,
+                "INSERT INTO parts (part_number, name, description, brand_id, category_id, vehicle_type,
                  price, old_price, cost_price, markup_percent, stock, weight, dimensions, images, is_active, created_at)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1,NOW())"
-            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, $price, $oldPrice, $costPrice, $markupPct, $stock, $weight, $dims, $imagesJson]);
-            partsApplyGrouping($db, (int)$db->lastInsertId(), $pnum, $brand, !empty($_POST['is_unique_item']));
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,NOW())"
+            )->execute([$pnum, $name, $desc ?: null, $brand, $cat, ($vtype ?: null), $price, $oldPrice, $costPrice, $markupPct, $stock, $weight, $dims, $imagesJson]);
+            $newPid = (int)$db->lastInsertId();
+            partsApplyGrouping($db, $newPid, $pnum, $brand, !empty($_POST['is_unique_item']));
+            partsSaveAttributes($db, $newPid, $specAttrs);
             flashMessage('success', 'Товар добавлен.');
         }
         redirect(APP_URL . '/admin/products.php');
@@ -109,6 +118,15 @@ if ($editId && $action === 'edit') {
     $stmt->execute([$editId]);
     $editPart = $stmt->fetch();
 }
+
+// Данные для блока характеристик (шины/масла) в форме.
+$specSchemasJson = json_encode(partSpecSchemas(), JSON_UNESCAPED_UNICODE);
+$catSpecMap = [];
+foreach ($categories as $c) {
+    $k = categorySpecKey($db, (int)$c['id']);
+    if ($k) $catSpecMap[(int)$c['id']] = $k;
+}
+$specValues = $editPart ? partReadSpecs($db, (int)$editPart['id']) : [];
 
 // List
 $search  = trim($_GET['search'] ?? '');
@@ -310,7 +328,7 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                             </div>
                             <div class="az-form-group">
                                 <label>Категория *</label>
-                                <select name="category_id" required>
+                                <select name="category_id" id="catSelect" required>
                                     <option value="">— Выберите —</option>
                                     <?php foreach ($categories as $c): ?>
                                         <option value="<?= (int)$c['id'] ?>"
@@ -319,6 +337,19 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                            </div>
+                            <div class="az-form-group">
+                                <label>Тип техники</label>
+                                <select name="vehicle_type">
+                                    <option value="">— не указано —</option>
+                                    <?php foreach (vehicleTypes() as $vcode => $vlabel): ?>
+                                    <option value="<?= $vcode ?>" <?= (($editPart['vehicle_type'] ?? ($_POST['vehicle_type'] ?? '')) === $vcode) ? 'selected' : '' ?>><?= sanitize($vlabel) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="az-form-group" id="specBlock" style="display:none;grid-column:1/-1;">
+                                <label id="specTitle">Характеристики</label>
+                                <div id="specFields" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;"></div>
                             </div>
                         </div>
 
@@ -564,4 +595,5 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
     </main>
 </div><!-- /.az-panel -->
 
+<?php require dirname(__DIR__) . '/includes/parts/spec_form_js.php'; ?>
 <?php require_once dirname(__DIR__) . '/includes/admin-footer.php'; ?>
