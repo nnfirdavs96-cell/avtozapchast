@@ -1117,6 +1117,26 @@ html, body { overflow-x: clip; }
 .header_phone p { margin: 0; color: #fff; font-size: 13px; }
 .header_phone a { color: #C70909; }
 
+/* ══════════════════════════════════════════════════════════════════════
+   ЛИПКАЯ ШАПКА — прилипают ОБЕ строки (middle + nav) единым блоком и
+   выглядят РОВНО как обычная шапка. Стили строк внутри НЕ меняем: при
+   прокрутке блок просто фиксируется у верха. Класс .stuck ставит JS.
+   Старый частичный sticky темы на .header_bottom отключён (класс убран в
+   разметке), поэтому его полупрозрачный фон/перестановки больше не действуют.
+   Только десктоп (≥992px) — на планшете/мобиле JS не прилепляет.
+   ══════════════════════════════════════════════════════════════════════ */
+.header_main_spacer { height: 0; }
+@media (min-width: 992px) {
+    .header_main_sticky.stuck {
+        position: fixed; top: 0; left: 0; right: 0;
+        z-index: 1000;
+        background: #222;                        /* тот же тёмный фон, что у .main_header */
+        box-shadow: 0 3px 14px rgba(0,0,0,.28);  /* лёгкая тень снизу — отделить от контента */
+        animation: azStickyDrop .25s ease;       /* плавное появление */
+    }
+}
+@keyframes azStickyDrop { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+
 /* Tags strip */
 .top_tags_area { background: #fafafa; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 0.85rem; }
 .top_tags_area ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
