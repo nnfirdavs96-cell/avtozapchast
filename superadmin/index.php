@@ -13,16 +13,6 @@ $stats = [
     'brands'     => (int)$db->query("SELECT COUNT(*) FROM brands WHERE is_active = 1")->fetchColumn(),
 ];
 
-// System info
-$phpVersion   = phpversion();
-$mysqlVersion = 'N/A';
-try {
-    $mysqlVersion = $db->query("SELECT VERSION()")->fetchColumn();
-} catch (Exception $e) {}
-$diskTotal = disk_total_space('/');
-$diskFree  = disk_free_space('/');
-$diskUsed  = $diskTotal - $diskFree;
-
 $recentUsers = $db->query(
     "SELECT u.*, (SELECT COUNT(*) FROM orders WHERE user_id = u.id) AS order_count
      FROM users u ORDER BY u.created_at DESC LIMIT 8"
@@ -30,14 +20,6 @@ $recentUsers = $db->query(
 
 $pageTitle = 'Суперадминистратор — ' . getSetting('site_name');
 require_once dirname(__DIR__) . '/includes/admin-header.php';
-
-function formatBytes($bytes, $precision = 1): string {
-    $units = ['Б', 'КБ', 'МБ', 'ГБ', 'ТБ'];
-    $bytes = max($bytes, 0);
-    $pow   = floor(($bytes ? log($bytes) : 0) / log(1024));
-    $pow   = min($pow, count($units) - 1);
-    return round($bytes / pow(1024, $pow), $precision) . ' ' . $units[$pow];
-}
 ?>
 
 <div class="az-panel">
@@ -120,61 +102,9 @@ function formatBytes($bytes, $precision = 1): string {
       <!-- Финансовая часть — сводная статистика по всем продавцам -->
       <?php require dirname(__DIR__) . '/includes/admin_finance_block.php'; ?>
 
-      <!-- System info + Recent users -->
+      <!-- Recent users (во всю ширину — карточка «Система» вынесена в /admin/system.php) -->
       <div class="row">
-        <!-- System info -->
-        <div class="col-lg-4 mb-24">
-          <div class="az-card h-100">
-            <div class="az-card-header">
-              <h4 class="az-card-title">Система</h4>
-            </div>
-            <div class="az-card-body">
-              <table class="table table-sm table-borderless" style="font-size:0.85rem;">
-                <tr>
-                  <td class="text-muted">PHP</td>
-                  <td><strong><?= sanitize($phpVersion) ?></strong></td>
-                </tr>
-                <tr>
-                  <td class="text-muted">MySQL</td>
-                  <td><strong><?= sanitize($mysqlVersion) ?></strong></td>
-                </tr>
-                <tr>
-                  <td class="text-muted">Диск всего</td>
-                  <td><strong><?= formatBytes($diskTotal) ?></strong></td>
-                </tr>
-                <tr>
-                  <td class="text-muted">Использовано</td>
-                  <td><strong><?= formatBytes($diskUsed) ?></strong></td>
-                </tr>
-                <tr>
-                  <td class="text-muted">Свободно</td>
-                  <td><strong><?= formatBytes($diskFree) ?></strong></td>
-                </tr>
-                <tr>
-                  <td class="text-muted">Загрузка</td>
-                  <td>
-                    <?php $diskPct = $diskTotal > 0 ? round($diskUsed / $diskTotal * 100) : 0; ?>
-                    <div style="background:#eee;border-radius:4px;height:6px;width:100%;overflow:hidden;">
-                      <div style="background:<?= $diskPct > 80 ? '#c62828' : '#388e3c' ?>;height:100%;width:<?= $diskPct ?>%;"></div>
-                    </div>
-                    <small class="text-muted"><?= $diskPct ?>%</small>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="text-muted">APP_URL</td>
-                  <td><code><?= sanitize(APP_URL ?: '(relative)') ?></code></td>
-                </tr>
-                <tr>
-                  <td class="text-muted">Сайт</td>
-                  <td><strong><?= sanitize(getSetting('site_name')) ?></strong></td>
-                </tr>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Recent users -->
-        <div class="col-lg-8 mb-24">
+        <div class="col-12 mb-24">
           <div class="az-card">
             <div class="az-card-header">
               <h4 class="az-card-title">Последние пользователи</h4>

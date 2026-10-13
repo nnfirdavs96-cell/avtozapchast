@@ -351,6 +351,7 @@ function renderRoleSidebar(string $active = ''): void {
             ['key' => 'languages',  'href' => "$url/superadmin/languages.php", 'icon' => 'fa-language',    'label' => 'Языки'],
             ['key' => 'backup',     'href' => "$url/superadmin/backup.php",    'icon' => 'fa-archive',     'label' => 'Бэкапы'],
             ['key' => 'manual',     'href' => "$url/superadmin/manual.php",    'icon' => 'fa-book',        'label' => 'Руководство'],
+            ['key' => 'system',     'href' => "$url/admin/system.php",         'icon' => 'fa-server',      'label' => 'Система'],
         ]],
     ];
 
@@ -372,7 +373,7 @@ function renderRoleSidebar(string $active = ''): void {
         if (in_array($key, ['dashboard', 'messages'], true)) return true;
         if (in_array($key, ['payouts', 'returns', 'payments'], true)) return in_array($role, ['admin', 'superadmin'], true);
         if ($role === 'superadmin') return true;
-        if (in_array($key, ['permissions', 'backup', 'manual', 'catalog_library'], true)) return false;
+        if (in_array($key, ['permissions', 'backup', 'manual', 'catalog_library', 'system'], true)) return false;
         return userCan(permissionAlias($key));
     };
 

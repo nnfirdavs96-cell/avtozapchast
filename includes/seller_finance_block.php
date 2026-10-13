@@ -63,7 +63,8 @@ $chartInit = visitsChartData($db, (int)$sid, '30d');
   function apply(data){
     for (var k in data){
       var el = block.querySelector('[data-fin="'+k+'"]');
-      if (el) el.textContent = data[k];
+      // pay_sum — готовый HTML (число + <span class="cur-sym">смн</span>), остальное — текст.
+      if (el) el[k === 'pay_sum' ? 'innerHTML' : 'textContent'] = data[k];
     }
   }
 
