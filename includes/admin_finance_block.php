@@ -56,7 +56,9 @@ $chartInit = visitsChartData($db, null, '30d');
   block.dataset.bound = '1';
   var ep = block.getAttribute('data-endpoint');
   function setBusy(on){ block.classList.toggle('is-busy', !!on); }
-  function apply(data){ for (var k in data){ var el = block.querySelector('[data-fin="'+k+'"]'); if (el) el.textContent = data[k]; } }
+  // pay_sum приходит готовым HTML (число + <span class="cur-sym">смн</span>) —
+  // его в innerHTML, остальное (простые числа) — в textContent.
+  function apply(data){ for (var k in data){ var el = block.querySelector('[data-fin="'+k+'"]'); if (el) el[k === 'pay_sum' ? 'innerHTML' : 'textContent'] = data[k]; } }
   block.addEventListener('click', function(e){
     var btn = e.target.closest('.sl-per'); if (!btn) return;
     var period = btn.getAttribute('data-period');
