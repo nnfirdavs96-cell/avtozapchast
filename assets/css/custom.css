@@ -4270,6 +4270,61 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 .sl-shop-meta { color: #8a8a95; font-size: .86rem; margin: 3px 0 0; }
 .sl-shop-desc { color: #55555f; font-size: .88rem; margin: 8px 0 0; }
 
+/* ═══ Финансовая часть (статистика магазина) ═══════════════════════════════
+   Карточки переиспользуют .sl-stats/.sl-stat — вид 1:1 с существующими. */
+.sl-fin-block { margin: 0 0 22px; }
+.sl-fin-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.sl-fin-h { font-size: 1rem; font-weight: 800; color: #23242b; margin: 0; }   /* как заголовок .sl-how h3 */
+.sl-fin-periods { display: flex; gap: 6px; flex-wrap: wrap; }
+.sl-per { padding: 7px 13px; border-radius: 9px; background: #fff; border: 1px solid #e7e7ee; color: #4a4a55; font-weight: 600; font-size: .82rem; cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
+.sl-per:hover { border-color: #C70909; color: #C70909; }
+.sl-per--active { background: #C70909; border-color: #C70909; color: #fff; }   /* активный — красный, как в меню */
+.sl-fin-sub { display: block; font-size: .8rem; color: #1f8a3b; font-weight: 700; margin-top: 4px; }  /* сумма под «Оплаты» */
+.sl-fin-block.is-busy .sl-fin-stats { opacity: .5; transition: opacity .15s; }
+
+/* Бейдж непрочитанных в навигации кабинета */
+.sl-nav-badge { display: inline-block; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #C70909; color: #fff; font-size: .72rem; font-weight: 700; line-height: 18px; text-align: center; }
+.sl-nav a.active .sl-nav-badge { background: #fff; color: #C70909; }
+
+/* Сообщения кабинета (переписка с покупателями) */
+.sl-msg { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
+.sl-msg-list { background: #fff; border: 1px solid #e7e7ee; border-radius: 14px; overflow: hidden; }
+.sl-msg-thread { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 14px; border-bottom: 1px solid #f0f0f4; color: #33343b; text-decoration: none; font-size: .88rem; }
+.sl-msg-thread:last-child { border-bottom: 0; }
+.sl-msg-thread:hover { background: #f8f8fb; }
+.sl-msg-thread.is-active { background: #fdeeee; }
+.sl-msg-name { font-weight: 700; flex: 1 1 auto; }
+.sl-msg-when { width: 100%; color: #9a9aa3; font-size: .74rem; }
+.sl-msg-conv { background: #fff; border: 1px solid #e7e7ee; border-radius: 14px; display: flex; flex-direction: column; min-height: 360px; }
+.sl-msg-conv-head { padding: 14px 18px; border-bottom: 1px solid #f0f0f4; font-weight: 800; color: #23242b; }
+.sl-msg-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; max-height: 460px; overflow-y: auto; }
+.sl-bubble { max-width: 78%; padding: 9px 13px; border-radius: 12px; font-size: .88rem; line-height: 1.5; }
+.sl-bubble-when { font-size: .7rem; color: #9a9aa3; margin-top: 4px; }
+.sl-bubble--them { align-self: flex-start; background: #f1f2f5; color: #33343b; border-bottom-left-radius: 4px; }
+.sl-bubble--me { align-self: flex-end; background: #C70909; color: #fff; border-bottom-right-radius: 4px; }
+.sl-bubble--me .sl-bubble-when { color: rgba(255,255,255,.8); }
+.sl-msg-form { display: flex; gap: 10px; padding: 14px 18px; border-top: 1px solid #f0f0f4; align-items: flex-end; }
+.sl-msg-form textarea { flex: 1 1 auto; border: 1px solid #dcdce3; border-radius: 10px; padding: 10px 12px; font-size: .88rem; resize: vertical; font-family: inherit; }
+
+/* «Написать продавцу» на странице товара */
+.pd-msg-seller { margin: 10px 0 4px; }
+.pd-msg-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 15px; border-radius: 9px; background: #fff; border: 1.5px solid #d9d9e1; color: #4a4a55; font-weight: 700; font-size: .85rem; cursor: pointer; text-decoration: none; transition: all .15s; }
+.pd-msg-btn:hover { border-color: #C70909; color: #C70909; }
+.pd-msg-form { margin-top: 10px; max-width: 460px; }
+.pd-msg-form textarea { width: 100%; border: 1px solid #dcdce3; border-radius: 10px; padding: 10px 12px; font-size: .88rem; font-family: inherit; resize: vertical; }
+.pd-msg-actions { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.pd-msg-status { font-size: .82rem; color: #1f8a3b; }
+
+@media (min-width: 992px) {
+    /* Кнопки меню кабинета — в одну строку: теснее отступы под добавленный пункт. */
+    .sl-nav { gap: 5px; flex-wrap: nowrap; }
+    .sl-nav a { padding: 8px 10px; font-size: .82rem; white-space: nowrap; }
+}
+@media (max-width: 767px) {
+    .sl-msg { grid-template-columns: 1fr; }
+    .sl-fin-periods { width: 100%; }
+}
+
 /* ═══ Кабинет продавца — заказы (маркетплейс, Фаза 2) ═══════════════════════ */
 .sl-order {
     background: #fff; border: 1px solid #e7e7ee; border-radius: 14px;

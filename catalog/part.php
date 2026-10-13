@@ -38,6 +38,13 @@ if (strpos($_SERVER['REQUEST_URI'] ?? '', '/catalog/part.php') !== false) {
     exit;
 }
 
+// Учёт посещения: страница товара продавца = просмотр для этого продавца
+// (товары нашего каталога с seller_id=NULL не считаем). Дедуп/боты — внутри.
+if (!empty($part['seller_id'])) {
+    require_once dirname(__DIR__) . '/includes/seller_stats.php';
+    recordSellerView($db, (int)$part['seller_id'], (int)$part['id']);
+}
+
 // Предложения этой карточки — кто ещё продаёт ту же деталь.
 // Номер карточки берём у открытого предложения: покупатель мог прийти по ссылке
 // на любое из них, и все они должны показывать один и тот же список.
@@ -298,6 +305,25 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 </span>
                                 <?php endif; ?>
                             </div>
+
+                            <?php if (!empty($part['seller_id'])): ?>
+                            <!-- Написать продавцу (переписка). Для гостей — вход. -->
+                            <div class="pd-msg-seller" data-seller="<?= (int)$part['seller_id'] ?>" data-part="<?= (int)$part['id'] ?>">
+                              <?php if (isLoggedIn()): ?>
+                              <button type="button" class="pd-msg-btn"><i class="fa fa-comments-o"></i> Написать продавцу</button>
+                              <form class="pd-msg-form" style="display:none;">
+                                <input type="hidden" name="_csrf" value="<?= generateCsrfToken() ?>">
+                                <textarea name="body" rows="2" maxlength="4000" placeholder="Вопрос продавцу о товаре…" required></textarea>
+                                <div class="pd-msg-actions">
+                                  <button type="submit" class="sl-btn sl-btn-primary sl-btn-sm"><i class="fa fa-paper-plane"></i> Отправить</button>
+                                  <span class="pd-msg-status"></span>
+                                </div>
+                              </form>
+                              <?php else: ?>
+                              <a href="<?= APP_URL ?>/auth/login.php?redirect=<?= urlencode($_SERVER['REQUEST_URI'] ?? '') ?>" class="pd-msg-btn"><i class="fa fa-comments-o"></i> Написать продавцу</a>
+                              <?php endif; ?>
+                            </div>
+                            <?php endif; ?>
 
                             <?php $pDisc = discountPercent($part); ?>
                             <div class="price_box">
@@ -762,6 +788,43 @@ require_once dirname(__DIR__) . '/includes/header.php';
 <!--product details area end-->
 
 <script>
+// «Написать продавцу»: раскрыть форму и отправить сообщение без перезагрузки.
+(function(){
+    var box = document.querySelector('.pd-msg-seller'); if (!box) return;
+    var btn = box.querySelector('button.pd-msg-btn');
+    var form = box.querySelector('.pd-msg-form');
+    if (btn && form) {
+        btn.addEventListener('click', function(){
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            if (form.style.display === 'block') { var t=form.querySelector('textarea'); if(t) t.focus(); }
+        });
+        form.addEventListener('submit', function(e){
+            e.preventDefault();
+            var status = form.querySelector('.pd-msg-status');
+            var body = form.querySelector('textarea').value.trim();
+            if (!body) return;
+            var data = new FormData();
+            data.append('_csrf', form.querySelector('[name=_csrf]').value);
+            data.append('seller_id', box.getAttribute('data-seller'));
+            data.append('part_id', box.getAttribute('data-part'));
+            data.append('body', body);
+            if (status) status.textContent = 'Отправка…';
+            fetch('<?= APP_URL ?>/api/seller_message.php', { method:'POST', body:data, credentials:'same-origin' })
+                .then(function(r){ return r.json(); })
+                .then(function(d){
+                    if (d && d.ok) {
+                        form.reset();
+                        if (status) status.textContent = 'Сообщение отправлено ✓';
+                        setTimeout(function(){ form.style.display='none'; if(status) status.textContent=''; }, 2500);
+                    } else {
+                        if (status) status.textContent = (d && d.msg) ? d.msg : 'Не удалось отправить.';
+                    }
+                })
+                .catch(function(){ if (status) status.textContent = 'Ошибка сети.'; });
+        });
+    }
+})();
+
 // Add to cart via form interception (for qty sync)
 var cartForm = document.getElementById('add-cart-form');
 if (cartForm) {
