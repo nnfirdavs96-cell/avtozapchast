@@ -89,6 +89,9 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
         </div>
       </div>
 
+      <!-- Финансовая часть — сводная статистика по всем продавцам -->
+      <?php require dirname(__DIR__) . '/includes/admin_finance_block.php'; ?>
+
       <!-- Recent orders -->
       <div class="az-card">
         <div class="az-card-header">
