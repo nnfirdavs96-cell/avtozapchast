@@ -117,6 +117,9 @@ function formatBytes($bytes, $precision = 1): string {
         </div>
       </div>
 
+      <!-- Финансовая часть — сводная статистика по всем продавцам -->
+      <?php require dirname(__DIR__) . '/includes/admin_finance_block.php'; ?>
+
       <!-- System info + Recent users -->
       <div class="row">
         <!-- System info -->
