@@ -205,6 +205,89 @@ function sellerStatsAll(PDO $db, string $period): array
     return $out;
 }
 
+/**
+ * Посещения по дням за последние $days дней (заполняя нули).
+ * $sellerId = null → по всем продавцам (для админки).
+ * Возвращает список ['d' => 'Y-m-d', 'c' => int] по возрастанию даты.
+ */
+function sellerVisitsSeries(PDO $db, ?int $sellerId, int $days = 30): array
+{
+    $days = max(1, min($days, 90));
+    $from = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
+
+    $map = [];
+    try {
+        $sql = "SELECT DATE(created_at) d, COUNT(*) c FROM seller_views WHERE created_at >= ?";
+        $args = [$from . ' 00:00:00'];
+        if ($sellerId !== null) { $sql .= " AND seller_id = ?"; $args[] = $sellerId; }
+        $sql .= " GROUP BY DATE(created_at)";
+        $st = $db->prepare($sql);
+        $st->execute($args);
+        foreach ($st as $r) { $map[(string)$r['d']] = (int)$r['c']; }
+    } catch (Throwable $e) { /* нет таблицы — вернём нули */ }
+
+    $out = [];
+    for ($i = $days - 1; $i >= 0; $i--) {
+        $d = date('Y-m-d', strtotime("-$i days"));
+        $out[] = ['d' => $d, 'c' => $map[$d] ?? 0];
+    }
+    return $out;
+}
+
+/**
+ * Inline-SVG столбчатый график посещений по дням (без внешних библиотек).
+ * $series — результат sellerVisitsSeries(). Масштабируется по ширине контейнера.
+ */
+function visitsChartHtml(array $series, string $caption = 'Посещения по дням (30 дней)'): string
+{
+    $n = count($series);
+    $total = 0; $max = 0;
+    foreach ($series as $p) { $total += $p['c']; if ($p['c'] > $max) $max = $p['c']; }
+
+    $head = '<div class="sl-chart"><div class="sl-chart-cap">' . htmlspecialchars($caption, ENT_QUOTES)
+          . ' <span class="sl-chart-sum">· всего ' . (int)$total . '</span></div>';
+
+    if ($n === 0 || $total === 0) {
+        return $head . '<div class="sl-chart-empty">Пока нет посещений за этот период.</div></div>';
+    }
+
+    // Геометрия в координатах viewBox (масштабируется под ширину).
+    $W = 720; $H = 190; $padL = 34; $padR = 10; $padT = 14; $padB = 26;
+    $plotW = $W - $padL - $padR;
+    $plotH = $H - $padT - $padB;
+    $slot  = $plotW / $n;
+    $bw    = max(2, $slot * 0.64);
+    $scaleMax = max(1, $max);
+    $today = date('Y-m-d');
+
+    $svg = '<svg class="sl-chart-svg" viewBox="0 0 ' . $W . ' ' . $H . '" preserveAspectRatio="none" role="img" aria-label="' . htmlspecialchars($caption, ENT_QUOTES) . '">';
+    // Базовая линия и верхняя подпись-максимум.
+    $yBase = $padT + $plotH;
+    $svg .= '<line x1="' . $padL . '" y1="' . $yBase . '" x2="' . ($W - $padR) . '" y2="' . $yBase . '" class="sl-chart-axis"/>';
+    $svg .= '<line x1="' . $padL . '" y1="' . $padT . '" x2="' . ($W - $padR) . '" y2="' . $padT . '" class="sl-chart-grid"/>';
+    $svg .= '<text x="' . ($padL - 6) . '" y="' . ($padT + 4) . '" class="sl-chart-yl" text-anchor="end">' . $scaleMax . '</text>';
+    $svg .= '<text x="' . ($padL - 6) . '" y="' . ($yBase + 4) . '" class="sl-chart-yl" text-anchor="end">0</text>';
+
+    $labelEvery = (int)ceil($n / 8);  // ~8 подписей по оси X
+    foreach ($series as $i => $p) {
+        $x = $padL + $i * $slot + ($slot - $bw) / 2;
+        $h = $p['c'] > 0 ? ($p['c'] / $scaleMax) * $plotH : 0;
+        $y = $yBase - $h;
+        $cls = $p['d'] === $today ? 'sl-bar sl-bar--today' : 'sl-bar';
+        $dLabel = date('d.m', strtotime($p['d']));
+        $svg .= '<rect class="' . $cls . '" x="' . round($x, 1) . '" y="' . round($y, 1)
+              . '" width="' . round($bw, 1) . '" height="' . round($h, 1) . '" rx="2">'
+              . '<title>' . $dLabel . ' — ' . (int)$p['c'] . '</title></rect>';
+        if ($i % $labelEvery === 0) {
+            $tx = $padL + $i * $slot + $slot / 2;
+            $svg .= '<text x="' . round($tx, 1) . '" y="' . ($H - 8) . '" class="sl-chart-xl" text-anchor="middle">' . $dLabel . '</text>';
+        }
+    }
+    $svg .= '</svg>';
+
+    return $head . $svg . '</div>';
+}
+
 /* ── Переписка покупатель ↔ продавец ──────────────────────────────────────── */
 
 /** Записать сообщение в ветку (продавец, покупатель). Возвращает id или 0. */
