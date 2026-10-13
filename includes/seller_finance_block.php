@@ -43,6 +43,8 @@ $finInit = sellerStats($db, (int)$sid, '30d');   // стартовые цифр�
       <span class="sl-stat-l">Сообщения от покупателей</span>
     </div>
   </div>
+
+  <?= visitsChartHtml(sellerVisitsSeries($db, (int)$sid, 30)) ?>
 </div>
 
 <script>

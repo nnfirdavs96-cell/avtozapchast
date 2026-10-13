@@ -40,6 +40,8 @@ $finInit = sellerStatsAll($db, '30d');
       <span class="sl-stat-l">Сообщения покупателей</span>
     </div>
   </div>
+
+  <?= visitsChartHtml(sellerVisitsSeries($db, null, 30), 'Посещения магазинов по дням (30 дней)') ?>
 </div>
 
 <script>
