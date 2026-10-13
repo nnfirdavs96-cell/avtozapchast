@@ -232,7 +232,7 @@ function visitsChartData(PDO $db, ?int $sellerId, string $period): array
         $cur = (int)date('G'); $points = [];
         for ($h = 0; $h < 24; $h++) {
             $c = $map[$h] ?? 0;
-            $points[] = ['label' => sprintf('%02d', $h), 'c' => $c, 'tip' => sprintf('%02d:00 — %d', $h, $c), 'hl' => $h === $cur];
+            $points[] = ['key' => sprintf('%02d:00', $h), 'label' => sprintf('%02d', $h), 'c' => $c, 'tip' => sprintf('%02d:00 — %d', $h, $c), 'hl' => $h === $cur];
         }
         return ['points' => $points, 'caption' => 'Посещения по часам (сегодня)'];
     }
@@ -267,7 +267,7 @@ function visitsChartData(PDO $db, ?int $sellerId, string $period): array
         $d = date('Y-m-d', strtotime("-$i days"));
         $c = $map[$d] ?? 0;
         $lab = date('d.m', strtotime($d));
-        $points[] = ['label' => $lab, 'c' => $c, 'tip' => $lab . ' — ' . $c, 'hl' => $d === $today];
+        $points[] = ['key' => $d, 'label' => $lab, 'c' => $c, 'tip' => $lab . ' — ' . $c, 'hl' => $d === $today];
     }
 
     if ($period === '7d')  $cap = 'Посещения по дням (7 дней)';
