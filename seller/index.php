@@ -82,6 +82,9 @@ require_once dirname(__DIR__) . '/includes/header.php';
       <?php endif; ?>
     </div>
 
+    <!-- Финансовая часть (статистика магазина) -->
+    <?php require dirname(__DIR__) . '/includes/seller_finance_block.php'; ?>
+
     <!-- Действие -->
     <div class="sl-actions">
       <?php if ($approved): ?>

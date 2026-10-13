@@ -54,6 +54,9 @@ require_once dirname(__DIR__) . '/includes/header.php';
       <?php require dirname(__DIR__) . '/includes/seller_nav.php'; ?>
     </div>
 
+    <!-- Финансовая часть (статистика магазина) — наверху, остальное ниже без изменений -->
+    <?php require dirname(__DIR__) . '/includes/seller_finance_block.php'; ?>
+
     <?php if (!$ready): ?>
     <div class="sl-alert sl-alert-err">
       Раздел финансов ещё не активирован администратором. Обратитесь в поддержку.

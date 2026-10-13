@@ -21,6 +21,11 @@ if (!$seller) {
 }
 
 $sid  = (int)$seller['id'];
+
+// Учёт посещения страницы магазина (part_id=NULL). Дедуп/боты — внутри.
+require_once __DIR__ . '/includes/seller_stats.php';
+recordSellerView($db, $sid, null);
+
 $page = max(1, (int)($_GET['page'] ?? 1));
 $per  = 12;
 $off  = ($page - 1) * $per;
