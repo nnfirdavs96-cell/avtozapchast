@@ -206,81 +206,122 @@ function sellerStatsAll(PDO $db, string $period): array
 }
 
 /**
- * Посещения по дням за последние $days дней (заполняя нули).
- * $sellerId = null → по всем продавцам (для админки).
- * Возвращает список ['d' => 'Y-m-d', 'c' => int] по возрастанию даты.
+ * Данные для графика посещений — ПРИВЯЗАНЫ к периоду переключателя:
+ *   • today → по часам (0..23), выделен текущий час;
+ *   • 7d    → по дням, 7 столбцов;
+ *   • 30d   → по дням, 30 столбцов;
+ *   • all   → по дням от первого посещения (до 90 последних дней).
+ * $sellerId = null → по всем продавцам (админка).
+ * Возвращает ['points' => [['label','c','tip','hl'], …], 'caption' => str].
  */
-function sellerVisitsSeries(PDO $db, ?int $sellerId, int $days = 30): array
+function visitsChartData(PDO $db, ?int $sellerId, string $period): array
 {
-    $days = max(1, min($days, 90));
-    $from = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
+    $period = ssNormPeriod($period);
+    $cond   = $sellerId !== null ? ' AND seller_id = ?' : '';
+    $extra  = $sellerId !== null ? [$sellerId] : [];
 
+    // ── Сегодня: по часам ─────────────────────────────────────────────────
+    if ($period === 'today') {
+        $map = [];
+        try {
+            $st = $db->prepare("SELECT HOUR(created_at) h, COUNT(*) c FROM seller_views
+                                WHERE created_at >= ?$cond GROUP BY HOUR(created_at)");
+            $st->execute(array_merge([date('Y-m-d 00:00:00')], $extra));
+            foreach ($st as $r) { $map[(int)$r['h']] = (int)$r['c']; }
+        } catch (Throwable $e) {}
+        $cur = (int)date('G'); $points = [];
+        for ($h = 0; $h < 24; $h++) {
+            $c = $map[$h] ?? 0;
+            $points[] = ['label' => sprintf('%02d', $h), 'c' => $c, 'tip' => sprintf('%02d:00 — %d', $h, $c), 'hl' => $h === $cur];
+        }
+        return ['points' => $points, 'caption' => 'Посещения по часам (сегодня)'];
+    }
+
+    // ── По дням ───────────────────────────────────────────────────────────
+    $capped = false;
+    if ($period === '7d') { $days = 7; }
+    elseif ($period === 'all') {
+        $min = null;
+        try {
+            $st = $db->prepare("SELECT MIN(created_at) m FROM seller_views WHERE 1=1$cond");
+            $st->execute($extra); $min = $st->fetchColumn();
+        } catch (Throwable $e) {}
+        if (!$min) return ['points' => [], 'caption' => 'Посещения по дням (всё время)'];
+        $span = (int)floor((time() - strtotime($min)) / 86400) + 1;
+        $days = max(1, min($span, 90));
+        $capped = $span > 90;
+    }
+    else { $days = 30; }
+
+    $from = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
     $map = [];
     try {
-        $sql = "SELECT DATE(created_at) d, COUNT(*) c FROM seller_views WHERE created_at >= ?";
-        $args = [$from . ' 00:00:00'];
-        if ($sellerId !== null) { $sql .= " AND seller_id = ?"; $args[] = $sellerId; }
-        $sql .= " GROUP BY DATE(created_at)";
-        $st = $db->prepare($sql);
-        $st->execute($args);
+        $st = $db->prepare("SELECT DATE(created_at) d, COUNT(*) c FROM seller_views
+                            WHERE created_at >= ?$cond GROUP BY DATE(created_at)");
+        $st->execute(array_merge([$from . ' 00:00:00'], $extra));
         foreach ($st as $r) { $map[(string)$r['d']] = (int)$r['c']; }
-    } catch (Throwable $e) { /* нет таблицы — вернём нули */ }
+    } catch (Throwable $e) {}
 
-    $out = [];
+    $today = date('Y-m-d'); $points = [];
     for ($i = $days - 1; $i >= 0; $i--) {
         $d = date('Y-m-d', strtotime("-$i days"));
-        $out[] = ['d' => $d, 'c' => $map[$d] ?? 0];
+        $c = $map[$d] ?? 0;
+        $lab = date('d.m', strtotime($d));
+        $points[] = ['label' => $lab, 'c' => $c, 'tip' => $lab . ' — ' . $c, 'hl' => $d === $today];
     }
-    return $out;
+
+    if ($period === '7d')  $cap = 'Посещения по дням (7 дней)';
+    elseif ($period === 'all') $cap = $capped ? 'Посещения по дням (последние 90 дней)' : 'Посещения по дням (всё время)';
+    else $cap = 'Посещения по дням (30 дней)';
+
+    return ['points' => $points, 'caption' => $cap];
 }
 
 /**
- * Inline-SVG столбчатый график посещений по дням (без внешних библиотек).
- * $series — результат sellerVisitsSeries(). Масштабируется по ширине контейнера.
+ * Inline-SVG столбчатый график (без внешних библиотек). Масштабируется по ширине.
+ * $points — ['label','c','tip','hl'] (см. visitsChartData). $hl=true — акцентный столбик.
  */
-function visitsChartHtml(array $series, string $caption = 'Посещения по дням (30 дней)'): string
+function visitsChartHtml(array $points, string $caption = 'Посещения по дням'): string
 {
-    $n = count($series);
+    $n = count($points);
     $total = 0; $max = 0;
-    foreach ($series as $p) { $total += $p['c']; if ($p['c'] > $max) $max = $p['c']; }
+    foreach ($points as $p) { $total += $p['c']; if ($p['c'] > $max) $max = $p['c']; }
 
-    $head = '<div class="sl-chart"><div class="sl-chart-cap">' . htmlspecialchars($caption, ENT_QUOTES)
+    $cap = htmlspecialchars($caption, ENT_QUOTES);
+    $head = '<div class="sl-chart"><div class="sl-chart-cap">' . $cap
           . ' <span class="sl-chart-sum">· всего ' . (int)$total . '</span></div>';
 
     if ($n === 0 || $total === 0) {
         return $head . '<div class="sl-chart-empty">Пока нет посещений за этот период.</div></div>';
     }
 
-    // Геометрия в координатах viewBox (масштабируется под ширину).
     $W = 720; $H = 190; $padL = 34; $padR = 10; $padT = 14; $padB = 26;
     $plotW = $W - $padL - $padR;
     $plotH = $H - $padT - $padB;
     $slot  = $plotW / $n;
     $bw    = max(2, $slot * 0.64);
     $scaleMax = max(1, $max);
-    $today = date('Y-m-d');
-
-    $svg = '<svg class="sl-chart-svg" viewBox="0 0 ' . $W . ' ' . $H . '" preserveAspectRatio="none" role="img" aria-label="' . htmlspecialchars($caption, ENT_QUOTES) . '">';
-    // Базовая линия и верхняя подпись-максимум.
     $yBase = $padT + $plotH;
+
+    $svg = '<svg class="sl-chart-svg" viewBox="0 0 ' . $W . ' ' . $H . '" preserveAspectRatio="none" role="img" aria-label="' . $cap . '">';
     $svg .= '<line x1="' . $padL . '" y1="' . $yBase . '" x2="' . ($W - $padR) . '" y2="' . $yBase . '" class="sl-chart-axis"/>';
     $svg .= '<line x1="' . $padL . '" y1="' . $padT . '" x2="' . ($W - $padR) . '" y2="' . $padT . '" class="sl-chart-grid"/>';
     $svg .= '<text x="' . ($padL - 6) . '" y="' . ($padT + 4) . '" class="sl-chart-yl" text-anchor="end">' . $scaleMax . '</text>';
     $svg .= '<text x="' . ($padL - 6) . '" y="' . ($yBase + 4) . '" class="sl-chart-yl" text-anchor="end">0</text>';
 
     $labelEvery = (int)ceil($n / 8);  // ~8 подписей по оси X
-    foreach ($series as $i => $p) {
+    foreach ($points as $i => $p) {
         $x = $padL + $i * $slot + ($slot - $bw) / 2;
         $h = $p['c'] > 0 ? ($p['c'] / $scaleMax) * $plotH : 0;
         $y = $yBase - $h;
-        $cls = $p['d'] === $today ? 'sl-bar sl-bar--today' : 'sl-bar';
-        $dLabel = date('d.m', strtotime($p['d']));
+        $cls = !empty($p['hl']) ? 'sl-bar sl-bar--today' : 'sl-bar';
         $svg .= '<rect class="' . $cls . '" x="' . round($x, 1) . '" y="' . round($y, 1)
               . '" width="' . round($bw, 1) . '" height="' . round($h, 1) . '" rx="2">'
-              . '<title>' . $dLabel . ' — ' . (int)$p['c'] . '</title></rect>';
+              . '<title>' . htmlspecialchars((string)$p['tip'], ENT_QUOTES) . '</title></rect>';
         if ($i % $labelEvery === 0) {
             $tx = $padL + $i * $slot + $slot / 2;
-            $svg .= '<text x="' . round($tx, 1) . '" y="' . ($H - 8) . '" class="sl-chart-xl" text-anchor="middle">' . $dLabel . '</text>';
+            $svg .= '<text x="' . round($tx, 1) . '" y="' . ($H - 8) . '" class="sl-chart-xl" text-anchor="middle">'
+                  . htmlspecialchars((string)$p['label'], ENT_QUOTES) . '</text>';
         }
     }
     $svg .= '</svg>';

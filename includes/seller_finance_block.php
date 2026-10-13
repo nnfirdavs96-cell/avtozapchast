@@ -11,7 +11,8 @@ if (!isset($sid))  { $sid = 0; }
 if (!isset($db))   { $db  = getDB(); }
 require_once dirname(__DIR__) . '/includes/seller_stats.php';
 
-$finInit = sellerStats($db, (int)$sid, '30d');   // стартовые цифры — серверно
+$finInit   = sellerStats($db, (int)$sid, '30d');   // стартовые цифры — серверно
+$chartInit = visitsChartData($db, (int)$sid, '30d');
 ?>
 <div class="sl-fin-block" data-endpoint="<?= APP_URL ?>/api/seller_stats.php">
   <div class="sl-fin-top">
@@ -44,7 +45,7 @@ $finInit = sellerStats($db, (int)$sid, '30d');   // стартовые цифр�
     </div>
   </div>
 
-  <?= visitsChartHtml(sellerVisitsSeries($db, (int)$sid, 30)) ?>
+  <div class="sl-chart-host"><?= visitsChartHtml($chartInit['points'], $chartInit['caption']) ?></div>
 </div>
 
 <script>
@@ -77,6 +78,8 @@ $finInit = sellerStats($db, (int)$sid, '30d');   // стартовые цифр�
         if (d && d.ok){
           apply({ visits: d.visits, orders: d.orders, pay_count: d.pay_count,
                   pay_sum: d.pay_sum_html, messages: d.messages });
+          var host = block.querySelector('.sl-chart-host');
+          if (host && typeof d.chart_html === 'string') host.innerHTML = d.chart_html;  // график за период
         }
       })
       .catch(function(){})

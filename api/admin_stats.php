@@ -15,6 +15,7 @@ if (!isLoggedIn() || !in_array($_SESSION['role'] ?? '', ['admin', 'superadmin'],
 $db     = getDB();
 $period = ssNormPeriod(is_scalar($_GET['period'] ?? null) ? (string)$_GET['period'] : '30d');
 $s      = sellerStatsAll($db, $period);
+$chart  = visitsChartData($db, null, $period);
 
 echo json_encode([
     'ok'           => true,
@@ -25,4 +26,5 @@ echo json_encode([
     'pay_sum'      => (float)$s['pay_sum'],
     'pay_sum_html' => formatPrice($s['pay_sum']),
     'messages'     => (int)$s['messages'],
+    'chart_html'   => visitsChartHtml($chart['points'], $chart['caption']),
 ], JSON_UNESCAPED_UNICODE);
