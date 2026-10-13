@@ -157,6 +157,54 @@ function sellerStats(PDO $db, int $sellerId, string $period): array
     return $out;
 }
 
+/**
+ * То же, но СУММАРНО по всем продавцам (для админки).
+ * Возвращает ['visits','orders','pay_count','pay_sum','messages','sellers'].
+ * Учитываем только подзаказы реальных продавцов (seller_id IS NOT NULL) —
+ * позиции нашего каталога (seller_id=NULL) к продавцам не относятся.
+ */
+function sellerStatsAll(PDO $db, string $period): array
+{
+    $period = ssNormPeriod($period);
+    $from   = ssPeriodStart($period);
+    $out = ['visits' => 0, 'orders' => 0, 'pay_count' => 0, 'pay_sum' => 0.0, 'messages' => 0, 'sellers' => 0];
+
+    try {
+        $sql = "SELECT COUNT(*) FROM seller_views" . ($from ? " WHERE created_at >= ?" : "");
+        $st = $db->prepare($sql); $st->execute($from ? [$from] : []);
+        $out['visits'] = (int)$st->fetchColumn();
+    } catch (Throwable $e) {}
+
+    try {
+        $sql = "SELECT COUNT(*) FROM order_sellers WHERE seller_id IS NOT NULL AND status <> 'cancelled'"
+             . ($from ? " AND created_at >= ?" : "");
+        $st = $db->prepare($sql); $st->execute($from ? [$from] : []);
+        $out['orders'] = (int)$st->fetchColumn();
+    } catch (Throwable $e) {}
+
+    try {
+        $sql = "SELECT COUNT(*) c, COALESCE(SUM(os.subtotal),0) s
+                  FROM order_sellers os JOIN orders o ON o.id = os.order_id
+                 WHERE os.seller_id IS NOT NULL AND os.status <> 'cancelled' AND o.payment_status = 'paid'"
+             . ($from ? " AND COALESCE(o.paid_at, os.created_at) >= ?" : "");
+        $st = $db->prepare($sql); $st->execute($from ? [$from] : []);
+        if ($r = $st->fetch()) { $out['pay_count'] = (int)$r['c']; $out['pay_sum'] = (float)$r['s']; }
+    } catch (Throwable $e) {}
+
+    try {
+        $sql = "SELECT COUNT(*) FROM seller_messages WHERE sender = 'buyer'"
+             . ($from ? " AND created_at >= ?" : "");
+        $st = $db->prepare($sql); $st->execute($from ? [$from] : []);
+        $out['messages'] = (int)$st->fetchColumn();
+    } catch (Throwable $e) {}
+
+    try {
+        $out['sellers'] = (int)$db->query("SELECT COUNT(*) FROM sellers WHERE status = 'approved'")->fetchColumn();
+    } catch (Throwable $e) {}
+
+    return $out;
+}
+
 /* ── Переписка покупатель ↔ продавец ──────────────────────────────────────── */
 
 /** Записать сообщение в ветку (продавец, покупатель). Возвращает id или 0. */
