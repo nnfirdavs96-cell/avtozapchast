@@ -90,6 +90,12 @@ if (!is_array($images)) $images = [];
 
 $mainImage = !empty($images[0]) ? productImageUrl($images, 0) : APP_URL . '/assets/img/product/product1.jpg';
 
+// Полный список URL изображений для лайтбокса (просмотр во весь экран).
+// Если своих фото нет — показываем заглушку, чтобы клик всё равно работал.
+$galleryUrls = [];
+foreach (array_keys($images) as $gi) { $galleryUrls[] = productImageUrl($images, $gi); }
+if (!$galleryUrls) $galleryUrls = [$mainImage];
+
 // Approved reviews + aggregate rating
 $reviews   = [];
 $myReview  = null;
@@ -203,13 +209,19 @@ require_once dirname(__DIR__) . '/includes/header.php';
                 <div class="col-lg-5 col-md-6">
                     <div class="product-details-tab">
                         <div id="img-1" class="zoomWrapper single-zoom">
-                            <a href="#">
+                            <a href="<?= sanitize($mainImage) ?>" class="pd-zoom-link">
                                 <img id="zoom1"
                                      src="<?= sanitize($mainImage) ?>"
                                      data-zoom-image="<?= sanitize($mainImage) ?>"
                                      alt="<?= sanitize($part['name']) ?>">
                             </a>
+                            <!-- Кнопка «во весь экран»: elevateZoom накрывает фото своим
+                                 слоем и глотает клик, поэтому даём явную кнопку поверх. -->
+                            <button type="button" class="pd-zoom-btn" aria-label="Открыть фото во весь экран">
+                                <i class="fa fa-expand"></i>
+                            </button>
                         </div>
+                        <script>window.__pdImages = <?= json_encode($galleryUrls, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;</script>
                         <?php if (count($images) > 1): ?>
                         <div class="single-zoom-thumb">
                             <ul class="s-tab-zoom owl-carousel single-product-active" id="gallery_01">
