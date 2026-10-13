@@ -228,11 +228,6 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
         </div>
         <!-- /header top -->
 
-        <!-- Липкий блок: при прокрутке ОБЕ строки (middle + nav) прилипают
-             вместе и выглядят ровно как обычная шапка (логотип, поиск, иконки,
-             категории, меню, телефон). Прилипание включает JS ниже (класс .stuck).
-             Полоса-подложка держит высоту, чтобы контент не прыгал. -->
-        <div class="header_main_sticky">
         <!-- header middle -->
         <div class="header_middle">
             <div class="container">
@@ -373,7 +368,7 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
         <!-- /header middle -->
 
         <!-- nav -->
-        <div class="header_bottom">
+        <div class="header_bottom sticky-header">
             <div class="container">
                 <div class="row align-items-center">
                     <div class="col-lg-3">
@@ -556,56 +551,28 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
             </div>
         </div>
         <!-- /nav -->
-        </div><!-- /header_main_sticky -->
     </div>
 </header>
 <script>
-/* Липкая шапка: при прокрутке блок .header_main_sticky (строка с логотипом/
-   поиском/иконками + строка с категориями/меню/телефоном) фиксируется у верха
-   и выглядит ровно как обычная шапка — никаких изменений стилей внутри.
-   .header_top (язык/вход) и полоса категорий остаются вне блока и уходят вверх. */
+/* Подложка под липкой полосой: тема делает .header_bottom position:fixed по
+   классу .sticky при прокрутке — из-за этого контент прыгал вверх, а под
+   полосой торчали обрезанные элементы. Резервируем высоту прилипшей полосы
+   (меню + строка поиска). Только десктоп (≥992px), где тема и прилепляет. */
 (function(){
-    var wrap = document.querySelector('.header_main_sticky');
-    if (!wrap) return;
-
-    // Подложка держит высоту блока, когда он выходит из потока (position:fixed) —
-    // иначе контент под шапкой прыгнул бы вверх.
-    var spacer = document.createElement('div');
-    spacer.className = 'header_main_spacer';
-    wrap.parentNode.insertBefore(spacer, wrap.nextSibling);
-
-    // Только десктоп (≥992px): на планшете/мобиле тема шапку не прилепляла — не меняем.
+    var hb = document.querySelector('.header_bottom.sticky-header');
+    if (!hb) return;
     var mq = window.matchMedia('(min-width: 992px)');
-    var startY = 0, stuck = false;
-    function unstick(){
-        if (!stuck) return;
-        wrap.classList.remove('stuck');
-        spacer.style.height = '0';
-        stuck = false;
+    var spacer = document.createElement('div');
+    spacer.className = 'sticky_header_spacer';
+    hb.parentNode.insertBefore(spacer, hb.nextSibling);
+    function sync(){
+        var on = hb.classList.contains('sticky') && mq.matches;
+        spacer.style.height = on ? hb.offsetHeight + 'px' : '0';
     }
-    function measure(){
-        // Y документа, с которого блок начинается (= высота .header_top над ним).
-        if (!stuck) startY = wrap.getBoundingClientRect().top + window.pageYOffset;
-    }
-    function onScroll(){
-        if (!mq.matches) { unstick(); return; }
-        var y = window.pageYOffset;
-        if (!stuck && y > startY) {
-            spacer.style.height = wrap.offsetHeight + 'px';
-            wrap.classList.add('stuck');
-            stuck = true;
-        } else if (stuck && y <= startY) {
-            unstick();
-            measure();
-        }
-    }
-    measure();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', function(){
-        if (!mq.matches) { unstick(); return; }
-        if (stuck) spacer.style.height = wrap.offsetHeight + 'px';
-        else measure();
-    });
-    onScroll();
+    window.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync);
+    // класс .sticky ставит тема по скроллу — ловим его смену и синхронизируем.
+    if (window.MutationObserver) new MutationObserver(sync).observe(hb, { attributes: true, attributeFilter: ['class'] });
+    sync();
 })();
 </script>

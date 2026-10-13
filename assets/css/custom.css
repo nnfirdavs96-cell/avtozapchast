@@ -1117,26 +1117,6 @@ html, body { overflow-x: clip; }
 .header_phone p { margin: 0; color: #fff; font-size: 13px; }
 .header_phone a { color: #C70909; }
 
-/* ══════════════════════════════════════════════════════════════════════
-   ЛИПКАЯ ШАПКА — прилипают ОБЕ строки (middle + nav) единым блоком и
-   выглядят РОВНО как обычная шапка. Стили строк внутри НЕ меняем: при
-   прокрутке блок просто фиксируется у верха. Класс .stuck ставит JS.
-   Старый частичный sticky темы на .header_bottom отключён (класс убран в
-   разметке), поэтому его полупрозрачный фон/перестановки больше не действуют.
-   Только десктоп (≥992px) — на планшете/мобиле JS не прилепляет.
-   ══════════════════════════════════════════════════════════════════════ */
-.header_main_spacer { height: 0; }
-@media (min-width: 992px) {
-    .header_main_sticky.stuck {
-        position: fixed; top: 0; left: 0; right: 0;
-        z-index: 1000;
-        background: #222;                        /* тот же тёмный фон, что у .main_header */
-        box-shadow: 0 3px 14px rgba(0,0,0,.28);  /* лёгкая тень снизу — отделить от контента */
-        animation: azStickyDrop .25s ease;       /* плавное появление */
-    }
-}
-@keyframes azStickyDrop { from { transform: translateY(-100%); } to { transform: translateY(0); } }
-
 /* Tags strip */
 .top_tags_area { background: #fafafa; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 0.85rem; }
 .top_tags_area ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
@@ -2528,6 +2508,82 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     .sticky_search .ss_vin { flex: 0 0 130px; }
     .sticky_search input { height: 38px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   ЛИПКАЯ ШАПКА (штатная полоса темы) — выравнивание и плотный фон.
+   Прилипает ТОЛЬКО нижняя полоса .header_bottom: слева «ВСЕ КАТЕГОРИИ»,
+   меню в одну строку, справа телефон; под ними — строка поиска/VIN.
+   Логотип/корзину/полосу категорий НЕ добавляем. Обычную шапку не трогаем.
+   Только десктоп (≥992px) — на планшете/мобиле тема шапку не прилепляет.
+   Селектор из трёх классов перебивает базовые правила темы без правки темы.
+   ══════════════════════════════════════════════════════════════════════ */
+@media (min-width: 992px) {
+    /* Фон плотнее (чтобы контент не мешал читать меню) + размытие + тень. */
+    .header_bottom.sticky-header.sticky {
+        background: rgba(60,60,60,0.92) !important;
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+        box-shadow: 0 4px 16px rgba(0,0,0,.25) !important;
+        z-index: 1000 !important;
+        padding: 12px 0 14px !important;   /* равные отступы сверху/снизу */
+    }
+    /* Первая строка — строго в одну строку, всё по центру по вертикали. */
+    .header_bottom.sticky-header.sticky > .container > .row {
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+    }
+    /* Колонки по содержимому, меню забирает остаток ширины — чтобы меню не
+       упиралось в телефон на узких экранах. Края контейнера (а значит и строки
+       поиска под ними) не сдвигаются: категории слева, телефон справа. */
+    .header_bottom.sticky-header.sticky > .container > .row > .col-lg-3:first-child,
+    .header_bottom.sticky-header.sticky > .container > .row > .col-lg-3:last-child {
+        flex: 0 0 auto !important; width: auto !important; max-width: none !important;
+    }
+    .header_bottom.sticky-header.sticky > .container > .row > .col-lg-6 {
+        flex: 1 1 auto !important; max-width: none !important; min-width: 0;
+    }
+    /* «ВСЕ КАТЕГОРИИ» — высота как у строки, по центру. Боковые padding чуть
+       меньше (тема даёт 30/55px) — освобождаем место меню на узких экранах. */
+    .header_bottom.sticky-header.sticky .categories_menu { position: relative; }
+    .header_bottom.sticky-header.sticky .categories_title {
+        height: 44px; line-height: 44px; border-radius: 4px; margin: 0; white-space: nowrap;
+        padding: 0 18px 0 46px;
+    }
+    /* Выпадашка категорий раскрывается поверх контента. */
+    .header_bottom.sticky-header.sticky .categories_menu_toggle {
+        position: absolute; top: 100%; left: 0; min-width: 240px; z-index: 1001;
+    }
+    /* Меню — строго одна строка (nowrap), компактнее, по центру. */
+    .header_bottom.sticky-header.sticky .main_menu nav > ul {
+        display: flex; flex-wrap: nowrap; align-items: center;
+    }
+    .header_bottom.sticky-header.sticky .main_menu nav > ul > li {
+        margin-right: 12px !important; white-space: nowrap;
+    }
+    .header_bottom.sticky-header.sticky .main_menu nav > ul > li > a { white-space: nowrap; }
+    /* Телефон справа — по центру по вертикали, без переноса. */
+    .header_bottom.sticky-header.sticky .header_phone {
+        display: flex; align-items: center; justify-content: flex-end; height: 44px;
+    }
+    .header_bottom.sticky-header.sticky .header_phone p { margin: 0; white-space: nowrap; }
+    /* Строка поиска — ровно под первой, по ширине контейнера, отступ ~14px. */
+    .header_bottom.sticky-header.sticky .sticky_search {
+        margin-top: 14px; padding: 0; gap: 10px; align-items: stretch;
+    }
+}
+
+/* Узкие десктопы/ноутбуки (992–1366): теснее отступы и чуть меньше шрифт меню,
+   плюс убираем боковые padding у колонки меню (bootstrap даёт по 15px) — чтобы
+   8 пунктов гарантированно помещались в одну строку без наезда на телефон. */
+@media (min-width: 992px) and (max-width: 1366px) {
+    .header_bottom.sticky-header.sticky > .container > .row > .col-lg-6 { padding-left: 0; padding-right: 0; }
+    .header_bottom.sticky-header.sticky .main_menu nav > ul > li { margin-right: 4px !important; }
+    .header_bottom.sticky-header.sticky .main_menu nav > ul > li > a { font-size: 12px !important; }
+}
+
+/* Подложка резервирует высоту прилипшей полосы — контент не прыгает и под
+   шапкой не торчат обрезанные элементы (высоту проставляет JS). */
+.sticky_header_spacer { height: 0; }
 
 /* ── Адаптив двойного поиска: планшет и телефон ───────────────────────── */
 
