@@ -511,3 +511,50 @@ document.addEventListener('DOMContentLoaded', function() {
         }, { passive: true });
     }, 800);
 });
+
+/* ── Просмотр фото товара во весь экран (лайтбокс) ──────────────────────────
+   Главное фото на карточке товара накрыто hover-зумом elevateZoom, который
+   перехватывает клик, поэтому «во весь экран» не открывалось. Вешаем открытие
+   на явную кнопку-«развернуть» и на само фото через magnificPopup (он уже есть
+   в теме — plugins.js). Если фото несколько — открывается галереей со стрелками.
+   Работает только на странице товара (есть #img-1). jQuery/плагины к моменту
+   загрузки app.js уже подключены (footer грузит plugins.js раньше). */
+(function () {
+    if (typeof jQuery === 'undefined') return;
+    jQuery(function ($) {
+        var $wrap = $('.product-details-tab');
+        if (!$wrap.length || !$.fn.magnificPopup) return;
+
+        var imgs = Array.isArray(window.__pdImages) ? window.__pdImages.slice() : [];
+        if (!imgs.length) {
+            var s = $('#zoom1').attr('src');
+            if (s) imgs = [s];
+        }
+        if (!imgs.length) return;
+        var items = imgs.map(function (u) { return { src: u }; });
+
+        // Текущий кадр: следим за выбранной миниатюрой, чтобы лайтбокс
+        // открывался именно на том фото, которое сейчас смотрят.
+        var current = 0;
+        $wrap.on('click', '.elevatezoom-gallery', function () {
+            var u = $(this).data('zoom-image') || $(this).data('image');
+            var i = imgs.indexOf(u);
+            if (i >= 0) current = i;
+        });
+
+        function openLightbox(e) {
+            if (e) e.preventDefault();
+            $.magnificPopup.open({
+                items: items,
+                type: 'image',
+                mainClass: 'mfp-fade',
+                closeOnContentClick: false,
+                gallery: { enabled: items.length > 1, navigateByImgClick: true, preload: [0, 1] },
+                image: { verticalFit: true, titleSrc: function () { return ''; } }
+            }, current);
+        }
+
+        // Кнопка-«развернуть» и клик по главному фото.
+        $wrap.on('click', '.pd-zoom-btn, #img-1 .pd-zoom-link', openLightbox);
+    });
+})();
