@@ -8,7 +8,8 @@
 if (!isset($db)) { $db = getDB(); }
 require_once dirname(__DIR__) . '/includes/seller_stats.php';
 
-$finInit = sellerStatsAll($db, '30d');
+$finInit   = sellerStatsAll($db, '30d');
+$chartInit = visitsChartData($db, null, '30d');
 ?>
 <div class="sl-fin-block" data-endpoint="<?= APP_URL ?>/api/admin_stats.php" style="margin-bottom:24px;">
   <div class="sl-fin-top">
@@ -41,7 +42,7 @@ $finInit = sellerStatsAll($db, '30d');
     </div>
   </div>
 
-  <?= visitsChartHtml(sellerVisitsSeries($db, null, 30), 'Посещения магазинов по дням (30 дней)') ?>
+  <div class="sl-chart-host"><?= visitsChartHtml($chartInit['points'], $chartInit['caption']) ?></div>
 </div>
 
 <script>
@@ -60,7 +61,8 @@ $finInit = sellerStatsAll($db, '30d');
     setBusy(true);
     fetch(ep + '?period=' + encodeURIComponent(period), { credentials: 'same-origin' })
       .then(function(r){ return r.json(); })
-      .then(function(d){ if (d && d.ok){ apply({ visits:d.visits, orders:d.orders, pay_count:d.pay_count, pay_sum:d.pay_sum_html, messages:d.messages }); } })
+      .then(function(d){ if (d && d.ok){ apply({ visits:d.visits, orders:d.orders, pay_count:d.pay_count, pay_sum:d.pay_sum_html, messages:d.messages });
+      var host = block.querySelector('.sl-chart-host'); if (host && typeof d.chart_html === 'string') host.innerHTML = d.chart_html; } })
       .catch(function(){})
       .then(function(){ setBusy(false); });
   });
