@@ -553,3 +553,26 @@ $headExtra = $headExtra ?? '';   // raw HTML (e.g. JSON-LD) injected before </he
         <!-- /nav -->
     </div>
 </header>
+<script>
+/* Подложка под липкой полосой: тема делает .header_bottom position:fixed по
+   классу .sticky при прокрутке — из-за этого контент прыгал вверх, а под
+   полосой торчали обрезанные элементы. Резервируем высоту прилипшей полосы
+   (меню + строка поиска). Только десктоп (≥992px), где тема и прилепляет. */
+(function(){
+    var hb = document.querySelector('.header_bottom.sticky-header');
+    if (!hb) return;
+    var mq = window.matchMedia('(min-width: 992px)');
+    var spacer = document.createElement('div');
+    spacer.className = 'sticky_header_spacer';
+    hb.parentNode.insertBefore(spacer, hb.nextSibling);
+    function sync(){
+        var on = hb.classList.contains('sticky') && mq.matches;
+        spacer.style.height = on ? hb.offsetHeight + 'px' : '0';
+    }
+    window.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync);
+    // класс .sticky ставит тема по скроллу — ловим его смену и синхронизируем.
+    if (window.MutationObserver) new MutationObserver(sync).observe(hb, { attributes: true, attributeFilter: ['class'] });
+    sync();
+})();
+</script>
