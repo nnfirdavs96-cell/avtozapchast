@@ -2,6 +2,7 @@
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/parts/grouping.php';
 require_once dirname(__DIR__) . '/includes/parts/specs.php';
+require_once dirname(__DIR__) . '/includes/vehicles.php';
 
 $db = getDB();
 
@@ -23,6 +24,20 @@ $priceMax = (float)$_getStr('price_max', '0');
 $vehicle  = $_getStr('vehicle');
 if (!isset(vehicleTypes()[$vehicle])) $vehicle = '';
 
+// ── Подбор по авто (марка/модель/модификация) ────────────────────────────────
+$vehReady = vehSchemaReady($db);
+$vMake = $vModel = null;
+$vModId = 0;
+if ($vehReady) {
+    $mk = $_getStr('make');
+    $vMake = $mk !== '' ? vehFindMake($db, $mk) : null;
+    if ($vMake) {
+        $md = $_getStr('model');
+        $vModel = $md !== '' ? vehFindModel($db, (int)$vMake['id'], $md) : null;
+        if ($vModel) $vModId = (int)$_getStr('mod', '0');
+    }
+}
+
 // ── Build WHERE ─────────────────────────────────────────────────────────────
 $where  = ['p.is_active = 1', "(p.seller_id IS NULL OR p.moderation_status = 'active')"];
 $params = [];
@@ -40,6 +55,15 @@ if ($q !== '') {
     if ($canon !== '') {
         $cond    .= ' OR p.part_key LIKE ?';
         $params[] = '%' . $canon . '%';
+    }
+    // Поиск по авто: «lexus rx350» / «rx350» находит товары, привязанные к модели.
+    if ($vehReady) {
+        $cond    .= " OR EXISTS (SELECT 1 FROM part_vehicles pv
+                        JOIN vehicle_models vm ON vm.id = pv.model_id
+                        JOIN vehicle_makes mk ON mk.id = vm.make_id
+                       WHERE pv.part_id = p.id
+                         AND (vm.name LIKE ? OR mk.name LIKE ? OR CONCAT(mk.name,' ',vm.name) LIKE ?))";
+        $params[] = $like; $params[] = $like; $params[] = $like;
     }
     $where[] = '(' . $cond . ')';
 }
@@ -74,6 +98,21 @@ if ($priceMax > 0) {
 if ($vehicle !== '') {
     $where[]  = 'p.vehicle_type = ?';
     $params[] = $vehicle;
+}
+// Подбор по авто: товар привязан к модели (или конкретной модификации). Привязка
+// на уровне модели (mod_id IS NULL) подходит под любую модификацию этой модели.
+if ($vMake) {
+    if ($vModel && $vModId > 0) {
+        $where[]  = "EXISTS (SELECT 1 FROM part_vehicles pv WHERE pv.part_id = p.id AND pv.model_id = ? AND (pv.mod_id = ? OR pv.mod_id IS NULL))";
+        $params[] = (int)$vModel['id'];
+        $params[] = $vModId;
+    } elseif ($vModel) {
+        $where[]  = "EXISTS (SELECT 1 FROM part_vehicles pv WHERE pv.part_id = p.id AND pv.model_id = ?)";
+        $params[] = (int)$vModel['id'];
+    } else {
+        $where[]  = "EXISTS (SELECT 1 FROM part_vehicles pv JOIN vehicle_models vm ON vm.id = pv.model_id WHERE pv.part_id = p.id AND vm.make_id = ?)";
+        $params[] = (int)$vMake['id'];
+    }
 }
 
 $whereSQL = 'WHERE ' . implode(' AND ', $where);
@@ -121,6 +160,11 @@ $allCategories = getCategories();
 $catTree       = getCategoryTree($allCategories);
 $allBrands     = getBrands();
 
+// Подбор по авто: марки с товарами; модели/модификации — для уже выбранного.
+$vehMakesList  = $vehReady ? vehMakes($db, true) : [];
+$vehModelsList = ($vehReady && $vMake)  ? vehModels($db, (int)$vMake['id'], true) : [];
+$vehModsList   = ($vehReady && $vModel) ? vehMods($db, (int)$vModel['id']) : [];
+
 // Top catalog banner — managed in admin → Баннеры (placement = 'catalog').
 $catalogBanner = null;
 try {
@@ -162,6 +206,63 @@ require_once dirname(__DIR__) . '/includes/header.php';
             <div class="col-lg-3 col-md-12">
                 <!--sidebar widget start-->
                 <aside class="sidebar_widget">
+
+                    <!-- Подбор по авто: три зависимых списка (марка → модель → год/двигатель) -->
+                    <?php if ($vehReady && $vehMakesList): ?>
+                    <div class="widget_list widget_categories widget_vehicle">
+                        <h3>Подбор по авто</h3>
+                        <div class="veh_filter">
+                            <select class="veh_make" aria-label="Марка">
+                                <option value="">Марка</option>
+                                <?php foreach ($vehMakesList as $mk): ?>
+                                <option value="<?= sanitize($mk['slug']) ?>" <?= ($vMake && (int)$vMake['id'] === (int)$mk['id']) ? 'selected' : '' ?>><?= sanitize($mk['name']) ?> (<?= (int)$mk['cnt'] ?>)</option>
+                                <?php endforeach; ?>
+                            </select>
+                            <select class="veh_model" aria-label="Модель" <?= $vMake ? '' : 'disabled' ?>>
+                                <option value="">Все модели</option>
+                                <?php foreach ($vehModelsList as $md): ?>
+                                <option value="<?= sanitize($md['slug']) ?>" <?= ($vModel && (int)$vModel['id'] === (int)$md['id']) ? 'selected' : '' ?>><?= sanitize($md['name']) ?> (<?= (int)$md['cnt'] ?>)</option>
+                                <?php endforeach; ?>
+                            </select>
+                            <select class="veh_mod" aria-label="Год / двигатель" <?= $vModel ? '' : 'disabled' ?>>
+                                <option value="">Любой год / двигатель</option>
+                                <?php foreach ($vehModsList as $m): ?>
+                                <option value="<?= (int)$m['id'] ?>" <?= $vModId === (int)$m['id'] ? 'selected' : '' ?>><?= sanitize(vehModLabel($m) ?: 'Модификация') ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <script>
+                    /* Зависимые списки: марка → модели (AJAX, без перезагрузки) → применение фильтра
+                       через URL (модель/модификация). */
+                    (function(){
+                        var box = document.querySelector('.veh_filter'); if (!box) return;
+                        var mk = box.querySelector('.veh_make'), md = box.querySelector('.veh_model'), mo = box.querySelector('.veh_mod');
+                        var api = '<?= APP_URL ?>/api/vehicles.php';
+                        function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+                        function go(p){
+                            var u = new URL(window.location.href);
+                            ['make','model','mod','page'].forEach(function(k){ u.searchParams.delete(k); });
+                            Object.keys(p).forEach(function(k){ if (p[k]) u.searchParams.set(k, p[k]); });
+                            window.location = u.pathname + (u.searchParams.toString() ? '?' + u.searchParams.toString() : '');
+                        }
+                        mk.addEventListener('change', function(){
+                            if (!mk.value) { go({}); return; }
+                            md.innerHTML = '<option value="">Загрузка…</option>'; md.disabled = true;
+                            mo.innerHTML = '<option value="">Любой год / двигатель</option>'; mo.disabled = true;
+                            fetch(api + '?action=models&with_products=1&make=' + encodeURIComponent(mk.value), { credentials:'same-origin' })
+                              .then(function(r){ return r.json(); })
+                              .then(function(d){
+                                  var h = '<option value="">Все модели</option>';
+                                  (d.models||[]).forEach(function(m){ h += '<option value="'+esc(m.slug)+'">'+esc(m.name)+(m.cnt!=null?' ('+m.cnt+')':'')+'</option>'; });
+                                  md.innerHTML = h; md.disabled = false;
+                              }).catch(function(){ md.innerHTML = '<option value="">Все модели</option>'; md.disabled = false; });
+                        });
+                        md.addEventListener('change', function(){ go({ make: mk.value, model: md.value }); });
+                        mo.addEventListener('change', function(){ go({ make: mk.value, model: md.value, mod: mo.value }); });
+                    })();
+                    </script>
+                    <?php endif; ?>
 
                     <!-- Categories widget -->
                     <div class="widget_list widget_categories">
@@ -218,6 +319,9 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             <?php if ($sort !== 'newest'): ?><input type="hidden" name="sort" value="<?= sanitize($sort) ?>"><?php endif; ?>
                             <?php if ($inStock): ?><input type="hidden" name="in_stock" value="1"><?php endif; ?>
                             <?php if ($view !== 'grid'): ?><input type="hidden" name="view" value="list"><?php endif; ?>
+                            <?php if ($vMake): ?><input type="hidden" name="make" value="<?= sanitize($vMake['slug']) ?>"><?php endif; ?>
+                            <?php if ($vModel): ?><input type="hidden" name="model" value="<?= sanitize($vModel['slug']) ?>"><?php endif; ?>
+                            <?php if ($vModId): ?><input type="hidden" name="mod" value="<?= $vModId ?>"><?php endif; ?>
                             <div class="price_range_inputs" style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
                                 <input type="number" name="price_min" class="form-control form-control-sm"
                                        placeholder="<?= t('from') ?>"
@@ -292,10 +396,15 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     </div>
 
                     <!-- Product tags widget -->
-                    <?php if ($q || $catId || $brandId || $inStock || $priceMin || $priceMax): ?>
+                    <?php if ($q || $catId || $brandId || $inStock || $priceMin || $priceMax || $vMake): ?>
                     <div class="widget_list tags_widget">
                         <h3><?= t('active_filters') ?? t('filters') ?></h3>
                         <div class="tag_cloud">
+                            <?php if ($vMake): ?>
+                            <a href="?<?= http_build_query(array_diff_key($_GET, ['make' => '', 'model' => '', 'mod' => '', 'page' => ''])) ?>">
+                                <?= sanitize($vMake['name'] . ($vModel ? ' ' . $vModel['name'] : '')) ?> &times;
+                            </a>
+                            <?php endif; ?>
                             <?php if ($q): ?>
                             <a href="?<?= http_build_query(array_diff_key($_GET, ['q' => '', 'page' => ''])) ?>">
                                 "<?= sanitize(truncate($q, 20)) ?>" &times;

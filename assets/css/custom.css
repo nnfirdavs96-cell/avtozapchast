@@ -4701,3 +4701,39 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
 }
 .pd-zoom-btn:hover { background: #C70909; transform: scale(1.06); }
 .pd-zoom-btn:focus { outline: 2px solid #C70909; outline-offset: 2px; }
+
+/* ── Подбор по авто (фильтр каталога) ──────────────────────────────────────
+   Три зависимых списка во всю ширину сайдбара; на телефоне — так же. */
+.widget_vehicle .veh_filter { display: flex; flex-direction: column; gap: 10px; }
+.widget_vehicle .veh_filter select {
+    width: 100%; padding: 10px 12px; border: 1px solid #e3e3ea; border-radius: 8px;
+    background: #fff; font-size: .9rem; color: #33343b; cursor: pointer;
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%23999' stroke-width='1.6' fill='none'/></svg>");
+    background-repeat: no-repeat; background-position: right 12px center; padding-right: 30px;
+}
+.widget_vehicle .veh_filter select:disabled { background-color: #f4f4f7; color: #aaa; cursor: not-allowed; }
+.widget_vehicle .veh_filter select:focus { border-color: #C70909; outline: none; }
+
+/* ── «Подходит для» на карточке товара ─────────────────────────────────────── */
+.pd-fit { margin: 8px 0 2px; font-size: .9rem; color: #555; line-height: 1.7; }
+.pd-fit-label { font-weight: 600; color: #333; margin-right: 4px; }
+.pd-fit-label i { color: #C70909; margin-right: 4px; }
+.pd-fit-list a { color: #C70909; }
+.pd-fit-list a:hover { text-decoration: underline; }
+.pd-fit-more { font-weight: 600; cursor: pointer; }
+
+/* ── Блок «Применимость» в формах товара (продавец/админ) ──────────────────── */
+.veh-block-label { display: block; font-weight: 600; margin-bottom: 8px; }
+.veh-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.veh-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px; align-items: center; }
+.veh-row select { width: 100%; padding: 8px 10px; border: 1px solid #d9dce1; border-radius: 8px; background: #fff; font-size: .88rem; }
+.veh-row select:disabled { background: #f4f4f7; color: #aaa; }
+.veh-row .vf-del { width: 34px; height: 34px; border: 1px solid #eec4c4; background: #fff; color: #c0392b; border-radius: 8px; cursor: pointer; font-size: 1.1rem; line-height: 1; }
+.veh-row .vf-del:hover { background: #c0392b; color: #fff; }
+.veh-add { margin-top: 2px; }
+@media (max-width: 600px) {
+    .veh-row { grid-template-columns: 1fr 1fr; }
+    .veh-row .vf-mod { grid-column: 1 / 2; }
+    .veh-row .vf-del { grid-column: 2 / 3; justify-self: end; }
+}
