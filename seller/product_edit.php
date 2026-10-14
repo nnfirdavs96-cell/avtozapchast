@@ -310,7 +310,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
 
         <!-- Применимость — подбор по авто (марка/модель/модификация) -->
         <div class="sl-field">
-          <?= vehicleFormBlockHtml($db, (int)($pid ?? 0)) ?>
+          <?= vehicleFormBlockHtml($db, (int)($pid ?? 0), true) ?>
         </div>
 
         <label class="sl-field">
@@ -370,6 +370,23 @@ require_once dirname(__DIR__) . '/includes/header.php';
   </div>
 </div>
 
+<script>
+// Мягкое предупреждение: товар без указанного авто не попадёт в подбор по авто.
+(function(){
+  var form = document.querySelector('form.sl-form'); if (!form) return;
+  form.addEventListener('submit', function(e){
+    var filled = form.querySelectorAll('.veh-block .vf-model');
+    var has = false;
+    Array.prototype.forEach.call(filled, function(s){ if (s.value) has = true; });
+    if (!has && !form.dataset.vehWarned) {
+      if (!confirm('Без указания автомобиля товар не появится в подборе по авто. Сохранить всё равно?')) {
+        e.preventDefault(); return;
+      }
+      form.dataset.vehWarned = '1';
+    }
+  });
+})();
+</script>
 <script>
 const slUploadUrl = '<?= APP_URL ?>/api/upload.php?type=products';
 const slNewImages = [];

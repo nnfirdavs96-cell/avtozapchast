@@ -4737,3 +4737,27 @@ section[id], div[id].product_area, .categories_product_area[id] { scroll-margin-
     .veh-row .vf-mod { grid-column: 1 / 2; }
     .veh-row .vf-del { grid-column: 2 / 3; justify-self: end; }
 }
+
+/* ── Справочник авто: подсказки блока «Применимость» (формы товара) ─────────── */
+.veh-block-hint { color: #777; font-size: .85rem; margin: 2px 0 10px; }
+.veh-block-ex { color: #888; font-size: .82rem; margin: 8px 0 0; }
+.veh-req { margin-top: 10px; }
+.veh-req-toggle { color: #C70909; font-size: .85rem; font-weight: 600; }
+.veh-req-form { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; align-items: center; }
+.veh-req-form input[type=text] { flex: 1 1 150px; min-width: 120px; padding: 8px 10px; border: 1px solid #dcdce3; border-radius: 8px; font-size: .85rem; }
+.vr-status { font-size: .82rem; color: #1f8a3b; }
+
+/* ── Админка «Автомобили»: списки и форма модификаций ──────────────────────── */
+.veh-list .veh-item { display: flex; align-items: center; gap: 6px; padding: 7px 8px; border-bottom: 1px solid #f0f0f4; border-left: 3px solid transparent; border-radius: 4px; }
+.veh-list .veh-item.is-active { border-left-color: #C70909; background: #fdeeee; }
+.veh-list .veh-item:hover { background: #f8f8fb; }
+.veh-item-name { flex: 1; color: #33343b; text-decoration: none; }
+.veh-item.is-active .veh-item-name { font-weight: 700; color: #C70909; }
+.veh-count { color: #aaa; font-size: .8rem; }
+.veh-del { width: 30px; height: 30px; border: 1px solid #eec4c4; background: #fff; color: #c0392b; border-radius: 7px; cursor: pointer; flex: 0 0 auto; }
+.veh-del:hover { background: #c0392b; color: #fff; }
+.veh-modgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+.veh-modgrid label { display: flex; flex-direction: column; font-size: .8rem; color: #555; font-weight: 600; gap: 3px; }
+.veh-modgrid label b { color: #C70909; }
+.veh-modgrid input, .veh-modgrid select { padding: 7px 9px; border: 1px solid #ddd; border-radius: 7px; font-size: .85rem; font-weight: 400; }
+@media (max-width: 600px) { .veh-modgrid { grid-template-columns: 1fr; } }
