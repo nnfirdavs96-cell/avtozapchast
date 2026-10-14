@@ -15,8 +15,10 @@ if ($q !== '' && preg_match('/^[A-HJ-NPR-Z0-9]{17}$/i', $q)) {
 $pageTitle = t('search') . ($q ? ': ' . $q : '') . ' — ' . getSetting('site_name');
 
 require_once dirname(__DIR__) . '/includes/parts/grouping.php';
+require_once dirname(__DIR__) . '/includes/vehicles.php';
 
 $db     = getDB();
+$vehReady = vehSchemaReady($db);
 $where  = ['p.is_active=1', "(p.seller_id IS NULL OR p.moderation_status='active')"];
 $params = [];
 
@@ -32,6 +34,15 @@ if ($q !== '') {
     if ($canon !== '') {
         $cond    .= ' OR p.part_key LIKE ?';
         $params[] = '%'.$canon.'%';
+    }
+    // Поиск по авто: «lexus rx350» / «rx350» находит привязанные к модели товары.
+    if ($vehReady) {
+        $cond    .= " OR EXISTS (SELECT 1 FROM part_vehicles pv
+                        JOIN vehicle_models vm ON vm.id = pv.model_id
+                        JOIN vehicle_makes mk ON mk.id = vm.make_id
+                       WHERE pv.part_id = p.id
+                         AND (vm.name LIKE ? OR mk.name LIKE ? OR CONCAT(mk.name,' ',vm.name) LIKE ?))";
+        $params[] = $like; $params[] = $like; $params[] = $like;
     }
     $where[] = '(' . $cond . ')';
 }

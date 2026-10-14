@@ -45,6 +45,22 @@ if (!empty($part['seller_id'])) {
     recordSellerView($db, (int)$part['seller_id'], (int)$part['id']);
 }
 
+// «Подходит для» — авто, к которым привязан товар; группируем по модели.
+require_once dirname(__DIR__) . '/includes/vehicles.php';
+$fitRows = partVehicles($db, (int)$part['id']);
+$fitByModel = [];
+foreach ($fitRows as $r) {
+    $mid = (int)$r['model_id'];
+    if (!isset($fitByModel[$mid])) {
+        $fitByModel[$mid] = [
+            'make' => $r['make'], 'make_slug' => $r['make_slug'],
+            'model' => $r['model'], 'model_slug' => $r['model_slug'], 'mods' => [],
+        ];
+    }
+    $lab = vehModLabel($r);
+    if ($lab !== '') $fitByModel[$mid]['mods'][] = $lab;
+}
+
 // Предложения этой карточки — кто ещё продаёт ту же деталь.
 // Номер карточки берём у открытого предложения: покупатель мог прийти по ссылке
 // на любое из них, и все они должны показывать один и тот же список.
@@ -305,6 +321,31 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 </span>
                                 <?php endif; ?>
                             </div>
+
+                            <?php if ($fitByModel):
+                                $fitList = array_values($fitByModel);
+                                $fitShown = array_slice($fitList, 0, 3);
+                                $fitHidden = array_slice($fitList, 3);
+                            ?>
+                            <!-- Подходит для: модели-ссылки; если больше 3 — «ещё N» раскрывает весь список. -->
+                            <div class="pd-fit">
+                                <span class="pd-fit-label"><i class="fa fa-car"></i> Подходит для:</span>
+                                <span class="pd-fit-list">
+                                    <?php foreach ($fitShown as $i => $f): ?>
+                                    <a href="<?= APP_URL ?>/catalog/index.php?make=<?= urlencode($f['make_slug']) ?>&model=<?= urlencode($f['model_slug']) ?>"><?= sanitize($f['make'] . ' ' . $f['model']) ?></a><?= $i < count($fitShown) - 1 || $fitHidden ? ', ' : '' ?>
+                                    <?php endforeach; ?>
+                                    <?php if ($fitHidden): ?>
+                                    <a href="javascript:void(0)" class="pd-fit-more">ещё <?= count($fitHidden) ?></a>
+                                    <span class="pd-fit-rest" style="display:none;">
+                                        <?php foreach ($fitHidden as $j => $f): ?>
+                                        <a href="<?= APP_URL ?>/catalog/index.php?make=<?= urlencode($f['make_slug']) ?>&model=<?= urlencode($f['model_slug']) ?>"
+                                           title="<?= $f['mods'] ? sanitize(implode('; ', $f['mods'])) : '' ?>"><?= sanitize($f['make'] . ' ' . $f['model']) ?></a><?= $j < count($fitHidden) - 1 ? ', ' : '' ?>
+                                        <?php endforeach; ?>
+                                    </span>
+                                    <?php endif; ?>
+                                </span>
+                            </div>
+                            <?php endif; ?>
 
                             <?php if (!empty($part['seller_id'])): ?>
                             <!-- Написать продавцу (переписка). Для гостей — вход. -->
@@ -788,6 +829,16 @@ require_once dirname(__DIR__) . '/includes/header.php';
 <!--product details area end-->
 
 <script>
+// «Подходит для»: раскрыть скрытый список моделей по клику «ещё N».
+(function(){
+    var more = document.querySelector('.pd-fit-more'); if (!more) return;
+    more.addEventListener('click', function(){
+        var rest = document.querySelector('.pd-fit-rest');
+        if (rest) rest.style.display = 'inline';
+        more.style.display = 'none';
+    });
+})();
+
 // «Написать продавцу»: раскрыть форму и отправить сообщение без перезагрузки.
 (function(){
     var box = document.querySelector('.pd-msg-seller'); if (!box) return;

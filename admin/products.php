@@ -2,6 +2,7 @@
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/parts/grouping.php';
 require_once dirname(__DIR__) . '/includes/parts/specs.php';
+require_once dirname(__DIR__) . '/includes/vehicles.php';
 requireRole(['admin', 'superadmin']);
 requirePermission('products');
 
@@ -92,6 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             )->execute([$pnum, $name, $desc ?: null, $brand, $cat, ($vtype ?: null), $price, $oldPrice, $costPrice, $markupPct, $stock, $weight, $dims, $imagesJson, $pid]);
             partsApplyGrouping($db, $pid, $pnum, $brand, !empty($_POST['is_unique_item']));
             partSaveSpecsMerge($db, $pid, $specKeyNow, $specAttrs);
+            partSaveVehicles($db, $pid, vehicleItemsFromPost($_POST), false);  // применимость (авто)
             flashMessage('success', 'Товар обновлён.');
         } else {
             $db->prepare(
@@ -102,6 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $newPid = (int)$db->lastInsertId();
             partsApplyGrouping($db, $newPid, $pnum, $brand, !empty($_POST['is_unique_item']));
             partsSaveAttributes($db, $newPid, $specAttrs);
+            partSaveVehicles($db, $newPid, vehicleItemsFromPost($_POST), false);  // применимость (авто)
             flashMessage('success', 'Товар добавлен.');
         }
         redirect(APP_URL . '/admin/products.php');
@@ -139,6 +142,15 @@ if ($filter !== 'all') { $where[] = 'p.is_active = 1'; }
 if ($search) {
     $where[] = '(p.part_number LIKE ? OR p.name LIKE ? OR b.name LIKE ?)';
     $params[] = "%$search%"; $params[] = "%$search%"; $params[] = "%$search%";
+}
+// Фильтры по привязке к авто (из раздела «Автомобили»). Только если справочник готов.
+if (vehSchemaReady($db)) {
+    if (!empty($_GET['no_vehicle'])) {
+        $where[] = 'NOT EXISTS (SELECT 1 FROM part_vehicles pv WHERE pv.part_id = p.id)';
+    }
+    if (!empty($_GET['veh_review'])) {
+        $where[] = 'EXISTS (SELECT 1 FROM part_vehicles pv WHERE pv.part_id = p.id AND pv.needs_review = 1)';
+    }
 }
 $whereSQL = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
@@ -350,6 +362,9 @@ require_once dirname(__DIR__) . '/includes/admin-header.php';
                             <div class="az-form-group" id="specBlock" style="display:none;grid-column:1/-1;">
                                 <label id="specTitle">Характеристики</label>
                                 <div id="specFields" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;"></div>
+                            </div>
+                            <div class="az-form-group" style="grid-column:1/-1;">
+                                <?= vehicleFormBlockHtml($db, (int)($editPart['id'] ?? 0)) ?>
                             </div>
                         </div>
 

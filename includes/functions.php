@@ -319,6 +319,7 @@ function renderRoleSidebar(string $active = ''): void {
             ['key' => 'products',   'href' => $productsHref,                    'icon' => 'fa-cogs',        'label' => 'Товары'],
             ['key' => 'categories', 'href' => "$url/manager/categories.php",   'icon' => 'fa-sitemap',     'label' => 'Категории'],
             ['key' => 'brands',     'href' => "$url/manager/brands.php",       'icon' => 'fa-tag',         'label' => 'Бренды'],
+            ['key' => 'vehicles',   'href' => "$url/admin/vehicles.php",       'icon' => 'fa-car',         'label' => 'Автомобили'],
             ['key' => 'warehouse',  'href' => "$url/superadmin/warehouse.php", 'icon' => 'fa-database',    'label' => 'Склад API'],
             ['key' => 'vin',        'href' => "$url/superadmin/vin.php",       'icon' => 'fa-search',      'label' => 'VIN-поиск'],
             ['key' => 'catalog_library', 'href' => "$url/superadmin/catalog_library.php", 'icon' => 'fa-archive', 'label' => 'Библиотека каталога'],
@@ -371,7 +372,7 @@ function renderRoleSidebar(string $active = ''): void {
     // everything else by userCan() (superadmin always passes).
     $canSee = function (string $key) use ($role): bool {
         if (in_array($key, ['dashboard', 'messages'], true)) return true;
-        if (in_array($key, ['payouts', 'returns', 'payments'], true)) return in_array($role, ['admin', 'superadmin'], true);
+        if (in_array($key, ['payouts', 'returns', 'payments', 'vehicles'], true)) return in_array($role, ['admin', 'superadmin'], true);
         if ($role === 'superadmin') return true;
         if (in_array($key, ['permissions', 'backup', 'manual', 'catalog_library', 'system'], true)) return false;
         return userCan(permissionAlias($key));

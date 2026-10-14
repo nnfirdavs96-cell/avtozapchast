@@ -7,6 +7,7 @@ require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/includes/seller.php';
 require_once dirname(__DIR__) . '/includes/parts/grouping.php';
 require_once dirname(__DIR__) . '/includes/parts/specs.php';
+require_once dirname(__DIR__) . '/includes/vehicles.php';
 $seller = requireSeller();
 
 if ($seller['status'] !== 'approved') {
@@ -105,6 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 partsApplyGrouping($db, $pid, $pnum, $brand, $uniq);
                 partsApplyFamily($db, $pid, $parent, $sid);
                 partsSaveAttributes($db, $pid, $attrs);
+                partSaveVehicles($db, $pid, vehicleItemsFromPost($_POST), false);  // применимость (ручная — без пометки проверки)
                 flashMessage('success', 'Товар обновлён и отправлен на проверку.');
             } else {
                 $db->prepare(
@@ -117,6 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 partsApplyGrouping($db, $newId, $pnum, $brand, $uniq);
                 partsApplyFamily($db, $newId, $parent, $sid);
                 partsSaveAttributes($db, $newId, $attrs);
+                partSaveVehicles($db, $newId, vehicleItemsFromPost($_POST), false);  // применимость
                 flashMessage('success', 'Товар добавлен и отправлен на проверку. После одобрения он появится в каталоге.');
             }
             redirect(APP_URL . '/seller/products.php');
@@ -303,6 +306,11 @@ require_once dirname(__DIR__) . '/includes/header.php';
         <div id="specBlock" class="sl-field" style="display:none;">
           <span id="specTitle" style="font-weight:600;">Характеристики</span>
           <div id="specFields" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:6px;"></div>
+        </div>
+
+        <!-- Применимость — подбор по авто (марка/модель/модификация) -->
+        <div class="sl-field">
+          <?= vehicleFormBlockHtml($db, (int)($pid ?? 0)) ?>
         </div>
 
         <label class="sl-field">
