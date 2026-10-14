@@ -56,10 +56,31 @@ function ensureVehicleSchema(): void
             `year_from` SMALLINT UNSIGNED DEFAULT NULL,
             `year_to` SMALLINT UNSIGNED DEFAULT NULL,
             `engine` VARCHAR(60) DEFAULT NULL,
+            `volume` DECIMAL(3,1) DEFAULT NULL,
+            `fuel` VARCHAR(20) DEFAULT NULL,
             `body` VARCHAR(60) DEFAULT NULL,
             `is_active` TINYINT(1) NOT NULL DEFAULT 1,
             PRIMARY KEY (`id`),
             KEY `idx_model` (`model_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        // для уже созданных таблиц — добавить недостающие колонки
+        if (function_exists('dbAddColumnIfMissing')) {
+            dbAddColumnIfMissing($db, 'vehicle_mods', 'volume', "`volume` DECIMAL(3,1) DEFAULT NULL AFTER `engine`");
+            dbAddColumnIfMissing($db, 'vehicle_mods', 'fuel',   "`fuel` VARCHAR(20) DEFAULT NULL AFTER `volume`");
+        }
+
+        // Заявки продавцов на добавление авто (которых нет в справочнике).
+        $db->exec("CREATE TABLE IF NOT EXISTS `vehicle_requests` (
+            `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `seller_id` INT UNSIGNED DEFAULT NULL,
+            `make` VARCHAR(80) NOT NULL,
+            `model` VARCHAR(100) NOT NULL,
+            `years` VARCHAR(40) DEFAULT NULL,
+            `engine` VARCHAR(60) DEFAULT NULL,
+            `status` ENUM('new','done','rejected') NOT NULL DEFAULT 'new',
+            `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            KEY `idx_status` (`status`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
         $db->exec("CREATE TABLE IF NOT EXISTS `part_vehicles` (
@@ -89,16 +110,24 @@ function vehSchemaReady(PDO $db): bool
     return $ready;
 }
 
-/** Подпись модификации для показа: «2015–2020 · 2GR-FE 3.5». */
+/** Подпись модификации: «2006–2009 · 2GR-FE · 3.5 л · бензин · XU30». */
 function vehModLabel(array $m): string
 {
     $parts = [];
     $yf = $m['year_from'] ?? null; $yt = $m['year_to'] ?? null;
     if ($yf || $yt) $parts[] = ($yf ?: '…') . '–' . ($yt ?: 'н.в.');
     if (!empty($m['engine'])) $parts[] = $m['engine'];
+    if (!empty($m['volume'])) $parts[] = rtrim(rtrim((string)$m['volume'], '0'), '.') . ' л';
+    if (!empty($m['fuel']))   $parts[] = $m['fuel'];
     if (!empty($m['body']))   $parts[] = $m['body'];
     if (!empty($m['name']) && !$parts) $parts[] = $m['name'];
     return implode(' · ', $parts);
+}
+
+/** Варианты топлива (для списков). */
+function vehFuels(): array
+{
+    return ['бензин', 'дизель', 'гибрид', 'электро', 'газ/бензин'];
 }
 
 /** Все марки. $onlyWithProducts — только те, у кого есть активные товары (+ счётчик). */
@@ -150,7 +179,7 @@ function vehMods(PDO $db, int $modelId): array
 {
     if ($modelId <= 0) return [];
     try {
-        $st = $db->prepare("SELECT id, name, year_from, year_to, engine, body FROM vehicle_mods
+        $st = $db->prepare("SELECT id, name, year_from, year_to, engine, volume, fuel, body FROM vehicle_mods
                             WHERE model_id = ? AND is_active = 1 ORDER BY year_from DESC, id");
         $st->execute([$modelId]);
         return $st->fetchAll();
@@ -166,7 +195,7 @@ function partVehicles(PDO $db, int $partId): array
             "SELECT pv.model_id, pv.mod_id, pv.needs_review,
                     mk.name AS make, mk.slug AS make_slug,
                     md.name AS model, md.slug AS model_slug,
-                    vm.year_from, vm.year_to, vm.engine, vm.body, vm.name AS mod_name
+                    vm.year_from, vm.year_to, vm.engine, vm.volume, vm.fuel, vm.body, vm.name AS mod_name
                FROM part_vehicles pv
                JOIN vehicle_models md ON md.id = pv.model_id
                JOIN vehicle_makes  mk ON mk.id = md.make_id
@@ -222,7 +251,7 @@ function partVehicleLinks(PDO $db, int $partId): array
  * подгружаются через api/vehicles.php. При сохранении формы читать veh_model[] и
  * veh_mod[] (см. partSaveVehicles). Возвращает '' если справочник не готов.
  */
-function vehicleFormBlockHtml(PDO $db, int $partId): string
+function vehicleFormBlockHtml(PDO $db, int $partId, bool $allowRequest = false): string
 {
     if (!vehSchemaReady($db)) return '';
     $makes = vehMakes($db);
@@ -245,8 +274,8 @@ function vehicleFormBlockHtml(PDO $db, int $partId): string
         return '<div class="veh-row" data-make="' . $mk . '" data-model="' . $md . '" data-mod="' . $mo . '">'
             . '<select class="vf-make" aria-label="Марка">' . $opts . '</select>'
             . '<select class="vf-model" name="veh_model[]" aria-label="Модель" disabled><option value="">Модель</option></select>'
-            . '<select class="vf-mod" name="veh_mod[]" aria-label="Год / двигатель" disabled><option value="">Любой год / двигатель</option></select>'
-            . '<button type="button" class="vf-del" aria-label="Удалить">&times;</button>'
+            . '<select class="vf-mod" name="veh_mod[]" aria-label="Модификация" disabled><option value="">Все модификации</option></select>'
+            . '<button type="button" class="vf-del" aria-label="Удалить строку">&times;</button>'
             . '</div>';
     };
 
@@ -255,11 +284,29 @@ function vehicleFormBlockHtml(PDO $db, int $partId): string
     if ($rowsHtml === '') $rowsHtml = $row(null);   // одна пустая строка
 
     $apiUrl = APP_URL . '/api/vehicles.php';
+    $reqUrl = APP_URL . '/api/vehicle_request.php';
+    $csrf   = function_exists('generateCsrfToken') ? generateCsrfToken() : '';
     ob_start(); ?>
 <div class="veh-block" data-api="<?= htmlspecialchars($apiUrl, ENT_QUOTES) ?>">
-  <label class="veh-block-label">Применимость — на какие авто подходит</label>
+  <label class="veh-block-label">Для каких автомобилей подходит</label>
+  <p class="veh-block-hint">Укажите машины, к которым подходит запчасть. Так покупатели найдут её через подбор по авто — это увеличивает продажи.</p>
   <div class="veh-rows"><?= $rowsHtml ?></div>
-  <button type="button" class="veh-add sl-btn sl-btn-outline sl-btn-sm"><i class="fa fa-plus"></i> Добавить авто</button>
+  <button type="button" class="veh-add sl-btn sl-btn-outline sl-btn-sm"><i class="fa fa-plus"></i> Добавить ещё автомобиль</button>
+  <p class="veh-block-ex">Например: Lexus → RX350 → 2006–2009, 2GR-FE.</p>
+  <?php if ($allowRequest): ?>
+  <div class="veh-req" data-url="<?= htmlspecialchars($reqUrl, ENT_QUOTES) ?>">
+    <a href="javascript:void(0)" class="veh-req-toggle">Нет нужной машины? Сообщите нам</a>
+    <div class="veh-req-form" style="display:none;">
+      <input type="hidden" class="vr-csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
+      <input type="text" class="vr-make" placeholder="Марка (напр. Toyota)">
+      <input type="text" class="vr-model" placeholder="Модель (напр. Prius)">
+      <input type="text" class="vr-years" placeholder="Годы (напр. 2010–2015)">
+      <input type="text" class="vr-engine" placeholder="Двигатель (напр. 2ZR-FXE)">
+      <button type="button" class="vr-send sl-btn sl-btn-outline sl-btn-sm">Отправить заявку</button>
+      <span class="vr-status"></span>
+    </div>
+  </div>
+  <?php endif; ?>
   <template class="veh-tpl"><?= $row(null) ?></template>
 </div>
 <script>
@@ -283,12 +330,12 @@ function vehicleFormBlockHtml(PDO $db, int $partId): string
   }
   function loadMods(row, modelId, sel){
     var mo = row.querySelector('.vf-mod');
-    if (!modelId){ mo.innerHTML = '<option value="">Любой год / двигатель</option>'; mo.disabled = true; return; }
+    if (!modelId){ mo.innerHTML = '<option value="">Все модификации</option>'; mo.disabled = true; return; }
     mo.innerHTML = '<option value="">…</option>'; mo.disabled = true;
     fetch(api + '?action=mods&model=' + encodeURIComponent(modelId), {credentials:'same-origin'})
       .then(function(r){ return r.json(); })
       .then(function(d){
-        var h = '<option value="">Любой год / двигатель</option>';
+        var h = '<option value="">Все модификации</option>';
         (d.mods||[]).forEach(function(m){ h += '<option value="'+m.id+'"'+(String(m.id)===String(sel)?' selected':'')+'>'+esc(m.label)+'</option>'; });
         mo.innerHTML = h; mo.disabled = false;
       }).catch(function(){ mo.disabled = false; });
@@ -306,6 +353,28 @@ function vehicleFormBlockHtml(PDO $db, int $partId): string
     var node = tpl.content.firstElementChild.cloneNode(true);
     rowsWrap.appendChild(node); bind(node);
   });
+
+  // «Нет нужной машины? Сообщите нам» — заявка админу.
+  var req = block.querySelector('.veh-req');
+  if (req) {
+    var toggle = req.querySelector('.veh-req-toggle'), form = req.querySelector('.veh-req-form');
+    toggle.addEventListener('click', function(){ form.style.display = form.style.display === 'none' ? 'flex' : 'none'; });
+    req.querySelector('.vr-send').addEventListener('click', function(){
+      var st = req.querySelector('.vr-status');
+      var mk = req.querySelector('.vr-make').value.trim(), md = req.querySelector('.vr-model').value.trim();
+      if (!mk || !md) { st.textContent = 'Укажите марку и модель.'; return; }
+      var fd = new FormData();
+      fd.append('_csrf', req.querySelector('.vr-csrf').value);
+      fd.append('make', mk); fd.append('model', md);
+      fd.append('years', req.querySelector('.vr-years').value.trim());
+      fd.append('engine', req.querySelector('.vr-engine').value.trim());
+      st.textContent = 'Отправка…';
+      fetch(req.getAttribute('data-url'), { method:'POST', body:fd, credentials:'same-origin' })
+        .then(function(r){ return r.json(); })
+        .then(function(d){ if (d && d.ok){ form.style.display='none'; st.textContent='Заявка отправлена — добавим машину в справочник ✓'; } else { st.textContent = (d && d.msg) ? d.msg : 'Не удалось отправить.'; } })
+        .catch(function(){ st.textContent='Ошибка сети.'; });
+    });
+  }
 })();
 </script>
 <?php
