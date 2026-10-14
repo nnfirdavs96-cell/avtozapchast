@@ -13,6 +13,10 @@
  *   php sql/match_vehicles.php --dry      # только показать, что нашлось
  *   php sql/match_vehicles.php --limit=500
  *   php sql/match_vehicles.php --force    # переобработать и те, где уже есть авто-связи
+ *   php sql/match_vehicles.php --reset    # удалить прежние авто-привязки и собрать заново
+ *
+ * Сопоставление идёт по ЦЕЛЫМ словам (а не подстроке), поэтому «Optimal» не
+ * привязывается к модели «Optima», а «rx350» в «rx350/450h» находится.
  */
 
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit("Только из командной строки.\n"); }
@@ -46,12 +50,28 @@ $compact = static fn(string $s): string => strtoupper(preg_replace('/[^A-Za-z0-9
 $modelNameCount = [];
 foreach ($models as $md) { $k = $compact($md['name']); $modelNameCount[$k] = ($modelNameCount[$k] ?? 0) + 1; }
 
-// Пред-вычислим компакт-имена.
-foreach ($makes as &$mk)  { $mk['c'] = $compact($mk['name']); } unset($mk);
-foreach ($models as &$md) { $md['c'] = $compact($md['name']); } unset($md);
-// Для двигателя берём код до первого дефиса/пробела: «2GR-FE 3.5» → «2GR»,
-// потому что в тексте применимости пишут короткий код («TOYOTA 2GR»).
-foreach ($mods as &$mo)   { $firstTok = preg_split('/[-\s]+/', trim((string)$mo['engine']))[0] ?? ''; $mo['c'] = $compact($firstTok); } unset($mo);
+// Токены имени (ЦЕЛЫЕ слова, верхний регистр) — чтобы «Optimal» не ловил «Optima».
+$toTokens = static fn(string $s): array => array_values(array_filter(
+    preg_split('/[^A-Za-z0-9]+/', strtoupper($s)), static fn($t) => $t !== ''));
+// Совпадение: ВСЕ слова имени встречаются в тексте как отдельные слова и хотя бы
+// одно слово длиной ≥3 (чтобы не цепляться за одиночную цифру вроде «3»).
+$nameHit = static function (array $nameTokens, array $set): bool {
+    if (!$nameTokens) return false;
+    $maxLen = 0;
+    foreach ($nameTokens as $t) { if (!isset($set[$t])) return false; if (strlen($t) > $maxLen) $maxLen = strlen($t); }
+    return $maxLen >= 3;
+};
+
+foreach ($makes as &$mk)  { $mk['t'] = $toTokens($mk['name']); } unset($mk);
+foreach ($models as &$md) { $md['t'] = $toTokens($md['name']); $md['c'] = $compact($md['name']); } unset($md);
+// Двигатель: код до первого дефиса/пробела, целым словом: «2GR-FE 3.5» → «2GR».
+foreach ($mods as &$mo)   { $firstTok = preg_split('/[-\s]+/', trim((string)$mo['engine']))[0] ?? ''; $mo['e'] = strtoupper($compact($firstTok)); } unset($mo);
+
+// --reset: очистить прежние авто-привязки (needs_review=1), чтобы перепрогон был чистым.
+if (in_array('--reset', $argv, true) && !$dry) {
+    $n = $db->exec("DELETE FROM part_vehicles WHERE needs_review=1");
+    echo "  [reset] удалено прежних авто-привязок: " . (int)$n . "\n";
+}
 
 // Товары без привязки (или все авто-связи, если --force).
 $cond = $force
@@ -64,31 +84,27 @@ $parts = $db->query($sql)->fetchAll();
 $matchedParts = 0; $totalLinks = 0; $examples = 0;
 
 foreach ($parts as $p) {
-    $text  = (string)$p['name'] . ' ' . (string)$p['description'];
-    $tc    = $compact($text);
-    if ($tc === '') continue;
+    $text   = (string)$p['name'] . ' ' . (string)$p['description'];
+    $tokens = $toTokens($text);
+    if (!$tokens) continue;
+    $set = array_flip($tokens);
 
     $linkModels = [];   // model_id => mod_id|null
     $makesHit   = [];   // make_id => true
-    foreach ($makes as $mk) { if ($mk['c'] !== '' && mb_strlen($mk['c']) >= 3 && strpos($tc, $mk['c']) !== false) $makesHit[(int)$mk['id']] = true; }
+    foreach ($makes as $mk) { if ($nameHit($mk['t'], $set)) $makesHit[(int)$mk['id']] = true; }
 
     foreach ($models as $md) {
-        if ($md['c'] === '' || mb_strlen($md['c']) < 3) continue;   // слишком короткие — мимо
-        if (ctype_digit($md['c'])) continue;                        // чисто числовые — мимо
-        if (strpos($tc, $md['c']) === false) continue;
+        if (!$nameHit($md['t'], $set)) continue;
         $unique = ($modelNameCount[$md['c']] ?? 0) === 1;
         $makeOk = isset($makesHit[(int)$md['make_id']]);
         // Берём модель, если её марка упомянута, или имя модели уникально в справочнике.
         if ($makeOk || $unique) $linkModels[(int)$md['id']] = null;
     }
 
-    // Двигатель: «2GR» → конкретная модификация (если её марка/модель уместна).
+    // Двигатель: «2GR» (целым словом) → конкретная модификация.
     foreach ($mods as $mo) {
-        if ($mo['c'] === '' || mb_strlen($mo['c']) < 3) continue;
-        if (strpos($tc, $mo['c']) === false) continue;
-        $mid = (int)$mo['model_id'];
-        // модель двигателя берём, даже если её имя в тексте не встретилось напрямую.
-        $linkModels[$mid] = (int)$mo['id'];
+        if ($mo['e'] === '' || strlen($mo['e']) < 3 || !isset($set[$mo['e']])) continue;
+        $linkModels[(int)$mo['model_id']] = (int)$mo['id'];
     }
 
     if (!$linkModels) continue;
